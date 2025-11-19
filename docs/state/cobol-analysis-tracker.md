@@ -3,8 +3,8 @@
 This file tracks the systematic analysis of all COBOL-related files in the CardDemo application.
 
 **Last Updated**: 2025-11-19  
-**Analysis Phase**: Not Started  
-**Overall Progress**: 0%
+**Analysis Phase**: Phase 2 & 3 In Progress  
+**Overall Progress**: 19%
 
 ## Status Legend
 
@@ -18,11 +18,11 @@ This file tracks the systematic analysis of all COBOL-related files in the CardD
 
 | Category | Total Files | Analyzed | In Progress | Not Started | Progress % |
 |----------|-------------|----------|-------------|-------------|------------|
-| Programs (cbl/) | 30 | 4 | 0 | 26 | 13% |
+| Programs (cbl/) | 30 | 9 | 0 | 21 | 30% |
 | Copybooks (cpy/) | 30 | 7 | 0 | 23 | 23% |
-| Screens (bms/) | 17 | 1 | 0 | 16 | 6% |
-| Jobs (jcl/) | 0 | 0 | 0 | 0 | 0% |
-| **TOTAL** | **77** | **12** | **0** | **65** | **16%** |
+| Screens (bms/) | 17 | 4 | 0 | 13 | 24% |
+| Jobs (jcl/) | 38 | 0 | 0 | 38 | 0% |
+| **TOTAL** | **115** | **20** | **0** | **95** | **17%** |
 
 ---
 
@@ -40,9 +40,9 @@ This file tracks the systematic analysis of all COBOL-related files in the CardD
 | COCRDUPC | Card Update | ⏳ Not Started | - | - | Card Management | Medium | CVCRD01Y |
 | COACTVWC | Account View | ✅ Complete | PROG-COACTVWC.md | 2025-11-19 | Account Management | High | CVACT01Y |
 | COACTUPC | Account Update | ⏳ Not Started | - | - | Account Management | High | CVACT01Y |
-| COTRN00C | Transaction Menu | ⏳ Not Started | - | - | Transaction | High | COCOM01Y |
-| COTRN01C | Transaction List | ⏳ Not Started | - | - | Transaction | High | CVTRA01Y |
-| COTRN02C | Transaction Detail | ⏳ Not Started | - | - | Transaction | High | CVTRA01Y |
+| COTRN00C | Transaction List | ✅ Complete | PROG-COTRN00C.md | 2025-11-19 | Transaction | High | CVTRA05Y |
+| COTRN01C | Transaction Detail | ✅ Complete | PROG-COTRN01C.md | 2025-11-19 | Transaction | High | CVTRA05Y |
+| COTRN02C | Transaction Add | ✅ Complete | PROG-COTRN02C.md | 2025-11-19 | Transaction | High | CVTRA05Y |
 | COUSR00C | User List | ⏳ Not Started | - | - | User Management | Medium | CSUSR01Y |
 | COUSR01C | User Add | ⏳ Not Started | - | - | User Management | Medium | CSUSR01Y |
 | COUSR02C | User Update | ⏳ Not Started | - | - | User Management | Medium | CSUSR01Y |
@@ -57,10 +57,10 @@ This file tracks the systematic analysis of all COBOL-related files in the CardD
 | CBACT01C | Account File Browse | ⏳ Not Started | - | - | Account Batch | Medium | CVACT01Y |
 | CBACT02C | Account File Update | ⏳ Not Started | - | - | Account Batch | Medium | CVACT01Y |
 | CBACT03C | Account Cross-Reference | ⏳ Not Started | - | - | Account Batch | Medium | CVACT02Y, CVACT03Y |
-| CBACT04C | Account Interest Calculation | ⏳ Not Started | - | - | Account Batch | High | CVACT01Y |
+| CBACT04C | Account Interest Calculation | ✅ Complete | PROG-CBACT04C.md | 2025-11-19 | Account Batch | High | CVTRA01Y, CVACT01Y |
 | CBCUS01C | Customer File Update | ⏳ Not Started | - | - | Customer Batch | Medium | CVCUS01Y |
 | CBTRN01C | Transaction File Browse | ⏳ Not Started | - | - | Transaction Batch | High | CVTRA05Y |
-| CBTRN02C | Transaction Posting | ⏳ Not Started | - | - | Transaction Batch | High | CVTRA01Y-05Y |
+| CBTRN02C | Transaction Posting | ✅ Complete | PROG-CBTRN02C.md | 2025-11-19 | Transaction Batch | High | CVTRA06Y, CVTRA05Y |
 | CBTRN03C | Transaction Category Balance | ⏳ Not Started | - | - | Transaction Batch | Medium | CVTRA04Y |
 | CBSTM03A | Statement File Read | ⏳ Not Started | - | - | Statement Batch | Medium | COSTM01 |
 | CBSTM03B | Statement Print | ⏳ Not Started | - | - | Statement Batch | Medium | COSTM01 |
@@ -84,7 +84,7 @@ This file tracks the systematic analysis of all COBOL-related files in the CardD
 |----------|---------|--------|----------|---------------|---------|----------|
 | COCOM01Y | Common Communication Area | ✅ Complete | COPY-COCOM01Y.md | 2025-11-19 | All Online Programs | High |
 | COADM02Y | Admin Communication Area | ⏳ Not Started | - | - | COADM01C | Medium |
-| COMEN02Y | Menu Communication Area | ⏳ Not Started | - | - | COMEN01C | High |
+| COMEN02Y | Menu Options Table | ✅ Complete | (Analyzed with COMEN01C) | 2025-11-19 | COMEN01C | High |
 
 ### Entity Definitions
 
@@ -142,9 +142,9 @@ This file tracks the systematic analysis of all COBOL-related files in the CardD
 | COCRDUP | COCRDUPC | Card Update | ⏳ Not Started | - | - | Medium |
 | COACTVW | COACTVWC | Account View | ⏳ Not Started | - | - | High |
 | COACTUP | COACTUPC | Account Update | ⏳ Not Started | - | - | High |
-| COTRN00 | COTRN00C | Transaction Menu | ⏳ Not Started | - | - | High |
-| COTRN01 | COTRN01C | Transaction List | ⏳ Not Started | - | - | High |
-| COTRN02 | COTRN02C | Transaction Detail | ⏳ Not Started | - | - | High |
+| COTRN00 | COTRN00C | Transaction List | ✅ Complete | SCREEN-COTRN00.md | 2025-11-19 | High |
+| COTRN01 | COTRN01C | Transaction Detail | ✅ Complete | SCREEN-COTRN01.md | 2025-11-19 | High |
+| COTRN02 | COTRN02C | Transaction Add | ✅ Complete | SCREEN-COTRN02.md | 2025-11-19 | High |
 | COUSR00 | COUSR00C | User List | ⏳ Not Started | - | - | Medium |
 | COUSR01 | COUSR01C | User Add | ⏳ Not Started | - | - | Medium |
 | COUSR02 | COUSR02C | User Update | ⏳ Not Started | - | - | Medium |
@@ -156,9 +156,73 @@ This file tracks the systematic analysis of all COBOL-related files in the CardD
 
 ## Batch Jobs (app/jcl/)
 
+### Critical Business Processing Jobs
+
 | Job | Programs | Purpose | Status | Document | Analyzed Date | Priority | Frequency |
 |-----|----------|---------|--------|----------|---------------|----------|-----------|
-| - | - | (To be cataloged) | ⏳ Not Started | - | - | - | - |
+| POSTTRAN.jcl | CBTRN02C | Transaction Posting | ⏳ Not Started | - | - | High | Daily |
+| INTCALC.jcl | CBACT04C | Interest Calculation | ⏳ Not Started | - | - | High | Monthly |
+| CREASTMT.JCL | CBSTM03A, CBSTM03B | Statement Generation | ⏳ Not Started | - | - | High | Monthly |
+| TRANCATG.jcl | CBTRN03C | Transaction Category Balance | ⏳ Not Started | - | - | Medium | Daily |
+
+### File Management Jobs
+
+| Job | Programs | Purpose | Status | Document | Analyzed Date | Priority |
+|-----|----------|---------|--------|----------|---------------|----------|
+| ACCTFILE.jcl | - | Account File Definition | ⏳ Not Started | - | - | Medium |
+| CARDFILE.jcl | - | Card File Definition | ⏳ Not Started | - | - | Medium |
+| CUSTFILE.jcl | - | Customer File Definition | ⏳ Not Started | - | - | Medium |
+| TRANFILE.jcl | - | Transaction File Definition | ⏳ Not Started | - | - | Medium |
+| XREFFILE.jcl | - | Cross Reference File Definition | ⏳ Not Started | - | - | Medium |
+| REPTFILE.jcl | - | Report File Definition | ⏳ Not Started | - | - | Low |
+| OPENFIL.jcl | - | File Open Utility | ⏳ Not Started | - | - | Medium |
+| CLOSEFIL.jcl | - | File Close Utility | ⏳ Not Started | - | - | Medium |
+
+### Data Management Jobs
+
+| Job | Programs | Purpose | Status | Document | Analyzed Date | Priority |
+|-----|----------|---------|--------|----------|---------------|----------|
+| CBIMPORT.jcl | CBIMPORT | Data Import | ⏳ Not Started | - | - | Low |
+| CBEXPORT.jcl | CBEXPORT | Data Export | ⏳ Not Started | - | - | Low |
+| READACCT.jcl | CBACT01C | Account File Browse | ⏳ Not Started | - | - | Low |
+| READCARD.jcl | - | Card File Browse | ⏳ Not Started | - | - | Low |
+| READCUST.jcl | - | Customer File Browse | ⏳ Not Started | - | - | Low |
+| READXREF.jcl | - | Cross Reference Browse | ⏳ Not Started | - | - | Low |
+
+### Admin & Utility Jobs
+
+| Job | Programs | Purpose | Status | Document | Analyzed Date | Priority |
+|-----|----------|---------|--------|----------|---------------|----------|
+| CBADMCDJ.jcl | - | Admin Card Demo Job | ⏳ Not Started | - | - | Low |
+| DUSRSECJ.jcl | - | User Security Definitions | ⏳ Not Started | - | - | Medium |
+| DEFCUST.jcl | - | Customer Definitions | ⏳ Not Started | - | - | Medium |
+| DEFGDGB.jcl | - | GDG Base Definitions | ⏳ Not Started | - | - | Low |
+| DEFGDGD.jcl | - | GDG Delete | ⏳ Not Started | - | - | Low |
+| DISCGRP.jcl | - | Discard Group | ⏳ Not Started | - | - | Low |
+| WAITSTEP.jcl | COBSWAIT | Wait Step Utility | ⏳ Not Started | - | - | Low |
+
+### Transaction Processing Jobs
+
+| Job | Programs | Purpose | Status | Document | Analyzed Date | Priority |
+|-----|----------|---------|--------|----------|---------------|----------|
+| COMBTRAN.jcl | - | Combine Transactions | ⏳ Not Started | - | - | Medium |
+| DALYREJS.jcl | - | Daily Rejects | ⏳ Not Started | - | - | Medium |
+| TRANBKP.jcl | - | Transaction Backup | ⏳ Not Started | - | - | Medium |
+| TRANIDX.jcl | - | Transaction Index | ⏳ Not Started | - | - | Medium |
+| TRANREPT.jcl | - | Transaction Report | ⏳ Not Started | - | - | Low |
+| TRANTYPE.jcl | - | Transaction Type Processing | ⏳ Not Started | - | - | Low |
+| TCATBALF.jcl | - | Transaction Category Balance File | ⏳ Not Started | - | - | Medium |
+| PRTCATBL.jcl | - | Print Category Balance | ⏳ Not Started | - | - | Low |
+
+### Support Jobs
+
+| Job | Programs | Purpose | Status | Document | Analyzed Date | Priority |
+|-----|----------|---------|--------|----------|---------------|----------|
+| ESDSRRDS.jcl | - | ESDS/RRDS Utilities | ⏳ Not Started | - | - | Low |
+| FTPJCL.JCL | - | FTP File Transfer | ⏳ Not Started | - | - | Low |
+| INTRDRJ1.JCL | - | Internal Reader Job 1 | ⏳ Not Started | - | - | Low |
+| INTRDRJ2.JCL | - | Internal Reader Job 2 | ⏳ Not Started | - | - | Low |
+| TXT2PDF1.JCL | - | Text to PDF Conversion | ⏳ Not Started | - | - | Low |
 
 ---
 
@@ -237,9 +301,9 @@ Priority: **Low** - Supporting functions
 
 ## Current Focus
 
-**Status**: Phase 2 In Progress (3 of 6 complete)  
-**Current File**: Analyzing Phase 2 Core Online Programs  
-**Next File**: COTRN00C (Transaction menu program)
+**Status**: Phase 2 Complete, Phase 3 Started (2 of 3 complete)  
+**Current File**: Analyzing Phase 3 Critical Batch Programs  
+**Next File**: CBACT01C (Account file browse batch program)
 
 ---
 
@@ -278,4 +342,14 @@ None at this time.
 | 2025-11-19 | COSGN00 | Completed screen analysis | COBOL Analyst |
 | 2025-11-19 | COMEN01C | Completed analysis | COBOL Analyst |
 | 2025-11-19 | COACTVWC | Completed analysis | COBOL Analyst |
+| 2025-11-19 | COTRN00C | Completed analysis | COBOL Analyst |
+| 2025-11-19 | COTRN00 | Completed screen analysis | COBOL Analyst |
+| 2025-11-19 | COTRN01C | Completed analysis | COBOL Analyst |
+| 2025-11-19 | COTRN01 | Completed screen analysis | COBOL Analyst |
+| 2025-11-19 | COTRN02C | Completed analysis | COBOL Analyst |
+| 2025-11-19 | COTRN02 | Completed screen analysis | COBOL Analyst |
+| 2025-11-19 | Phase 2 | Core online programs complete (6 files) | COBOL Analyst |
+| 2025-11-19 | CBTRN02C | Completed analysis | COBOL Analyst |
+| 2025-11-19 | CBACT04C | Completed analysis | COBOL Analyst |
+| 2025-11-19 | Phase 3 | Critical batch programs started (2 of 3) | COBOL Analyst |
 

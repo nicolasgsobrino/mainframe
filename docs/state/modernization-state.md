@@ -1,17 +1,17 @@
 # Modernization State
 
 **Last Updated**: 2025-11-19  
-**Current Phase**: Initial Analysis - Phase 1 & 2 In Progress  
-**Overall Progress**: 16%
+**Current Phase**: Initial Analysis - Phase 2 & 3 In Progress  
+**Overall Progress**: 17% (20 of 115 files)
 
 ## Phase Status
 
 - [x] Project Setup
-- [~] Initial Analysis (In Progress - 16% complete)
+- [~] Initial Analysis (In Progress - 17% complete)
   - [x] Phase 1.1a: Foundation Copybooks (100% - 7 files)
   - [x] Phase 1.1b: Foundation Programs (100% - 1 file)
-  - [~] Phase 1.1c: Core Online Programs (50% - 3 of 6 files)
-  - [ ] Phase 1.1d: Critical Batch Programs (0%)
+  - [x] Phase 1.1c: Core Online Programs (100% - 6 of 6 files)
+  - [~] Phase 1.1d: Critical Batch Programs (67% - 2 of 3 files)
   - [ ] Phase 1.1e: Extended Online Programs (0%)
   - [ ] Phase 1.1f: Reporting & Admin (0%)
   - [ ] Phase 1.1g: Remaining Utilities (0%)
@@ -32,7 +32,11 @@
 
 ### 🔄 Initial Analysis (In Progress - Started 2025-11-19)
 **Current Focus**: Phase 1.1 - COBOL File Analysis  
-**Completion**: 16% (12 of 77 files analyzed)
+**Completion**: 17% (20 of 115 files analyzed)
+- Programs: 9 of 30 (30%)
+- Copybooks: 7 of 30 (23%)  
+- Screens: 4 of 17 (24%)
+- Jobs: 0 of 38 (0%)
 
 #### Phase 1.1: COBOL File Analysis (COBOL Analyst)
 
@@ -47,15 +51,24 @@
   - CVTRA01Y (Transaction category balance)
 - ✅ Foundation program analyzed (1 file):
   - CSUTLDTC (Date validation utility)
-- ✅ Core online programs analyzed (3 files):
+- ✅ Core online programs analyzed (6 files):
   - COSGN00C (Authentication)
   - COMEN01C (Main menu)
   - COACTVWC (Account view)
-- ✅ Screen definition analyzed (1 file):
+  - COTRN00C (Transaction list)
+  - COTRN01C (Transaction detail)
+  - COTRN02C (Transaction add)
+- ✅ Screen definitions analyzed (4 files):
   - COSGN00 (Sign-on screen)
+  - COTRN00 (Transaction list screen)
+  - COTRN01 (Transaction detail screen)
+  - COTRN02 (Transaction add screen)
+- ✅ Critical batch programs analyzed (2 files):
+  - CBTRN02C (Transaction posting)
+  - CBACT04C (Interest calculation)
 
 **In Progress**:
-- Phase 2: Core online programs (3 remaining: COTRN00C, COTRN01C, COTRN02C)
+- Phase 3: Critical batch programs (1 remaining: CBACT01C)
 
 **Remaining**:
 - Complete copybook documentation (23 remaining)
@@ -113,19 +126,25 @@
 ## Current Focus
 
 **Phase**: Initial Analysis - COBOL File Analysis  
-**Component**: Core Online Programs (Phase 2)  
-**Activity**: Systematic analysis of authentication, menu, and account modules  
-**Progress**: 12 of 77 files completed (16%)
-**Next**: Transaction programs (COTRN00C, COTRN01C, COTRN02C)
+**Component**: Critical Batch Programs (Phase 3)  
+**Activity**: Systematic analysis of transaction processing and account management batch programs  
+**Progress**: 20 of 115 files completed (17%)
+**Files Breakdown**: 
+- 30 COBOL programs (9 analyzed)
+- 30 copybooks (7 analyzed)
+- 17 BMS screens (4 analyzed)
+- 38 JCL batch jobs (0 analyzed)
+**Next**: CBACT01C (Account file browse), then extended online programs
 
 ## Metrics
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| COBOL Programs Analyzed (File-level) | 4 | 30+ |
-| COBOL Copybooks Analyzed | 7 | 30+ |
-| COBOL Screens Analyzed | 1 | 17 |
-| Batch Jobs Analyzed | 0 | 10+ |
+| COBOL Programs Analyzed (File-level) | 9 | 30 |
+| COBOL Copybooks Analyzed | 7 | 30 |
+| COBOL Screens Analyzed | 4 | 17 |
+| Batch Jobs Analyzed | 0 | 38 |
+| **Total Files Analyzed** | **20** | **115** |
 | Business Requirements Documented | 0 | 7 |
 | Use Cases Documented | 0 | 30+ |
 | User Stories Created | 0 | 70+ |
@@ -171,10 +190,22 @@
 
 ## Recent Accomplishments (2025-11-19)
 
+**Session 1**:
 - Completed foundational copybook analysis (COCOM01Y, CSMSG01Y, CSDAT01Y, CUSTREC, CVACT01Y, CVCRD01Y, CVTRA01Y)
 - Analyzed date validation utility (CSUTLDTC)
 - Documented authentication flow (COSGN00C + COSGN00 screen)
 - Documented main menu navigation (COMEN01C + menu structure)
 - Analyzed account inquiry functionality (COACTVWC)
 - Established systematic file-by-file analysis workflow
-- 16% overall progress achieved in first session
+- 10% overall progress achieved (12 of 115 files)
+
+**Session 2**:
+- Completed Phase 2: Core online programs (3 programs + 3 screens)
+  - Transaction list (COTRN00C + COTRN00)
+  - Transaction detail (COTRN01C + COTRN01)
+  - Transaction add (COTRN02C + COTRN02)
+- Started Phase 3: Critical batch programs (2 of 3 complete)
+  - Transaction posting (CBTRN02C) - daily batch
+  - Interest calculation (CBACT04C) - monthly batch
+- 17% overall progress achieved (20 of 115 files)
+- Documented key business processes: transaction inquiry, add, posting, interest calculation
