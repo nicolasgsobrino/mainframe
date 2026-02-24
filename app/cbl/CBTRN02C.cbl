@@ -400,8 +400,8 @@
               NOT INVALID KEY                                                   
       *         DISPLAY 'ACCT-CREDIT-LIMIT:' ACCT-CREDIT-LIMIT                  
       *         DISPLAY 'TRAN-AMT         :' DALYTRAN-AMT                       
-                COMPUTE WS-TEMP-BAL = ACCT-CURR-CYC-CREDIT                      
-                                    - ACCT-CURR-CYC-DEBIT                       
+                COMPUTE WS-TEMP-BAL = ACCT-CURR-CYC-CREDIT
+                                    + ACCT-CURR-CYC-DEBIT
                                     + DALYTRAN-AMT                              
                                                                                 
                 IF ACCT-CREDIT-LIMIT >= WS-TEMP-BAL                             
@@ -551,11 +551,12 @@
               ADD DALYTRAN-AMT TO ACCT-CURR-CYC-DEBIT                           
            END-IF                                                               
                                                                                 
-           REWRITE FD-ACCTFILE-REC FROM  ACCOUNT-RECORD                         
-              INVALID KEY                                                       
-                MOVE 109 TO WS-VALIDATION-FAIL-REASON                           
-                MOVE 'ACCOUNT RECORD NOT FOUND'                                 
-                  TO WS-VALIDATION-FAIL-REASON-DESC                             
+           REWRITE FD-ACCTFILE-REC FROM  ACCOUNT-RECORD
+              INVALID KEY
+                DISPLAY 'ERROR REWRITING ACCOUNT FILE'
+                MOVE ACCTFILE-STATUS TO IO-STATUS
+                PERFORM 9910-DISPLAY-IO-STATUS
+                PERFORM 9999-ABEND-PROGRAM
            END-REWRITE.                                                         
            EXIT.                                                                
       *---------------------------------------------------------------*         
@@ -645,13 +646,13 @@
            IF  APPL-AOK                                                         
                CONTINUE                                                         
            ELSE                                                                 
-               DISPLAY 'ERROR CLOSING DAILY REJECTS FILE'                       
-               MOVE XREFFILE-STATUS TO IO-STATUS                                
-               PERFORM 9910-DISPLAY-IO-STATUS                                   
-               PERFORM 9999-ABEND-PROGRAM                                       
-           END-IF                                                               
-           EXIT.                                                                
-      *---------------------------------------------------------------*         
+               DISPLAY 'ERROR CLOSING DAILY REJECTS FILE'
+               MOVE DALYREJS-STATUS TO IO-STATUS
+               PERFORM 9910-DISPLAY-IO-STATUS
+               PERFORM 9999-ABEND-PROGRAM
+           END-IF
+           EXIT.
+      *---------------------------------------------------------------*
        9400-ACCTFILE-CLOSE.                                                     
            MOVE 8 TO APPL-RESULT.                                               
            CLOSE ACCOUNT-FILE                                                   

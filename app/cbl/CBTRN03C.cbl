@@ -167,42 +167,37 @@
                                                                                 
            PERFORM 0550-DATEPARM-READ.                                          
                                                                                 
-           PERFORM UNTIL END-OF-FILE = 'Y'                                      
-             IF END-OF-FILE = 'N'                                               
-                PERFORM 1000-TRANFILE-GET-NEXT                                  
-                IF TRAN-PROC-TS (1:10) >= WS-START-DATE                         
-                   AND TRAN-PROC-TS (1:10) <= WS-END-DATE                       
-                   CONTINUE                                                     
-                ELSE                                                            
-                   NEXT SENTENCE                                                
-                END-IF                                                          
-                IF END-OF-FILE = 'N'                                            
-                   DISPLAY TRAN-RECORD                                          
-                   IF WS-CURR-CARD-NUM NOT= TRAN-CARD-NUM                       
-                     IF WS-FIRST-TIME = 'N'                                     
-                       PERFORM 1120-WRITE-ACCOUNT-TOTALS                        
-                     END-IF                                                     
-                     MOVE TRAN-CARD-NUM TO WS-CURR-CARD-NUM                     
-                     MOVE TRAN-CARD-NUM TO FD-XREF-CARD-NUM                     
-                     PERFORM 1500-A-LOOKUP-XREF                                 
-                   END-IF                                                       
-                   MOVE TRAN-TYPE-CD OF TRAN-RECORD TO FD-TRAN-TYPE             
-                   PERFORM 1500-B-LOOKUP-TRANTYPE                               
-                   MOVE TRAN-TYPE-CD OF TRAN-RECORD                             
-                     TO FD-TRAN-TYPE-CD OF FD-TRAN-CAT-KEY                      
-                   MOVE TRAN-CAT-CD OF TRAN-RECORD                              
-                     TO FD-TRAN-CAT-CD OF FD-TRAN-CAT-KEY                       
-                   PERFORM 1500-C-LOOKUP-TRANCATG                               
-                   PERFORM 1100-WRITE-TRANSACTION-REPORT                        
-                ELSE                                                            
-                 DISPLAY 'TRAN-AMT ' TRAN-AMT                                   
-                 DISPLAY 'WS-PAGE-TOTAL'  WS-PAGE-TOTAL                         
-                 ADD TRAN-AMT TO WS-PAGE-TOTAL                                  
-                                 WS-ACCOUNT-TOTAL                               
-                 PERFORM 1110-WRITE-PAGE-TOTALS                                 
-                 PERFORM 1110-WRITE-GRAND-TOTALS                                
-                END-IF                                                          
-             END-IF                                                             
+           PERFORM UNTIL END-OF-FILE = 'Y'
+             IF END-OF-FILE = 'N'
+                PERFORM 1000-TRANFILE-GET-NEXT
+                IF END-OF-FILE = 'N'
+                   IF TRAN-PROC-TS (1:10) >= WS-START-DATE
+                      AND TRAN-PROC-TS (1:10) <= WS-END-DATE
+                     DISPLAY TRAN-RECORD
+                     IF WS-CURR-CARD-NUM NOT= TRAN-CARD-NUM
+                       IF WS-FIRST-TIME = 'N'
+                         PERFORM 1120-WRITE-ACCOUNT-TOTALS
+                       END-IF
+                       MOVE TRAN-CARD-NUM TO WS-CURR-CARD-NUM
+                       MOVE TRAN-CARD-NUM TO FD-XREF-CARD-NUM
+                       PERFORM 1500-A-LOOKUP-XREF
+                     END-IF
+                     MOVE TRAN-TYPE-CD OF TRAN-RECORD
+                       TO FD-TRAN-TYPE
+                     PERFORM 1500-B-LOOKUP-TRANTYPE
+                     MOVE TRAN-TYPE-CD OF TRAN-RECORD
+                       TO FD-TRAN-TYPE-CD OF FD-TRAN-CAT-KEY
+                     MOVE TRAN-CAT-CD OF TRAN-RECORD
+                       TO FD-TRAN-CAT-CD OF FD-TRAN-CAT-KEY
+                     PERFORM 1500-C-LOOKUP-TRANCATG
+                     PERFORM 1100-WRITE-TRANSACTION-REPORT
+                   END-IF
+                ELSE
+                   PERFORM 1120-WRITE-ACCOUNT-TOTALS
+                   PERFORM 1110-WRITE-PAGE-TOTALS
+                   PERFORM 1110-WRITE-GRAND-TOTALS
+                END-IF
+             END-IF
            END-PERFORM.                                                         
                                                                                 
            PERFORM 9000-TRANFILE-CLOSE.                                         

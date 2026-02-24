@@ -461,7 +461,7 @@
       *---------------------------------------------------------------*         
        1300-COMPUTE-INTEREST.                                                   
                                                                                 
-           COMPUTE WS-MONTHLY-INT                                               
+           COMPUTE WS-MONTHLY-INT ROUNDED
             = ( TRAN-CAT-BAL * DIS-INT-RATE) / 1200                             
                                                                                 
            ADD WS-MONTHLY-INT  TO WS-TOTAL-INT                                  
