@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CardDemo — Credit Card Management System</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--accent:#6366f1;--accent2:#818cf8;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;--dim:#64748b}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Login */
+#login{position:fixed;inset:0;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);display:flex;align-items:center;justify-content:center;z-index:100}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px;width:400px;box-shadow:0 25px 50px -12px rgba(0,0,0,.5)}
+.login-card h1{font-size:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.login-card p{color:var(--muted);font-size:13px;margin-bottom:32px}
+.input-group{margin-bottom:16px}
+.input-group label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.input-group input{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font-size:14px;transition:border .2s}
+.input-group input:focus{outline:none;border-color:var(--accent)}
+.btn{padding:12px 24px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#4f46e5);color:#fff;width:100%}
+.btn-primary:hover{box-shadow:0 4px 15px rgba(99,102,241,.4)}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:8px}
+.btn-green{background:var(--green);color:#000}
+.btn-red{background:var(--red);color:#fff}
+.btn-amber{background:var(--amber);color:#000}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-ghost:hover{background:var(--surface2)}
+.hidden{display:none !important}
+.alert{padding:12px 16px;border-radius:10px;font-size:13px;margin:12px 0;animation:fadeIn .3s}
+.alert-ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86efac}
+.alert-err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+/* Layout */
+#app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column}
+.sidebar-brand{padding:0 20px 24px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.sidebar-brand h2{font-size:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar-brand span{font-size:11px;color:var(--dim)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(99,102,241,.05);color:var(--text)}
+.nav-item.active{color:var(--accent2);background:rgba(99,102,241,.1);border-left-color:var(--accent)}
+.nav-item .icon{width:18px;text-align:center;font-size:15px}
+.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--dim)}
+.main{padding:24px 32px;overflow-y:auto;max-height:100vh}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.stat-card .value{font-size:32px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-card .label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+
+/* Section */
+.section{display:none}
+.section.active{display:block}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-header h2{font-size:20px}
+.section-header .badge{font-size:11px;padding:4px 12px;border-radius:20px;background:rgba(99,102,241,.15);color:var(--accent2)}
+
+/* Table */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:12px 16px;background:var(--bg);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);border-bottom:1px solid var(--border)}
+td{padding:10px 16px;border-bottom:1px solid rgba(71,85,105,.3);font-size:13px}
+tr:hover td{background:rgba(99,102,241,.03)}
+.tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.tag-active{background:rgba(34,197,94,.15);color:var(--green)}
+.tag-inactive{background:rgba(239,68,68,.15);color:var(--red)}
+.tag-admin{background:rgba(245,158,11,.15);color:var(--amber)}
+.tag-user{background:rgba(99,102,241,.15);color:var(--accent2)}
+
+/* Forms */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px}
+.form-row{display:flex;gap:12px;margin-bottom:12px;align-items:end;flex-wrap:wrap}
+.form-field{flex:1;min-width:140px}
+.form-field label{display:block;font-size:11px;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.form-field input,.form-field select{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px}
+.form-field input:focus,.form-field select:focus{outline:none;border-color:var(--accent)}
+
+/* Code */
+.code{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;font-family:'SF Mono',Monaco,monospace;font-size:12px;overflow:auto;max-height:400px;white-space:pre;line-height:1.6}
+
+/* Cards grid */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;transition:all .2s}
+.info-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.2)}
+.info-card h4{font-size:14px;margin-bottom:8px}
+.info-card .detail{font-size:12px;color:var(--muted);margin-bottom:4px}
+.money{color:var(--green);font-weight:600}
+.money.negative{color:var(--red)}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-card">
+    <h1>CardDemo</h1>
+    <p>Credit Card Management System — Translated from COBOL/CICS/VSAM to Python</p>
+    <div class="input-group">
+      <label>User ID</label>
+      <input id="l-uid" value="ADMIN001" placeholder="Enter your user ID">
+    </div>
+    <div class="input-group">
+      <label>Password</label>
+      <input id="l-pwd" type="password" value="PASSWORD" placeholder="Enter password">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+    <div id="l-msg"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h2>CardDemo</h2>
+      <span>Python Edition</span>
+    </div>
+    <div class="nav-item active" data-section="dashboard"><span class="icon">◉</span> Dashboard</div>
+    <div class="nav-item" data-section="accounts"><span class="icon">⊞</span> Accounts</div>
+    <div class="nav-item" data-section="cards"><span class="icon">▣</span> Credit Cards</div>
+    <div class="nav-item" data-section="transactions"><span class="icon">⇄</span> Transactions</div>
+    <div class="nav-item" data-section="users"><span class="icon">◎</span> Users</div>
+    <div class="nav-item" data-section="batch"><span class="icon">⚙</span> Batch Operations</div>
+    <div class="nav-item" data-section="about"><span class="icon">ℹ</span> About</div>
+    <div class="sidebar-footer">
+      <div id="user-info"></div>
+      <div style="margin-top:8px;cursor:pointer;color:var(--red)" onclick="logout()">Sign Out</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- DASHBOARD -->
+    <div id="sec-dashboard" class="section active">
+      <div class="section-header"><h2>Dashboard</h2></div>
+      <div id="stats" class="stats-grid"></div>
+      <div class="section-header"><h2>Accounts Overview</h2></div>
+      <div id="dash-accounts" class="card-grid"></div>
+    </div>
+
+    <!-- ACCOUNTS -->
+    <div id="sec-accounts" class="section">
+      <div class="section-header"><h2>Account Management</h2><span class="badge">COACTVWC / COACTUPC</span></div>
+      <div class="table-wrap"><table id="tbl-accounts"><thead><tr><th>ID</th><th>Status</th><th>Balance</th><th>Credit Limit</th><th>Cash Limit</th><th>Group</th></tr></thead><tbody></tbody></table></div>
+      <div class="form-card">
+        <h4 style="margin-bottom:12px">Bill Payment</h4>
+        <div class="form-row">
+          <div class="form-field"><label>Account ID</label><input id="bp-acct" placeholder="11"></div>
+          <div style="padding-bottom:1px"><button class="btn btn-green btn-sm" onclick="payBill()">Pay Full Balance</button></div>
+        </div>
+        <div id="bp-msg"></div>
+      </div>
+    </div>
+
+    <!-- CARDS -->
+    <div id="sec-cards" class="section">
+      <div class="section-header"><h2>Credit Cards</h2><span class="badge">COCRDLIC / COCRDUPC</span></div>
+      <div class="table-wrap"><table id="tbl-cards"><thead><tr><th>Card Number</th><th>Account</th><th>Embossed Name</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+      <div class="form-card">
+        <h4 style="margin-bottom:12px">Update Card</h4>
+        <div class="form-row">
+          <div class="form-field"><label>Card Number</label><input id="cu-num" placeholder="4111111111111111"></div>
+          <div class="form-field"><label>Embossed Name</label><input id="cu-name" placeholder="NEW NAME"></div>
+          <div class="form-field"><label>Status</label><select id="cu-status"><option value="Y">Active</option><option value="N">Inactive</option></select></div>
+          <div style="padding-bottom:1px"><button class="btn btn-primary btn-sm" onclick="updateCard()">Update</button></div>
+        </div>
+        <div id="cu-msg"></div>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div id="sec-transactions" class="section">
+      <div class="section-header"><h2>Transactions</h2><span class="badge">COTRN00C / COTRN02C</span></div>
+      <div class="table-wrap"><table id="tbl-trans"><thead><tr><th>ID</th><th>Card</th><th>Amount</th><th>Type</th><th>Description</th><th>Merchant</th><th>City</th><th>Date</th></tr></thead><tbody></tbody></table></div>
+      <div id="trans-pager" style="text-align:center;margin-top:12px"></div>
+      <div class="form-card">
+        <h4 style="margin-bottom:12px">Add Transaction</h4>
+        <div class="form-row">
+          <div class="form-field"><label>Account ID</label><input id="at-acct" placeholder="11"></div>
+          <div class="form-field"><label>Amount</label><input id="at-amt" placeholder="250.00"></div>
+          <div class="form-field"><label>Description</label><input id="at-desc" placeholder="Purchase at..."></div>
+          <div class="form-field"><label>Merchant</label><input id="at-merch" placeholder="Amazon"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>City</label><input id="at-city" placeholder="Seattle"></div>
+          <div class="form-field"><label>Type</label><input id="at-type" value="01"></div>
+          <div style="padding-bottom:1px"><button class="btn btn-primary btn-sm" onclick="addTran()">Add</button></div>
+        </div>
+        <div id="at-msg"></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="sec-users" class="section">
+      <div class="section-header"><h2>User Administration</h2><span class="badge">COUSR00C-03C</span></div>
+      <div class="table-wrap"><table id="tbl-users"><thead><tr><th>User ID</th><th>First Name</th><th>Last Name</th><th>Type</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+      <div class="form-card">
+        <h4 style="margin-bottom:12px">Add User</h4>
+        <div class="form-row">
+          <div class="form-field"><label>User ID</label><input id="au-id" placeholder="USER0099"></div>
+          <div class="form-field"><label>First Name</label><input id="au-fn" placeholder="JOHN"></div>
+          <div class="form-field"><label>Last Name</label><input id="au-ln" placeholder="DOE"></div>
+          <div class="form-field"><label>Password</label><input id="au-pw" placeholder="PASS1234"></div>
+          <div class="form-field"><label>Type</label><select id="au-type"><option value="U">User</option><option value="A">Admin</option></select></div>
+          <div style="padding-bottom:1px"><button class="btn btn-primary btn-sm" onclick="addUser()">Add</button></div>
+        </div>
+        <div id="au-msg"></div>
+      </div>
+    </div>
+
+    <!-- BATCH -->
+    <div id="sec-batch" class="section">
+      <div class="section-header"><h2>Batch Operations</h2><span class="badge">CBACT04C / CBTRN03C</span></div>
+      <div class="card-grid">
+        <div class="info-card">
+          <h4>Interest Calculation</h4>
+          <p class="detail">Calculate monthly interest for all active accounts using disclosure group rates.</p>
+          <button class="btn btn-amber btn-sm" style="margin-top:12px" onclick="calcInterest()">Run Interest Calc</button>
+          <div id="ic-msg" style="margin-top:8px"></div>
+        </div>
+        <div class="info-card">
+          <h4>Transaction Report</h4>
+          <p class="detail">Generate report for a date range.</p>
+          <div class="form-row" style="margin-top:12px">
+            <div class="form-field"><label>Start</label><input id="rp-s" value="2026-02-01" type="date"></div>
+            <div class="form-field"><label>End</label><input id="rp-e" value="2026-02-28" type="date"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="genReport()">Generate</button>
+          <div id="rp-msg" style="margin-top:8px"></div>
+        </div>
+      </div>
+      <div id="batch-results" style="margin-top:16px"></div>
+    </div>
+
+    <!-- ABOUT -->
+    <div id="sec-about" class="section">
+      <div class="section-header"><h2>About CardDemo Python Edition</h2></div>
+      <div class="info-card" style="max-width:700px">
+        <h4>COBOL to Python Translation</h4>
+        <div class="detail" style="line-height:1.8;margin-top:12px">
+          <p>CardDemo is a comprehensive credit card management system originally written in COBOL for IBM mainframes.</p>
+          <p style="margin-top:8px"><strong>Original:</strong> 30,175 lines of COBOL across 44 programs, using CICS for transactions, VSAM for data storage, BMS for screens, JCL for batch processing, and RACF for security.</p>
+          <p style="margin-top:8px"><strong>Python Edition:</strong> Faithful translation of all 18 core business operations to Python, with 49 passing tests. Fixes 14 bugs identified in the original COBOL source code.</p>
+          <p style="margin-top:8px"><strong>Source:</strong> <a href="https://github.com/aws-samples/aws-mainframe-modernization-carddemo" style="color:var(--accent2)">aws-samples/aws-mainframe-modernization-carddemo</a></p>
+        </div>
+        <h4 style="margin-top:24px">COBOL Programs Translated</h4>
+        <div class="code" style="margin-top:8px;font-size:11px">COSGN00C  260 LOC  → sign_on()           Authentication
+COACTVWC  941 LOC  → get_account()       Account View
+COACTUPC 4236 LOC  → update_account()    Account Update
+COCRDLIC 1459 LOC  → list_cards()        Card List
+COCRDSLC  887 LOC  → get_card()          Card View
+COCRDUPC 1560 LOC  → update_card()       Card Update
+COTRN00C  699 LOC  → list_transactions() Transaction List
+COTRN01C  330 LOC  → get_transaction()   Transaction View
+COTRN02C  783 LOC  → add_transaction()   Transaction Add
+COBIL00C  572 LOC  → pay_bill()          Bill Payment
+COUSR00C  695 LOC  → list_users()        User List
+COUSR01C  299 LOC  → add_user()          User Add
+COUSR02C  414 LOC  → update_user()       User Update
+COUSR03C  359 LOC  → delete_user()       User Delete
+CBACT04C  652 LOC  → calculate_interest() Interest Calc
+CBTRN02C  731 LOC  → post_transaction()  Transaction Post
+CBSTM03A  924 LOC  → generate_statement() Statement Gen
+CBTRN03C  649 LOC  → generate_report()   Transaction Report
+─────────────────────────────────────────────────────────
+TOTAL   15,450 LOC → ~400 LOC Python (97% reduction)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const A='';
+let currentUser=null, transPage=1;
+
+async function doLogin(){
+  const r=await fetch(A+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:$('l-uid').value,password:$('l-pwd').value})});
+  const d=await r.json();
+  if(d.success){currentUser=d;$('login').classList.add('hidden');$('app').classList.remove('hidden');$('user-info').textContent=d.user_name+' ('+d.user_type+')';loadAll();}
+  else{$('l-msg').innerHTML=`<div class="alert alert-err">${d.error}</div>`}
+}
+function logout(){$('login').classList.remove('hidden');$('app').classList.add('hidden');currentUser=null;}
+function $(id){return document.getElementById(id)}
+
+async function loadAll(){loadStats();loadAccounts();loadCards();loadTrans();loadUsers();}
+
+async function loadStats(){
+  const d=await(await fetch(A+'/api/stats')).json();
+  $('stats').innerHTML=`
+    <div class="stat-card"><div class="value">${d.accounts}</div><div class="label">Accounts</div></div>
+    <div class="stat-card"><div class="value">${d.cards}</div><div class="label">Credit Cards</div></div>
+    <div class="stat-card"><div class="value">${d.transactions}</div><div class="label">Transactions</div></div>
+    <div class="stat-card"><div class="value">${d.users}</div><div class="label">Users</div></div>
+    <div class="stat-card"><div class="value">${d.cobol_lines_original.toLocaleString()}</div><div class="label">COBOL Lines</div></div>
+    <div class="stat-card"><div class="value">${d.bugs_fixed}</div><div class="label">Bugs Fixed</div></div>`;
+  // Dashboard accounts
+  const a=await(await fetch(A+'/api/accounts')).json();
+  $('dash-accounts').innerHTML=a.accounts.map(ac=>`
+    <div class="info-card">
+      <h4>Account #${ac.id} ${ac.status==='Y'?'<span class="tag tag-active">Active</span>':'<span class="tag tag-inactive">Inactive</span>'}</h4>
+      <div class="detail">Balance: <span class="money ${ac.balance<0?'negative':''}">$${ac.balance.toLocaleString(undefined,{minimumFractionDigits:2})}</span></div>
+      <div class="detail">Credit Limit: $${ac.credit_limit.toLocaleString()}</div>
+      <div class="detail">Group: ${ac.group}</div>
+    </div>`).join('');
+}
+
+async function loadAccounts(){
+  const d=await(await fetch(A+'/api/accounts')).json();
+  document.querySelector('#tbl-accounts tbody').innerHTML=d.accounts.map(a=>`<tr>
+    <td><strong>${a.id}</strong></td>
+    <td>${a.status==='Y'?'<span class="tag tag-active">Active</span>':'<span class="tag tag-inactive">Inactive</span>'}</td>
+    <td class="money">$${a.balance.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+    <td>$${a.credit_limit.toLocaleString()}</td><td>$${a.cash_limit.toLocaleString()}</td><td>${a.group}</td></tr>`).join('');
+}
+
+async function loadCards(){
+  const d=await(await fetch(A+'/api/cards')).json();
+  document.querySelector('#tbl-cards tbody').innerHTML=d.cards.map(c=>`<tr>
+    <td><code>${c.num}</code></td><td>${c.acct_id}</td><td>${c.name}</td><td>${c.expiry}</td>
+    <td>${c.status==='Y'?'<span class="tag tag-active">Active</span>':'<span class="tag tag-inactive">Inactive</span>'}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="$('cu-num').value='${c.num}';$('cu-name').value='${c.name}'">Edit</button></td></tr>`).join('');
+}
+
+async function loadTrans(page){
+  transPage=page||1;
+  const d=await(await fetch(A+'/api/transactions?page='+transPage)).json();
+  document.querySelector('#tbl-trans tbody').innerHTML=d.transactions.map(t=>`<tr>
+    <td><code>${t.id.slice(-6)}</code></td><td>···${t.card}</td>
+    <td class="money">$${t.amt.toFixed(2)}</td><td>${t.type}</td><td>${t.desc}</td>
+    <td>${t.merchant}</td><td>${t.city}</td><td>${t.date}</td></tr>`).join('');
+  let pg='';
+  for(let i=1;i<=d.pages;i++){pg+=`<button class="btn ${i===d.page?'btn-primary':'btn-ghost'} btn-sm" style="margin:0 2px" onclick="loadTrans(${i})">${i}</button>`;}
+  $('trans-pager').innerHTML=pg;
+}
+
+async function loadUsers(){
+  const d=await(await fetch(A+'/api/users')).json();
+  document.querySelector('#tbl-users tbody').innerHTML=d.users.map(u=>`<tr>
+    <td><strong>${u.id}</strong></td><td>${u.first_name}</td><td>${u.last_name}</td>
+    <td>${u.type==='A'?'<span class="tag tag-admin">Admin</span>':'<span class="tag tag-user">User</span>'}</td>
+    <td><button class="btn btn-red btn-sm" onclick="delUser('${u.id}')">Delete</button></td></tr>`).join('');
+}
+
+async function payBill(){
+  const d=await(await fetch(A+'/api/bill/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acct_id:$('bp-acct').value})})).json();
+  $('bp-msg').innerHTML=d.success?`<div class="alert alert-ok">Paid $${d.paid.toFixed(2)}</div>`:`<div class="alert alert-err">${d.error}</div>`;
+  if(d.success){loadAccounts();loadStats();}
+}
+
+async function updateCard(){
+  const d=await(await fetch(A+'/api/card/'+$('cu-num').value+'/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({embossed_name:$('cu-name').value,active_status:$('cu-status').value})})).json();
+  $('cu-msg').innerHTML=d.success?'<div class="alert alert-ok">Card updated</div>':`<div class="alert alert-err">${d.error}</div>`;
+  if(d.success)loadCards();
+}
+
+async function addTran(){
+  const d=await(await fetch(A+'/api/transaction/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acct_id:$('at-acct').value,amt:$('at-amt').value,desc:$('at-desc').value,merchant_name:$('at-merch').value,merchant_city:$('at-city').value,type_cd:$('at-type').value})})).json();
+  $('at-msg').innerHTML=d.success?`<div class="alert alert-ok">Transaction ${d.transaction_id} added</div>`:`<div class="alert alert-err">${d.error}</div>`;
+  if(d.success){loadTrans();loadStats();}
+}
+
+async function addUser(){
+  const d=await(await fetch(A+'/api/user/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:$('au-id').value,first_name:$('au-fn').value,last_name:$('au-ln').value,password:$('au-pw').value,user_type:$('au-type').value})})).json();
+  $('au-msg').innerHTML=d.success?'<div class="alert alert-ok">User added</div>':`<div class="alert alert-err">${d.error}</div>`;
+  if(d.success){loadUsers();loadStats();}
+}
+
+async function delUser(uid){
+  if(!confirm('Delete user '+uid+'?'))return;
+  await fetch(A+'/api/user/'+uid+'/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current_user_id:currentUser?.session_id?.replace('SID-','')})});
+  loadUsers();loadStats();
+}
+
+async function calcInterest(){
+  const d=await(await fetch(A+'/api/interest/calculate',{method:'POST'})).json();
+  $('ic-msg').innerHTML=`<div class="alert alert-ok">${d.accounts_processed} accounts processed</div>`;
+  if(d.results?.length){
+    $('batch-results').innerHTML='<div class="table-wrap"><table><thead><tr><th>Account</th><th>Rate</th><th>Interest</th><th>New Balance</th></tr></thead><tbody>'+
+      d.results.map(r=>`<tr><td>${r.account_id}</td><td>${r.rate}%</td><td class="money">$${r.interest.toFixed(2)}</td><td class="money">$${r.new_balance.toFixed(2)}</td></tr>`).join('')+'</tbody></table></div>';
+  }
+  loadAccounts();loadStats();
+}
+
+async function genReport(){
+  const d=await(await fetch(A+'/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({start_date:$('rp-s').value,end_date:$('rp-e').value})})).json();
+  $('rp-msg').innerHTML=`<div class="alert alert-ok">${d.total_count} transactions, total: $${d.total_amount?.toFixed(2)}</div>`;
+  if(d.transactions?.length){
+    $('batch-results').innerHTML='<div class="table-wrap"><table><thead><tr><th>ID</th><th>Date</th><th>Amount</th><th>Description</th><th>Card</th></tr></thead><tbody>'+
+      d.transactions.map(t=>`<tr><td>${t.id.slice(-6)}</td><td>${t.date?.split('T')[0]||''}</td><td class="money">$${t.amt.toFixed(2)}</td><td>${t.desc}</td><td>···${t.card}</td></tr>`).join('')+'</tbody></table></div>';
+  }
+}
+
+document.querySelectorAll('.nav-item').forEach(n=>{
+  n.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+    n.classList.add('active');
+    $('sec-'+n.dataset.section).classList.add('active');
+  });
+});
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!currentUser)doLogin();});
+</script>
+</body>
+</html>
