@@ -1,0 +1,41 @@
+{
+  "program": "COBSWAIT_CORRUPT_BYTES",
+  "source_path": "app/cbl/COBSWAIT.cbl",
+  "source_sha256": "38a8d28235e58509776f5c8c74c113d5848a7ac68fab753c55ab887221c3b43a",
+  "sections": {
+    "file": [],
+    "working_storage": [
+      {
+        "level": 1,
+        "name": "MVSWAIT-TIME",
+        "line": 30,
+        "usage": "COMP",
+        "pic": "9(8)",
+        "children": [],
+        "encoding": "binary",
+        "slack_bytes_before": 0,
+        "total_bytes": 99,
+        "qualified_name": "MVSWAIT-TIME",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "PARM-VALUE",
+        "line": 31,
+        "usage": "DISPLAY",
+        "pic": "X(8)",
+        "children": [],
+        "encoding": "display",
+        "slack_bytes_before": 0,
+        "total_bytes": 8,
+        "qualified_name": "PARM-VALUE",
+        "section": "working_storage"
+      }
+    ],
+    "linkage": []
+  },
+  "totals": {
+    "working_storage_bytes": 12,
+    "linkage_bytes": 0
+  }
+}

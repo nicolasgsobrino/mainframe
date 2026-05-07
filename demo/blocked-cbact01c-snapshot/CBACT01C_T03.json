@@ -1,0 +1,13 @@
+{
+  "tier": "T03",
+  "file": "translations/baseline/CBACT01C.md",
+  "score": 1.0,
+  "matched": 84,
+  "total": 84,
+  "threshold": 0.95,
+  "pass": true,
+  "failures": [],
+  "cfg_items_total": 66,
+  "cfg_items_01": 21,
+  "validator_version": "v1.0.1-option-a"
+}

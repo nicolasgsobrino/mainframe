@@ -1,0 +1,8 @@
+{
+  "program": "COSGN00C",
+  "source_path": "app/cbl/COSGN00C.cbl",
+  "source_sha256": "4f901ae6b113eebae60ae1d94b30f8cb9906d031a4419770bf56980bdf97e377",
+  "byte_layouts_path": "validation/pass1/byte_layouts/COSGN00C.json",
+  "byte_layouts_sha256": "2aa66e2fbcc4111acff15ee7a5ec3a7c6c18ad0a5f162f71fd2d9b33a4f24756",
+  "file_control": []
+}

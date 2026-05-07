@@ -1,0 +1,337 @@
+{
+  "program_id": "CBACT04C",
+  "source_file": "app/cbl/CBACT04C.cbl",
+  "source_sha": "e63090114e1c2e41c5eb607ea1f277f05c0ae69a",
+  "cfg_tool": "Cobol-REKT smojol-cli + extract_cfg_summary.py",
+  "paragraphs": [
+    {
+      "name": "0000-TCATBALF-OPEN",
+      "reachable": true,
+      "performs": [
+        "0100-XREFFILE-OPEN",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "0100-XREFFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "0200-DISCGRP-OPEN",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "0200-DISCGRP-OPEN",
+      "reachable": true,
+      "performs": [
+        "0300-ACCTFILE-OPEN",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "0300-ACCTFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "0400-TRANFILE-OPEN",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "0400-TRANFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "1000-TCATBALF-GET-NEXT",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1000-TCATBALF-GET-NEXT",
+      "reachable": true,
+      "performs": [
+        "1050-UPDATE-ACCOUNT",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1050-UPDATE-ACCOUNT",
+      "reachable": true,
+      "performs": [
+        "1100-GET-ACCT-DATA",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1100-GET-ACCT-DATA",
+      "reachable": true,
+      "performs": [
+        "1110-GET-XREF-DATA",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1110-GET-XREF-DATA",
+      "reachable": true,
+      "performs": [
+        "1200-GET-INTEREST-RATE",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1200-A-GET-DEFAULT-INT-RATE",
+      "reachable": true,
+      "performs": [
+        "1300-COMPUTE-INTEREST",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1200-GET-INTEREST-RATE",
+      "reachable": true,
+      "performs": [
+        "1200-A-GET-DEFAULT-INT-RATE",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1300-B-WRITE-TX",
+      "reachable": true,
+      "performs": [
+        "1400-COMPUTE-FEES",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS",
+        "Z-GET-DB2-FORMAT-TIMESTAMP"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1300-COMPUTE-INTEREST",
+      "reachable": true,
+      "performs": [
+        "1300-B-WRITE-TX"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1400-COMPUTE-FEES",
+      "reachable": true,
+      "performs": [
+        "9000-TCATBALF-CLOSE"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9000-TCATBALF-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9100-XREFFILE-CLOSE",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9100-XREFFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9200-DISCGRP-CLOSE",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9200-DISCGRP-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9300-ACCTFILE-CLOSE",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9300-ACCTFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9400-TRANFILE-CLOSE",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9400-TRANFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "Z-GET-DB2-FORMAT-TIMESTAMP",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9910-DISPLAY-IO-STATUS",
+      "reachable": true,
+      "performs": [],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9999-ABEND-PROGRAM",
+      "reachable": true,
+      "performs": [
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "Z-GET-DB2-FORMAT-TIMESTAMP",
+      "reachable": true,
+      "performs": [
+        "9999-ABEND-PROGRAM"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    }
+  ],
+  "data_items": [
+    {
+      "name": "FD-TRAN-CAT-BAL-RECORD",
+      "level": 1
+    },
+    {
+      "name": "FD-XREFFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-DISCGRP-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-ACCTFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-TRANFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "TCATBALF-STATUS",
+      "level": 1
+    },
+    {
+      "name": "XREFFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "DISCGRP-STATUS",
+      "level": 1
+    },
+    {
+      "name": "ACCTFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "TRANFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "IO-STATUS",
+      "level": 1
+    },
+    {
+      "name": "TWO-BYTES-BINARY",
+      "level": 1
+    },
+    {
+      "name": "TWO-BYTES-ALPHA",
+      "level": 1
+    },
+    {
+      "name": "IO-STATUS-04",
+      "level": 1
+    },
+    {
+      "name": "APPL-RESULT",
+      "level": 1
+    },
+    {
+      "name": "END-OF-FILE",
+      "level": 1
+    },
+    {
+      "name": "ABCODE",
+      "level": 1
+    },
+    {
+      "name": "TIMING",
+      "level": 1
+    },
+    {
+      "name": "COBOL-TS",
+      "level": 1
+    },
+    {
+      "name": "DB2-FORMAT-TS",
+      "level": 1
+    },
+    {
+      "name": "FILLER",
+      "level": 1
+    },
+    {
+      "name": "WS-MISC-VARS",
+      "level": 1
+    },
+    {
+      "name": "WS-COUNTERS",
+      "level": 1
+    },
+    {
+      "name": "EXTERNAL-PARMS",
+      "level": 1
+    }
+  ]
+}

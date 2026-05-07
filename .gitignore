@@ -1,8 +1,36 @@
-mock-data-generator/node_modules/*
-sample/*
-.vscode/*
-mock-data-generator/markers/*
-batch-app/markers/*
-/.idea/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Gate pipeline derived artifacts
+# Regenerate locally with: python validation/extract_ground_truth.py
+#                           python validation/extract_md_claims.py
+#                           python validation/gate_compare.py
+validation/ground_truth/
+validation/claims/
+validation/reports/
+
+# Gate run logs — committed for audit trail, excluded from gitignore
+# Remove the next line if you want logs tracked in git
+validation/logs/
+
+# OS
 .DS_Store
-**/.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Log files — prevent raw logs from being committed to repo root
+# (Operation Tidy Step 2a — Amendment 5)
+cocrdlic_log.txt
+*_log.txt
+*.log

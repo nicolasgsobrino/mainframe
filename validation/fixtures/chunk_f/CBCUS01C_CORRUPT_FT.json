@@ -1,0 +1,71 @@
+{
+  "program": "CBCUS01C_CORRUPT_FT",
+  "source_path": "app/cbl/CBCUS01C.cbl",
+  "source_sha256": "233dbc3bc33a3b9ac555922085a92be56e88d16316bff624b5723c4c36c99714",
+  "cfg_path": "validation/pass1/CBCUS01C_annotations.json",
+  "cfg_sha256": "ab00a83ff96b471c4441f76d23253b530dbd34fc1bc9c72841b81c3d2a116707",
+  "paragraphs": [
+    {
+      "paragraph": "CBCUS01C-MAIN",
+      "first_line": 71,
+      "last_line": 87,
+      "terminator": "goback",
+      "falls_through_to": null,
+      "last_verb": "GOBACK",
+      "last_raw": "GOBACK.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "first_line": 93,
+      "last_line": 116,
+      "terminator": "implicit",
+      "falls_through_to": "BOGUS-PARA",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "first_line": 119,
+      "last_line": 134,
+      "terminator": "implicit",
+      "falls_through_to": "9000-CUSTFILE-CLOSE",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "first_line": 137,
+      "last_line": 152,
+      "terminator": "implicit",
+      "falls_through_to": "Z-ABEND-PROGRAM",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "Z-ABEND-PROGRAM",
+      "first_line": 155,
+      "last_line": 158,
+      "terminator": "implicit",
+      "falls_through_to": "Z-DISPLAY-IO-STATUS",
+      "last_verb": "CALL",
+      "last_raw": "CALL 'CEE3ABD' USING ABCODE TIMING.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "first_line": 162,
+      "last_line": 174,
+      "terminator": "implicit-end-of-program",
+      "falls_through_to": null,
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    }
+  ],
+  "c5_assertion": "PASS",
+  "c5_violations": []
+}

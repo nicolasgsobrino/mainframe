@@ -1,0 +1,89 @@
+[
+  {
+    "seq": 1,
+    "paragraph": "COBSWAIT-MAIN",
+    "line": 36,
+    "verb": "ACCEPT",
+    "operands": [
+      "PARM-VALUE",
+      "SYSIN"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": false,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [],
+    "cfg_successors": [
+      2
+    ],
+    "division": "PROCEDURE",
+    "raw": "ACCEPT PARM-VALUE FROM SYSIN.",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 2,
+    "paragraph": "COBSWAIT-MAIN",
+    "line": 37,
+    "verb": "MOVE",
+    "operands": [
+      "PARM-VALUE",
+      "MVSWAIT-TIME"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": false,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      1
+    ],
+    "cfg_successors": [
+      3
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE PARM-VALUE TO MVSWAIT-TIME."
+  },
+  {
+    "seq": 3,
+    "paragraph": "COBSWAIT-MAIN",
+    "line": 38,
+    "verb": "CALL",
+    "operands": [
+      "'MVSWAIT'",
+      "MVSWAIT-TIME"
+    ],
+    "operand_types": [
+      "external-program",
+      "working-storage"
+    ],
+    "cfg_reachable": false,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      2
+    ],
+    "cfg_successors": [
+      4
+    ],
+    "division": "PROCEDURE",
+    "raw": "CALL 'MVSWAIT' USING MVSWAIT-TIME."
+  },
+  {
+    "seq": 4,
+    "paragraph": "COBSWAIT-MAIN",
+    "line": 40,
+    "verb": "STOP RUN",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": false,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      3
+    ],
+    "cfg_successors": [],
+    "division": "PROCEDURE",
+    "raw": "STOP RUN."
+  }
+]

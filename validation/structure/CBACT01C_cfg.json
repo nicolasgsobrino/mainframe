@@ -1,0 +1,262 @@
+{
+  "program_id": "CBACT01C",
+  "source_file": "app/cbl/CBACT01C.cbl",
+  "source_sha": "04afa9ea75e6ef9feb9f6bfe6018af1eea2a3aa4",
+  "cfg_tool": "Cobol-REKT smojol-cli + extract_cfg_summary.py",
+  "paragraphs": [
+    {
+      "name": "0000-ACCTFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "2000-OUTFILE-OPEN",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1000-ACCTFILE-GET-NEXT",
+      "reachable": true,
+      "performs": [
+        "1100-DISPLAY-ACCT-RECORD",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS",
+        "1575-WRITE-VB2-RECORD",
+        "1550-WRITE-VB1-RECORD",
+        "1500-POPUL-VBRC-RECORD",
+        "1450-WRITE-ARRY-RECORD",
+        "1400-POPUL-ARRAY-RECORD",
+        "1350-WRITE-ACCT-RECORD",
+        "1300-POPUL-ACCT-RECORD"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1100-DISPLAY-ACCT-RECORD",
+      "reachable": true,
+      "performs": [
+        "1300-POPUL-ACCT-RECORD"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1300-POPUL-ACCT-RECORD",
+      "reachable": true,
+      "performs": [
+        "1350-WRITE-ACCT-RECORD"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1350-WRITE-ACCT-RECORD",
+      "reachable": true,
+      "performs": [
+        "1400-POPUL-ARRAY-RECORD",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1400-POPUL-ARRAY-RECORD",
+      "reachable": true,
+      "performs": [
+        "1450-WRITE-ARRY-RECORD"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1450-WRITE-ARRY-RECORD",
+      "reachable": true,
+      "performs": [
+        "1500-POPUL-VBRC-RECORD",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1500-POPUL-VBRC-RECORD",
+      "reachable": true,
+      "performs": [
+        "1550-WRITE-VB1-RECORD"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1550-WRITE-VB1-RECORD",
+      "reachable": true,
+      "performs": [
+        "1575-WRITE-VB2-RECORD",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1575-WRITE-VB2-RECORD",
+      "reachable": true,
+      "performs": [
+        "0000-ACCTFILE-OPEN",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "2000-OUTFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "3000-ARRFILE-OPEN",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "3000-ARRFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "4000-VBRFILE-OPEN",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "4000-VBRFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "9000-ACCTFILE-CLOSE",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9000-ACCTFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9910-DISPLAY-IO-STATUS",
+      "reachable": true,
+      "performs": [],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9999-ABEND-PROGRAM",
+      "reachable": true,
+      "performs": [
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    }
+  ],
+  "data_items": [
+    {
+      "name": "FD-ACCTFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "OUT-ACCT-REC",
+      "level": 1
+    },
+    {
+      "name": "ARR-ARRAY-REC",
+      "level": 1
+    },
+    {
+      "name": "VBR-REC",
+      "level": 1
+    },
+    {
+      "name": "ACCTFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "OUTFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "ARRYFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "VBRCFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "IO-STATUS",
+      "level": 1
+    },
+    {
+      "name": "TWO-BYTES-BINARY",
+      "level": 1
+    },
+    {
+      "name": "TWO-BYTES-ALPHA",
+      "level": 1
+    },
+    {
+      "name": "IO-STATUS-04",
+      "level": 1
+    },
+    {
+      "name": "APPL-RESULT",
+      "level": 1
+    },
+    {
+      "name": "END-OF-FILE",
+      "level": 1
+    },
+    {
+      "name": "ABCODE",
+      "level": 1
+    },
+    {
+      "name": "TIMING",
+      "level": 1
+    },
+    {
+      "name": "WS-RECD-LEN",
+      "level": 1
+    },
+    {
+      "name": "VBRC-REC1",
+      "level": 1
+    },
+    {
+      "name": "VBRC-REC2",
+      "level": 1
+    },
+    {
+      "name": "WS-ACCT-REISSUE-DATE",
+      "level": 1
+    },
+    {
+      "name": "WS-REISSUE-DATE",
+      "level": 1
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "tier": "T02",
+  "file": "translations/baseline/CBACT01C.md",
+  "pass": true,
+  "errors": [],
+  "counts": {
+    "paragraphs_cfg": 21,
+    "paragraphs_md": 21,
+    "data_items_01_cfg": 21,
+    "data_items_md": 21
+  }
+}

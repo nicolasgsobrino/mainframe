@@ -1,0 +1,38 @@
+[
+  {
+    "event": "cfg_phantom_filtered",
+    "paragraph_candidate": "END-EXEC",
+    "line": 110,
+    "reason": "Cobol-REKT artefact: scope terminator or data-item name"
+  },
+  {
+    "event": "cfg_phantom_filtered",
+    "paragraph_candidate": "END-IF",
+    "line": 191,
+    "reason": "Cobol-REKT artefact: scope terminator or data-item name"
+  },
+  {
+    "event": "cfg_phantom_filtered",
+    "paragraph_candidate": "END-EXEC",
+    "line": 203,
+    "reason": "Cobol-REKT artefact: scope terminator or data-item name"
+  },
+  {
+    "event": "cfg_phantom_filtered",
+    "paragraph_candidate": "END-EXEC",
+    "line": 220,
+    "reason": "Cobol-REKT artefact: scope terminator or data-item name"
+  },
+  {
+    "event": "cfg_phantom_filtered",
+    "paragraph_candidate": "END-EXEC",
+    "line": 233,
+    "reason": "Cobol-REKT artefact: scope terminator or data-item name"
+  },
+  {
+    "event": "cfg_phantom_filtered",
+    "paragraph_candidate": "END-PERFORM",
+    "line": 303,
+    "reason": "Cobol-REKT artefact: scope terminator or data-item name"
+  }
+]

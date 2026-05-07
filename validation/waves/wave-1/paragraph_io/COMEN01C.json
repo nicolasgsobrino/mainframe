@@ -1,0 +1,551 @@
+{
+  "program": "COMEN01C",
+  "source_path": "app/cbl/COMEN01C.cbl",
+  "source_sha256": "c77747b4caaf00b45177a6449562b7f59ec336db832937595edef8b32fdce6fa",
+  "cfg_path": "validation/pass1/COMEN01C_annotations.json",
+  "cfg_sha256": "630532b8e02f6814934f856f9006527c1eba825814122318a084c2cc8a2b57a9",
+  "byte_layouts_path": "validation/pass1/byte_layouts/COMEN01C.json",
+  "byte_layouts_sha256": "27c86260721ff2890147c24155d61e0d62aa6ba30faf46acfa4317ac9043397b",
+  "paragraphs": [
+    {
+      "paragraph": "MAIN-PARA",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "ERR-FLG-OFF",
+          "verb": "SET",
+          "line": 77,
+          "raw": "SET ERR-FLG-OFF TO TRUE"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-MESSAGE",
+          "verb": "MOVE",
+          "line": 79,
+          "raw": "MOVE SPACES TO WS-MESSAGE"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-FROM-PROGRAM",
+          "verb": "MOVE",
+          "line": 83,
+          "raw": "MOVE 'COSGN00C' TO CDEMO-FROM-PROGRAM"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA",
+          "verb": "MOVE",
+          "line": 86,
+          "raw": "MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA"
+        },
+        {
+          "fd_name": "CDEMO-PGM-REENTER",
+          "verb": "SET",
+          "line": 88,
+          "raw": "SET CDEMO-PGM-REENTER TO TRUE"
+        },
+        {
+          "fd_name": "COMEN1AO",
+          "verb": "MOVE",
+          "line": 89,
+          "raw": "MOVE LOW-VALUES TO COMEN1AO"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-TO-PROGRAM",
+          "verb": "MOVE",
+          "line": 97,
+          "raw": "MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-ERR-FLG",
+          "verb": "MOVE",
+          "line": 100,
+          "raw": "MOVE 'Y' TO WS-ERR-FLG"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "EIBCALEN",
+          "verb": "IF",
+          "line": 82,
+          "raw": "IF EIBCALEN = 0"
+        },
+        {
+          "fd_name": "DFHCOMMAREA",
+          "verb": "MOVE",
+          "line": 86,
+          "raw": "MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA"
+        },
+        {
+          "fd_name": "CDEMO-PGM-REENTER",
+          "verb": "IF",
+          "line": 87,
+          "raw": "IF NOT CDEMO-PGM-REENTER"
+        },
+        {
+          "fd_name": "EIBAID",
+          "verb": "EVALUATE",
+          "line": 93,
+          "raw": "EVALUATE EIBAID"
+        },
+        {
+          "fd_name": "CCDA-COMMON-MESSAGES.CCDA-MSG-INVALID-KEY",
+          "verb": "MOVE",
+          "line": 101,
+          "raw": "MOVE CCDA-MSG-INVALID-KEY TO WS-MESSAGE"
+        }
+      ]
+    },
+    {
+      "paragraph": "PROCESS-ENTER-KEY",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "WS-VARIABLES.WS-OPTION-X",
+          "verb": "MOVE",
+          "line": 122,
+          "raw": "MOVE OPTIONI OF COMEN1AI(1:WS-IDX) TO WS-OPTION-X"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-OPTION",
+          "verb": "MOVE",
+          "line": 124,
+          "raw": "MOVE WS-OPTION-X TO WS-OPTION"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTIONO",
+          "verb": "MOVE",
+          "line": 125,
+          "raw": "MOVE WS-OPTION TO OPTIONO OF COMEN1AO"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-ERR-FLG",
+          "verb": "MOVE",
+          "line": 130,
+          "raw": "MOVE 'Y' TO WS-ERR-FLG"
+        },
+        {
+          "fd_name": "ERR-FLG-ON",
+          "verb": "SET",
+          "line": 138,
+          "raw": "SET ERR-FLG-ON TO TRUE"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-MESSAGE",
+          "verb": "MOVE",
+          "line": 139,
+          "raw": "MOVE SPACES TO WS-MESSAGE"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-FROM-TRANID",
+          "verb": "MOVE",
+          "line": 153,
+          "raw": "MOVE WS-TRANID TO CDEMO-FROM-TRANID"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-FROM-PROGRAM",
+          "verb": "MOVE",
+          "line": 154,
+          "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-PGM-CONTEXT",
+          "verb": "MOVE",
+          "line": 155,
+          "raw": "MOVE ZEROS TO CDEMO-PGM-CONTEXT"
+        },
+        {
+          "fd_name": "COMEN1AO.ERRMSGC",
+          "verb": "MOVE",
+          "line": 162,
+          "raw": "MOVE DFHRED TO ERRMSGC OF COMEN1AO"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "COMEN1AI.OPTIONI",
+          "verb": "MOVE",
+          "line": 122,
+          "raw": "MOVE OPTIONI OF COMEN1AI(1:WS-IDX) TO WS-OPTION-X"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-IDX",
+          "verb": "MOVE",
+          "line": 122,
+          "raw": "MOVE OPTIONI OF COMEN1AI(1:WS-IDX) TO WS-OPTION-X"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-OPTION-X",
+          "verb": "MOVE",
+          "line": 124,
+          "raw": "MOVE WS-OPTION-X TO WS-OPTION"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-OPTION",
+          "verb": "MOVE",
+          "line": 125,
+          "raw": "MOVE WS-OPTION TO OPTIONO OF COMEN1AO"
+        },
+        {
+          "fd_name": "CDEMO-USRTYP-USER",
+          "verb": "IF",
+          "line": 136,
+          "raw": "IF CDEMO-USRTYP-USER AND"
+        },
+        {
+          "fd_name": "ERR-FLG-ON",
+          "verb": "IF",
+          "line": 145,
+          "raw": "IF NOT ERR-FLG-ON"
+        },
+        {
+          "fd_name": "EIBRESP",
+          "verb": "IF",
+          "line": 152,
+          "raw": "IF EIBRESP = DFHRESP(NORMAL)"
+        },
+        {
+          "fd_name": "DFHRESP",
+          "verb": "IF",
+          "line": 152,
+          "raw": "IF EIBRESP = DFHRESP(NORMAL)"
+        },
+        {
+          "fd_name": "NORMAL",
+          "verb": "IF",
+          "line": 152,
+          "raw": "IF EIBRESP = DFHRESP(NORMAL)"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-TRANID",
+          "verb": "MOVE",
+          "line": 153,
+          "raw": "MOVE WS-TRANID TO CDEMO-FROM-TRANID"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-PGMNAME",
+          "verb": "MOVE",
+          "line": 154,
+          "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM"
+        },
+        {
+          "fd_name": "DFHRED",
+          "verb": "MOVE",
+          "line": 162,
+          "raw": "MOVE DFHRED TO ERRMSGC OF COMEN1AO"
+        },
+        {
+          "fd_name": "DFHGREEN",
+          "verb": "MOVE",
+          "line": 171,
+          "raw": "MOVE DFHGREEN TO ERRMSGC OF COMEN1AO"
+        }
+      ]
+    },
+    {
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-TO-PROGRAM",
+          "verb": "MOVE",
+          "line": 199,
+          "raw": "MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-TO-PROGRAM",
+          "verb": "IF",
+          "line": 198,
+          "raw": "IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES"
+        }
+      ]
+    },
+    {
+      "paragraph": "SEND-MENU-SCREEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "COMEN1AO.ERRMSGO",
+          "verb": "MOVE",
+          "line": 213,
+          "raw": "MOVE WS-MESSAGE TO ERRMSGO OF COMEN1AO"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "WS-VARIABLES.WS-MESSAGE",
+          "verb": "MOVE",
+          "line": 213,
+          "raw": "MOVE WS-MESSAGE TO ERRMSGO OF COMEN1AO"
+        }
+      ]
+    },
+    {
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "classification_source": "annotations",
+      "mutates": [],
+      "reads": []
+    },
+    {
+      "paragraph": "POPULATE-HEADER-INFO",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA",
+          "verb": "MOVE",
+          "line": 240,
+          "raw": "MOVE FUNCTION CURRENT-DATE TO WS-CURDATE-DATA"
+        },
+        {
+          "fd_name": "COMEN1AO.TITLE01O",
+          "verb": "MOVE",
+          "line": 242,
+          "raw": "MOVE CCDA-TITLE01 TO TITLE01O OF COMEN1AO"
+        },
+        {
+          "fd_name": "COMEN1AO.TITLE02O",
+          "verb": "MOVE",
+          "line": 243,
+          "raw": "MOVE CCDA-TITLE02 TO TITLE02O OF COMEN1AO"
+        },
+        {
+          "fd_name": "COMEN1AO.TRNNAMEO",
+          "verb": "MOVE",
+          "line": 244,
+          "raw": "MOVE WS-TRANID TO TRNNAMEO OF COMEN1AO"
+        },
+        {
+          "fd_name": "COMEN1AO.PGMNAMEO",
+          "verb": "MOVE",
+          "line": 245,
+          "raw": "MOVE WS-PGMNAME TO PGMNAMEO OF COMEN1AO"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-MM-DD-YY.WS-CURDATE-MM",
+          "verb": "MOVE",
+          "line": 247,
+          "raw": "MOVE WS-CURDATE-MONTH TO WS-CURDATE-MM"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-MM-DD-YY.WS-CURDATE-DD",
+          "verb": "MOVE",
+          "line": 248,
+          "raw": "MOVE WS-CURDATE-DAY TO WS-CURDATE-DD"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-MM-DD-YY.WS-CURDATE-YY",
+          "verb": "MOVE",
+          "line": 249,
+          "raw": "MOVE WS-CURDATE-YEAR(3:2) TO WS-CURDATE-YY"
+        },
+        {
+          "fd_name": "COMEN1AO.CURDATEO",
+          "verb": "MOVE",
+          "line": 251,
+          "raw": "MOVE WS-CURDATE-MM-DD-YY TO CURDATEO OF COMEN1AO"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURTIME-HH-MM-SS.WS-CURTIME-HH",
+          "verb": "MOVE",
+          "line": 253,
+          "raw": "MOVE WS-CURTIME-HOURS TO WS-CURTIME-HH"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURTIME-HH-MM-SS.WS-CURTIME-MM",
+          "verb": "MOVE",
+          "line": 254,
+          "raw": "MOVE WS-CURTIME-MINUTE TO WS-CURTIME-MM"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURTIME-HH-MM-SS.WS-CURTIME-SS",
+          "verb": "MOVE",
+          "line": 255,
+          "raw": "MOVE WS-CURTIME-SECOND TO WS-CURTIME-SS"
+        },
+        {
+          "fd_name": "COMEN1AO.CURTIMEO",
+          "verb": "MOVE",
+          "line": 257,
+          "raw": "MOVE WS-CURTIME-HH-MM-SS TO CURTIMEO OF COMEN1AO."
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CCDA-SCREEN-TITLE.CCDA-TITLE01",
+          "verb": "MOVE",
+          "line": 242,
+          "raw": "MOVE CCDA-TITLE01 TO TITLE01O OF COMEN1AO"
+        },
+        {
+          "fd_name": "CCDA-SCREEN-TITLE.CCDA-TITLE02",
+          "verb": "MOVE",
+          "line": 243,
+          "raw": "MOVE CCDA-TITLE02 TO TITLE02O OF COMEN1AO"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-TRANID",
+          "verb": "MOVE",
+          "line": 244,
+          "raw": "MOVE WS-TRANID TO TRNNAMEO OF COMEN1AO"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-PGMNAME",
+          "verb": "MOVE",
+          "line": 245,
+          "raw": "MOVE WS-PGMNAME TO PGMNAMEO OF COMEN1AO"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURDATE.WS-CURDATE-MONTH",
+          "verb": "MOVE",
+          "line": 247,
+          "raw": "MOVE WS-CURDATE-MONTH TO WS-CURDATE-MM"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURDATE.WS-CURDATE-DAY",
+          "verb": "MOVE",
+          "line": 248,
+          "raw": "MOVE WS-CURDATE-DAY TO WS-CURDATE-DD"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURDATE.WS-CURDATE-YEAR",
+          "verb": "MOVE",
+          "line": 249,
+          "raw": "MOVE WS-CURDATE-YEAR(3:2) TO WS-CURDATE-YY"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-MM-DD-YY",
+          "verb": "MOVE",
+          "line": 251,
+          "raw": "MOVE WS-CURDATE-MM-DD-YY TO CURDATEO OF COMEN1AO"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURTIME.WS-CURTIME-HOURS",
+          "verb": "MOVE",
+          "line": 253,
+          "raw": "MOVE WS-CURTIME-HOURS TO WS-CURTIME-HH"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURTIME.WS-CURTIME-MINUTE",
+          "verb": "MOVE",
+          "line": 254,
+          "raw": "MOVE WS-CURTIME-MINUTE TO WS-CURTIME-MM"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURTIME.WS-CURTIME-SECOND",
+          "verb": "MOVE",
+          "line": 255,
+          "raw": "MOVE WS-CURTIME-SECOND TO WS-CURTIME-SS"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURTIME-HH-MM-SS",
+          "verb": "MOVE",
+          "line": 257,
+          "raw": "MOVE WS-CURTIME-HH-MM-SS TO CURTIMEO OF COMEN1AO."
+        }
+      ]
+    },
+    {
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "WS-VARIABLES.WS-MENU-OPT-TXT",
+          "verb": "MOVE",
+          "line": 267,
+          "raw": "MOVE SPACES TO WS-MENU-OPT-TXT"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN001O",
+          "verb": "MOVE",
+          "line": 276,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN001O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN002O",
+          "verb": "MOVE",
+          "line": 278,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN002O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN003O",
+          "verb": "MOVE",
+          "line": 280,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN003O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN004O",
+          "verb": "MOVE",
+          "line": 282,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN004O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN005O",
+          "verb": "MOVE",
+          "line": 284,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN005O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN006O",
+          "verb": "MOVE",
+          "line": 286,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN006O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN007O",
+          "verb": "MOVE",
+          "line": 288,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN007O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN008O",
+          "verb": "MOVE",
+          "line": 290,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN008O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN009O",
+          "verb": "MOVE",
+          "line": 292,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN009O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN010O",
+          "verb": "MOVE",
+          "line": 294,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN010O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN011O",
+          "verb": "MOVE",
+          "line": 296,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN011O"
+        },
+        {
+          "fd_name": "COMEN1AO.OPTN012O",
+          "verb": "MOVE",
+          "line": 298,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN012O"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CARDDEMO-MAIN-MENU-OPTIONS.CDEMO-MENU-OPTIONS.CDEMO-MENU-OPT.CDEMO-MENU-OPT-NUM",
+          "verb": "STRING",
+          "line": 269,
+          "raw": "STRING CDEMO-MENU-OPT-NUM(WS-IDX) DELIMITED BY SIZE"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-IDX",
+          "verb": "STRING",
+          "line": 269,
+          "raw": "STRING CDEMO-MENU-OPT-NUM(WS-IDX) DELIMITED BY SIZE"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-MENU-OPT-TXT",
+          "verb": "MOVE",
+          "line": 276,
+          "raw": "MOVE WS-MENU-OPT-TXT TO OPTN001O"
+        }
+      ]
+    }
+  ]
+}

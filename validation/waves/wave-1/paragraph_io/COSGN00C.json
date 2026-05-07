@@ -1,0 +1,417 @@
+{
+  "program": "COSGN00C",
+  "source_path": "app/cbl/COSGN00C.cbl",
+  "source_sha256": "4f901ae6b113eebae60ae1d94b30f8cb9906d031a4419770bf56980bdf97e377",
+  "cfg_path": "validation/pass1/COSGN00C_annotations.json",
+  "cfg_sha256": "de970ffb2a23639bef0ebc27e331e4dd410f5ad4f556362e8f3710ddab54f856",
+  "byte_layouts_path": "validation/pass1/byte_layouts/COSGN00C.json",
+  "byte_layouts_sha256": "2aa66e2fbcc4111acff15ee7a5ec3a7c6c18ad0a5f162f71fd2d9b33a4f24756",
+  "paragraphs": [
+    {
+      "paragraph": "MAIN-PARA",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "ERR-FLG-OFF",
+          "verb": "SET",
+          "line": 75,
+          "raw": "SET ERR-FLG-OFF TO TRUE"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-MESSAGE",
+          "verb": "MOVE",
+          "line": 77,
+          "raw": "MOVE SPACES TO WS-MESSAGE"
+        },
+        {
+          "fd_name": "COSGN0AO",
+          "verb": "MOVE",
+          "line": 81,
+          "raw": "MOVE LOW-VALUES TO COSGN0AO"
+        },
+        {
+          "fd_name": "COSGN0AI.USERIDL",
+          "verb": "MOVE",
+          "line": 82,
+          "raw": "MOVE -1 TO USERIDL OF COSGN0AI"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-ERR-FLG",
+          "verb": "MOVE",
+          "line": 92,
+          "raw": "MOVE 'Y' TO WS-ERR-FLG"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "EIBCALEN",
+          "verb": "IF",
+          "line": 80,
+          "raw": "IF EIBCALEN = 0"
+        },
+        {
+          "fd_name": "EIBAID",
+          "verb": "EVALUATE",
+          "line": 85,
+          "raw": "EVALUATE EIBAID"
+        },
+        {
+          "fd_name": "CCDA-COMMON-MESSAGES.CCDA-MSG-THANK-YOU",
+          "verb": "MOVE",
+          "line": 89,
+          "raw": "MOVE CCDA-MSG-THANK-YOU TO WS-MESSAGE"
+        },
+        {
+          "fd_name": "CCDA-COMMON-MESSAGES.CCDA-MSG-INVALID-KEY",
+          "verb": "MOVE",
+          "line": 93,
+          "raw": "MOVE CCDA-MSG-INVALID-KEY TO WS-MESSAGE"
+        }
+      ]
+    },
+    {
+      "paragraph": "PROCESS-ENTER-KEY",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "WS-VARIABLES.WS-ERR-FLG",
+          "verb": "MOVE",
+          "line": 119,
+          "raw": "MOVE 'Y' TO WS-ERR-FLG"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-MESSAGE",
+          "verb": "MOVE",
+          "line": 120,
+          "raw": "MOVE 'Please enter User ID ...' TO WS-MESSAGE"
+        },
+        {
+          "fd_name": "COSGN0AI.USERIDL",
+          "verb": "MOVE",
+          "line": 121,
+          "raw": "MOVE -1 TO USERIDL OF COSGN0AI"
+        },
+        {
+          "fd_name": "COSGN0AI.PASSWDL",
+          "verb": "MOVE",
+          "line": 126,
+          "raw": "MOVE -1 TO PASSWDL OF COSGN0AI"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "COSGN0AI.USERIDI",
+          "verb": "MOVE",
+          "line": 132,
+          "raw": "MOVE FUNCTION UPPER-CASE(USERIDI OF COSGN0AI) TO"
+        },
+        {
+          "fd_name": "COSGN0AI.PASSWDI",
+          "verb": "MOVE",
+          "line": 135,
+          "raw": "MOVE FUNCTION UPPER-CASE(PASSWDI OF COSGN0AI) TO"
+        },
+        {
+          "fd_name": "ERR-FLG-ON",
+          "verb": "IF",
+          "line": 138,
+          "raw": "IF NOT ERR-FLG-ON"
+        }
+      ]
+    },
+    {
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "COSGN0AO.ERRMSGO",
+          "verb": "MOVE",
+          "line": 149,
+          "raw": "MOVE WS-MESSAGE TO ERRMSGO OF COSGN0AO"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "WS-VARIABLES.WS-MESSAGE",
+          "verb": "MOVE",
+          "line": 149,
+          "raw": "MOVE WS-MESSAGE TO ERRMSGO OF COSGN0AO"
+        }
+      ]
+    },
+    {
+      "paragraph": "SEND-PLAIN-TEXT",
+      "classification_source": "annotations",
+      "mutates": [],
+      "reads": []
+    },
+    {
+      "paragraph": "POPULATE-HEADER-INFO",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA",
+          "verb": "MOVE",
+          "line": 179,
+          "raw": "MOVE FUNCTION CURRENT-DATE TO WS-CURDATE-DATA"
+        },
+        {
+          "fd_name": "COSGN0AO.TITLE01O",
+          "verb": "MOVE",
+          "line": 181,
+          "raw": "MOVE CCDA-TITLE01 TO TITLE01O OF COSGN0AO"
+        },
+        {
+          "fd_name": "COSGN0AO.TITLE02O",
+          "verb": "MOVE",
+          "line": 182,
+          "raw": "MOVE CCDA-TITLE02 TO TITLE02O OF COSGN0AO"
+        },
+        {
+          "fd_name": "COSGN0AO.TRNNAMEO",
+          "verb": "MOVE",
+          "line": 183,
+          "raw": "MOVE WS-TRANID TO TRNNAMEO OF COSGN0AO"
+        },
+        {
+          "fd_name": "COSGN0AO.PGMNAMEO",
+          "verb": "MOVE",
+          "line": 184,
+          "raw": "MOVE WS-PGMNAME TO PGMNAMEO OF COSGN0AO"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-MM-DD-YY.WS-CURDATE-MM",
+          "verb": "MOVE",
+          "line": 186,
+          "raw": "MOVE WS-CURDATE-MONTH TO WS-CURDATE-MM"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-MM-DD-YY.WS-CURDATE-DD",
+          "verb": "MOVE",
+          "line": 187,
+          "raw": "MOVE WS-CURDATE-DAY TO WS-CURDATE-DD"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-MM-DD-YY.WS-CURDATE-YY",
+          "verb": "MOVE",
+          "line": 188,
+          "raw": "MOVE WS-CURDATE-YEAR(3:2) TO WS-CURDATE-YY"
+        },
+        {
+          "fd_name": "COSGN0AO.CURDATEO",
+          "verb": "MOVE",
+          "line": 190,
+          "raw": "MOVE WS-CURDATE-MM-DD-YY TO CURDATEO OF COSGN0AO"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURTIME-HH-MM-SS.WS-CURTIME-HH",
+          "verb": "MOVE",
+          "line": 192,
+          "raw": "MOVE WS-CURTIME-HOURS TO WS-CURTIME-HH"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURTIME-HH-MM-SS.WS-CURTIME-MM",
+          "verb": "MOVE",
+          "line": 193,
+          "raw": "MOVE WS-CURTIME-MINUTE TO WS-CURTIME-MM"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURTIME-HH-MM-SS.WS-CURTIME-SS",
+          "verb": "MOVE",
+          "line": 194,
+          "raw": "MOVE WS-CURTIME-SECOND TO WS-CURTIME-SS"
+        },
+        {
+          "fd_name": "COSGN0AO.CURTIMEO",
+          "verb": "MOVE",
+          "line": 196,
+          "raw": "MOVE WS-CURTIME-HH-MM-SS TO CURTIMEO OF COSGN0AO"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CCDA-SCREEN-TITLE.CCDA-TITLE01",
+          "verb": "MOVE",
+          "line": 181,
+          "raw": "MOVE CCDA-TITLE01 TO TITLE01O OF COSGN0AO"
+        },
+        {
+          "fd_name": "CCDA-SCREEN-TITLE.CCDA-TITLE02",
+          "verb": "MOVE",
+          "line": 182,
+          "raw": "MOVE CCDA-TITLE02 TO TITLE02O OF COSGN0AO"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-TRANID",
+          "verb": "MOVE",
+          "line": 183,
+          "raw": "MOVE WS-TRANID TO TRNNAMEO OF COSGN0AO"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-PGMNAME",
+          "verb": "MOVE",
+          "line": 184,
+          "raw": "MOVE WS-PGMNAME TO PGMNAMEO OF COSGN0AO"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURDATE.WS-CURDATE-MONTH",
+          "verb": "MOVE",
+          "line": 186,
+          "raw": "MOVE WS-CURDATE-MONTH TO WS-CURDATE-MM"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURDATE.WS-CURDATE-DAY",
+          "verb": "MOVE",
+          "line": 187,
+          "raw": "MOVE WS-CURDATE-DAY TO WS-CURDATE-DD"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURDATE.WS-CURDATE-YEAR",
+          "verb": "MOVE",
+          "line": 188,
+          "raw": "MOVE WS-CURDATE-YEAR(3:2) TO WS-CURDATE-YY"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-MM-DD-YY",
+          "verb": "MOVE",
+          "line": 190,
+          "raw": "MOVE WS-CURDATE-MM-DD-YY TO CURDATEO OF COSGN0AO"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURTIME.WS-CURTIME-HOURS",
+          "verb": "MOVE",
+          "line": 192,
+          "raw": "MOVE WS-CURTIME-HOURS TO WS-CURTIME-HH"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURTIME.WS-CURTIME-MINUTE",
+          "verb": "MOVE",
+          "line": 193,
+          "raw": "MOVE WS-CURTIME-MINUTE TO WS-CURTIME-MM"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURDATE-DATA.WS-CURTIME.WS-CURTIME-SECOND",
+          "verb": "MOVE",
+          "line": 194,
+          "raw": "MOVE WS-CURTIME-SECOND TO WS-CURTIME-SS"
+        },
+        {
+          "fd_name": "WS-DATE-TIME.WS-CURTIME-HH-MM-SS",
+          "verb": "MOVE",
+          "line": 196,
+          "raw": "MOVE WS-CURTIME-HH-MM-SS TO CURTIMEO OF COSGN0AO"
+        }
+      ]
+    },
+    {
+      "paragraph": "READ-USER-SEC-FILE",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-FROM-TRANID",
+          "verb": "MOVE",
+          "line": 224,
+          "raw": "MOVE WS-TRANID TO CDEMO-FROM-TRANID"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-FROM-PROGRAM",
+          "verb": "MOVE",
+          "line": 225,
+          "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-USER-ID",
+          "verb": "MOVE",
+          "line": 226,
+          "raw": "MOVE WS-USER-ID TO CDEMO-USER-ID"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-USER-TYPE",
+          "verb": "MOVE",
+          "line": 227,
+          "raw": "MOVE SEC-USR-TYPE TO CDEMO-USER-TYPE"
+        },
+        {
+          "fd_name": "CARDDEMO-COMMAREA.CDEMO-GENERAL-INFO.CDEMO-PGM-CONTEXT",
+          "verb": "MOVE",
+          "line": 228,
+          "raw": "MOVE ZEROS TO CDEMO-PGM-CONTEXT"
+        },
+        {
+          "fd_name": "COSGN0AI.PASSWDL",
+          "verb": "MOVE",
+          "line": 244,
+          "raw": "MOVE -1 TO PASSWDL OF COSGN0AI"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-ERR-FLG",
+          "verb": "MOVE",
+          "line": 248,
+          "raw": "MOVE 'Y' TO WS-ERR-FLG"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-MESSAGE",
+          "verb": "MOVE",
+          "line": 249,
+          "raw": "MOVE 'User not found. Try again ...' TO WS-MESSAGE"
+        },
+        {
+          "fd_name": "COSGN0AI.USERIDL",
+          "verb": "MOVE",
+          "line": 250,
+          "raw": "MOVE -1 TO USERIDL OF COSGN0AI"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "WS-VARIABLES.WS-RESP-CD",
+          "verb": "EVALUATE",
+          "line": 221,
+          "raw": "EVALUATE WS-RESP-CD"
+        },
+        {
+          "fd_name": "SEC-USER-DATA.SEC-USR-PWD",
+          "verb": "IF",
+          "line": 223,
+          "raw": "IF SEC-USR-PWD = WS-USER-PWD"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-USER-PWD",
+          "verb": "IF",
+          "line": 223,
+          "raw": "IF SEC-USR-PWD = WS-USER-PWD"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-TRANID",
+          "verb": "MOVE",
+          "line": 224,
+          "raw": "MOVE WS-TRANID TO CDEMO-FROM-TRANID"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-PGMNAME",
+          "verb": "MOVE",
+          "line": 225,
+          "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM"
+        },
+        {
+          "fd_name": "WS-VARIABLES.WS-USER-ID",
+          "verb": "MOVE",
+          "line": 226,
+          "raw": "MOVE WS-USER-ID TO CDEMO-USER-ID"
+        },
+        {
+          "fd_name": "SEC-USER-DATA.SEC-USR-TYPE",
+          "verb": "MOVE",
+          "line": 227,
+          "raw": "MOVE SEC-USR-TYPE TO CDEMO-USER-TYPE"
+        },
+        {
+          "fd_name": "CDEMO-USRTYP-ADMIN",
+          "verb": "IF",
+          "line": 230,
+          "raw": "IF CDEMO-USRTYP-ADMIN"
+        }
+      ]
+    }
+  ]
+}

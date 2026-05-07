@@ -1,0 +1,8 @@
+{
+  "program": "COMEN01C",
+  "source_path": "app/cbl/COMEN01C.cbl",
+  "source_sha256": "c77747b4caaf00b45177a6449562b7f59ec336db832937595edef8b32fdce6fa",
+  "byte_layouts_path": "validation/pass1/byte_layouts/COMEN01C.json",
+  "byte_layouts_sha256": "27c86260721ff2890147c24155d61e0d62aa6ba30faf46acfa4317ac9043397b",
+  "file_control": []
+}

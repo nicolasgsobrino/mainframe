@@ -1,0 +1,293 @@
+{
+  "program_id": "CBTRN01C",
+  "source_file": "app/cbl/CBTRN01C.cbl",
+  "source_sha": "a3791908587baac3a6e7c10162698ac40a9d6197",
+  "cfg_tool": "Cobol-REKT smojol-cli + extract_cfg_summary.py",
+  "paragraphs": [
+    {
+      "name": "0000-DALYTRAN-OPEN",
+      "reachable": true,
+      "performs": [
+        "0100-CUSTFILE-OPEN",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "0100-CUSTFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "0200-XREFFILE-OPEN",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "0200-XREFFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "0300-CARDFILE-OPEN",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "0300-CARDFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "0400-ACCTFILE-OPEN",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "0400-ACCTFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "0500-TRANFILE-OPEN",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "0500-TRANFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "9000-DALYTRAN-CLOSE",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1000-DALYTRAN-GET-NEXT",
+      "reachable": true,
+      "performs": [
+        "2000-LOOKUP-XREF",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "2000-LOOKUP-XREF",
+      "reachable": true,
+      "performs": [
+        "3000-READ-ACCOUNT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "3000-READ-ACCOUNT",
+      "reachable": true,
+      "performs": [
+        "0000-DALYTRAN-OPEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9000-DALYTRAN-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9100-CUSTFILE-CLOSE",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9100-CUSTFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9200-XREFFILE-CLOSE",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9200-XREFFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9300-CARDFILE-CLOSE",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9300-CARDFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9400-ACCTFILE-CLOSE",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9400-ACCTFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9500-TRANFILE-CLOSE",
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9500-TRANFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "Z-ABEND-PROGRAM",
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "MAIN-PARA",
+      "reachable": true,
+      "performs": [
+        "1000-DALYTRAN-GET-NEXT",
+        "9500-TRANFILE-CLOSE",
+        "9400-ACCTFILE-CLOSE",
+        "9300-CARDFILE-CLOSE",
+        "9200-XREFFILE-CLOSE",
+        "9100-CUSTFILE-CLOSE",
+        "9000-DALYTRAN-CLOSE",
+        "3000-READ-ACCOUNT",
+        "2000-LOOKUP-XREF",
+        "0500-TRANFILE-OPEN",
+        "0400-ACCTFILE-OPEN",
+        "0300-CARDFILE-OPEN",
+        "0200-XREFFILE-OPEN",
+        "0100-CUSTFILE-OPEN",
+        "0000-DALYTRAN-OPEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "Z-ABEND-PROGRAM",
+      "reachable": true,
+      "performs": [
+        "Z-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "Z-DISPLAY-IO-STATUS",
+      "reachable": true,
+      "performs": [],
+      "goto_targets": [],
+      "goto_flag": false
+    }
+  ],
+  "data_items": [
+    {
+      "name": "FD-TRAN-RECORD",
+      "level": 1
+    },
+    {
+      "name": "FD-CUSTFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-XREFFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-CARDFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-ACCTFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-TRANFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "DALYTRAN-STATUS",
+      "level": 1
+    },
+    {
+      "name": "CUSTFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "XREFFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "CARDFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "ACCTFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "TRANFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "IO-STATUS",
+      "level": 1
+    },
+    {
+      "name": "TWO-BYTES-BINARY",
+      "level": 1
+    },
+    {
+      "name": "TWO-BYTES-ALPHA",
+      "level": 1
+    },
+    {
+      "name": "IO-STATUS-04",
+      "level": 1
+    },
+    {
+      "name": "APPL-RESULT",
+      "level": 1
+    },
+    {
+      "name": "END-OF-DAILY-TRANS-FILE",
+      "level": 1
+    },
+    {
+      "name": "ABCODE",
+      "level": 1
+    },
+    {
+      "name": "TIMING",
+      "level": 1
+    },
+    {
+      "name": "WS-MISC-VARIABLES",
+      "level": 1
+    }
+  ]
+}

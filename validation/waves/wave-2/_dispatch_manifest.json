@@ -1,0 +1,94 @@
+{
+  "task_id": "T-2026-04-23-002",
+  "generated_by": "scripts/pass2_llm.py + scripts/pass3_synthesize.py",
+  "envelope": {
+    "temperature": 0,
+    "seed": 42,
+    "response_format": "json_object",
+    "pass2_max_tokens": 400,
+    "pass3_max_tokens": 900,
+    "model": "gpt-4o-2024-08-06"
+  },
+  "pass2_requests": {
+    "COBSWAIT": {
+      "count": 0,
+      "buckets": {},
+      "file": "validation/pass2/COBSWAIT_llm_requests.jsonl",
+      "size_bytes": 0
+    },
+    "CBCUS01C": {
+      "count": 0,
+      "buckets": {},
+      "file": "validation/pass2/CBCUS01C_llm_requests.jsonl",
+      "size_bytes": 0
+    },
+    "COSGN00C": {
+      "count": 13,
+      "buckets": {
+        "PARTIAL": 3,
+        "LLM": 10
+      },
+      "file": "validation/pass2/COSGN00C_llm_requests.jsonl",
+      "size_bytes": 24906
+    },
+    "COMEN01C": {
+      "count": 13,
+      "buckets": {
+        "PARTIAL": 6,
+        "LLM": 7
+      },
+      "file": "validation/pass2/COMEN01C_llm_requests.jsonl",
+      "size_bytes": 25314
+    },
+    "CBACT01C": {
+      "count": 0,
+      "buckets": {},
+      "file": "validation/pass2/CBACT01C_llm_requests.jsonl",
+      "size_bytes": 0
+    },
+    "CBTRN01C": {
+      "count": 0,
+      "buckets": {},
+      "file": "validation/pass2/CBTRN01C_llm_requests.jsonl",
+      "size_bytes": 0
+    }
+  },
+  "pass3_requests": {
+    "COBSWAIT": {
+      "count": 1,
+      "file": "validation/pass3/COBSWAIT_synth_requests.jsonl",
+      "size_bytes": 2415
+    },
+    "CBCUS01C": {
+      "count": 6,
+      "file": "validation/pass3/CBCUS01C_synth_requests.jsonl",
+      "size_bytes": 18180
+    },
+    "COSGN00C": {
+      "count": 6,
+      "file": "validation/pass3/COSGN00C_synth_requests.jsonl",
+      "size_bytes": 18085
+    },
+    "COMEN01C": {
+      "count": 7,
+      "file": "validation/pass3/COMEN01C_synth_requests.jsonl",
+      "size_bytes": 22800
+    },
+    "CBACT01C": {
+      "count": 17,
+      "file": "validation/pass3/CBACT01C_synth_requests.jsonl",
+      "size_bytes": 52638
+    },
+    "CBTRN01C": {
+      "count": 18,
+      "file": "validation/pass3/CBTRN01C_synth_requests.jsonl",
+      "size_bytes": 56761
+    }
+  },
+  "totals": {
+    "pass2_llm_requests": 26,
+    "pass3_synth_requests": 55,
+    "combined": 81,
+    "budget_note_plan_s14": "Pre-review estimate: 17 LLM calls (LLM only). Revised after issue #1: 26 Pass-2 calls (LLM+PARTIAL) + 55 Pass-3 paragraph calls = 81 total."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "tier": "T02-R",
+  "file": "translations/baseline/CBACT01C.md",
+  "pass": false,
+  "errors": [
+    "Item WS-REISSUE-DATE interpretation[0]: condition does not reference any CFG-known field"
+  ],
+  "cfg_redefines_count": 2,
+  "validator_version": "v1.0.1-option-a"
+}

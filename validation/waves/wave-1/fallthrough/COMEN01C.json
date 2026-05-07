@@ -1,0 +1,81 @@
+{
+  "program": "COMEN01C",
+  "source_path": "app/cbl/COMEN01C.cbl",
+  "source_sha256": "c77747b4caaf00b45177a6449562b7f59ec336db832937595edef8b32fdce6fa",
+  "cfg_path": "validation/pass1/COMEN01C_annotations.json",
+  "cfg_sha256": "630532b8e02f6814934f856f9006527c1eba825814122318a084c2cc8a2b57a9",
+  "paragraphs": [
+    {
+      "paragraph": "MAIN-PARA",
+      "first_line": 77,
+      "last_line": 107,
+      "terminator": "cics-return",
+      "falls_through_to": null,
+      "last_verb": "EXEC CICS",
+      "last_raw": "EXEC CICS RETURN",
+      "classification_source": "raw"
+    },
+    {
+      "paragraph": "PROCESS-ENTER-KEY",
+      "first_line": 117,
+      "last_line": 190,
+      "terminator": "implicit",
+      "falls_through_to": "RETURN-TO-SIGNON-SCREEN",
+      "last_verb": "PERFORM",
+      "last_raw": "PERFORM SEND-MENU-SCREEN",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "RETURN-TO-SIGNON-SCREEN",
+      "first_line": 198,
+      "last_line": 201,
+      "terminator": "cics-xctl",
+      "falls_through_to": null,
+      "last_verb": "EXEC CICS",
+      "last_raw": "EXEC CICS",
+      "classification_source": "source_scan"
+    },
+    {
+      "paragraph": "SEND-MENU-SCREEN",
+      "first_line": 210,
+      "last_line": 215,
+      "terminator": "implicit",
+      "falls_through_to": "RECEIVE-MENU-SCREEN",
+      "last_verb": "EXEC CICS",
+      "last_raw": "EXEC CICS SEND",
+      "classification_source": "raw"
+    },
+    {
+      "paragraph": "RECEIVE-MENU-SCREEN",
+      "first_line": 227,
+      "last_line": 227,
+      "terminator": "implicit",
+      "falls_through_to": "POPULATE-HEADER-INFO",
+      "last_verb": "EXEC CICS",
+      "last_raw": "EXEC CICS RECEIVE",
+      "classification_source": "raw"
+    },
+    {
+      "paragraph": "POPULATE-HEADER-INFO",
+      "first_line": 240,
+      "last_line": 257,
+      "terminator": "implicit",
+      "falls_through_to": "BUILD-MENU-OPTIONS",
+      "last_verb": "MOVE",
+      "last_raw": "MOVE WS-CURTIME-HH-MM-SS TO CURTIMEO OF COMEN1AO.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "BUILD-MENU-OPTIONS",
+      "first_line": 264,
+      "last_line": 300,
+      "terminator": "implicit-end-of-program",
+      "falls_through_to": null,
+      "last_verb": "CONTINUE",
+      "last_raw": "CONTINUE",
+      "classification_source": "annotations"
+    }
+  ],
+  "c5_assertion": "PASS",
+  "c5_violations": []
+}

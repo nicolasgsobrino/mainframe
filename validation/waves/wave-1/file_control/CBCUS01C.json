@@ -1,0 +1,24 @@
+{
+  "program": "CBCUS01C",
+  "source_path": "app/cbl/CBCUS01C.cbl",
+  "source_sha256": "233dbc3bc33a3b9ac555922085a92be56e88d16316bff624b5723c4c36c99714",
+  "byte_layouts_path": "validation/pass1/byte_layouts/CBCUS01C.json",
+  "byte_layouts_sha256": "fea8bac80e8635b0b5b4a94638f7d5adb932eb40531c51c6f354319183e65d81",
+  "file_control": [
+    {
+      "logical_name": "CUSTFILE-FILE",
+      "ddname": "CUSTFILE",
+      "organization": "INDEXED",
+      "access_mode": "SEQUENTIAL",
+      "record_key": "FD-CUST-ID",
+      "alternate_keys": [],
+      "file_status": "CUSTFILE-STATUS",
+      "record_format": "FB",
+      "record_length": 500,
+      "input_codepage": "IBM-1047",
+      "codepage_default_applied": true,
+      "sign_convention": "mainframe-ebcdic",
+      "endianness": "big"
+    }
+  ]
+}

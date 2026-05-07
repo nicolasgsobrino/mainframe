@@ -1,0 +1,4876 @@
+[
+  {
+    "seq": 1,
+    "paragraph": "MAIN-PARA",
+    "line": 156,
+    "verb": "DISPLAY",
+    "operands": [
+      "'START OF EXECUTION OF PROGRAM CBTRN01C'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [],
+    "cfg_successors": [
+      2
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'START OF EXECUTION OF PROGRAM CBTRN01C'."
+  },
+  {
+    "seq": 2,
+    "paragraph": "MAIN-PARA",
+    "line": 157,
+    "verb": "PERFORM",
+    "operands": [
+      "0000-DALYTRAN-OPEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      1
+    ],
+    "cfg_successors": [
+      3
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 0000-DALYTRAN-OPEN."
+  },
+  {
+    "seq": 3,
+    "paragraph": "MAIN-PARA",
+    "line": 158,
+    "verb": "PERFORM",
+    "operands": [
+      "0100-CUSTFILE-OPEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      2
+    ],
+    "cfg_successors": [
+      4
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 0100-CUSTFILE-OPEN."
+  },
+  {
+    "seq": 4,
+    "paragraph": "MAIN-PARA",
+    "line": 159,
+    "verb": "PERFORM",
+    "operands": [
+      "0200-XREFFILE-OPEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      3
+    ],
+    "cfg_successors": [
+      5
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 0200-XREFFILE-OPEN."
+  },
+  {
+    "seq": 5,
+    "paragraph": "MAIN-PARA",
+    "line": 160,
+    "verb": "PERFORM",
+    "operands": [
+      "0300-CARDFILE-OPEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      4
+    ],
+    "cfg_successors": [
+      6
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 0300-CARDFILE-OPEN."
+  },
+  {
+    "seq": 6,
+    "paragraph": "MAIN-PARA",
+    "line": 161,
+    "verb": "PERFORM",
+    "operands": [
+      "0400-ACCTFILE-OPEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      5
+    ],
+    "cfg_successors": [
+      7
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 0400-ACCTFILE-OPEN."
+  },
+  {
+    "seq": 7,
+    "paragraph": "MAIN-PARA",
+    "line": 162,
+    "verb": "PERFORM",
+    "operands": [
+      "0500-TRANFILE-OPEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      6
+    ],
+    "cfg_successors": [
+      8
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 0500-TRANFILE-OPEN."
+  },
+  {
+    "seq": 8,
+    "paragraph": "MAIN-PARA",
+    "line": 164,
+    "verb": "PERFORM",
+    "operands": [
+      "END-OF-DAILY-TRANS-FILE",
+      "'Y'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      7
+    ],
+    "cfg_successors": [
+      9
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM UNTIL END-OF-DAILY-TRANS-FILE = 'Y'"
+  },
+  {
+    "seq": 9,
+    "paragraph": "MAIN-PARA",
+    "line": 165,
+    "verb": "IF",
+    "operands": [
+      "END-OF-DAILY-TRANS-FILE",
+      "'N'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      8
+    ],
+    "cfg_successors": [
+      10
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF END-OF-DAILY-TRANS-FILE = 'N'"
+  },
+  {
+    "seq": 10,
+    "paragraph": "MAIN-PARA",
+    "line": 166,
+    "verb": "PERFORM",
+    "operands": [
+      "1000-DALYTRAN-GET-NEXT"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      9
+    ],
+    "cfg_successors": [
+      11
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 1000-DALYTRAN-GET-NEXT"
+  },
+  {
+    "seq": 11,
+    "paragraph": "MAIN-PARA",
+    "line": 167,
+    "verb": "IF",
+    "operands": [
+      "END-OF-DAILY-TRANS-FILE",
+      "'N'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      10
+    ],
+    "cfg_successors": [
+      12
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF END-OF-DAILY-TRANS-FILE = 'N'"
+  },
+  {
+    "seq": 12,
+    "paragraph": "MAIN-PARA",
+    "line": 168,
+    "verb": "DISPLAY",
+    "operands": [
+      "DALYTRAN-RECORD"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      11
+    ],
+    "cfg_successors": [
+      13
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY DALYTRAN-RECORD",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 13,
+    "paragraph": "MAIN-PARA",
+    "line": 170,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "WS-XREF-READ-STATUS"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      12
+    ],
+    "cfg_successors": [
+      14
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO WS-XREF-READ-STATUS"
+  },
+  {
+    "seq": 14,
+    "paragraph": "MAIN-PARA",
+    "line": 171,
+    "verb": "MOVE",
+    "operands": [
+      "DALYTRAN-CARD-NUM",
+      "XREF-CARD-NUM"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      13
+    ],
+    "cfg_successors": [
+      15
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE DALYTRAN-CARD-NUM TO XREF-CARD-NUM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 15,
+    "paragraph": "MAIN-PARA",
+    "line": 172,
+    "verb": "PERFORM",
+    "operands": [
+      "2000-LOOKUP-XREF"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      14
+    ],
+    "cfg_successors": [
+      16
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 2000-LOOKUP-XREF"
+  },
+  {
+    "seq": 16,
+    "paragraph": "MAIN-PARA",
+    "line": 173,
+    "verb": "IF",
+    "operands": [
+      "WS-XREF-READ-STATUS",
+      "0"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      15
+    ],
+    "cfg_successors": [
+      17
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF WS-XREF-READ-STATUS = 0"
+  },
+  {
+    "seq": 17,
+    "paragraph": "MAIN-PARA",
+    "line": 174,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "WS-ACCT-READ-STATUS"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      16
+    ],
+    "cfg_successors": [
+      18
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO WS-ACCT-READ-STATUS"
+  },
+  {
+    "seq": 18,
+    "paragraph": "MAIN-PARA",
+    "line": 175,
+    "verb": "MOVE",
+    "operands": [
+      "XREF-ACCT-ID",
+      "ACCT-ID"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      17
+    ],
+    "cfg_successors": [
+      19
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE XREF-ACCT-ID TO ACCT-ID",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 19,
+    "paragraph": "MAIN-PARA",
+    "line": 176,
+    "verb": "PERFORM",
+    "operands": [
+      "3000-READ-ACCOUNT"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      18
+    ],
+    "cfg_successors": [
+      20
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 3000-READ-ACCOUNT"
+  },
+  {
+    "seq": 20,
+    "paragraph": "MAIN-PARA",
+    "line": 177,
+    "verb": "IF",
+    "operands": [
+      "WS-ACCT-READ-STATUS",
+      "0"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      19
+    ],
+    "cfg_successors": [
+      21
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF WS-ACCT-READ-STATUS NOT = 0"
+  },
+  {
+    "seq": 21,
+    "paragraph": "MAIN-PARA",
+    "line": 178,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ACCOUNT '",
+      "ACCT-ID",
+      "' NOT FOUND'"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      20
+    ],
+    "cfg_successors": [
+      22
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ACCOUNT ' ACCT-ID ' NOT FOUND'",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 22,
+    "paragraph": "MAIN-PARA",
+    "line": 181,
+    "verb": "DISPLAY",
+    "operands": [
+      "'CARD NUMBER '",
+      "DALYTRAN-CARD-NUM"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      21
+    ],
+    "cfg_successors": [
+      23
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'CARD NUMBER ' DALYTRAN-CARD-NUM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 23,
+    "paragraph": "MAIN-PARA",
+    "line": 188,
+    "verb": "PERFORM",
+    "operands": [
+      "9000-DALYTRAN-CLOSE"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      22
+    ],
+    "cfg_successors": [
+      24
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 9000-DALYTRAN-CLOSE."
+  },
+  {
+    "seq": 24,
+    "paragraph": "MAIN-PARA",
+    "line": 189,
+    "verb": "PERFORM",
+    "operands": [
+      "9100-CUSTFILE-CLOSE"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      23
+    ],
+    "cfg_successors": [
+      25
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 9100-CUSTFILE-CLOSE."
+  },
+  {
+    "seq": 25,
+    "paragraph": "MAIN-PARA",
+    "line": 190,
+    "verb": "PERFORM",
+    "operands": [
+      "9200-XREFFILE-CLOSE"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      24
+    ],
+    "cfg_successors": [
+      26
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 9200-XREFFILE-CLOSE."
+  },
+  {
+    "seq": 26,
+    "paragraph": "MAIN-PARA",
+    "line": 191,
+    "verb": "PERFORM",
+    "operands": [
+      "9300-CARDFILE-CLOSE"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      25
+    ],
+    "cfg_successors": [
+      27
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 9300-CARDFILE-CLOSE."
+  },
+  {
+    "seq": 27,
+    "paragraph": "MAIN-PARA",
+    "line": 192,
+    "verb": "PERFORM",
+    "operands": [
+      "9400-ACCTFILE-CLOSE"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      26
+    ],
+    "cfg_successors": [
+      28
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 9400-ACCTFILE-CLOSE."
+  },
+  {
+    "seq": 28,
+    "paragraph": "MAIN-PARA",
+    "line": 193,
+    "verb": "PERFORM",
+    "operands": [
+      "9500-TRANFILE-CLOSE"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      27
+    ],
+    "cfg_successors": [
+      29
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM 9500-TRANFILE-CLOSE."
+  },
+  {
+    "seq": 29,
+    "paragraph": "MAIN-PARA",
+    "line": 195,
+    "verb": "DISPLAY",
+    "operands": [
+      "'END OF EXECUTION OF PROGRAM CBTRN01C'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      28
+    ],
+    "cfg_successors": [
+      30
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'END OF EXECUTION OF PROGRAM CBTRN01C'."
+  },
+  {
+    "seq": 30,
+    "paragraph": "MAIN-PARA",
+    "line": 197,
+    "verb": "GOBACK",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF END-OF-DAILY-TRANS-FILE = 'N'",
+    "cfg_predecessors": [
+      29
+    ],
+    "cfg_successors": [
+      31
+    ],
+    "division": "PROCEDURE",
+    "raw": "GOBACK."
+  },
+  {
+    "seq": 31,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 203,
+    "verb": "READ",
+    "operands": [
+      "DALYTRAN-FILE",
+      "DALYTRAN-RECORD"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      30
+    ],
+    "cfg_successors": [
+      32
+    ],
+    "division": "PROCEDURE",
+    "raw": "READ DALYTRAN-FILE INTO DALYTRAN-RECORD.",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 32,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 204,
+    "verb": "IF",
+    "operands": [
+      "DALYTRAN-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      31
+    ],
+    "cfg_successors": [
+      33
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF DALYTRAN-STATUS = '00'"
+  },
+  {
+    "seq": 33,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 205,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      32
+    ],
+    "cfg_successors": [
+      34
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 34,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 207,
+    "verb": "IF",
+    "operands": [
+      "DALYTRAN-STATUS",
+      "'10'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      33
+    ],
+    "cfg_successors": [
+      35
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF DALYTRAN-STATUS = '10'"
+  },
+  {
+    "seq": 35,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 208,
+    "verb": "MOVE",
+    "operands": [
+      "16",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      34
+    ],
+    "cfg_successors": [
+      36
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 16 TO APPL-RESULT"
+  },
+  {
+    "seq": 36,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 210,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      35
+    ],
+    "cfg_successors": [
+      37
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 37,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 213,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      36
+    ],
+    "cfg_successors": [
+      38
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 38,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 214,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      37
+    ],
+    "cfg_successors": [
+      39
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 39,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 216,
+    "verb": "IF",
+    "operands": [
+      "APPL-EOF"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      38
+    ],
+    "cfg_successors": [
+      40
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-EOF"
+  },
+  {
+    "seq": 40,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 217,
+    "verb": "MOVE",
+    "operands": [
+      "'Y'",
+      "END-OF-DAILY-TRANS-FILE"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      39
+    ],
+    "cfg_successors": [
+      41
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 'Y' TO END-OF-DAILY-TRANS-FILE"
+  },
+  {
+    "seq": 41,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 219,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR READING DAILY TRANSACTION FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      40
+    ],
+    "cfg_successors": [
+      42
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR READING DAILY TRANSACTION FILE'"
+  },
+  {
+    "seq": 42,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 220,
+    "verb": "MOVE",
+    "operands": [
+      "DALYTRAN-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      41
+    ],
+    "cfg_successors": [
+      43
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE DALYTRAN-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 43,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 221,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      42
+    ],
+    "cfg_successors": [
+      44
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 44,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 222,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      43
+    ],
+    "cfg_successors": [
+      45
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 45,
+    "paragraph": "1000-DALYTRAN-GET-NEXT",
+    "line": 225,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      44
+    ],
+    "cfg_successors": [
+      46
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 46,
+    "paragraph": "2000-LOOKUP-XREF",
+    "line": 228,
+    "verb": "MOVE",
+    "operands": [
+      "XREF-CARD-NUM",
+      "FD-XREF-CARD-NUM"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      45
+    ],
+    "cfg_successors": [
+      47
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE XREF-CARD-NUM TO FD-XREF-CARD-NUM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 47,
+    "paragraph": "2000-LOOKUP-XREF",
+    "line": 229,
+    "verb": "READ",
+    "operands": [
+      "XREF-FILE",
+      "CARD-XREF-RECORD"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      46
+    ],
+    "cfg_successors": [
+      48
+    ],
+    "division": "PROCEDURE",
+    "raw": "READ XREF-FILE RECORD INTO CARD-XREF-RECORD",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 48,
+    "paragraph": "2000-LOOKUP-XREF",
+    "line": 232,
+    "verb": "DISPLAY",
+    "operands": [
+      "'INVALID CARD NUMBER FOR XREF'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      47
+    ],
+    "cfg_successors": [
+      49
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'INVALID CARD NUMBER FOR XREF'"
+  },
+  {
+    "seq": 49,
+    "paragraph": "2000-LOOKUP-XREF",
+    "line": 233,
+    "verb": "MOVE",
+    "operands": [
+      "4",
+      "WS-XREF-READ-STATUS"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      48
+    ],
+    "cfg_successors": [
+      50
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 4 TO WS-XREF-READ-STATUS"
+  },
+  {
+    "seq": 50,
+    "paragraph": "2000-LOOKUP-XREF",
+    "line": 235,
+    "verb": "DISPLAY",
+    "operands": [
+      "'SUCCESSFUL READ OF XREF'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      49
+    ],
+    "cfg_successors": [
+      51
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'SUCCESSFUL READ OF XREF'"
+  },
+  {
+    "seq": 51,
+    "paragraph": "2000-LOOKUP-XREF",
+    "line": 236,
+    "verb": "DISPLAY",
+    "operands": [
+      "'CARD NUMBER: '",
+      "XREF-CARD-NUM"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      50
+    ],
+    "cfg_successors": [
+      52
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'CARD NUMBER: ' XREF-CARD-NUM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 52,
+    "paragraph": "2000-LOOKUP-XREF",
+    "line": 237,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ACCOUNT ID : '",
+      "XREF-ACCT-ID"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      51
+    ],
+    "cfg_successors": [
+      53
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ACCOUNT ID : ' XREF-ACCT-ID",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 53,
+    "paragraph": "2000-LOOKUP-XREF",
+    "line": 238,
+    "verb": "DISPLAY",
+    "operands": [
+      "'CUSTOMER ID: '",
+      "XREF-CUST-ID"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      52
+    ],
+    "cfg_successors": [
+      54
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'CUSTOMER ID: ' XREF-CUST-ID",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 54,
+    "paragraph": "3000-READ-ACCOUNT",
+    "line": 242,
+    "verb": "MOVE",
+    "operands": [
+      "ACCT-ID",
+      "FD-ACCT-ID"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      53
+    ],
+    "cfg_successors": [
+      55
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE ACCT-ID TO FD-ACCT-ID",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 55,
+    "paragraph": "3000-READ-ACCOUNT",
+    "line": 243,
+    "verb": "READ",
+    "operands": [
+      "ACCOUNT-FILE",
+      "ACCOUNT-RECORD"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      54
+    ],
+    "cfg_successors": [
+      56
+    ],
+    "division": "PROCEDURE",
+    "raw": "READ ACCOUNT-FILE RECORD INTO ACCOUNT-RECORD",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 56,
+    "paragraph": "3000-READ-ACCOUNT",
+    "line": 246,
+    "verb": "DISPLAY",
+    "operands": [
+      "'INVALID ACCOUNT NUMBER FOUND'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      55
+    ],
+    "cfg_successors": [
+      57
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'INVALID ACCOUNT NUMBER FOUND'"
+  },
+  {
+    "seq": 57,
+    "paragraph": "3000-READ-ACCOUNT",
+    "line": 247,
+    "verb": "MOVE",
+    "operands": [
+      "4",
+      "WS-ACCT-READ-STATUS"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      56
+    ],
+    "cfg_successors": [
+      58
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 4 TO WS-ACCT-READ-STATUS"
+  },
+  {
+    "seq": 58,
+    "paragraph": "3000-READ-ACCOUNT",
+    "line": 249,
+    "verb": "DISPLAY",
+    "operands": [
+      "'SUCCESSFUL READ OF ACCOUNT FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      57
+    ],
+    "cfg_successors": [
+      59
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'SUCCESSFUL READ OF ACCOUNT FILE'"
+  },
+  {
+    "seq": 59,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 253,
+    "verb": "MOVE",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      58
+    ],
+    "cfg_successors": [
+      60
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 8 TO APPL-RESULT."
+  },
+  {
+    "seq": 60,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 254,
+    "verb": "OPEN",
+    "operands": [
+      "DALYTRAN-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      59
+    ],
+    "cfg_successors": [
+      61
+    ],
+    "division": "PROCEDURE",
+    "raw": "OPEN INPUT DALYTRAN-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 61,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 255,
+    "verb": "IF",
+    "operands": [
+      "DALYTRAN-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      60
+    ],
+    "cfg_successors": [
+      62
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF DALYTRAN-STATUS = '00'"
+  },
+  {
+    "seq": 62,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 256,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      61
+    ],
+    "cfg_successors": [
+      63
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 63,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 258,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      62
+    ],
+    "cfg_successors": [
+      64
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 64,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 260,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      63
+    ],
+    "cfg_successors": [
+      65
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 65,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 261,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      64
+    ],
+    "cfg_successors": [
+      66
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 66,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 263,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR OPENING DAILY TRANSACTION FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      65
+    ],
+    "cfg_successors": [
+      67
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR OPENING DAILY TRANSACTION FILE'"
+  },
+  {
+    "seq": 67,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 264,
+    "verb": "MOVE",
+    "operands": [
+      "DALYTRAN-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      66
+    ],
+    "cfg_successors": [
+      68
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE DALYTRAN-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 68,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 265,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      67
+    ],
+    "cfg_successors": [
+      69
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 69,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 266,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      68
+    ],
+    "cfg_successors": [
+      70
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 70,
+    "paragraph": "0000-DALYTRAN-OPEN",
+    "line": 268,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      69
+    ],
+    "cfg_successors": [
+      71
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 71,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 272,
+    "verb": "MOVE",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      70
+    ],
+    "cfg_successors": [
+      72
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 8 TO APPL-RESULT."
+  },
+  {
+    "seq": 72,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 273,
+    "verb": "OPEN",
+    "operands": [
+      "CUSTOMER-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      71
+    ],
+    "cfg_successors": [
+      73
+    ],
+    "division": "PROCEDURE",
+    "raw": "OPEN INPUT CUSTOMER-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 73,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 274,
+    "verb": "IF",
+    "operands": [
+      "CUSTFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      72
+    ],
+    "cfg_successors": [
+      74
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF CUSTFILE-STATUS = '00'"
+  },
+  {
+    "seq": 74,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 275,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      73
+    ],
+    "cfg_successors": [
+      75
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 75,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 277,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      74
+    ],
+    "cfg_successors": [
+      76
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 76,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 279,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      75
+    ],
+    "cfg_successors": [
+      77
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 77,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 280,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      76
+    ],
+    "cfg_successors": [
+      78
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 78,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 282,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR OPENING CUSTOMER FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      77
+    ],
+    "cfg_successors": [
+      79
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR OPENING CUSTOMER FILE'"
+  },
+  {
+    "seq": 79,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 283,
+    "verb": "MOVE",
+    "operands": [
+      "CUSTFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      78
+    ],
+    "cfg_successors": [
+      80
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 80,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 284,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      79
+    ],
+    "cfg_successors": [
+      81
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 81,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 285,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      80
+    ],
+    "cfg_successors": [
+      82
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 82,
+    "paragraph": "0100-CUSTFILE-OPEN",
+    "line": 287,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      81
+    ],
+    "cfg_successors": [
+      83
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 83,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 290,
+    "verb": "MOVE",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      82
+    ],
+    "cfg_successors": [
+      84
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 8 TO APPL-RESULT."
+  },
+  {
+    "seq": 84,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 291,
+    "verb": "OPEN",
+    "operands": [
+      "XREF-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      83
+    ],
+    "cfg_successors": [
+      85
+    ],
+    "division": "PROCEDURE",
+    "raw": "OPEN INPUT XREF-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 85,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 292,
+    "verb": "IF",
+    "operands": [
+      "XREFFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      84
+    ],
+    "cfg_successors": [
+      86
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF XREFFILE-STATUS = '00'"
+  },
+  {
+    "seq": 86,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 293,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      85
+    ],
+    "cfg_successors": [
+      87
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 87,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 295,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      86
+    ],
+    "cfg_successors": [
+      88
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 88,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 297,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      87
+    ],
+    "cfg_successors": [
+      89
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 89,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 298,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      88
+    ],
+    "cfg_successors": [
+      90
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 90,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 300,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR OPENING CROSS REF FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      89
+    ],
+    "cfg_successors": [
+      91
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR OPENING CROSS REF FILE'"
+  },
+  {
+    "seq": 91,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 301,
+    "verb": "MOVE",
+    "operands": [
+      "XREFFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      90
+    ],
+    "cfg_successors": [
+      92
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE XREFFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 92,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 302,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      91
+    ],
+    "cfg_successors": [
+      93
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 93,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 303,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      92
+    ],
+    "cfg_successors": [
+      94
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 94,
+    "paragraph": "0200-XREFFILE-OPEN",
+    "line": 305,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      93
+    ],
+    "cfg_successors": [
+      95
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 95,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 308,
+    "verb": "MOVE",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      94
+    ],
+    "cfg_successors": [
+      96
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 8 TO APPL-RESULT."
+  },
+  {
+    "seq": 96,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 309,
+    "verb": "OPEN",
+    "operands": [
+      "CARD-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      95
+    ],
+    "cfg_successors": [
+      97
+    ],
+    "division": "PROCEDURE",
+    "raw": "OPEN INPUT CARD-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 97,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 310,
+    "verb": "IF",
+    "operands": [
+      "CARDFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      96
+    ],
+    "cfg_successors": [
+      98
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF CARDFILE-STATUS = '00'"
+  },
+  {
+    "seq": 98,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 311,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      97
+    ],
+    "cfg_successors": [
+      99
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 99,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 313,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      98
+    ],
+    "cfg_successors": [
+      100
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 100,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 315,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      99
+    ],
+    "cfg_successors": [
+      101
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 101,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 316,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      100
+    ],
+    "cfg_successors": [
+      102
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 102,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 318,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR OPENING CARD FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      101
+    ],
+    "cfg_successors": [
+      103
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR OPENING CARD FILE'"
+  },
+  {
+    "seq": 103,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 319,
+    "verb": "MOVE",
+    "operands": [
+      "CARDFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      102
+    ],
+    "cfg_successors": [
+      104
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE CARDFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 104,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 320,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      103
+    ],
+    "cfg_successors": [
+      105
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 105,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 321,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      104
+    ],
+    "cfg_successors": [
+      106
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 106,
+    "paragraph": "0300-CARDFILE-OPEN",
+    "line": 323,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      105
+    ],
+    "cfg_successors": [
+      107
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 107,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 326,
+    "verb": "MOVE",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      106
+    ],
+    "cfg_successors": [
+      108
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 8 TO APPL-RESULT."
+  },
+  {
+    "seq": 108,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 327,
+    "verb": "OPEN",
+    "operands": [
+      "ACCOUNT-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      107
+    ],
+    "cfg_successors": [
+      109
+    ],
+    "division": "PROCEDURE",
+    "raw": "OPEN INPUT ACCOUNT-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 109,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 328,
+    "verb": "IF",
+    "operands": [
+      "ACCTFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      108
+    ],
+    "cfg_successors": [
+      110
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF ACCTFILE-STATUS = '00'"
+  },
+  {
+    "seq": 110,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 329,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      109
+    ],
+    "cfg_successors": [
+      111
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 111,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 331,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      110
+    ],
+    "cfg_successors": [
+      112
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 112,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 333,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      111
+    ],
+    "cfg_successors": [
+      113
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 113,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 334,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      112
+    ],
+    "cfg_successors": [
+      114
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 114,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 336,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR OPENING ACCOUNT FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      113
+    ],
+    "cfg_successors": [
+      115
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR OPENING ACCOUNT FILE'"
+  },
+  {
+    "seq": 115,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 337,
+    "verb": "MOVE",
+    "operands": [
+      "ACCTFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      114
+    ],
+    "cfg_successors": [
+      116
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE ACCTFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 116,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 338,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      115
+    ],
+    "cfg_successors": [
+      117
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 117,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 339,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      116
+    ],
+    "cfg_successors": [
+      118
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 118,
+    "paragraph": "0400-ACCTFILE-OPEN",
+    "line": 341,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      117
+    ],
+    "cfg_successors": [
+      119
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 119,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 344,
+    "verb": "MOVE",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      118
+    ],
+    "cfg_successors": [
+      120
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 8 TO APPL-RESULT."
+  },
+  {
+    "seq": 120,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 345,
+    "verb": "OPEN",
+    "operands": [
+      "TRANSACT-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      119
+    ],
+    "cfg_successors": [
+      121
+    ],
+    "division": "PROCEDURE",
+    "raw": "OPEN INPUT TRANSACT-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 121,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 346,
+    "verb": "IF",
+    "operands": [
+      "TRANFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      120
+    ],
+    "cfg_successors": [
+      122
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF TRANFILE-STATUS = '00'"
+  },
+  {
+    "seq": 122,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 347,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      121
+    ],
+    "cfg_successors": [
+      123
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 123,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 349,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      122
+    ],
+    "cfg_successors": [
+      124
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 124,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 351,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      123
+    ],
+    "cfg_successors": [
+      125
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 125,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 352,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      124
+    ],
+    "cfg_successors": [
+      126
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 126,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 354,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR OPENING TRANSACTION FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      125
+    ],
+    "cfg_successors": [
+      127
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR OPENING TRANSACTION FILE'"
+  },
+  {
+    "seq": 127,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 355,
+    "verb": "MOVE",
+    "operands": [
+      "TRANFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      126
+    ],
+    "cfg_successors": [
+      128
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE TRANFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 128,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 356,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      127
+    ],
+    "cfg_successors": [
+      129
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 129,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 357,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      128
+    ],
+    "cfg_successors": [
+      130
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 130,
+    "paragraph": "0500-TRANFILE-OPEN",
+    "line": 359,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      129
+    ],
+    "cfg_successors": [
+      131
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 131,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 362,
+    "verb": "ADD",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      130
+    ],
+    "cfg_successors": [
+      132
+    ],
+    "division": "PROCEDURE",
+    "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+  },
+  {
+    "seq": 132,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 363,
+    "verb": "CLOSE",
+    "operands": [
+      "DALYTRAN-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      131
+    ],
+    "cfg_successors": [
+      133
+    ],
+    "division": "PROCEDURE",
+    "raw": "CLOSE DALYTRAN-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 133,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 364,
+    "verb": "IF",
+    "operands": [
+      "DALYTRAN-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      132
+    ],
+    "cfg_successors": [
+      134
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF DALYTRAN-STATUS = '00'"
+  },
+  {
+    "seq": 134,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 365,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      133
+    ],
+    "cfg_successors": [
+      135
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 135,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 367,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      134
+    ],
+    "cfg_successors": [
+      136
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 136,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 369,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      135
+    ],
+    "cfg_successors": [
+      137
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 137,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 370,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      136
+    ],
+    "cfg_successors": [
+      138
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 138,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 372,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR CLOSING CUSTOMER FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      137
+    ],
+    "cfg_successors": [
+      139
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR CLOSING CUSTOMER FILE'"
+  },
+  {
+    "seq": 139,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 373,
+    "verb": "MOVE",
+    "operands": [
+      "CUSTFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      138
+    ],
+    "cfg_successors": [
+      140
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 140,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 374,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      139
+    ],
+    "cfg_successors": [
+      141
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 141,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 375,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      140
+    ],
+    "cfg_successors": [
+      142
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 142,
+    "paragraph": "9000-DALYTRAN-CLOSE",
+    "line": 377,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF DALYTRAN-STATUS = '00'",
+    "cfg_predecessors": [
+      141
+    ],
+    "cfg_successors": [
+      143
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 143,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 380,
+    "verb": "ADD",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      142
+    ],
+    "cfg_successors": [
+      144
+    ],
+    "division": "PROCEDURE",
+    "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+  },
+  {
+    "seq": 144,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 381,
+    "verb": "CLOSE",
+    "operands": [
+      "CUSTOMER-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      143
+    ],
+    "cfg_successors": [
+      145
+    ],
+    "division": "PROCEDURE",
+    "raw": "CLOSE CUSTOMER-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 145,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 382,
+    "verb": "IF",
+    "operands": [
+      "CUSTFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      144
+    ],
+    "cfg_successors": [
+      146
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF CUSTFILE-STATUS = '00'"
+  },
+  {
+    "seq": 146,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 383,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      145
+    ],
+    "cfg_successors": [
+      147
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 147,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 385,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      146
+    ],
+    "cfg_successors": [
+      148
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 148,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 387,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      147
+    ],
+    "cfg_successors": [
+      149
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 149,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 388,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      148
+    ],
+    "cfg_successors": [
+      150
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 150,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 390,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR CLOSING CUSTOMER FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      149
+    ],
+    "cfg_successors": [
+      151
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR CLOSING CUSTOMER FILE'"
+  },
+  {
+    "seq": 151,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 391,
+    "verb": "MOVE",
+    "operands": [
+      "CUSTFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      150
+    ],
+    "cfg_successors": [
+      152
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 152,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 392,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      151
+    ],
+    "cfg_successors": [
+      153
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 153,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 393,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      152
+    ],
+    "cfg_successors": [
+      154
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 154,
+    "paragraph": "9100-CUSTFILE-CLOSE",
+    "line": 395,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CUSTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      153
+    ],
+    "cfg_successors": [
+      155
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 155,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 398,
+    "verb": "ADD",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      154
+    ],
+    "cfg_successors": [
+      156
+    ],
+    "division": "PROCEDURE",
+    "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+  },
+  {
+    "seq": 156,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 399,
+    "verb": "CLOSE",
+    "operands": [
+      "XREF-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      155
+    ],
+    "cfg_successors": [
+      157
+    ],
+    "division": "PROCEDURE",
+    "raw": "CLOSE XREF-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 157,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 400,
+    "verb": "IF",
+    "operands": [
+      "XREFFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      156
+    ],
+    "cfg_successors": [
+      158
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF XREFFILE-STATUS = '00'"
+  },
+  {
+    "seq": 158,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 401,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      157
+    ],
+    "cfg_successors": [
+      159
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 159,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 403,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      158
+    ],
+    "cfg_successors": [
+      160
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 160,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 405,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      159
+    ],
+    "cfg_successors": [
+      161
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 161,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 406,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      160
+    ],
+    "cfg_successors": [
+      162
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 162,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 408,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR CLOSING CROSS REF FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      161
+    ],
+    "cfg_successors": [
+      163
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR CLOSING CROSS REF FILE'"
+  },
+  {
+    "seq": 163,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 409,
+    "verb": "MOVE",
+    "operands": [
+      "XREFFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      162
+    ],
+    "cfg_successors": [
+      164
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE XREFFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 164,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 410,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      163
+    ],
+    "cfg_successors": [
+      165
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 165,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 411,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      164
+    ],
+    "cfg_successors": [
+      166
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 166,
+    "paragraph": "9200-XREFFILE-CLOSE",
+    "line": 413,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      165
+    ],
+    "cfg_successors": [
+      167
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 167,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 416,
+    "verb": "ADD",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      166
+    ],
+    "cfg_successors": [
+      168
+    ],
+    "division": "PROCEDURE",
+    "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+  },
+  {
+    "seq": 168,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 417,
+    "verb": "CLOSE",
+    "operands": [
+      "CARD-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      167
+    ],
+    "cfg_successors": [
+      169
+    ],
+    "division": "PROCEDURE",
+    "raw": "CLOSE CARD-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 169,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 418,
+    "verb": "IF",
+    "operands": [
+      "CARDFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      168
+    ],
+    "cfg_successors": [
+      170
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF CARDFILE-STATUS = '00'"
+  },
+  {
+    "seq": 170,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 419,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      169
+    ],
+    "cfg_successors": [
+      171
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 171,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 421,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      170
+    ],
+    "cfg_successors": [
+      172
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 172,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 423,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      171
+    ],
+    "cfg_successors": [
+      173
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 173,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 424,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      172
+    ],
+    "cfg_successors": [
+      174
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 174,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 426,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR CLOSING CARD FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      173
+    ],
+    "cfg_successors": [
+      175
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR CLOSING CARD FILE'"
+  },
+  {
+    "seq": 175,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 427,
+    "verb": "MOVE",
+    "operands": [
+      "CARDFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      174
+    ],
+    "cfg_successors": [
+      176
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE CARDFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 176,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 428,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      175
+    ],
+    "cfg_successors": [
+      177
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 177,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 429,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      176
+    ],
+    "cfg_successors": [
+      178
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 178,
+    "paragraph": "9300-CARDFILE-CLOSE",
+    "line": 431,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CARDFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      177
+    ],
+    "cfg_successors": [
+      179
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 179,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 434,
+    "verb": "ADD",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      178
+    ],
+    "cfg_successors": [
+      180
+    ],
+    "division": "PROCEDURE",
+    "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+  },
+  {
+    "seq": 180,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 435,
+    "verb": "CLOSE",
+    "operands": [
+      "ACCOUNT-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      179
+    ],
+    "cfg_successors": [
+      181
+    ],
+    "division": "PROCEDURE",
+    "raw": "CLOSE ACCOUNT-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 181,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 436,
+    "verb": "IF",
+    "operands": [
+      "ACCTFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      180
+    ],
+    "cfg_successors": [
+      182
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF ACCTFILE-STATUS = '00'"
+  },
+  {
+    "seq": 182,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 437,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      181
+    ],
+    "cfg_successors": [
+      183
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 183,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 439,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      182
+    ],
+    "cfg_successors": [
+      184
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 184,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 441,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      183
+    ],
+    "cfg_successors": [
+      185
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 185,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 442,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      184
+    ],
+    "cfg_successors": [
+      186
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 186,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 444,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR CLOSING ACCOUNT FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      185
+    ],
+    "cfg_successors": [
+      187
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR CLOSING ACCOUNT FILE'"
+  },
+  {
+    "seq": 187,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 445,
+    "verb": "MOVE",
+    "operands": [
+      "ACCTFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      186
+    ],
+    "cfg_successors": [
+      188
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE ACCTFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 188,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 446,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      187
+    ],
+    "cfg_successors": [
+      189
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 189,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 447,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      188
+    ],
+    "cfg_successors": [
+      190
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 190,
+    "paragraph": "9400-ACCTFILE-CLOSE",
+    "line": 449,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF ACCTFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      189
+    ],
+    "cfg_successors": [
+      191
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 191,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 452,
+    "verb": "ADD",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      190
+    ],
+    "cfg_successors": [
+      192
+    ],
+    "division": "PROCEDURE",
+    "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+  },
+  {
+    "seq": 192,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 453,
+    "verb": "CLOSE",
+    "operands": [
+      "TRANSACT-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      191
+    ],
+    "cfg_successors": [
+      193
+    ],
+    "division": "PROCEDURE",
+    "raw": "CLOSE TRANSACT-FILE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 193,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 454,
+    "verb": "IF",
+    "operands": [
+      "TRANFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      192
+    ],
+    "cfg_successors": [
+      194
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF TRANFILE-STATUS = '00'"
+  },
+  {
+    "seq": 194,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 455,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      193
+    ],
+    "cfg_successors": [
+      195
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO APPL-RESULT"
+  },
+  {
+    "seq": 195,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 457,
+    "verb": "MOVE",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      194
+    ],
+    "cfg_successors": [
+      196
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 12 TO APPL-RESULT"
+  },
+  {
+    "seq": 196,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 459,
+    "verb": "IF",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      195
+    ],
+    "cfg_successors": [
+      197
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF APPL-AOK"
+  },
+  {
+    "seq": 197,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 460,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      196
+    ],
+    "cfg_successors": [
+      198
+    ],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  },
+  {
+    "seq": 198,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 462,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ERROR CLOSING TRANSACTION FILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      197
+    ],
+    "cfg_successors": [
+      199
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ERROR CLOSING TRANSACTION FILE'"
+  },
+  {
+    "seq": 199,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 463,
+    "verb": "MOVE",
+    "operands": [
+      "TRANFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      198
+    ],
+    "cfg_successors": [
+      200
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE TRANFILE-STATUS TO IO-STATUS"
+  },
+  {
+    "seq": 200,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 464,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      199
+    ],
+    "cfg_successors": [
+      201
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-DISPLAY-IO-STATUS"
+  },
+  {
+    "seq": 201,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 465,
+    "verb": "PERFORM",
+    "operands": [
+      "Z-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      200
+    ],
+    "cfg_successors": [
+      202
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM Z-ABEND-PROGRAM"
+  },
+  {
+    "seq": 202,
+    "paragraph": "9500-TRANFILE-CLOSE",
+    "line": 467,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF TRANFILE-STATUS = '00'",
+    "cfg_predecessors": [
+      201
+    ],
+    "cfg_successors": [
+      203
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  },
+  {
+    "seq": 203,
+    "paragraph": "Z-ABEND-PROGRAM",
+    "line": 470,
+    "verb": "DISPLAY",
+    "operands": [
+      "'ABENDING PROGRAM'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      202
+    ],
+    "cfg_successors": [
+      204
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'ABENDING PROGRAM'"
+  },
+  {
+    "seq": 204,
+    "paragraph": "Z-ABEND-PROGRAM",
+    "line": 471,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "TIMING"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      203
+    ],
+    "cfg_successors": [
+      205
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO TIMING"
+  },
+  {
+    "seq": 205,
+    "paragraph": "Z-ABEND-PROGRAM",
+    "line": 472,
+    "verb": "MOVE",
+    "operands": [
+      "999",
+      "ABCODE"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      204
+    ],
+    "cfg_successors": [
+      206
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 999 TO ABCODE"
+  },
+  {
+    "seq": 206,
+    "paragraph": "Z-ABEND-PROGRAM",
+    "line": 473,
+    "verb": "CALL",
+    "operands": [
+      "'CEE3ABD'",
+      "ABCODE",
+      "TIMING"
+    ],
+    "operand_types": [
+      "external-program",
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      205
+    ],
+    "cfg_successors": [
+      207
+    ],
+    "division": "PROCEDURE",
+    "raw": "CALL 'CEE3ABD' USING ABCODE TIMING."
+  },
+  {
+    "seq": 207,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 477,
+    "verb": "IF",
+    "operands": [
+      "IO-STATUS",
+      "NUMERIC"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      206
+    ],
+    "cfg_successors": [
+      208
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF IO-STATUS NOT NUMERIC",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 208,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 479,
+    "verb": "MOVE",
+    "operands": [
+      "IO-STAT1",
+      "IO-STATUS-04",
+      "1",
+      "1"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage",
+      "literal",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      207
+    ],
+    "cfg_successors": [
+      209
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE IO-STAT1 TO IO-STATUS-04(1:1)"
+  },
+  {
+    "seq": 209,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 480,
+    "verb": "MOVE",
+    "operands": [
+      "0",
+      "TWO-BYTES-BINARY"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      208
+    ],
+    "cfg_successors": [
+      210
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 0 TO TWO-BYTES-BINARY"
+  },
+  {
+    "seq": 210,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 481,
+    "verb": "MOVE",
+    "operands": [
+      "IO-STAT2",
+      "TWO-BYTES-RIGHT"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      209
+    ],
+    "cfg_successors": [
+      211
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE IO-STAT2 TO TWO-BYTES-RIGHT"
+  },
+  {
+    "seq": 211,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 482,
+    "verb": "MOVE",
+    "operands": [
+      "TWO-BYTES-BINARY",
+      "IO-STATUS-0403"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      210
+    ],
+    "cfg_successors": [
+      212
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE TWO-BYTES-BINARY TO IO-STATUS-0403"
+  },
+  {
+    "seq": 212,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 483,
+    "verb": "DISPLAY",
+    "operands": [
+      "'FILE STATUS IS: NNNN'",
+      "IO-STATUS-04"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      211
+    ],
+    "cfg_successors": [
+      213
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04"
+  },
+  {
+    "seq": 213,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 485,
+    "verb": "MOVE",
+    "operands": [
+      "'0000'",
+      "IO-STATUS-04"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      212
+    ],
+    "cfg_successors": [
+      214
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE '0000' TO IO-STATUS-04"
+  },
+  {
+    "seq": 214,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 486,
+    "verb": "MOVE",
+    "operands": [
+      "IO-STATUS",
+      "IO-STATUS-04",
+      "3",
+      "2"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage",
+      "literal",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      213
+    ],
+    "cfg_successors": [
+      215
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE IO-STATUS TO IO-STATUS-04(3:2)"
+  },
+  {
+    "seq": 215,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 487,
+    "verb": "DISPLAY",
+    "operands": [
+      "'FILE STATUS IS: NNNN'",
+      "IO-STATUS-04"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      214
+    ],
+    "cfg_successors": [
+      216
+    ],
+    "division": "PROCEDURE",
+    "raw": "DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04"
+  },
+  {
+    "seq": 216,
+    "paragraph": "Z-DISPLAY-IO-STATUS",
+    "line": 489,
+    "verb": "EXIT",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "cfg_predecessors": [
+      215
+    ],
+    "cfg_successors": [],
+    "division": "PROCEDURE",
+    "raw": "EXIT."
+  }
+]

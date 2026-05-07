@@ -1,0 +1,1520 @@
+[
+  {
+    "seq": 1,
+    "paragraph": "MAIN-PARA",
+    "line": 75,
+    "verb": "SET",
+    "proposition": "Assign a named state to ERR-FLG-OFF",
+    "proposition_source": "TEMPLATE",
+    "modifies": "ERR-FLG-OFF",
+    "cfg_branch_context": null,
+    "raw": "SET ERR-FLG-OFF TO TRUE",
+    "operands": [
+      "ERR-FLG-OFF",
+      "TRUE"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 2,
+    "paragraph": "MAIN-PARA",
+    "line": 77,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": null,
+    "raw": "MOVE SPACES TO WS-MESSAGE",
+    "operands": [
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 3,
+    "paragraph": "MAIN-PARA",
+    "line": 80,
+    "verb": "IF",
+    "proposition": "When EIBCALEN = 0",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "IF EIBCALEN = 0",
+    "operands": [
+      "EIBCALEN",
+      "0"
+    ],
+    "operand_types": [
+      "unresolved",
+      "literal"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 4,
+    "paragraph": "MAIN-PARA",
+    "line": 81,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE LOW-VALUES TO COSGN0AO",
+    "operands": [
+      "COSGN0AO"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 5,
+    "paragraph": "MAIN-PARA",
+    "line": 82,
+    "verb": "MOVE",
+    "proposition": "Move data between 1",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE -1 TO USERIDL OF COSGN0AI",
+    "operands": [
+      "1",
+      "USERIDL",
+      "COSGN0AI"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 6,
+    "paragraph": "MAIN-PARA",
+    "line": 83,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-SIGNON-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM SEND-SIGNON-SCREEN",
+    "operands": [
+      "SEND-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 7,
+    "paragraph": "MAIN-PARA",
+    "line": 85,
+    "verb": "EVALUATE",
+    "proposition": null,
+    "proposition_source": "PARTIAL",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "EVALUATE EIBAID",
+    "operands": [
+      "EIBAID"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 0.5,
+    "needs_llm": true,
+    "proposition_stub": "Branch on value of EIBAID"
+  },
+  {
+    "seq": 8,
+    "paragraph": "MAIN-PARA",
+    "line": 87,
+    "verb": "PERFORM",
+    "proposition": "Execute the PROCESS-ENTER-KEY procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM PROCESS-ENTER-KEY",
+    "operands": [
+      "PROCESS-ENTER-KEY"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 9,
+    "paragraph": "MAIN-PARA",
+    "line": 89,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE CCDA-MSG-THANK-YOU TO WS-MESSAGE",
+    "operands": [
+      "CCDA-MSG-THANK-YOU",
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 2
+  },
+  {
+    "seq": 10,
+    "paragraph": "MAIN-PARA",
+    "line": 90,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-PLAIN-TEXT procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM SEND-PLAIN-TEXT",
+    "operands": [
+      "SEND-PLAIN-TEXT"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 11,
+    "paragraph": "MAIN-PARA",
+    "line": 92,
+    "verb": "MOVE",
+    "proposition": "Set WS-ERR-FLG to 'Y'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-ERR-FLG",
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE 'Y' TO WS-ERR-FLG",
+    "operands": [
+      "'Y'",
+      "WS-ERR-FLG"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 12,
+    "paragraph": "MAIN-PARA",
+    "line": 93,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE CCDA-MSG-INVALID-KEY TO WS-MESSAGE",
+    "operands": [
+      "CCDA-MSG-INVALID-KEY",
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 2
+  },
+  {
+    "seq": 13,
+    "paragraph": "MAIN-PARA",
+    "line": 94,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-SIGNON-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM SEND-SIGNON-SCREEN",
+    "operands": [
+      "SEND-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 14,
+    "paragraph": "MAIN-PARA",
+    "line": 98,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "EXEC CICS RETURN",
+    "operands": [
+      "RETURN"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 15,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 110,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXEC CICS RECEIVE",
+    "operands": [
+      "RECEIVE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 16,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 117,
+    "verb": "EVALUATE",
+    "proposition": null,
+    "proposition_source": "PARTIAL",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "EVALUATE TRUE",
+    "operands": [
+      "TRUE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 0.5,
+    "needs_llm": true,
+    "proposition_stub": "Branch on value of TRUE"
+  },
+  {
+    "seq": 17,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 119,
+    "verb": "MOVE",
+    "proposition": "Set WS-ERR-FLG to 'Y'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-ERR-FLG",
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "MOVE 'Y' TO WS-ERR-FLG",
+    "operands": [
+      "'Y'",
+      "WS-ERR-FLG"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 18,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 120,
+    "verb": "MOVE",
+    "proposition": "Set WS-MESSAGE to 'Please enter User ID ...'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "MOVE 'Please enter User ID ...' TO WS-MESSAGE",
+    "operands": [
+      "'Please enter User ID ...'",
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 19,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 121,
+    "verb": "MOVE",
+    "proposition": "Move data between 1",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "MOVE -1 TO USERIDL OF COSGN0AI",
+    "operands": [
+      "1",
+      "USERIDL",
+      "COSGN0AI"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 20,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 122,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-SIGNON-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "PERFORM SEND-SIGNON-SCREEN",
+    "operands": [
+      "SEND-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 21,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 124,
+    "verb": "MOVE",
+    "proposition": "Set WS-ERR-FLG to 'Y'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-ERR-FLG",
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "MOVE 'Y' TO WS-ERR-FLG",
+    "operands": [
+      "'Y'",
+      "WS-ERR-FLG"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 22,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 125,
+    "verb": "MOVE",
+    "proposition": "Set WS-MESSAGE to 'Please enter Password ...'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "MOVE 'Please enter Password ...' TO WS-MESSAGE",
+    "operands": [
+      "'Please enter Password ...'",
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 23,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 126,
+    "verb": "MOVE",
+    "proposition": "Move data between 1",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "MOVE -1 TO PASSWDL OF COSGN0AI",
+    "operands": [
+      "1",
+      "PASSWDL",
+      "COSGN0AI"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 24,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 127,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-SIGNON-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "PERFORM SEND-SIGNON-SCREEN",
+    "operands": [
+      "SEND-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 25,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 129,
+    "verb": "CONTINUE",
+    "proposition": "Continue without action",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 26,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 132,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "MOVE FUNCTION UPPER-CASE(USERIDI OF COSGN0AI) TO",
+    "operands": [
+      "FUNCTION",
+      "UPPER-CASE",
+      "USERIDI",
+      "COSGN0AI"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 27,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 135,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "MOVE FUNCTION UPPER-CASE(PASSWDI OF COSGN0AI) TO",
+    "operands": [
+      "FUNCTION",
+      "UPPER-CASE",
+      "PASSWDI",
+      "COSGN0AI"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 28,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 138,
+    "verb": "IF",
+    "proposition": "When EVALUATE TRUE",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "IF NOT ERR-FLG-ON",
+    "operands": [
+      "ERR-FLG-ON"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 29,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 139,
+    "verb": "PERFORM",
+    "proposition": "Execute the READ-USER-SEC-FILE procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE TRUE",
+    "raw": "PERFORM READ-USER-SEC-FILE",
+    "operands": [
+      "READ-USER-SEC-FILE"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 30,
+    "paragraph": "SEND-SIGNON-SCREEN",
+    "line": 147,
+    "verb": "PERFORM",
+    "proposition": "Execute the POPULATE-HEADER-INFO procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "PERFORM POPULATE-HEADER-INFO",
+    "operands": [
+      "POPULATE-HEADER-INFO"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 31,
+    "paragraph": "SEND-SIGNON-SCREEN",
+    "line": 149,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-MESSAGE TO ERRMSGO OF COSGN0AO",
+    "operands": [
+      "WS-MESSAGE",
+      "ERRMSGO",
+      "COSGN0AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 32,
+    "paragraph": "SEND-SIGNON-SCREEN",
+    "line": 151,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXEC CICS SEND",
+    "operands": [
+      "SEND"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 33,
+    "paragraph": "SEND-PLAIN-TEXT",
+    "line": 164,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXEC CICS SEND TEXT",
+    "operands": [
+      "SEND",
+      "TEXT"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 34,
+    "paragraph": "SEND-PLAIN-TEXT",
+    "line": 171,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXEC CICS RETURN",
+    "operands": [
+      "RETURN"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 35,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 179,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE FUNCTION CURRENT-DATE TO WS-CURDATE-DATA",
+    "operands": [
+      "FUNCTION",
+      "CURRENT-DATE",
+      "WS-CURDATE-DATA"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 36,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 181,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE CCDA-TITLE01 TO TITLE01O OF COSGN0AO",
+    "operands": [
+      "CCDA-TITLE01",
+      "TITLE01O",
+      "COSGN0AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 37,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 182,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE CCDA-TITLE02 TO TITLE02O OF COSGN0AO",
+    "operands": [
+      "CCDA-TITLE02",
+      "TITLE02O",
+      "COSGN0AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 38,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 183,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-TRANID",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-TRANID",
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-TRANID TO TRNNAMEO OF COSGN0AO",
+    "operands": [
+      "WS-TRANID",
+      "TRNNAMEO",
+      "COSGN0AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 39,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 184,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-PGMNAME",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-PGMNAME",
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-PGMNAME TO PGMNAMEO OF COSGN0AO",
+    "operands": [
+      "WS-PGMNAME",
+      "PGMNAMEO",
+      "COSGN0AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 40,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 186,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURDATE-MONTH TO WS-CURDATE-MM",
+    "operands": [
+      "WS-CURDATE-MONTH",
+      "WS-CURDATE-MM"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 41,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 187,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURDATE-DAY TO WS-CURDATE-DD",
+    "operands": [
+      "WS-CURDATE-DAY",
+      "WS-CURDATE-DD"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 42,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 188,
+    "verb": "MOVE",
+    "proposition": "Set 2 to 3",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURDATE-YEAR(3:2) TO WS-CURDATE-YY",
+    "operands": [
+      "WS-CURDATE-YEAR",
+      "3",
+      "2",
+      "WS-CURDATE-YY"
+    ],
+    "operand_types": [
+      "unresolved",
+      "literal",
+      "literal",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 43,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 190,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURDATE-MM-DD-YY TO CURDATEO OF COSGN0AO",
+    "operands": [
+      "WS-CURDATE-MM-DD-YY",
+      "CURDATEO",
+      "COSGN0AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 44,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 192,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURTIME-HOURS TO WS-CURTIME-HH",
+    "operands": [
+      "WS-CURTIME-HOURS",
+      "WS-CURTIME-HH"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 45,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 193,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURTIME-MINUTE TO WS-CURTIME-MM",
+    "operands": [
+      "WS-CURTIME-MINUTE",
+      "WS-CURTIME-MM"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 46,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 194,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURTIME-SECOND TO WS-CURTIME-SS",
+    "operands": [
+      "WS-CURTIME-SECOND",
+      "WS-CURTIME-SS"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 47,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 196,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURTIME-HH-MM-SS TO CURTIMEO OF COSGN0AO",
+    "operands": [
+      "WS-CURTIME-HH-MM-SS",
+      "CURTIMEO",
+      "COSGN0AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 48,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 198,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXEC CICS ASSIGN",
+    "operands": [
+      "ASSIGN"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 49,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 202,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXEC CICS ASSIGN",
+    "operands": [
+      "ASSIGN"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 50,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 211,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXEC CICS READ",
+    "operands": [
+      "READ"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 51,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 221,
+    "verb": "EVALUATE",
+    "proposition": null,
+    "proposition_source": "PARTIAL",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "EVALUATE WS-RESP-CD",
+    "operands": [
+      "WS-RESP-CD"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 0.5,
+    "needs_llm": true,
+    "proposition_stub": "Branch on value of WS-RESP-CD"
+  },
+  {
+    "seq": 52,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 223,
+    "verb": "IF",
+    "proposition": "When EVALUATE WS-RESP-CD",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "IF SEC-USR-PWD = WS-USER-PWD",
+    "operands": [
+      "SEC-USR-PWD",
+      "WS-USER-PWD"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 53,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 224,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-TRANID",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-TRANID",
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE WS-TRANID TO CDEMO-FROM-TRANID",
+    "operands": [
+      "WS-TRANID",
+      "CDEMO-FROM-TRANID"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 54,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 225,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-PGMNAME",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-PGMNAME",
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM",
+    "operands": [
+      "WS-PGMNAME",
+      "CDEMO-FROM-PROGRAM"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 55,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 226,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-USER-ID",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-USER-ID",
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE WS-USER-ID TO CDEMO-USER-ID",
+    "operands": [
+      "WS-USER-ID",
+      "CDEMO-USER-ID"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 56,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 227,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE SEC-USR-TYPE TO CDEMO-USER-TYPE",
+    "operands": [
+      "SEC-USR-TYPE",
+      "CDEMO-USER-TYPE"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 57,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 228,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE ZEROS TO CDEMO-PGM-CONTEXT",
+    "operands": [
+      "CDEMO-PGM-CONTEXT"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 58,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 230,
+    "verb": "IF",
+    "proposition": "When EVALUATE WS-RESP-CD",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "IF CDEMO-USRTYP-ADMIN",
+    "operands": [
+      "CDEMO-USRTYP-ADMIN"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 59,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 231,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "EXEC CICS XCTL",
+    "operands": [
+      "XCTL"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 60,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 236,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "EXEC CICS XCTL",
+    "operands": [
+      "XCTL"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 61,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 242,
+    "verb": "MOVE",
+    "proposition": "Move data between 'Wrong Password. Try again ...'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE 'Wrong Password. Try again ...' TO",
+    "operands": [
+      "'Wrong Password. Try again ...'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 62,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 244,
+    "verb": "MOVE",
+    "proposition": "Move data between 1",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE -1 TO PASSWDL OF COSGN0AI",
+    "operands": [
+      "1",
+      "PASSWDL",
+      "COSGN0AI"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 63,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 245,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-SIGNON-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "PERFORM SEND-SIGNON-SCREEN",
+    "operands": [
+      "SEND-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 64,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 248,
+    "verb": "MOVE",
+    "proposition": "Set WS-ERR-FLG to 'Y'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-ERR-FLG",
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE 'Y' TO WS-ERR-FLG",
+    "operands": [
+      "'Y'",
+      "WS-ERR-FLG"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 65,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 249,
+    "verb": "MOVE",
+    "proposition": "Set WS-MESSAGE to 'User not found. Try again ...'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE 'User not found. Try again ...' TO WS-MESSAGE",
+    "operands": [
+      "'User not found. Try again ...'",
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 66,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 250,
+    "verb": "MOVE",
+    "proposition": "Move data between 1",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE -1 TO USERIDL OF COSGN0AI",
+    "operands": [
+      "1",
+      "USERIDL",
+      "COSGN0AI"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 67,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 251,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-SIGNON-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "PERFORM SEND-SIGNON-SCREEN",
+    "operands": [
+      "SEND-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 68,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 253,
+    "verb": "MOVE",
+    "proposition": "Set WS-ERR-FLG to 'Y'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-ERR-FLG",
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE 'Y' TO WS-ERR-FLG",
+    "operands": [
+      "'Y'",
+      "WS-ERR-FLG"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 69,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 254,
+    "verb": "MOVE",
+    "proposition": "Set WS-MESSAGE to 'Unable to verify the User ...'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE 'Unable to verify the User ...' TO WS-MESSAGE",
+    "operands": [
+      "'Unable to verify the User ...'",
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 70,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 255,
+    "verb": "MOVE",
+    "proposition": "Move data between 1",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "MOVE -1 TO USERIDL OF COSGN0AI",
+    "operands": [
+      "1",
+      "USERIDL",
+      "COSGN0AI"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 71,
+    "paragraph": "READ-USER-SEC-FILE",
+    "line": 256,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-SIGNON-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-RESP-CD",
+    "raw": "PERFORM SEND-SIGNON-SCREEN",
+    "operands": [
+      "SEND-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  }
+]

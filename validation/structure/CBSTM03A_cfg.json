@@ -1,0 +1,346 @@
+{
+  "program_id": "CBSTM03A",
+  "source_file": "app/cbl/CBSTM03A.cbl",
+  "source_sha": "ea341ec97f2b1a236de57f9c0fbd262f61b23511",
+  "cfg_tool": "Cobol-REKT smojol-cli + extract_cfg_summary.py",
+  "paragraphs": [
+    {
+      "name": "0000-START",
+      "reachable": true,
+      "performs": [
+        "1000-MAINLINE"
+      ],
+      "goto_targets": [
+        "1000-MAINLINE"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "1000-MAINLINE",
+      "reachable": true,
+      "performs": [
+        "9999-GOBACK",
+        "9400-ACCTFILE-CLOSE",
+        "9300-CUSTFILE-CLOSE",
+        "9200-XREFFILE-CLOSE",
+        "9100-TRNXFILE-CLOSE",
+        "4000-TRNXFILE-GET",
+        "5000-CREATE-STATEMENT",
+        "3000-ACCTFILE-GET",
+        "2000-CUSTFILE-GET",
+        "1000-XREFFILE-GET-NEXT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1000-XREFFILE-GET-NEXT",
+      "reachable": true,
+      "performs": [
+        "2000-CUSTFILE-GET"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "2000-CUSTFILE-GET",
+      "reachable": true,
+      "performs": [
+        "3000-ACCTFILE-GET"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "3000-ACCTFILE-GET",
+      "reachable": true,
+      "performs": [
+        "4000-TRNXFILE-GET"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "4000-TRNXFILE-GET",
+      "reachable": true,
+      "performs": [
+        "5000-CREATE-STATEMENT",
+        "6000-WRITE-TRANS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "5000-CREATE-STATEMENT",
+      "reachable": true,
+      "performs": [
+        "5100-WRITE-HTML-HEADER",
+        "5200-WRITE-HTML-NMADBS",
+        "5200-EXIT",
+        "5100-EXIT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "5100-EXIT",
+      "reachable": true,
+      "performs": [
+        "5200-WRITE-HTML-NMADBS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "5100-WRITE-HTML-HEADER",
+      "reachable": true,
+      "performs": [
+        "5100-EXIT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "5200-EXIT",
+      "reachable": true,
+      "performs": [
+        "6000-WRITE-TRANS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "5200-WRITE-HTML-NMADBS",
+      "reachable": true,
+      "performs": [
+        "5200-EXIT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "6000-WRITE-TRANS",
+      "reachable": true,
+      "performs": [
+        "8100-FILE-OPEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "8100-FILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "8100-TRNXFILE-OPEN"
+      ],
+      "goto_targets": [
+        "8100-TRNXFILE-OPEN"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "8100-TRNXFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "8200-XREFFILE-OPEN",
+        "0000-START",
+        "9999-ABEND-PROGRAM"
+      ],
+      "goto_targets": [
+        "0000-START"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "8200-XREFFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "8300-CUSTFILE-OPEN",
+        "0000-START",
+        "9999-ABEND-PROGRAM"
+      ],
+      "goto_targets": [
+        "0000-START"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "8300-CUSTFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "8400-ACCTFILE-OPEN",
+        "0000-START",
+        "9999-ABEND-PROGRAM"
+      ],
+      "goto_targets": [
+        "0000-START"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "8400-ACCTFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "8500-READTRNX-READ",
+        "1000-MAINLINE",
+        "9999-ABEND-PROGRAM"
+      ],
+      "goto_targets": [
+        "1000-MAINLINE"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "8500-READTRNX-READ",
+      "reachable": true,
+      "performs": [
+        "8599-EXIT"
+      ],
+      "goto_targets": [
+        "8599-EXIT"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "8599-EXIT",
+      "reachable": true,
+      "performs": [
+        "9100-TRNXFILE-CLOSE",
+        "0000-START"
+      ],
+      "goto_targets": [
+        "0000-START"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "9100-TRNXFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9200-XREFFILE-CLOSE",
+        "9999-ABEND-PROGRAM"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9200-XREFFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9300-CUSTFILE-CLOSE",
+        "9999-ABEND-PROGRAM"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9300-CUSTFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9400-ACCTFILE-CLOSE",
+        "9999-ABEND-PROGRAM"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9400-ACCTFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9999-ABEND-PROGRAM"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9999-ABEND-PROGRAM",
+      "reachable": true,
+      "performs": [],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9999-GOBACK",
+      "reachable": true,
+      "performs": [
+        "1000-XREFFILE-GET-NEXT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    }
+  ],
+  "data_items": [
+    {
+      "name": "FD-STMTFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-HTMLFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "COMP-VARIABLES",
+      "level": 1
+    },
+    {
+      "name": "COMP3-VARIABLES",
+      "level": 1
+    },
+    {
+      "name": "MISC-VARIABLES",
+      "level": 1
+    },
+    {
+      "name": "WS-M03B-AREA",
+      "level": 1
+    },
+    {
+      "name": "STATEMENT-LINES",
+      "level": 1
+    },
+    {
+      "name": "HTML-LINES",
+      "level": 1
+    },
+    {
+      "name": "WS-TRNX-TABLE",
+      "level": 1
+    },
+    {
+      "name": "WS-TRN-TBL-CNTR",
+      "level": 1
+    },
+    {
+      "name": "PSAPTR",
+      "level": 1
+    },
+    {
+      "name": "BUMP-TIOT",
+      "level": 1
+    },
+    {
+      "name": "TIOT-INDEX",
+      "level": 1
+    },
+    {
+      "name": "ALIGN-PSA",
+      "level": 1
+    },
+    {
+      "name": "PSA-BLOCK",
+      "level": 1
+    },
+    {
+      "name": "TCB-BLOCK",
+      "level": 1
+    },
+    {
+      "name": "TIOT-BLOCK",
+      "level": 1
+    },
+    {
+      "name": "TIOT-ENTRY",
+      "level": 1
+    }
+  ]
+}

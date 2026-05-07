@@ -1,0 +1,9 @@
+{
+  "tier": "T04",
+  "file": "translations/baseline/CBACT01C.md",
+  "threshold": 0.85,
+  "paragraph_count": 21,
+  "status": "DEFERRED",
+  "reason": "no judge endpoint configured; judge invocation must be performed separately",
+  "pass": null
+}

@@ -1,0 +1,2205 @@
+[
+  {
+    "seq": 1,
+    "paragraph": "MAIN-PARA",
+    "line": 77,
+    "verb": "SET",
+    "operands": [
+      "ERR-FLG-OFF",
+      "TRUE"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [],
+    "cfg_successors": [
+      2
+    ],
+    "division": "PROCEDURE",
+    "raw": "SET ERR-FLG-OFF TO TRUE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 2,
+    "paragraph": "MAIN-PARA",
+    "line": 79,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      1
+    ],
+    "cfg_successors": [
+      3
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE SPACES TO WS-MESSAGE"
+  },
+  {
+    "seq": 3,
+    "paragraph": "MAIN-PARA",
+    "line": 82,
+    "verb": "IF",
+    "operands": [
+      "EIBCALEN",
+      "0"
+    ],
+    "operand_types": [
+      "unresolved",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      2
+    ],
+    "cfg_successors": [
+      4
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF EIBCALEN = 0",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 4,
+    "paragraph": "MAIN-PARA",
+    "line": 83,
+    "verb": "MOVE",
+    "operands": [
+      "'COSGN00C'",
+      "CDEMO-FROM-PROGRAM"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      3
+    ],
+    "cfg_successors": [
+      5
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 'COSGN00C' TO CDEMO-FROM-PROGRAM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 5,
+    "paragraph": "MAIN-PARA",
+    "line": 84,
+    "verb": "PERFORM",
+    "operands": [
+      "RETURN-TO-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      4
+    ],
+    "cfg_successors": [
+      6
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM RETURN-TO-SIGNON-SCREEN"
+  },
+  {
+    "seq": 6,
+    "paragraph": "MAIN-PARA",
+    "line": 86,
+    "verb": "MOVE",
+    "operands": [
+      "DFHCOMMAREA",
+      "1",
+      "EIBCALEN",
+      "CARDDEMO-COMMAREA"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      5
+    ],
+    "cfg_successors": [
+      7
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 7,
+    "paragraph": "MAIN-PARA",
+    "line": 87,
+    "verb": "IF",
+    "operands": [
+      "CDEMO-PGM-REENTER"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      6
+    ],
+    "cfg_successors": [
+      8
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF NOT CDEMO-PGM-REENTER",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 8,
+    "paragraph": "MAIN-PARA",
+    "line": 88,
+    "verb": "SET",
+    "operands": [
+      "CDEMO-PGM-REENTER",
+      "TRUE"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      7
+    ],
+    "cfg_successors": [
+      9
+    ],
+    "division": "PROCEDURE",
+    "raw": "SET CDEMO-PGM-REENTER TO TRUE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 9,
+    "paragraph": "MAIN-PARA",
+    "line": 89,
+    "verb": "MOVE",
+    "operands": [
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      8
+    ],
+    "cfg_successors": [
+      10
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE LOW-VALUES TO COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 10,
+    "paragraph": "MAIN-PARA",
+    "line": 90,
+    "verb": "PERFORM",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      9
+    ],
+    "cfg_successors": [
+      11
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM SEND-MENU-SCREEN"
+  },
+  {
+    "seq": 11,
+    "paragraph": "MAIN-PARA",
+    "line": 92,
+    "verb": "PERFORM",
+    "operands": [
+      "RECEIVE-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      10
+    ],
+    "cfg_successors": [
+      12
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM RECEIVE-MENU-SCREEN"
+  },
+  {
+    "seq": 12,
+    "paragraph": "MAIN-PARA",
+    "line": 93,
+    "verb": "EVALUATE",
+    "operands": [
+      "EIBAID"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      11
+    ],
+    "cfg_successors": [
+      13
+    ],
+    "division": "PROCEDURE",
+    "raw": "EVALUATE EIBAID",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 13,
+    "paragraph": "MAIN-PARA",
+    "line": 95,
+    "verb": "PERFORM",
+    "operands": [
+      "PROCESS-ENTER-KEY"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      12
+    ],
+    "cfg_successors": [
+      14
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM PROCESS-ENTER-KEY"
+  },
+  {
+    "seq": 14,
+    "paragraph": "MAIN-PARA",
+    "line": 97,
+    "verb": "MOVE",
+    "operands": [
+      "'COSGN00C'",
+      "CDEMO-TO-PROGRAM"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      13
+    ],
+    "cfg_successors": [
+      15
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 15,
+    "paragraph": "MAIN-PARA",
+    "line": 98,
+    "verb": "PERFORM",
+    "operands": [
+      "RETURN-TO-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      14
+    ],
+    "cfg_successors": [
+      16
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM RETURN-TO-SIGNON-SCREEN"
+  },
+  {
+    "seq": 16,
+    "paragraph": "MAIN-PARA",
+    "line": 100,
+    "verb": "MOVE",
+    "operands": [
+      "'Y'",
+      "WS-ERR-FLG"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      15
+    ],
+    "cfg_successors": [
+      17
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 'Y' TO WS-ERR-FLG"
+  },
+  {
+    "seq": 17,
+    "paragraph": "MAIN-PARA",
+    "line": 101,
+    "verb": "MOVE",
+    "operands": [
+      "CCDA-MSG-INVALID-KEY",
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      16
+    ],
+    "cfg_successors": [
+      18
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE CCDA-MSG-INVALID-KEY TO WS-MESSAGE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 18,
+    "paragraph": "MAIN-PARA",
+    "line": 102,
+    "verb": "PERFORM",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      17
+    ],
+    "cfg_successors": [
+      19
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM SEND-MENU-SCREEN"
+  },
+  {
+    "seq": 19,
+    "paragraph": "MAIN-PARA",
+    "line": 107,
+    "verb": "EXEC CICS",
+    "operands": [
+      "RETURN"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "cfg_predecessors": [
+      18
+    ],
+    "cfg_successors": [
+      20
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXEC CICS RETURN",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 20,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 117,
+    "verb": "PERFORM",
+    "operands": [
+      "WS-IDX"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      19
+    ],
+    "cfg_successors": [
+      21
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM VARYING WS-IDX"
+  },
+  {
+    "seq": 21,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 122,
+    "verb": "MOVE",
+    "operands": [
+      "OPTIONI",
+      "COMEN1AI",
+      "1",
+      "WS-IDX",
+      "WS-OPTION-X"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "literal",
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      20
+    ],
+    "cfg_successors": [
+      22
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE OPTIONI OF COMEN1AI(1:WS-IDX) TO WS-OPTION-X",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 22,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 123,
+    "verb": "INSPECT",
+    "operands": [
+      "WS-OPTION-X",
+      "REPLACING",
+      "' '",
+      "'0'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "literal",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      21
+    ],
+    "cfg_successors": [
+      23
+    ],
+    "division": "PROCEDURE",
+    "raw": "INSPECT WS-OPTION-X REPLACING ALL ' ' BY '0'",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 23,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 124,
+    "verb": "MOVE",
+    "operands": [
+      "WS-OPTION-X",
+      "WS-OPTION"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      22
+    ],
+    "cfg_successors": [
+      24
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-OPTION-X TO WS-OPTION"
+  },
+  {
+    "seq": 24,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 125,
+    "verb": "MOVE",
+    "operands": [
+      "WS-OPTION",
+      "OPTIONO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      23
+    ],
+    "cfg_successors": [
+      25
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-OPTION TO OPTIONO OF COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 25,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 127,
+    "verb": "IF",
+    "operands": [
+      "WS-OPTION",
+      "NUMERIC"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      24
+    ],
+    "cfg_successors": [
+      26
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF WS-OPTION IS NOT NUMERIC OR",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 26,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 130,
+    "verb": "MOVE",
+    "operands": [
+      "'Y'",
+      "WS-ERR-FLG"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      25
+    ],
+    "cfg_successors": [
+      27
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 'Y' TO WS-ERR-FLG"
+  },
+  {
+    "seq": 27,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 131,
+    "verb": "MOVE",
+    "operands": [
+      "'Please enter a valid option number...'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      26
+    ],
+    "cfg_successors": [
+      28
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 'Please enter a valid option number...' TO"
+  },
+  {
+    "seq": 28,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 133,
+    "verb": "PERFORM",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      27
+    ],
+    "cfg_successors": [
+      29
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM SEND-MENU-SCREEN"
+  },
+  {
+    "seq": 29,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 136,
+    "verb": "IF",
+    "operands": [
+      "CDEMO-USRTYP-USER"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      28
+    ],
+    "cfg_successors": [
+      30
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF CDEMO-USRTYP-USER AND",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 30,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 138,
+    "verb": "SET",
+    "operands": [
+      "ERR-FLG-ON",
+      "TRUE"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      29
+    ],
+    "cfg_successors": [
+      31
+    ],
+    "division": "PROCEDURE",
+    "raw": "SET ERR-FLG-ON TO TRUE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 31,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 139,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      30
+    ],
+    "cfg_successors": [
+      32
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE SPACES TO WS-MESSAGE"
+  },
+  {
+    "seq": 32,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 140,
+    "verb": "MOVE",
+    "operands": [
+      "'No access - Admin Only option... '"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      31
+    ],
+    "cfg_successors": [
+      33
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 'No access - Admin Only option... ' TO"
+  },
+  {
+    "seq": 33,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 142,
+    "verb": "PERFORM",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      32
+    ],
+    "cfg_successors": [
+      34
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM SEND-MENU-SCREEN"
+  },
+  {
+    "seq": 34,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 145,
+    "verb": "IF",
+    "operands": [
+      "ERR-FLG-ON"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      33
+    ],
+    "cfg_successors": [
+      35
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF NOT ERR-FLG-ON"
+  },
+  {
+    "seq": 35,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 146,
+    "verb": "EVALUATE",
+    "operands": [
+      "TRUE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      34
+    ],
+    "cfg_successors": [
+      36
+    ],
+    "division": "PROCEDURE",
+    "raw": "EVALUATE TRUE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 36,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 148,
+    "verb": "EXEC CICS",
+    "operands": [
+      "INQUIRE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      35
+    ],
+    "cfg_successors": [
+      37
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXEC CICS INQUIRE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 37,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 152,
+    "verb": "IF",
+    "operands": [
+      "EIBRESP",
+      "DFHRESP",
+      "NORMAL"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      36
+    ],
+    "cfg_successors": [
+      38
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF EIBRESP = DFHRESP(NORMAL)",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 38,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 153,
+    "verb": "MOVE",
+    "operands": [
+      "WS-TRANID",
+      "CDEMO-FROM-TRANID"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      37
+    ],
+    "cfg_successors": [
+      39
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-TRANID TO CDEMO-FROM-TRANID",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 39,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 154,
+    "verb": "MOVE",
+    "operands": [
+      "WS-PGMNAME",
+      "CDEMO-FROM-PROGRAM"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      38
+    ],
+    "cfg_successors": [
+      40
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 40,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 155,
+    "verb": "MOVE",
+    "operands": [
+      "CDEMO-PGM-CONTEXT"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      39
+    ],
+    "cfg_successors": [
+      41
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE ZEROS TO CDEMO-PGM-CONTEXT",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 41,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 156,
+    "verb": "EXEC CICS",
+    "operands": [
+      "XCTL"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      40
+    ],
+    "cfg_successors": [
+      42
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXEC CICS XCTL",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 42,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 161,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      41
+    ],
+    "cfg_successors": [
+      43
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE SPACES TO WS-MESSAGE"
+  },
+  {
+    "seq": 43,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 162,
+    "verb": "MOVE",
+    "operands": [
+      "DFHRED",
+      "ERRMSGC",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      42
+    ],
+    "cfg_successors": [
+      44
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE DFHRED TO ERRMSGC OF COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 44,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 163,
+    "verb": "STRING",
+    "operands": [
+      "'This option '",
+      "DELIMITED"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      43
+    ],
+    "cfg_successors": [
+      45
+    ],
+    "division": "PROCEDURE",
+    "raw": "STRING 'This option ' DELIMITED BY SIZE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 45,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 170,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      44
+    ],
+    "cfg_successors": [
+      46
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE SPACES TO WS-MESSAGE"
+  },
+  {
+    "seq": 46,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 171,
+    "verb": "MOVE",
+    "operands": [
+      "DFHGREEN",
+      "ERRMSGC",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      45
+    ],
+    "cfg_successors": [
+      47
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE DFHGREEN TO ERRMSGC OF COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 47,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 172,
+    "verb": "STRING",
+    "operands": [
+      "'This option '",
+      "DELIMITED"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      46
+    ],
+    "cfg_successors": [
+      48
+    ],
+    "division": "PROCEDURE",
+    "raw": "STRING 'This option ' DELIMITED BY SIZE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 48,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 178,
+    "verb": "MOVE",
+    "operands": [
+      "WS-TRANID",
+      "CDEMO-FROM-TRANID"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      47
+    ],
+    "cfg_successors": [
+      49
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-TRANID TO CDEMO-FROM-TRANID",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 49,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 179,
+    "verb": "MOVE",
+    "operands": [
+      "WS-PGMNAME",
+      "CDEMO-FROM-PROGRAM"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      48
+    ],
+    "cfg_successors": [
+      50
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 50,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 180,
+    "verb": "MOVE",
+    "operands": [
+      "WS-PGMNAME",
+      "CDEMO-FROM-PROGRAM"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      49
+    ],
+    "cfg_successors": [
+      51
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 51,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 183,
+    "verb": "MOVE",
+    "operands": [
+      "CDEMO-PGM-CONTEXT"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      50
+    ],
+    "cfg_successors": [
+      52
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE ZEROS TO CDEMO-PGM-CONTEXT",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 52,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 184,
+    "verb": "EXEC CICS",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      51
+    ],
+    "cfg_successors": [
+      53
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXEC CICS"
+  },
+  {
+    "seq": 53,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 190,
+    "verb": "PERFORM",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "cfg_predecessors": [
+      52
+    ],
+    "cfg_successors": [
+      54
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM SEND-MENU-SCREEN"
+  },
+  {
+    "seq": 54,
+    "paragraph": "RETURN-TO-SIGNON-SCREEN",
+    "line": 198,
+    "verb": "IF",
+    "operands": [
+      "CDEMO-TO-PROGRAM"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+    "cfg_predecessors": [
+      53
+    ],
+    "cfg_successors": [
+      55
+    ],
+    "division": "PROCEDURE",
+    "raw": "IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 55,
+    "paragraph": "RETURN-TO-SIGNON-SCREEN",
+    "line": 199,
+    "verb": "MOVE",
+    "operands": [
+      "'COSGN00C'",
+      "CDEMO-TO-PROGRAM"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+    "cfg_predecessors": [
+      54
+    ],
+    "cfg_successors": [
+      56
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 56,
+    "paragraph": "RETURN-TO-SIGNON-SCREEN",
+    "line": 201,
+    "verb": "EXEC CICS",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+    "cfg_predecessors": [
+      55
+    ],
+    "cfg_successors": [
+      57
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXEC CICS"
+  },
+  {
+    "seq": 57,
+    "paragraph": "SEND-MENU-SCREEN",
+    "line": 210,
+    "verb": "PERFORM",
+    "operands": [
+      "POPULATE-HEADER-INFO"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      56
+    ],
+    "cfg_successors": [
+      58
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM POPULATE-HEADER-INFO"
+  },
+  {
+    "seq": 58,
+    "paragraph": "SEND-MENU-SCREEN",
+    "line": 211,
+    "verb": "PERFORM",
+    "operands": [
+      "BUILD-MENU-OPTIONS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      57
+    ],
+    "cfg_successors": [
+      59
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM BUILD-MENU-OPTIONS"
+  },
+  {
+    "seq": 59,
+    "paragraph": "SEND-MENU-SCREEN",
+    "line": 213,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MESSAGE",
+      "ERRMSGO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      58
+    ],
+    "cfg_successors": [
+      60
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MESSAGE TO ERRMSGO OF COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 60,
+    "paragraph": "SEND-MENU-SCREEN",
+    "line": 215,
+    "verb": "EXEC CICS",
+    "operands": [
+      "SEND"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      59
+    ],
+    "cfg_successors": [
+      61
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXEC CICS SEND",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 61,
+    "paragraph": "RECEIVE-MENU-SCREEN",
+    "line": 227,
+    "verb": "EXEC CICS",
+    "operands": [
+      "RECEIVE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      60
+    ],
+    "cfg_successors": [
+      62
+    ],
+    "division": "PROCEDURE",
+    "raw": "EXEC CICS RECEIVE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 62,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 240,
+    "verb": "MOVE",
+    "operands": [
+      "FUNCTION",
+      "CURRENT-DATE",
+      "WS-CURDATE-DATA"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      61
+    ],
+    "cfg_successors": [
+      63
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE FUNCTION CURRENT-DATE TO WS-CURDATE-DATA",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 63,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 242,
+    "verb": "MOVE",
+    "operands": [
+      "CCDA-TITLE01",
+      "TITLE01O",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      62
+    ],
+    "cfg_successors": [
+      64
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE CCDA-TITLE01 TO TITLE01O OF COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 64,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 243,
+    "verb": "MOVE",
+    "operands": [
+      "CCDA-TITLE02",
+      "TITLE02O",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      63
+    ],
+    "cfg_successors": [
+      65
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE CCDA-TITLE02 TO TITLE02O OF COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 65,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 244,
+    "verb": "MOVE",
+    "operands": [
+      "WS-TRANID",
+      "TRNNAMEO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      64
+    ],
+    "cfg_successors": [
+      66
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-TRANID TO TRNNAMEO OF COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 66,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 245,
+    "verb": "MOVE",
+    "operands": [
+      "WS-PGMNAME",
+      "PGMNAMEO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      65
+    ],
+    "cfg_successors": [
+      67
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-PGMNAME TO PGMNAMEO OF COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 67,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 247,
+    "verb": "MOVE",
+    "operands": [
+      "WS-CURDATE-MONTH",
+      "WS-CURDATE-MM"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      66
+    ],
+    "cfg_successors": [
+      68
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-CURDATE-MONTH TO WS-CURDATE-MM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 68,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 248,
+    "verb": "MOVE",
+    "operands": [
+      "WS-CURDATE-DAY",
+      "WS-CURDATE-DD"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      67
+    ],
+    "cfg_successors": [
+      69
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-CURDATE-DAY TO WS-CURDATE-DD",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 69,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 249,
+    "verb": "MOVE",
+    "operands": [
+      "WS-CURDATE-YEAR",
+      "3",
+      "2",
+      "WS-CURDATE-YY"
+    ],
+    "operand_types": [
+      "unresolved",
+      "literal",
+      "literal",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      68
+    ],
+    "cfg_successors": [
+      70
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-CURDATE-YEAR(3:2) TO WS-CURDATE-YY",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 70,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 251,
+    "verb": "MOVE",
+    "operands": [
+      "WS-CURDATE-MM-DD-YY",
+      "CURDATEO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      69
+    ],
+    "cfg_successors": [
+      71
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-CURDATE-MM-DD-YY TO CURDATEO OF COMEN1AO",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 71,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 253,
+    "verb": "MOVE",
+    "operands": [
+      "WS-CURTIME-HOURS",
+      "WS-CURTIME-HH"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      70
+    ],
+    "cfg_successors": [
+      72
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-CURTIME-HOURS TO WS-CURTIME-HH",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 72,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 254,
+    "verb": "MOVE",
+    "operands": [
+      "WS-CURTIME-MINUTE",
+      "WS-CURTIME-MM"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      71
+    ],
+    "cfg_successors": [
+      73
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-CURTIME-MINUTE TO WS-CURTIME-MM",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 73,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 255,
+    "verb": "MOVE",
+    "operands": [
+      "WS-CURTIME-SECOND",
+      "WS-CURTIME-SS"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      72
+    ],
+    "cfg_successors": [
+      74
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-CURTIME-SECOND TO WS-CURTIME-SS",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 74,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 257,
+    "verb": "MOVE",
+    "operands": [
+      "WS-CURTIME-HH-MM-SS",
+      "CURTIMEO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      73
+    ],
+    "cfg_successors": [
+      75
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-CURTIME-HH-MM-SS TO CURTIMEO OF COMEN1AO.",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 75,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 264,
+    "verb": "PERFORM",
+    "operands": [
+      "WS-IDX",
+      "1",
+      "1"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal",
+      "literal"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      74
+    ],
+    "cfg_successors": [
+      76
+    ],
+    "division": "PROCEDURE",
+    "raw": "PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL"
+  },
+  {
+    "seq": 76,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 267,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      75
+    ],
+    "cfg_successors": [
+      77
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE SPACES TO WS-MENU-OPT-TXT"
+  },
+  {
+    "seq": 77,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 269,
+    "verb": "STRING",
+    "operands": [
+      "CDEMO-MENU-OPT-NUM",
+      "WS-IDX",
+      "DELIMITED"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": null,
+    "cfg_predecessors": [
+      76
+    ],
+    "cfg_successors": [
+      78
+    ],
+    "division": "PROCEDURE",
+    "raw": "STRING CDEMO-MENU-OPT-NUM(WS-IDX) DELIMITED BY SIZE",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 78,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 274,
+    "verb": "EVALUATE",
+    "operands": [
+      "WS-IDX"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      77
+    ],
+    "cfg_successors": [
+      79
+    ],
+    "division": "PROCEDURE",
+    "raw": "EVALUATE WS-IDX"
+  },
+  {
+    "seq": 79,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 276,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN001O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      78
+    ],
+    "cfg_successors": [
+      80
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN001O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 80,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 278,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN002O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      79
+    ],
+    "cfg_successors": [
+      81
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN002O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 81,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 280,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN003O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      80
+    ],
+    "cfg_successors": [
+      82
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN003O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 82,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 282,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN004O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      81
+    ],
+    "cfg_successors": [
+      83
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN004O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 83,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 284,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN005O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      82
+    ],
+    "cfg_successors": [
+      84
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN005O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 84,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 286,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN006O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      83
+    ],
+    "cfg_successors": [
+      85
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN006O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 85,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 288,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN007O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      84
+    ],
+    "cfg_successors": [
+      86
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN007O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 86,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 290,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN008O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      85
+    ],
+    "cfg_successors": [
+      87
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN008O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 87,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 292,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN009O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      86
+    ],
+    "cfg_successors": [
+      88
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN009O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 88,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 294,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN010O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      87
+    ],
+    "cfg_successors": [
+      89
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN010O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 89,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 296,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN011O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      88
+    ],
+    "cfg_successors": [
+      90
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN011O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 90,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 298,
+    "verb": "MOVE",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN012O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      89
+    ],
+    "cfg_successors": [
+      91
+    ],
+    "division": "PROCEDURE",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN012O",
+    "operand_unresolved": true
+  },
+  {
+    "seq": 91,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 300,
+    "verb": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "cfg_reachable": true,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "cfg_predecessors": [
+      90
+    ],
+    "cfg_successors": [],
+    "division": "PROCEDURE",
+    "raw": "CONTINUE"
+  }
+]

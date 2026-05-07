@@ -1,0 +1,98 @@
+{
+  "program_id": "CBACT02C",
+  "source_file": "app/cbl/CBACT02C.cbl",
+  "source_sha": "8a41274180ef6bc01d052e40ece5578e790dc792",
+  "cfg_tool": "Cobol-REKT smojol-cli + extract_cfg_summary.py",
+  "paragraphs": [
+    {
+      "name": "0000-CARDFILE-OPEN",
+      "reachable": true,
+      "performs": [
+        "9000-CARDFILE-CLOSE",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1000-CARDFILE-GET-NEXT",
+      "reachable": true,
+      "performs": [
+        "0000-CARDFILE-OPEN",
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9000-CARDFILE-CLOSE",
+      "reachable": true,
+      "performs": [
+        "9999-ABEND-PROGRAM",
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9910-DISPLAY-IO-STATUS",
+      "reachable": true,
+      "performs": [],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9999-ABEND-PROGRAM",
+      "reachable": true,
+      "performs": [
+        "9910-DISPLAY-IO-STATUS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    }
+  ],
+  "data_items": [
+    {
+      "name": "FD-CARDFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "CARDFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "IO-STATUS",
+      "level": 1
+    },
+    {
+      "name": "TWO-BYTES-BINARY",
+      "level": 1
+    },
+    {
+      "name": "TWO-BYTES-ALPHA",
+      "level": 1
+    },
+    {
+      "name": "IO-STATUS-04",
+      "level": 1
+    },
+    {
+      "name": "APPL-RESULT",
+      "level": 1
+    },
+    {
+      "name": "END-OF-FILE",
+      "level": 1
+    },
+    {
+      "name": "ABCODE",
+      "level": 1
+    },
+    {
+      "name": "TIMING",
+      "level": 1
+    }
+  ]
+}

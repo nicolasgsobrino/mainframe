@@ -1,0 +1,747 @@
+#!/usr/bin/env python3
+"""syncd v1.1 -- manifest-driven pipeline sync tool.
+
+Usage:
+  py tools/syncd/sync.py status
+  py tools/syncd/sync.py lock <PROGRAM>
+  py tools/syncd/sync.py verify
+  py tools/syncd/sync.py promote <PROGRAM>
+  py tools/syncd/sync.py scaffold <PROGRAM> [--force]
+  py tools/syncd/sync.py doctor
+  py tools/syncd/sync.py bundle <PROGRAM> [--pr]
+
+Exit codes:
+  0  OK
+  1  Gate / validation failure
+  2  Manifest stale or missing required key
+  3  Forbidden path write attempted / file exists without --force
+
+Dependencies: Python 3.10+ stdlib + PyYAML + Jinja2. No network calls.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+try:
+    import yaml
+except ImportError:
+    print("[syncd] ERROR: PyYAML not found. pip install pyyaml", file=sys.stderr)
+    sys.exit(1)
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+TOOL_DIR   = Path(__file__).resolve().parent
+REPO_ROOT  = TOOL_DIR.parent.parent
+MANIFEST_PATH = REPO_ROOT / "SYNC-MANIFEST.yaml"
+CFG_DIR    = REPO_ROOT / "validation" / "structure"
+GT_DIR     = REPO_ROOT / "validation" / "ground_truth"
+GOLD_DIR   = REPO_ROOT / "translations" / "gold-candidate"
+CBL_DIR    = REPO_ROOT / "app" / "cbl"
+TEMPL_DIR  = TOOL_DIR / "templates"
+
+GATE_COMPARE   = REPO_ROOT / "validation" / "gate_compare.py"
+LINT_COBOL     = REPO_ROOT / "validation" / "lint_cobol" / "lint_cobol.py"
+EXTRACT_CLAIMS = REPO_ROOT / "validation" / "extract_md_claims.py"
+EXTRACT_GT     = REPO_ROOT / "validation" / "extract_ground_truth.py"
+EXTRACT_CFG    = REPO_ROOT / "validation" / "extract_cfg_summary.py"
+NORMALIZE_REKT = REPO_ROOT / "validation" / "normalize_rekt_output.py"
+
+ALLOWED_WRITE_ROOTS = [TOOL_DIR, MANIFEST_PATH, GOLD_DIR]
+
+LINT_RESULTS_JSON = REPO_ROOT / "validation" / "lint_cobol" / "lint_results" / "lint_results.json"
+
+# Bundle: the exact 4 files sync.py bundle is allowed to stage
+BUNDLE_FIXED_FILES = [
+    MANIFEST_PATH,
+    LINT_RESULTS_JSON,
+]
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _check_write_path(target: Path) -> None:
+    resolved = target.resolve()
+    for allowed in ALLOWED_WRITE_ROOTS:
+        allowed_r = Path(allowed).resolve()
+        try:
+            resolved.relative_to(allowed_r)
+            return
+        except ValueError:
+            continue
+    print(f"[syncd] FORBIDDEN PATH: {target}", file=sys.stderr)
+    sys.exit(3)
+
+
+def _load_manifest() -> dict[str, Any]:
+    if not MANIFEST_PATH.exists():
+        return {"schema_version": "syncd/1", "programs": {}}
+    with MANIFEST_PATH.open(encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
+    if "programs" not in data:
+        data["programs"] = {}
+    return data
+
+
+def _save_manifest(data: dict[str, Any]) -> None:
+    _check_write_path(MANIFEST_PATH)
+    with MANIFEST_PATH.open("w", encoding="utf-8") as fh:
+        yaml.dump(data, fh, sort_keys=False, allow_unicode=True, default_flow_style=False)
+
+
+def _git(args: list[str]) -> str:
+    try:
+        result = subprocess.run(
+            ["git"] + args, capture_output=True, text=True, cwd=REPO_ROOT
+        )
+        return result.stdout.strip()
+    except Exception:
+        return ""
+
+
+def _git_rc(args: list[str]) -> tuple[int, str, str]:
+    try:
+        result = subprocess.run(
+            ["git"] + args, capture_output=True, text=True, cwd=REPO_ROOT
+        )
+        return result.returncode, result.stdout.strip(), result.stderr.strip()
+    except Exception:
+        return 1, "", "git not found"
+
+
+def _run_script(script: Path, extra_args: list[str] | None = None) -> int:
+    cmd = [sys.executable, str(script)] + (extra_args or [])
+    result = subprocess.run(cmd, cwd=REPO_ROOT)
+    return result.returncode
+
+
+def _load_cfg(program: str) -> dict[str, Any]:
+    cfg_path = CFG_DIR / f"{program}_cfg.json"
+    if not cfg_path.exists():
+        print(f"[syncd] ERROR: CFG not found: {cfg_path}", file=sys.stderr)
+        sys.exit(1)
+    with cfg_path.open(encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _count_cbl_lines(program: str) -> int | None:
+    """Count source lines in app/cbl/<PROGRAM>.cbl (case-insensitive search)."""
+    if not CBL_DIR.exists():
+        return None
+    for candidate in CBL_DIR.iterdir():
+        if candidate.stem.upper() == program.upper() and candidate.suffix.lower() == ".cbl":
+            try:
+                return sum(1 for _ in candidate.open(encoding="utf-8", errors="replace"))
+            except Exception:
+                return None
+    return None
+
+
+def _cbl_path(program: str) -> Path | None:
+    if not CBL_DIR.exists():
+        return None
+    for candidate in CBL_DIR.iterdir():
+        if candidate.stem.upper() == program.upper() and candidate.suffix.lower() == ".cbl":
+            return candidate
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Commands: status, lock, verify, promote  (v1.0 — unchanged logic)
+# ---------------------------------------------------------------------------
+
+def cmd_status(_args: argparse.Namespace) -> int:
+    branch = _git(["rev-parse", "--abbrev-ref", "HEAD"])
+    head   = _git(["rev-parse", "HEAD"])
+    manifest = _load_manifest()
+    programs = manifest.get("programs", {})
+
+    print("=" * 60)
+    print("syncd v1.1 -- status")
+    print("=" * 60)
+    print(f"  Branch : {branch}")
+    print(f"  HEAD   : {head}")
+    print(f"  Manifest: {MANIFEST_PATH}")
+    print(f"  Schema  : {manifest.get('schema_version', 'unknown')}")
+    print(f"  Programs locked: {len(programs)}")
+    print()
+    if not programs:
+        print("  (no programs locked -- run: py tools/syncd/sync.py lock <PROGRAM>)")
+    else:
+        print(f"  {'PROGRAM':<20} {'PARAGRAPHS':>10} {'L01':>6} {'LOCKED_AT'}")
+        print(f"  {'-'*20} {'-'*10} {'-'*6} {'-'*24}")
+        for prog, entry in programs.items():
+            locked = entry.get("locked_numbers", {})
+            p  = locked.get("paragraphs_expected", "?")
+            l  = locked.get("l01_items_expected", "?")
+            ts = entry.get("locked_at", "unknown")
+            print(f"  {prog:<20} {str(p):>10} {str(l):>6} {ts}")
+    print()
+    return 0
+
+
+def cmd_lock(args: argparse.Namespace) -> int:
+    program = args.program.upper()
+    cfg = _load_cfg(program)
+
+    paragraphs = cfg.get("paragraphs", [])
+    data_items  = cfg.get("data_items", [])
+    reachable   = [p for p in paragraphs if p.get("reachable", True)]
+    dead        = [p for p in paragraphs if not p.get("reachable", True)]
+
+    locked_numbers = {
+        "paragraphs_expected":     len(paragraphs),
+        "l01_items_expected":      len(data_items),
+        "reachable_expected":      len(reachable),
+        "dead_paragraphs_allowed": len(dead),
+        "source_sha":              (_git(["hash-object", str(_cbl_path(program))]) or cfg.get("source_sha", None)),
+        "cfg_sha":                 _git(["hash-object",
+                                         str(CFG_DIR / f"{program}_cfg.json")]),
+    }
+
+    if EXTRACT_GT.exists():
+        gt_file = GT_DIR / f"{program}_ground_truth.json"
+        rc = _run_script(EXTRACT_GT)
+        if rc != 0:
+            print(f"[syncd] ERROR: extract_ground_truth.py exited {rc}", file=sys.stderr)
+            sys.exit(1)
+        if gt_file.exists():
+            with gt_file.open(encoding="utf-8") as fh:
+                gt = json.load(fh)
+            gt_prog = None
+            if isinstance(gt, list):
+                for entry in gt:
+                    if entry.get("program_id", "").upper() == program:
+                        gt_prog = entry
+                        break
+            elif isinstance(gt, dict):
+                if gt.get("program_id", "").upper() == program:
+                    gt_prog = gt
+            if gt_prog:
+                gt_r = gt_prog.get("paragraphs_reachable", None)
+                if gt_r is not None and gt_r != locked_numbers["reachable_expected"]:
+                    print(
+                        f"[syncd] MISMATCH: CFG reachable={locked_numbers['reachable_expected']} "
+                        f"but ground_truth reachable={gt_r}",
+                        file=sys.stderr
+                    )
+                    sys.exit(2)
+
+    manifest = _load_manifest()
+    manifest["programs"].setdefault(program, {})
+    manifest["programs"][program]["locked_numbers"] = locked_numbers
+    manifest["programs"][program]["locked_at"] = (
+        datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    )
+    _save_manifest(manifest)
+
+    print(f"[syncd] LOCKED {program}: "
+          f"{locked_numbers['paragraphs_expected']} paragraphs, "
+          f"{locked_numbers['l01_items_expected']} L01 items")
+    return 0
+
+
+def cmd_verify(_args: argparse.Namespace) -> int:
+    manifest = _load_manifest()
+    targets  = manifest.get("verify_targets", {})
+    failures = []
+
+    if GATE_COMPARE.exists():
+        print("[syncd] Running gate_compare.py ...")
+        rc = _run_script(GATE_COMPARE)
+        if rc != 0:
+            failures.append(f"gate_compare.py exited {rc}")
+    else:
+        print("[syncd] SKIP: gate_compare.py not found", file=sys.stderr)
+
+    if LINT_COBOL.exists():
+        print("[syncd] Running lint_cobol.py --fail-on-error ...")
+        rc = _run_script(LINT_COBOL, ["--fail-on-error"])
+        if rc != 0:
+            failures.append(f"lint_cobol.py --fail-on-error exited {rc}")
+    else:
+        print("[syncd] SKIP: lint_cobol.py not found", file=sys.stderr)
+
+    if EXTRACT_CLAIMS.exists():
+        print("[syncd] Running extract_md_claims.py ...")
+        rc = _run_script(EXTRACT_CLAIMS)
+        if rc != 0:
+            failures.append(f"extract_md_claims.py exited {rc}")
+    else:
+        print("[syncd] SKIP: extract_md_claims.py not found", file=sys.stderr)
+
+    if failures:
+        print()
+        print("[syncd] VERIFY FAILED:")
+        for f in failures:
+            print(f"  - {f}")
+        return 1
+
+    print("[syncd] VERIFY PASS -- all checks clean")
+    return 0
+
+
+def cmd_promote(args: argparse.Namespace) -> int:
+    program = args.program.upper()
+    steps: list[tuple[str, Path, list[str]]] = []
+
+    if NORMALIZE_REKT.exists():
+        steps.append(("normalize_rekt_output.py", NORMALIZE_REKT, [program]))
+    else:
+        print(f"[syncd] SKIP: normalize_rekt_output.py not found (optional)")
+
+    steps += [
+        ("extract_cfg_summary.py",  EXTRACT_CFG, [program]),
+        ("extract_ground_truth.py", EXTRACT_GT,  []),
+    ]
+
+    for label, script, extra in steps:
+        if not script.exists():
+            print(f"[syncd] ERROR: required script not found: {script}", file=sys.stderr)
+            return 1
+        print(f"[syncd] Running {label} {' '.join(extra)} ...")
+        rc = _run_script(script, extra if extra else None)
+        if rc != 0:
+            print(f"[syncd] FAILED at {label} (exit {rc})", file=sys.stderr)
+            return 1
+
+    lock_args = argparse.Namespace(program=program)
+    rc = cmd_lock(lock_args)
+    if rc != 0:
+        return rc
+
+    print(f"[syncd] PROMOTE {program} complete -- manifest locked")
+    print(f"[syncd] Next step: write translations/gold-candidate/{program}.md (human + agent)")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# v1.1: scaffold
+# ---------------------------------------------------------------------------
+
+def cmd_scaffold(args: argparse.Namespace) -> int:
+    """Generate a .md skeleton from manifest + CFG. Refuses to overwrite without --force."""
+    try:
+        from jinja2 import Environment, FileSystemLoader, StrictUndefined
+    except ImportError:
+        print("[syncd] ERROR: Jinja2 not found. pip install jinja2", file=sys.stderr)
+        sys.exit(1)
+
+    program = args.program.upper()
+    force   = getattr(args, "force", False)
+
+    out_path = GOLD_DIR / f"{program}.md"
+    if out_path.exists() and not force:
+        print(f"[syncd] ERROR: {out_path} already exists. Use --force to overwrite.",
+              file=sys.stderr)
+        return 3
+
+    # Load manifest locked_numbers
+    manifest = _load_manifest()
+    prog_entry = manifest.get("programs", {}).get(program)
+    if not prog_entry or "locked_numbers" not in prog_entry:
+        print(f"[syncd] ERROR: No locked_numbers for {program} in manifest. "
+              "Run: py tools/syncd/sync.py lock {program}", file=sys.stderr)
+        return 2
+
+    locked = prog_entry["locked_numbers"]
+    cfg    = _load_cfg(program)
+
+    # Load ground truth if available
+    gt_data: dict[str, Any] = {}
+    gt_file = GT_DIR / f"{program}_ground_truth.json"
+    if gt_file.exists():
+        with gt_file.open(encoding="utf-8") as fh:
+            raw = json.load(fh)
+        if isinstance(raw, list):
+            for entry in raw:
+                if entry.get("program_id", "").upper() == program:
+                    gt_data = entry
+                    break
+        elif isinstance(raw, dict) and raw.get("program_id", "").upper() == program:
+            gt_data = raw
+
+    # CBL metadata
+    cbl_file  = _cbl_path(program)
+    loc       = _count_cbl_lines(program)
+    source_sha = locked.get("source_sha") or cfg.get("source_sha", None)
+    if cbl_file:
+        computed_sha = _git(["hash-object", str(cbl_file)])
+        if computed_sha:
+            source_sha = computed_sha
+        # Relative path with lowercase extension convention
+        source_rel = f"app/cbl/{cbl_file.name}"
+    else:
+        source_rel = f"app/cbl/{program}.cbl"
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Has any ALTER or GO TO?
+    paragraphs  = cfg.get("paragraphs", [])
+    goto_flag   = any(p.get("goto_flag", False) for p in paragraphs)
+    data_items  = cfg.get("data_items", [])
+
+    # Redefines count from GT or 0
+    redefines_expected = gt_data.get("redefines", locked.get("redefines_expected", 0))
+    dead_allowed = locked.get("dead_paragraphs_allowed", 0)
+
+    template_context = {
+        "program":              program,
+        "source_file":          source_rel,
+        "source_sha":           source_sha or "TODO-verify-sha",
+        "today":                today,
+        "lines_of_code":        loc or "TODO-measure",
+        "paragraphs_expected":  locked["paragraphs_expected"],
+        "l01_items_expected":   locked["l01_items_expected"],
+        "reachable_expected":   locked["reachable_expected"],
+        "dead_paragraphs_allowed": dead_allowed,
+        "redefines_expected":   redefines_expected,
+        "goto_flag":            goto_flag,
+        "alter_flag":           goto_flag,  # conservative: flag both if any goto present
+        "paragraphs":           paragraphs,
+        "data_items":           data_items,
+        "cfg_source":           f"validation/structure/{program}_cfg.json",
+    }
+
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPL_DIR)),
+        undefined=StrictUndefined,
+        keep_trailing_newline=True,
+    )
+    template = env.get_template("gold_candidate_skeleton.md.j2")
+    rendered = template.render(**template_context)
+
+    _check_write_path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(rendered, encoding="utf-8")
+
+    print(f"[syncd] SCAFFOLD {program} -> {out_path}")
+    print(f"[syncd] Paragraphs: {locked['paragraphs_expected']} | "
+          f"L01: {locked['l01_items_expected']} | "
+          f"Dead: {dead_allowed} | goto_flag: {goto_flag}")
+    print(f"[syncd] Edit TODO markers, then run: py tools/syncd/sync.py verify")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# v1.1: doctor
+# ---------------------------------------------------------------------------
+
+def cmd_doctor(_args: argparse.Namespace) -> int:
+    """Health check: forbidden paths, manifest/CFG match, truncation, SHA freshness, git status."""
+    warnings: list[str] = []
+    errors:   list[str] = []
+
+    # --- a. Forbidden-path changes in git diff (unstaged + staged) ---
+    forbidden_prefixes = [
+        "validation/",
+        "app/cbl/",
+        "app/cpy/",
+        ".clinerules/",
+    ]
+    diff_files_raw = _git(["diff", "--name-only", "HEAD"])
+    staged_raw     = _git(["diff", "--cached", "--name-only"])
+    changed_files  = set()
+    for line in (diff_files_raw + "\n" + staged_raw).splitlines():
+        line = line.strip()
+        if line:
+            changed_files.add(line)
+
+    for f in changed_files:
+        for prefix in forbidden_prefixes:
+            if f.startswith(prefix):
+                errors.append(f"FORBIDDEN PATH in working tree/index: {f}")
+                break
+
+    # --- b. Manifest locked_numbers vs current CFG ---
+    manifest = _load_manifest()
+    for prog, entry in manifest.get("programs", {}).items():
+        locked = entry.get("locked_numbers", {})
+        cfg_path = CFG_DIR / f"{prog}_cfg.json"
+        if not cfg_path.exists():
+            warnings.append(f"{prog}: CFG file missing ({cfg_path.name})")
+            continue
+        with cfg_path.open(encoding="utf-8") as fh:
+            cfg = json.load(fh)
+        actual_para  = len(cfg.get("paragraphs", []))
+        actual_l01   = len(cfg.get("data_items", []))
+        exp_para = locked.get("paragraphs_expected")
+        exp_l01  = locked.get("l01_items_expected")
+        if exp_para is not None and actual_para != exp_para:
+            errors.append(
+                f"{prog}: manifest paragraphs_expected={exp_para} "
+                f"but CFG has {actual_para}"
+            )
+        if exp_l01 is not None and actual_l01 != exp_l01:
+            errors.append(
+                f"{prog}: manifest l01_items_expected={exp_l01} "
+                f"but CFG has {actual_l01}"
+            )
+        # cfg_sha freshness
+        current_cfg_sha = _git(["hash-object", str(cfg_path)])
+        manifest_cfg_sha = locked.get("cfg_sha", None)
+        if manifest_cfg_sha and current_cfg_sha and current_cfg_sha != manifest_cfg_sha:
+            warnings.append(
+                f"{prog}: cfg_sha in manifest ({manifest_cfg_sha[:10]}...) "
+                f"differs from current ({current_cfg_sha[:10]}...) -- re-run lock"
+            )
+
+    # --- c. Leading-zero truncation in all structure/*_cfg.json ---
+    trunc_re = re.compile(r'"name"\s*:\s*"(0{1,3}[1-9]\d*-|9{1,3}[0-9]-)')
+    if CFG_DIR.exists():
+        for cfg_file in CFG_DIR.glob("*_cfg.json"):
+            try:
+                text = cfg_file.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            for match in trunc_re.finditer(text):
+                errors.append(
+                    f"TRUNCATION in {cfg_file.name}: "
+                    f"paragraph name starts with '{match.group(1)}' "
+                    f"(should start with '0000-' or '9999-')"
+                )
+
+    # --- d. source_sha freshness in .md frontmatter ---
+    if GOLD_DIR.exists():
+        for md_file in GOLD_DIR.glob("*.md"):
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            # Extract source_sha and source_file from YAML frontmatter
+            sha_match  = re.search(r'^source_sha:\s*["\']?([a-f0-9]{40})["\']?',
+                                   text, re.MULTILINE)
+            file_match = re.search(r'^source_file:\s*["\']?([^\s"\'\']+)["\']?',
+                                   text, re.MULTILINE)
+            if not sha_match or not file_match:
+                continue
+            fm_sha  = sha_match.group(1)
+            src_rel = file_match.group(1)
+            src_abs = REPO_ROOT / src_rel
+            if not src_abs.exists():
+                warnings.append(f"{md_file.name}: source_file {src_rel} not found")
+                continue
+            current_sha = _git(["hash-object", str(src_abs)])
+            if current_sha and current_sha != fm_sha:
+                warnings.append(
+                    f"{md_file.name}: source_sha stale "
+                    f"(manifest={fm_sha[:10]}... current={current_sha[:10]}...)"
+                )
+
+    # --- e. Git status clean check ---
+    status_output = _git(["status", "--porcelain"])
+    if status_output:
+        untracked = [l for l in status_output.splitlines()
+                     if l.startswith("??")]
+        modified  = [l for l in status_output.splitlines()
+                     if not l.startswith("??")]
+        if modified:
+            warnings.append(
+                f"Working tree has {len(modified)} modified/staged file(s) "
+                f"(run 'git status' for details)"
+            )
+        # Don't flag untracked as errors — common during development
+
+    # --- Report ---
+    print("=" * 60)
+    print("syncd doctor")
+    print("=" * 60)
+    if not warnings and not errors:
+        print("  [OK] All checks passed")
+        print()
+        return 0
+
+    for w in warnings:
+        print(f"  [WARN]  {w}")
+    for e in errors:
+        print(f"  [ERROR] {e}")
+    print()
+    if errors:
+        print(f"  doctor: {len(errors)} error(s), {len(warnings)} warning(s) -- exit 2")
+        return 2
+    else:
+        print(f"  doctor: 0 errors, {len(warnings)} warning(s) -- exit 1")
+        return 1
+
+
+# ---------------------------------------------------------------------------
+# v1.1: bundle
+# ---------------------------------------------------------------------------
+
+def cmd_bundle(args: argparse.Namespace) -> int:
+    """verify -> stage exactly 4 files -> commit [--pr]."""
+    program = args.program.upper()
+    do_pr   = getattr(args, "pr", False)
+
+    # Step a: verify must pass
+    print("[syncd] bundle: running verify ...")
+    verify_args = argparse.Namespace()
+    rc = cmd_verify(verify_args)
+    if rc != 0:
+        print("[syncd] bundle: ABORT -- verify failed", file=sys.stderr)
+        return 1
+
+    # Step b: the 4 allowed files
+    md_path  = GOLD_DIR / f"{program}.md"
+    cfg_path = CFG_DIR / f"{program}_cfg.json"
+
+    required_files = [
+        md_path,
+        cfg_path,
+        MANIFEST_PATH,
+        LINT_RESULTS_JSON,
+    ]
+
+    for f in required_files:
+        if not f.exists():
+            print(f"[syncd] bundle: MISSING required file: {f}", file=sys.stderr)
+            return 1
+
+    # Stage the 4 files
+    for f in required_files:
+        rc_add, _, stderr_add = _git_rc(["add", str(f)])
+        if rc_add != 0:
+            print(f"[syncd] bundle: git add failed for {f}: {stderr_add}", file=sys.stderr)
+            return 1
+
+    # Step c: refuse if anything else is staged
+    staged_output = _git(["diff", "--cached", "--name-only"])
+    staged_set = set(staged_output.splitlines()) if staged_output else set()
+    allowed_rel = set()
+    repo_root_str = str(REPO_ROOT)
+    for f in required_files:
+        rel = str(f.resolve()).replace(repo_root_str, "").lstrip("/").lstrip("\\")
+        rel = rel.replace("\\", "/")
+        allowed_rel.add(rel)
+
+    extra_staged = staged_set - allowed_rel
+    if extra_staged:
+        print("[syncd] bundle: ABORT -- extra files in git index (unstage them first):",
+              file=sys.stderr)
+        for f in sorted(extra_staged):
+            print(f"  {f}", file=sys.stderr)
+        # Unstage everything we just staged to leave repo clean
+        _git(["reset", "HEAD"] + [str(f) for f in required_files])
+        return 3
+
+    # Step d: commit
+    manifest = _load_manifest()
+    locked   = manifest.get("programs", {}).get(program, {}).get("locked_numbers", {})
+    para     = locked.get("paragraphs_expected", "?")
+    l01      = locked.get("l01_items_expected", "?")
+    src_sha  = locked.get("source_sha", "unknown")
+
+    commit_msg = (
+        f"feat(trust): {program} gold-candidate \u2014 gate PASS via syncd\n\n"
+        f"Locked numbers: {para} paragraphs / {l01} L01 items\n"
+        f"Source SHA: {src_sha}\n"
+        f"Verified by: syncd verify (gate_compare + lint_cobol + extract_md_claims)"
+    )
+    rc_commit, _, stderr_commit = _git_rc(["commit", "-m", commit_msg])
+    if rc_commit != 0:
+        print(f"[syncd] bundle: git commit failed: {stderr_commit}", file=sys.stderr)
+        return 1
+
+    commit_sha = _git(["rev-parse", "HEAD"])
+    print(f"[syncd] bundle: committed {commit_sha[:10]}")
+
+    # Step e: --pr
+    if do_pr:
+        branch = _git(["rev-parse", "--abbrev-ref", "HEAD"])
+        pr_body = (
+            f"## {program} Gold Candidate\n\n"
+            f"### Locked Numbers\n"
+            f"- Paragraphs: {para}\n"
+            f"- L01 items: {l01}\n"
+            f"- Source SHA: `{src_sha}`\n\n"
+            f"### Gate State\n"
+            f"Verified by `syncd verify`:\n"
+            f"- `gate_compare.py` PASS\n"
+            f"- `lint_cobol.py --fail-on-error` PASS\n"
+            f"- `extract_md_claims.py` PASS\n\n"
+            f"### Commit\n"
+            f"`{commit_sha}`\n\n"
+            f"**Awaiting human approval before merge.**"
+        )
+        pr_title = f"feat(trust): {program} gold-candidate \u2014 gate PASS via syncd"
+        rc_pr = subprocess.run(
+            ["gh", "pr", "create",
+             "--title", pr_title,
+             "--body",  pr_body,
+             "--base",  "main",
+             "--head",  branch],
+            cwd=REPO_ROOT
+        ).returncode
+        if rc_pr != 0:
+            print("[syncd] bundle: gh pr create failed (is gh CLI installed?)",
+                  file=sys.stderr)
+            return 1
+        print(f"[syncd] bundle: PR created from {branch}")
+
+    print(f"[syncd] bundle: {program} DONE")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        prog="sync.py",
+        description="syncd v1.1 -- manifest-driven pipeline sync tool"
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    sub.add_parser("status", help="Print manifest summary + git branch + HEAD SHA")
+
+    p_lock = sub.add_parser("lock", help="Lock CFG numbers into SYNC-MANIFEST.yaml")
+    p_lock.add_argument("program")
+
+    sub.add_parser("verify", help="Run gate_compare + lint_cobol + extract_md_claims")
+
+    p_promote = sub.add_parser("promote", help="Run pipeline stages 0-GT then lock")
+    p_promote.add_argument("program")
+
+    p_scaffold = sub.add_parser("scaffold",
+                                help="Generate .md skeleton from manifest + CFG")
+    p_scaffold.add_argument("program")
+    p_scaffold.add_argument("--force", action="store_true",
+                            help="Overwrite existing .md")
+
+    sub.add_parser("doctor",
+                   help="Health check: paths, manifest/CFG match, truncation, SHAs, git status")
+
+    p_bundle = sub.add_parser("bundle",
+                               help="verify -> stage 4 files -> commit [--pr]")
+    p_bundle.add_argument("program")
+    p_bundle.add_argument("--pr", action="store_true",
+                          help="Create a GitHub PR after committing")
+
+    args = parser.parse_args()
+
+    dispatch = {
+        "status":   cmd_status,
+        "lock":     cmd_lock,
+        "verify":   cmd_verify,
+        "promote":  cmd_promote,
+        "scaffold": cmd_scaffold,
+        "doctor":   cmd_doctor,
+        "bundle":   cmd_bundle,
+    }
+    return dispatch[args.command](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

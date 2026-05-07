@@ -1,0 +1,139 @@
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G0",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T12:02:00Z"
+}
+{
+  "event": "decompose",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G0",
+  "irreducible_unit": "CBACT04C.md gold candidate",
+  "inputs": ["CBACT04C.cbl", "CBACT04C_cfg.json", "SYNC-MANIFEST.yaml"],
+  "invariants": {
+    "paragraphs": 22,
+    "l01_items": 24,
+    "reachable": 22,
+    "dead": 0
+  },
+  "ts": "2026-05-06T12:02:00Z"
+}
+{
+  "event": "gate_close",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G0",
+  "status": "PASS",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T12:07:00Z"
+}
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G1",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T12:11:00Z"
+}
+{
+  "event": "gate_close",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G1",
+  "status": "PASS",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T12:11:30Z"
+}
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G2",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T12:12:00Z"
+}
+{
+  "event": "gate_close",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G2",
+  "status": "PASS",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T12:14:00Z"
+}
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G3",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T12:14:00Z"
+}
+{
+  "event": "gate_close",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G3",
+  "status": "PASS",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T13:48:00Z"
+}
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G4",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T12:15:00Z"
+}
+{
+  "event": "gate_close",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G4",
+  "status": "PASS",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T13:56:30Z"
+}
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G5",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "preserve/local-progress-2026-05-06",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "713063e34e48a15fc730121065a974e06f055349",
+  "ts": "2026-05-06T14:00:00Z"
+}
+{
+  "event": "complete",
+  "task_id": "T-2026-05-06-001",
+  "gate": "G5",
+  "program_id": "CBACT04C",
+  "commit_sha": "pending",
+  "pr": null,
+  "tag": "[AIFIRST-VERIFIED]",
+  "ts": "2026-05-06T14:00:00Z"
+}

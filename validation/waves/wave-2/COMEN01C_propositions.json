@@ -1,0 +1,1955 @@
+[
+  {
+    "seq": 1,
+    "paragraph": "MAIN-PARA",
+    "line": 77,
+    "verb": "SET",
+    "proposition": "Assign a named state to ERR-FLG-OFF",
+    "proposition_source": "TEMPLATE",
+    "modifies": "ERR-FLG-OFF",
+    "cfg_branch_context": null,
+    "raw": "SET ERR-FLG-OFF TO TRUE",
+    "operands": [
+      "ERR-FLG-OFF",
+      "TRUE"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 2,
+    "paragraph": "MAIN-PARA",
+    "line": 79,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": null,
+    "raw": "MOVE SPACES TO WS-MESSAGE",
+    "operands": [
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 3,
+    "paragraph": "MAIN-PARA",
+    "line": 82,
+    "verb": "IF",
+    "proposition": "When EIBCALEN = 0",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "IF EIBCALEN = 0",
+    "operands": [
+      "EIBCALEN",
+      "0"
+    ],
+    "operand_types": [
+      "unresolved",
+      "literal"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 4,
+    "paragraph": "MAIN-PARA",
+    "line": 83,
+    "verb": "MOVE",
+    "proposition": "Move data between 'COSGN00C'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE 'COSGN00C' TO CDEMO-FROM-PROGRAM",
+    "operands": [
+      "'COSGN00C'",
+      "CDEMO-FROM-PROGRAM"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 5,
+    "paragraph": "MAIN-PARA",
+    "line": 84,
+    "verb": "PERFORM",
+    "proposition": "Execute the RETURN-TO-SIGNON-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM RETURN-TO-SIGNON-SCREEN",
+    "operands": [
+      "RETURN-TO-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 6,
+    "paragraph": "MAIN-PARA",
+    "line": 86,
+    "verb": "MOVE",
+    "proposition": "Set 1 to DFHCOMMAREA",
+    "proposition_source": "TEMPLATE",
+    "modifies": "DFHCOMMAREA",
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA",
+    "operands": [
+      "DFHCOMMAREA",
+      "1",
+      "EIBCALEN",
+      "CARDDEMO-COMMAREA"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 7,
+    "paragraph": "MAIN-PARA",
+    "line": 87,
+    "verb": "IF",
+    "proposition": "When EIBCALEN = 0",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "IF NOT CDEMO-PGM-REENTER",
+    "operands": [
+      "CDEMO-PGM-REENTER"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 8,
+    "paragraph": "MAIN-PARA",
+    "line": 88,
+    "verb": "SET",
+    "proposition": "Assign a named state",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "SET CDEMO-PGM-REENTER TO TRUE",
+    "operands": [
+      "CDEMO-PGM-REENTER",
+      "TRUE"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 9,
+    "paragraph": "MAIN-PARA",
+    "line": 89,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE LOW-VALUES TO COMEN1AO",
+    "operands": [
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 10,
+    "paragraph": "MAIN-PARA",
+    "line": 90,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-MENU-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM SEND-MENU-SCREEN",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 11,
+    "paragraph": "MAIN-PARA",
+    "line": 92,
+    "verb": "PERFORM",
+    "proposition": "Execute the RECEIVE-MENU-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM RECEIVE-MENU-SCREEN",
+    "operands": [
+      "RECEIVE-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 12,
+    "paragraph": "MAIN-PARA",
+    "line": 93,
+    "verb": "EVALUATE",
+    "proposition": null,
+    "proposition_source": "PARTIAL",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "EVALUATE EIBAID",
+    "operands": [
+      "EIBAID"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 0.5,
+    "needs_llm": true,
+    "proposition_stub": "Branch on value of EIBAID"
+  },
+  {
+    "seq": 13,
+    "paragraph": "MAIN-PARA",
+    "line": 95,
+    "verb": "PERFORM",
+    "proposition": "Execute the PROCESS-ENTER-KEY procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM PROCESS-ENTER-KEY",
+    "operands": [
+      "PROCESS-ENTER-KEY"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 14,
+    "paragraph": "MAIN-PARA",
+    "line": 97,
+    "verb": "MOVE",
+    "proposition": "Move data between 'COSGN00C'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+    "operands": [
+      "'COSGN00C'",
+      "CDEMO-TO-PROGRAM"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 15,
+    "paragraph": "MAIN-PARA",
+    "line": 98,
+    "verb": "PERFORM",
+    "proposition": "Execute the RETURN-TO-SIGNON-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM RETURN-TO-SIGNON-SCREEN",
+    "operands": [
+      "RETURN-TO-SIGNON-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 16,
+    "paragraph": "MAIN-PARA",
+    "line": 100,
+    "verb": "MOVE",
+    "proposition": "Set WS-ERR-FLG to 'Y'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-ERR-FLG",
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE 'Y' TO WS-ERR-FLG",
+    "operands": [
+      "'Y'",
+      "WS-ERR-FLG"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 17,
+    "paragraph": "MAIN-PARA",
+    "line": 101,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "MOVE CCDA-MSG-INVALID-KEY TO WS-MESSAGE",
+    "operands": [
+      "CCDA-MSG-INVALID-KEY",
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 2
+  },
+  {
+    "seq": 18,
+    "paragraph": "MAIN-PARA",
+    "line": 102,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-MENU-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "PERFORM SEND-MENU-SCREEN",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 19,
+    "paragraph": "MAIN-PARA",
+    "line": 107,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": "IF EIBCALEN = 0",
+    "raw": "EXEC CICS RETURN",
+    "operands": [
+      "RETURN"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 20,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 117,
+    "verb": "PERFORM",
+    "proposition": "Execute a procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "PERFORM VARYING WS-IDX",
+    "operands": [
+      "WS-IDX"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 21,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 122,
+    "verb": "MOVE",
+    "proposition": "Set WS-OPTION-X to 1",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-OPTION-X",
+    "cfg_branch_context": null,
+    "raw": "MOVE OPTIONI OF COMEN1AI(1:WS-IDX) TO WS-OPTION-X",
+    "operands": [
+      "OPTIONI",
+      "COMEN1AI",
+      "1",
+      "WS-IDX",
+      "WS-OPTION-X"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "literal",
+      "working-storage",
+      "working-storage"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 22,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 123,
+    "verb": "INSPECT",
+    "proposition": "Inspect WS-OPTION-X contents",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-OPTION-X",
+    "cfg_branch_context": null,
+    "raw": "INSPECT WS-OPTION-X REPLACING ALL ' ' BY '0'",
+    "operands": [
+      "WS-OPTION-X",
+      "REPLACING",
+      "' '",
+      "'0'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "literal",
+      "literal"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 23,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 124,
+    "verb": "MOVE",
+    "proposition": "Set WS-OPTION to WS-OPTION-X",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-OPTION",
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-OPTION-X TO WS-OPTION",
+    "operands": [
+      "WS-OPTION-X",
+      "WS-OPTION"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 24,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 125,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-OPTION",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-OPTION",
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-OPTION TO OPTIONO OF COMEN1AO",
+    "operands": [
+      "WS-OPTION",
+      "OPTIONO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 25,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 127,
+    "verb": "IF",
+    "proposition": "When WS-OPTION IS NOT NUMERIC OR",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "IF WS-OPTION IS NOT NUMERIC OR",
+    "operands": [
+      "WS-OPTION",
+      "NUMERIC"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 26,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 130,
+    "verb": "MOVE",
+    "proposition": "Set WS-ERR-FLG to 'Y'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-ERR-FLG",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE 'Y' TO WS-ERR-FLG",
+    "operands": [
+      "'Y'",
+      "WS-ERR-FLG"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 27,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 131,
+    "verb": "MOVE",
+    "proposition": "Move data between 'Please enter a valid option number...'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE 'Please enter a valid option number...' TO",
+    "operands": [
+      "'Please enter a valid option number...'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 28,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 133,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-MENU-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "PERFORM SEND-MENU-SCREEN",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 29,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 136,
+    "verb": "IF",
+    "proposition": "When WS-OPTION IS NOT NUMERIC OR",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "IF CDEMO-USRTYP-USER AND",
+    "operands": [
+      "CDEMO-USRTYP-USER"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 30,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 138,
+    "verb": "SET",
+    "proposition": "Assign a named state to ERR-FLG-ON",
+    "proposition_source": "TEMPLATE",
+    "modifies": "ERR-FLG-ON",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "SET ERR-FLG-ON TO TRUE",
+    "operands": [
+      "ERR-FLG-ON",
+      "TRUE"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 31,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 139,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE SPACES TO WS-MESSAGE",
+    "operands": [
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 32,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 140,
+    "verb": "MOVE",
+    "proposition": "Move data between 'No access - Admin Only option... '",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE 'No access - Admin Only option... ' TO",
+    "operands": [
+      "'No access - Admin Only option... '"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 33,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 142,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-MENU-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "PERFORM SEND-MENU-SCREEN",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 34,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 145,
+    "verb": "IF",
+    "proposition": "When WS-OPTION IS NOT NUMERIC OR",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "IF NOT ERR-FLG-ON",
+    "operands": [
+      "ERR-FLG-ON"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 35,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 146,
+    "verb": "EVALUATE",
+    "proposition": null,
+    "proposition_source": "PARTIAL",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "EVALUATE TRUE",
+    "operands": [
+      "TRUE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 0.5,
+    "needs_llm": true,
+    "proposition_stub": "Branch on value of TRUE"
+  },
+  {
+    "seq": 36,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 148,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "EXEC CICS INQUIRE",
+    "operands": [
+      "INQUIRE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 37,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 152,
+    "verb": "IF",
+    "proposition": "When WS-OPTION IS NOT NUMERIC OR",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "IF EIBRESP = DFHRESP(NORMAL)",
+    "operands": [
+      "EIBRESP",
+      "DFHRESP",
+      "NORMAL"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 38,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 153,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-TRANID",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-TRANID",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE WS-TRANID TO CDEMO-FROM-TRANID",
+    "operands": [
+      "WS-TRANID",
+      "CDEMO-FROM-TRANID"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 39,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 154,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-PGMNAME",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-PGMNAME",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM",
+    "operands": [
+      "WS-PGMNAME",
+      "CDEMO-FROM-PROGRAM"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 40,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 155,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE ZEROS TO CDEMO-PGM-CONTEXT",
+    "operands": [
+      "CDEMO-PGM-CONTEXT"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 41,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 156,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "EXEC CICS XCTL",
+    "operands": [
+      "XCTL"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 42,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 161,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE SPACES TO WS-MESSAGE",
+    "operands": [
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 43,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 162,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE DFHRED TO ERRMSGC OF COMEN1AO",
+    "operands": [
+      "DFHRED",
+      "ERRMSGC",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 44,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 163,
+    "verb": "STRING",
+    "proposition": null,
+    "proposition_source": "PARTIAL",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "STRING 'This option ' DELIMITED BY SIZE",
+    "operands": [
+      "'This option '",
+      "DELIMITED"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 0.5,
+    "needs_llm": true,
+    "proposition_stub": "Compose or decompose string involving 'This option ', DELIMITED"
+  },
+  {
+    "seq": 45,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 170,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE SPACES TO WS-MESSAGE",
+    "operands": [
+      "WS-MESSAGE"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 46,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 171,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE DFHGREEN TO ERRMSGC OF COMEN1AO",
+    "operands": [
+      "DFHGREEN",
+      "ERRMSGC",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 47,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 172,
+    "verb": "STRING",
+    "proposition": null,
+    "proposition_source": "PARTIAL",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "STRING 'This option ' DELIMITED BY SIZE",
+    "operands": [
+      "'This option '",
+      "DELIMITED"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 0.5,
+    "needs_llm": true,
+    "proposition_stub": "Compose or decompose string involving 'This option ', DELIMITED"
+  },
+  {
+    "seq": 48,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 178,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-TRANID",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-TRANID",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE WS-TRANID TO CDEMO-FROM-TRANID",
+    "operands": [
+      "WS-TRANID",
+      "CDEMO-FROM-TRANID"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 49,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 179,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-PGMNAME",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-PGMNAME",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM",
+    "operands": [
+      "WS-PGMNAME",
+      "CDEMO-FROM-PROGRAM"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 50,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 180,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-PGMNAME",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-PGMNAME",
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM",
+    "operands": [
+      "WS-PGMNAME",
+      "CDEMO-FROM-PROGRAM"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 51,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 183,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "MOVE ZEROS TO CDEMO-PGM-CONTEXT",
+    "operands": [
+      "CDEMO-PGM-CONTEXT"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 52,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 184,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "EXEC CICS",
+    "operands": [],
+    "operand_types": [],
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 53,
+    "paragraph": "PROCESS-ENTER-KEY",
+    "line": 190,
+    "verb": "PERFORM",
+    "proposition": "Execute the SEND-MENU-SCREEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF WS-OPTION IS NOT NUMERIC OR",
+    "raw": "PERFORM SEND-MENU-SCREEN",
+    "operands": [
+      "SEND-MENU-SCREEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 54,
+    "paragraph": "RETURN-TO-SIGNON-SCREEN",
+    "line": 198,
+    "verb": "IF",
+    "proposition": "When CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+    "raw": "IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+    "operands": [
+      "CDEMO-TO-PROGRAM"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 55,
+    "paragraph": "RETURN-TO-SIGNON-SCREEN",
+    "line": 199,
+    "verb": "MOVE",
+    "proposition": "Move data between 'COSGN00C'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+    "raw": "MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM",
+    "operands": [
+      "'COSGN00C'",
+      "CDEMO-TO-PROGRAM"
+    ],
+    "operand_types": [
+      "literal",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 56,
+    "paragraph": "RETURN-TO-SIGNON-SCREEN",
+    "line": 201,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": "IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES",
+    "raw": "EXEC CICS",
+    "operands": [],
+    "operand_types": [],
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 57,
+    "paragraph": "SEND-MENU-SCREEN",
+    "line": 210,
+    "verb": "PERFORM",
+    "proposition": "Execute the POPULATE-HEADER-INFO procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "PERFORM POPULATE-HEADER-INFO",
+    "operands": [
+      "POPULATE-HEADER-INFO"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 58,
+    "paragraph": "SEND-MENU-SCREEN",
+    "line": 211,
+    "verb": "PERFORM",
+    "proposition": "Execute the BUILD-MENU-OPTIONS procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "PERFORM BUILD-MENU-OPTIONS",
+    "operands": [
+      "BUILD-MENU-OPTIONS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 59,
+    "paragraph": "SEND-MENU-SCREEN",
+    "line": 213,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MESSAGE",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MESSAGE",
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-MESSAGE TO ERRMSGO OF COMEN1AO",
+    "operands": [
+      "WS-MESSAGE",
+      "ERRMSGO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 60,
+    "paragraph": "SEND-MENU-SCREEN",
+    "line": 215,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXEC CICS SEND",
+    "operands": [
+      "SEND"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 61,
+    "paragraph": "RECEIVE-MENU-SCREEN",
+    "line": 227,
+    "verb": "EXEC CICS",
+    "proposition": null,
+    "proposition_source": "LLM",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXEC CICS RECEIVE",
+    "operands": [
+      "RECEIVE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": null,
+    "needs_llm": true
+  },
+  {
+    "seq": 62,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 240,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE FUNCTION CURRENT-DATE TO WS-CURDATE-DATA",
+    "operands": [
+      "FUNCTION",
+      "CURRENT-DATE",
+      "WS-CURDATE-DATA"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 63,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 242,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE CCDA-TITLE01 TO TITLE01O OF COMEN1AO",
+    "operands": [
+      "CCDA-TITLE01",
+      "TITLE01O",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 64,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 243,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE CCDA-TITLE02 TO TITLE02O OF COMEN1AO",
+    "operands": [
+      "CCDA-TITLE02",
+      "TITLE02O",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 65,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 244,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-TRANID",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-TRANID",
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-TRANID TO TRNNAMEO OF COMEN1AO",
+    "operands": [
+      "WS-TRANID",
+      "TRNNAMEO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 66,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 245,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-PGMNAME",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-PGMNAME",
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-PGMNAME TO PGMNAMEO OF COMEN1AO",
+    "operands": [
+      "WS-PGMNAME",
+      "PGMNAMEO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 67,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 247,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURDATE-MONTH TO WS-CURDATE-MM",
+    "operands": [
+      "WS-CURDATE-MONTH",
+      "WS-CURDATE-MM"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 68,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 248,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURDATE-DAY TO WS-CURDATE-DD",
+    "operands": [
+      "WS-CURDATE-DAY",
+      "WS-CURDATE-DD"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 69,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 249,
+    "verb": "MOVE",
+    "proposition": "Set 2 to 3",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURDATE-YEAR(3:2) TO WS-CURDATE-YY",
+    "operands": [
+      "WS-CURDATE-YEAR",
+      "3",
+      "2",
+      "WS-CURDATE-YY"
+    ],
+    "operand_types": [
+      "unresolved",
+      "literal",
+      "literal",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 70,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 251,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURDATE-MM-DD-YY TO CURDATEO OF COMEN1AO",
+    "operands": [
+      "WS-CURDATE-MM-DD-YY",
+      "CURDATEO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 71,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 253,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURTIME-HOURS TO WS-CURTIME-HH",
+    "operands": [
+      "WS-CURTIME-HOURS",
+      "WS-CURTIME-HH"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 72,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 254,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURTIME-MINUTE TO WS-CURTIME-MM",
+    "operands": [
+      "WS-CURTIME-MINUTE",
+      "WS-CURTIME-MM"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 73,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 255,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURTIME-SECOND TO WS-CURTIME-SS",
+    "operands": [
+      "WS-CURTIME-SECOND",
+      "WS-CURTIME-SS"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 74,
+    "paragraph": "POPULATE-HEADER-INFO",
+    "line": 257,
+    "verb": "MOVE",
+    "proposition": "Move data between ",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "MOVE WS-CURTIME-HH-MM-SS TO CURTIMEO OF COMEN1AO.",
+    "operands": [
+      "WS-CURTIME-HH-MM-SS",
+      "CURTIMEO",
+      "COMEN1AO"
+    ],
+    "operand_types": [
+      "unresolved",
+      "unresolved",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 75,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 264,
+    "verb": "PERFORM",
+    "proposition": "Execute a procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL",
+    "operands": [
+      "WS-IDX",
+      "1",
+      "1"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 76,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 267,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": null,
+    "raw": "MOVE SPACES TO WS-MENU-OPT-TXT",
+    "operands": [
+      "WS-MENU-OPT-TXT"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 77,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 269,
+    "verb": "STRING",
+    "proposition": null,
+    "proposition_source": "PARTIAL",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "STRING CDEMO-MENU-OPT-NUM(WS-IDX) DELIMITED BY SIZE",
+    "operands": [
+      "CDEMO-MENU-OPT-NUM",
+      "WS-IDX",
+      "DELIMITED"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 0.5,
+    "needs_llm": true,
+    "proposition_stub": "Compose or decompose string involving CDEMO-MENU-OPT-NUM, WS-IDX, DELIMITED"
+  },
+  {
+    "seq": 78,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 274,
+    "verb": "EVALUATE",
+    "proposition": null,
+    "proposition_source": "PARTIAL",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "EVALUATE WS-IDX",
+    "operands": [
+      "WS-IDX"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 0.5,
+    "needs_llm": true,
+    "proposition_stub": "Branch on value of WS-IDX"
+  },
+  {
+    "seq": 79,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 276,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN001O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN001O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 80,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 278,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN002O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN002O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 81,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 280,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN003O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN003O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 82,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 282,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN004O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN004O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 83,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 284,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN005O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN005O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 84,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 286,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN006O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN006O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 85,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 288,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN007O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN007O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 86,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 290,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN008O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN008O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 87,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 292,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN009O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN009O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 88,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 294,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN010O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN010O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 89,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 296,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN011O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN011O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 90,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 298,
+    "verb": "MOVE",
+    "proposition": "Move data between WS-MENU-OPT-TXT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "WS-MENU-OPT-TXT",
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "MOVE WS-MENU-OPT-TXT TO OPTN012O",
+    "operands": [
+      "WS-MENU-OPT-TXT",
+      "OPTN012O"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false,
+    "overrides_seq": 76
+  },
+  {
+    "seq": 91,
+    "paragraph": "BUILD-MENU-OPTIONS",
+    "line": 300,
+    "verb": "CONTINUE",
+    "proposition": "Continue without action",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "EVALUATE WS-IDX",
+    "raw": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  }
+]

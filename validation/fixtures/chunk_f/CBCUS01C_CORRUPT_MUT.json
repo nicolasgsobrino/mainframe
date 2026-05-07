@@ -1,0 +1,231 @@
+{
+  "program": "CBCUS01C_CORRUPT_MUT",
+  "source_path": "app/cbl/CBCUS01C.cbl",
+  "source_sha256": "233dbc3bc33a3b9ac555922085a92be56e88d16316bff624b5723c4c36c99714",
+  "cfg_path": "validation/pass1/CBCUS01C_annotations.json",
+  "cfg_sha256": "ab00a83ff96b471c4441f76d23253b530dbd34fc1bc9c72841b81c3d2a116707",
+  "byte_layouts_path": "validation/pass1/byte_layouts/CBCUS01C.json",
+  "byte_layouts_sha256": "fea8bac80e8635b0b5b4a94638f7d5adb932eb40531c51c6f354319183e65d81",
+  "paragraphs": [
+    {
+      "paragraph": "CBCUS01C-MAIN",
+      "classification_source": "annotations",
+      "mutates": [],
+      "reads": [
+        {
+          "fd_name": "END-OF-FILE",
+          "verb": "IF",
+          "line": 75,
+          "raw": "IF END-OF-FILE = 'N'"
+        },
+        {
+          "fd_name": "CUSTOMER-RECORD",
+          "verb": "DISPLAY",
+          "line": 78,
+          "raw": "DISPLAY CUSTOMER-RECORD"
+        }
+      ]
+    },
+    {
+      "paragraph": "1000-CUSTFILE-GET-NEXT",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 95,
+          "raw": "MOVE 0 TO APPL-RESULT"
+        },
+        {
+          "fd_name": "END-OF-FILE",
+          "verb": "MOVE",
+          "line": 108,
+          "raw": "MOVE 'Y' TO END-OF-FILE"
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 111,
+          "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 999,
+          "raw": "IF APPL-AOK"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CUSTFILE-STATUS",
+          "verb": "IF",
+          "line": 94,
+          "raw": "IF CUSTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "CUSTOMER-RECORD",
+          "verb": "DISPLAY",
+          "line": 96,
+          "raw": "DISPLAY CUSTOMER-RECORD"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 104,
+          "raw": "IF APPL-AOK"
+        },
+        {
+          "fd_name": "APPL-EOF",
+          "verb": "IF",
+          "line": 107,
+          "raw": "IF APPL-EOF"
+        }
+      ]
+    },
+    {
+      "paragraph": "0000-CUSTFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 119,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 130,
+          "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CUSTFILE-STATUS",
+          "verb": "IF",
+          "line": 121,
+          "raw": "IF CUSTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 126,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "9000-CUSTFILE-CLOSE",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "ADD",
+          "line": 137,
+          "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 148,
+          "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CUSTFILE-STATUS",
+          "verb": "IF",
+          "line": 139,
+          "raw": "IF CUSTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 144,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "Z-ABEND-PROGRAM",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "TIMING",
+          "verb": "MOVE",
+          "line": 156,
+          "raw": "MOVE 0 TO TIMING"
+        },
+        {
+          "fd_name": "ABCODE",
+          "verb": "MOVE",
+          "line": 157,
+          "raw": "MOVE 999 TO ABCODE"
+        }
+      ],
+      "reads": []
+    },
+    {
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "IO-STATUS-04",
+          "verb": "MOVE",
+          "line": 164,
+          "raw": "MOVE IO-STAT1 TO IO-STATUS-04(1:1)"
+        },
+        {
+          "fd_name": "TWO-BYTES-BINARY",
+          "verb": "MOVE",
+          "line": 165,
+          "raw": "MOVE 0 TO TWO-BYTES-BINARY"
+        },
+        {
+          "fd_name": "TWO-BYTES-ALPHA.TWO-BYTES-RIGHT",
+          "verb": "MOVE",
+          "line": 166,
+          "raw": "MOVE IO-STAT2 TO TWO-BYTES-RIGHT"
+        },
+        {
+          "fd_name": "IO-STATUS-04.IO-STATUS-0403",
+          "verb": "MOVE",
+          "line": 167,
+          "raw": "MOVE TWO-BYTES-BINARY TO IO-STATUS-0403"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "IF",
+          "line": 162,
+          "raw": "IF IO-STATUS NOT NUMERIC"
+        },
+        {
+          "fd_name": "IO-STATUS.IO-STAT1",
+          "verb": "MOVE",
+          "line": 164,
+          "raw": "MOVE IO-STAT1 TO IO-STATUS-04(1:1)"
+        },
+        {
+          "fd_name": "IO-STATUS.IO-STAT2",
+          "verb": "MOVE",
+          "line": 166,
+          "raw": "MOVE IO-STAT2 TO TWO-BYTES-RIGHT"
+        },
+        {
+          "fd_name": "TWO-BYTES-BINARY",
+          "verb": "MOVE",
+          "line": 167,
+          "raw": "MOVE TWO-BYTES-BINARY TO IO-STATUS-0403"
+        },
+        {
+          "fd_name": "IO-STATUS-04",
+          "verb": "DISPLAY",
+          "line": 168,
+          "raw": "DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04"
+        }
+      ]
+    }
+  ]
+}

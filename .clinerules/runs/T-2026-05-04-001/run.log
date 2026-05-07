@@ -1,0 +1,49 @@
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-04-001",
+  "gate": "G0",
+  "agent": "claude-sonnet-4.6",
+  "branch": "main",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "78ef9b8bb11286416c9b612e3644f06f560ddef0",
+  "ts": "2026-05-05T02:30:00Z"
+}
+{
+  "event": "decompose",
+  "task_id": "T-2026-05-04-001",
+  "gate": "G0",
+  "irreducible_unit": "CBCUS01C.md gold candidate",
+  "inputs": ["CBCUS01C.cbl", "SYNC-MANIFEST.yaml", "CBCUS01C_cfg.json"],
+  "invariants": {
+    "paragraphs_expected": 25,
+    "l01_items_expected": 18
+  },
+  "ts": "2026-05-05T02:30:00Z"
+}
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-04-001",
+  "gate": "G1",
+  "agent": "claude-sonnet-4.6",
+  "branch": "main",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "facee5d1e589d2d112f19e8c73b2cc3497320a79",
+  "ts": "2026-05-05T11:22:00Z"
+}
+{
+  "event": "syncd",
+  "task_id": "T-2026-05-04-001",
+  "gate": "G1",
+  "command": "lock",
+  "program": "CBCUS01C",
+  "exit_code": 0,
+  "ts": "2026-05-05T11:22:07Z"
+}
+{"event":"correction","task_id":"T-2026-05-04-001","field":"agent","scope":"all prior events in this task","incorrect_value":"claude-sonnet-4.6","correct_value":"qwen3-coder-next-80b","correction_ts":"2026-05-05T11:38:00Z","reason":"Agent copy-pasted value from CBSTM03A.md frontmatter (translating_agent) and from example YAML in kickoff prompt. Actual runtime model per Cline config is Qwen3 Coder Next 80B.","corrected_by":"human"}
+{"event":"correction","task_id":"T-2026-05-04-001","field":"parent_task_id","scope":"G1-plan.md YAML header","incorrect_value":"T-2026-05-04-001","correct_value":null,"correction_ts":"2026-05-05T11:38:00Z","reason":"parent_task_id is reserved for spawned re-decomposition after BLOCKED status in a DIFFERENT task. G1 is a continuation of G0 within the same task; self-reference is invalid per aifirst/2.0 schema.","corrected_by":"human"}
+{"event":"gate_open","task_id":"T-2026-05-04-001","gate":"G2","agent":"qwen3-coder-next-80b","branch":"main","branch_scope_sha":"4e43543844c5e6167e45c8d33624cc02ce2c6e23","manifest_sha":"facee5d1e589d2d112f19e8c73b2cc3497320a79","ts":"2026-05-05T12:04:00Z"}
+{"event":"syncd","task_id":"T-2026-05-04-001","gate":"G2","command":"doctor","exit_code":2,"ts":"2026-05-05T12:04:00Z"}
+{"event":"override","task_id":"T-2026-05-04-001","gate":"G2","rule":"doctor_exit_2_halts_gate","reason":"errors all in out-of-scope programs per BRANCH-SCOPE.md","approver":"human","ts":"2026-05-05T12:28:22Z"}
+{"event":"corpus_health","task_id":"T-2026-05-04-001","gate":"G2","finding_id":"F-001","out_of_scope_errors":16,"out_of_scope_warnings":8,"cbcus01c_status":"only stale source_sha warning","ts":"2026-05-05T12:28:22Z"}
+{"event":"step","task_id":"T-2026-05-04-001","gate":"G2","step_id":"T-2026-05-04-001-S-002","desc":"syncd scaffold CBCUS01C --force","status":"PASS","exit_code":0,"ts":"2026-05-05T12:28:22Z"}
+{"event":"gate_close","task_id":"T-2026-05-04-001","gate":"G2","status":"OVERRIDE","override_reason_ref":"F-001","ts":"2026-05-05T12:32:00Z"}

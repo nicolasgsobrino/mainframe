@@ -1,0 +1,1352 @@
+{
+  "program": "CBACT01C",
+  "source_path": "app/cbl/CBACT01C.cbl",
+  "source_sha256": "f8eb6e3a561ff96a1889a8f777a8998850a11dddae221da2c5018067d7b95551",
+  "sections": {
+    "file": [
+      {
+        "level": 1,
+        "name": "FD-ACCTFILE-REC",
+        "line": 53,
+        "usage": "DISPLAY",
+        "fd": "ACCTFILE-FILE",
+        "children": [
+          {
+            "level": 5,
+            "name": "FD-ACCT-ID",
+            "line": 54,
+            "usage": "DISPLAY",
+            "pic": "9(11)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 11,
+            "qualified_name": "FD-ACCTFILE-REC.FD-ACCT-ID"
+          },
+          {
+            "level": 5,
+            "name": "FD-ACCT-DATA",
+            "line": 55,
+            "usage": "DISPLAY",
+            "pic": "X(289)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 289,
+            "qualified_name": "FD-ACCTFILE-REC.FD-ACCT-DATA"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 300,
+        "qualified_name": "FD-ACCTFILE-REC",
+        "section": "file"
+      },
+      {
+        "level": 1,
+        "name": "OUT-ACCT-REC",
+        "line": 57,
+        "usage": "DISPLAY",
+        "fd": "OUT-FILE",
+        "children": [
+          {
+            "level": 5,
+            "name": "OUT-ACCT-ID",
+            "line": 58,
+            "usage": "DISPLAY",
+            "pic": "9(11)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 11,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-ID"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-ACTIVE-STATUS",
+            "line": 59,
+            "usage": "DISPLAY",
+            "pic": "X(01)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-ACTIVE-STATUS"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-CURR-BAL",
+            "line": 60,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-CURR-BAL"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-CREDIT-LIMIT",
+            "line": 61,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-CREDIT-LIMIT"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-CASH-CREDIT-LIMIT",
+            "line": 62,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-CASH-CREDIT-LIMIT"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-OPEN-DATE",
+            "line": 63,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-OPEN-DATE"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-EXPIRAION-DATE",
+            "line": 64,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-EXPIRAION-DATE"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-REISSUE-DATE",
+            "line": 65,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-REISSUE-DATE"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-CURR-CYC-CREDIT",
+            "line": 66,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-CURR-CYC-CREDIT"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-CURR-CYC-DEBIT",
+            "line": 67,
+            "usage": "COMP-3",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "packed-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 7,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-CURR-CYC-DEBIT"
+          },
+          {
+            "level": 5,
+            "name": "OUT-ACCT-GROUP-ID",
+            "line": 69,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "OUT-ACCT-REC.OUT-ACCT-GROUP-ID"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 107,
+        "qualified_name": "OUT-ACCT-REC",
+        "section": "file"
+      },
+      {
+        "level": 1,
+        "name": "ARR-ARRAY-REC",
+        "line": 72,
+        "usage": "DISPLAY",
+        "fd": "ARRY-FILE",
+        "children": [
+          {
+            "level": 5,
+            "name": "ARR-ACCT-ID",
+            "line": 73,
+            "usage": "DISPLAY",
+            "pic": "9(11)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 11,
+            "qualified_name": "ARR-ARRAY-REC.ARR-ACCT-ID"
+          },
+          {
+            "level": 5,
+            "name": "ARR-ACCT-BAL",
+            "line": 74,
+            "occurs": 5,
+            "usage": "DISPLAY",
+            "children": [
+              {
+                "level": 10,
+                "name": "ARR-ACCT-CURR-BAL",
+                "line": 75,
+                "usage": "DISPLAY",
+                "pic": "S9(10)V99",
+                "children": [],
+                "encoding": "zoned-decimal",
+                "slack_bytes_before": 0,
+                "total_bytes": 12,
+                "qualified_name": "ARR-ARRAY-REC.ARR-ACCT-BAL.ARR-ACCT-CURR-BAL"
+              },
+              {
+                "level": 10,
+                "name": "ARR-ACCT-CURR-CYC-DEBIT",
+                "line": 76,
+                "usage": "COMP-3",
+                "pic": "S9(10)V99",
+                "children": [],
+                "encoding": "packed-decimal",
+                "slack_bytes_before": 0,
+                "total_bytes": 7,
+                "qualified_name": "ARR-ARRAY-REC.ARR-ACCT-BAL.ARR-ACCT-CURR-CYC-DEBIT"
+              }
+            ],
+            "slack_bytes_before": 0,
+            "total_bytes": 95,
+            "qualified_name": "ARR-ARRAY-REC.ARR-ACCT-BAL"
+          },
+          {
+            "level": 5,
+            "name": "ARR-FILLER",
+            "line": 78,
+            "usage": "DISPLAY",
+            "pic": "X(04)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 4,
+            "qualified_name": "ARR-ARRAY-REC.ARR-FILLER"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 110,
+        "qualified_name": "ARR-ARRAY-REC",
+        "section": "file"
+      },
+      {
+        "level": 1,
+        "name": "VBR-REC",
+        "line": 85,
+        "usage": "DISPLAY",
+        "pic": "X(80)",
+        "fd": "VBRC-FILE",
+        "children": [],
+        "encoding": "display",
+        "slack_bytes_before": 0,
+        "total_bytes": 80,
+        "variable_length": true,
+        "total_bytes_min": 10,
+        "total_bytes_max": 80,
+        "fd_record_depending_on": "WS-RECD-LEN",
+        "fd_record_format": "V",
+        "qualified_name": "VBR-REC",
+        "section": "file"
+      }
+    ],
+    "working_storage": [
+      {
+        "level": 1,
+        "name": "ACCOUNT-RECORD",
+        "line": 4,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "ACCT-ID",
+            "line": 5,
+            "usage": "DISPLAY",
+            "pic": "9(11)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 11,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-ID"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-ACTIVE-STATUS",
+            "line": 6,
+            "usage": "DISPLAY",
+            "pic": "X(01)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-ACTIVE-STATUS"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-CURR-BAL",
+            "line": 7,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-CURR-BAL"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-CREDIT-LIMIT",
+            "line": 8,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-CREDIT-LIMIT"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-CASH-CREDIT-LIMIT",
+            "line": 9,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-CASH-CREDIT-LIMIT"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-OPEN-DATE",
+            "line": 10,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-OPEN-DATE"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-EXPIRAION-DATE",
+            "line": 11,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-EXPIRAION-DATE"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-REISSUE-DATE",
+            "line": 12,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-REISSUE-DATE"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-CURR-CYC-CREDIT",
+            "line": 13,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-CURR-CYC-CREDIT"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-CURR-CYC-DEBIT",
+            "line": 14,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-CURR-CYC-DEBIT"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-ADDR-ZIP",
+            "line": 15,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-ADDR-ZIP"
+          },
+          {
+            "level": 5,
+            "name": "ACCT-GROUP-ID",
+            "line": 16,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "ACCOUNT-RECORD.ACCT-GROUP-ID"
+          },
+          {
+            "level": 5,
+            "name": "FILLER",
+            "line": 17,
+            "usage": "DISPLAY",
+            "pic": "X(178)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 178,
+            "qualified_name": "ACCOUNT-RECORD.FILLER"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 300,
+        "qualified_name": "ACCOUNT-RECORD",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "CODATECN-REC",
+        "line": 17,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "CODATECN-IN-REC",
+            "line": 18,
+            "usage": "DISPLAY",
+            "children": [
+              {
+                "level": 10,
+                "name": "CODATECN-TYPE",
+                "line": 19,
+                "usage": "DISPLAY",
+                "pic": "X",
+                "children": [],
+                "encoding": "display",
+                "slack_bytes_before": 0,
+                "total_bytes": 1,
+                "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-TYPE"
+              },
+              {
+                "level": 10,
+                "name": "CODATECN-INP-DATE",
+                "line": 22,
+                "usage": "DISPLAY",
+                "pic": "X(20)",
+                "children": [],
+                "encoding": "display",
+                "slack_bytes_before": 0,
+                "total_bytes": 20,
+                "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-INP-DATE"
+              },
+              {
+                "level": 10,
+                "name": "CODATECN-1INP",
+                "line": 23,
+                "redefines": "CODATECN-INP-DATE",
+                "usage": "DISPLAY",
+                "children": [
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1YYYY",
+                    "line": 24,
+                    "usage": "DISPLAY",
+                    "pic": "XXXX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 4,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-1INP.CODATECN-1YYYY"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1MM",
+                    "line": 25,
+                    "usage": "DISPLAY",
+                    "pic": "XX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 2,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-1INP.CODATECN-1MM"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1DD",
+                    "line": 26,
+                    "usage": "DISPLAY",
+                    "pic": "XX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 2,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-1INP.CODATECN-1DD"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1FIL",
+                    "line": 27,
+                    "usage": "DISPLAY",
+                    "pic": "X(12)",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 12,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-1INP.CODATECN-1FIL"
+                  }
+                ],
+                "total_bytes": 20,
+                "slack_bytes_before": 0,
+                "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-1INP"
+              },
+              {
+                "level": 10,
+                "name": "CODATECN-2INP",
+                "line": 28,
+                "redefines": "CODATECN-INP-DATE",
+                "usage": "DISPLAY",
+                "children": [
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1O-YYYY",
+                    "line": 29,
+                    "usage": "DISPLAY",
+                    "pic": "XXXX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 4,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-2INP.CODATECN-1O-YYYY"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1I-S1",
+                    "line": 30,
+                    "usage": "DISPLAY",
+                    "pic": "X",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 1,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-2INP.CODATECN-1I-S1"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1MM",
+                    "line": 31,
+                    "usage": "DISPLAY",
+                    "pic": "XX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 2,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-2INP.CODATECN-1MM"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1I-S2",
+                    "line": 32,
+                    "usage": "DISPLAY",
+                    "pic": "X",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 1,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-2INP.CODATECN-1I-S2"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-2YY",
+                    "line": 33,
+                    "usage": "DISPLAY",
+                    "pic": "XX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 2,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-2INP.CODATECN-2YY"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-2FIL",
+                    "line": 34,
+                    "usage": "DISPLAY",
+                    "pic": "X(10)",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 10,
+                    "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-2INP.CODATECN-2FIL"
+                  }
+                ],
+                "total_bytes": 20,
+                "slack_bytes_before": 0,
+                "qualified_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-2INP"
+              }
+            ],
+            "slack_bytes_before": 0,
+            "total_bytes": 21,
+            "qualified_name": "CODATECN-REC.CODATECN-IN-REC"
+          },
+          {
+            "level": 5,
+            "name": "CODATECN-OUT-REC",
+            "line": 35,
+            "usage": "DISPLAY",
+            "children": [
+              {
+                "level": 10,
+                "name": "CODATECN-OUTTYPE",
+                "line": 36,
+                "usage": "DISPLAY",
+                "pic": "X",
+                "children": [],
+                "encoding": "display",
+                "slack_bytes_before": 0,
+                "total_bytes": 1,
+                "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-OUTTYPE"
+              },
+              {
+                "level": 10,
+                "name": "CODATECN-0UT-DATE",
+                "line": 39,
+                "usage": "DISPLAY",
+                "pic": "X(20)",
+                "children": [],
+                "encoding": "display",
+                "slack_bytes_before": 0,
+                "total_bytes": 20,
+                "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-0UT-DATE"
+              },
+              {
+                "level": 10,
+                "name": "CODATECN-1OUT",
+                "line": 40,
+                "redefines": "CODATECN-0UT-DATE",
+                "usage": "DISPLAY",
+                "children": [
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1O-YYYY",
+                    "line": 41,
+                    "usage": "DISPLAY",
+                    "pic": "XXXX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 4,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-1OUT.CODATECN-1O-YYYY"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1O-S1",
+                    "line": 42,
+                    "usage": "DISPLAY",
+                    "pic": "X",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 1,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-1OUT.CODATECN-1O-S1"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1O-MM",
+                    "line": 43,
+                    "usage": "DISPLAY",
+                    "pic": "XX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 2,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-1OUT.CODATECN-1O-MM"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1O-S2",
+                    "line": 44,
+                    "usage": "DISPLAY",
+                    "pic": "X",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 1,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-1OUT.CODATECN-1O-S2"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1O-DD",
+                    "line": 45,
+                    "usage": "DISPLAY",
+                    "pic": "XX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 2,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-1OUT.CODATECN-1O-DD"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-1OFIL",
+                    "line": 46,
+                    "usage": "DISPLAY",
+                    "pic": "X(10)",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 10,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-1OUT.CODATECN-1OFIL"
+                  }
+                ],
+                "total_bytes": 20,
+                "slack_bytes_before": 0,
+                "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-1OUT"
+              },
+              {
+                "level": 10,
+                "name": "CODATECN-2OUT",
+                "line": 47,
+                "redefines": "CODATECN-0UT-DATE",
+                "usage": "DISPLAY",
+                "children": [
+                  {
+                    "level": 15,
+                    "name": "CODATECN-2O-YYYY",
+                    "line": 48,
+                    "usage": "DISPLAY",
+                    "pic": "XXXX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 4,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-2OUT.CODATECN-2O-YYYY"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-2O-MM",
+                    "line": 49,
+                    "usage": "DISPLAY",
+                    "pic": "XX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 2,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-2OUT.CODATECN-2O-MM"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-2O-DD",
+                    "line": 50,
+                    "usage": "DISPLAY",
+                    "pic": "XX",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 2,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-2OUT.CODATECN-2O-DD"
+                  },
+                  {
+                    "level": 15,
+                    "name": "CODATECN-2OFIL",
+                    "line": 51,
+                    "usage": "DISPLAY",
+                    "pic": "X(12)",
+                    "children": [],
+                    "encoding": "display",
+                    "slack_bytes_before": 0,
+                    "total_bytes": 12,
+                    "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-2OUT.CODATECN-2OFIL"
+                  }
+                ],
+                "total_bytes": 20,
+                "slack_bytes_before": 0,
+                "qualified_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-2OUT"
+              }
+            ],
+            "slack_bytes_before": 0,
+            "total_bytes": 21,
+            "qualified_name": "CODATECN-REC.CODATECN-OUT-REC"
+          },
+          {
+            "level": 5,
+            "name": "CODATECN-ERROR-MSG",
+            "line": 52,
+            "usage": "DISPLAY",
+            "pic": "X(38)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 38,
+            "qualified_name": "CODATECN-REC.CODATECN-ERROR-MSG"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 80,
+        "qualified_name": "CODATECN-REC",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "ACCTFILE-STATUS",
+        "line": 91,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "ACCTFILE-STAT1",
+            "line": 92,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "ACCTFILE-STATUS.ACCTFILE-STAT1"
+          },
+          {
+            "level": 5,
+            "name": "ACCTFILE-STAT2",
+            "line": 93,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "ACCTFILE-STATUS.ACCTFILE-STAT2"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 2,
+        "qualified_name": "ACCTFILE-STATUS",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "OUTFILE-STATUS",
+        "line": 94,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "OUTFILE-STAT1",
+            "line": 95,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "OUTFILE-STATUS.OUTFILE-STAT1"
+          },
+          {
+            "level": 5,
+            "name": "OUTFILE-STAT2",
+            "line": 96,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "OUTFILE-STATUS.OUTFILE-STAT2"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 2,
+        "qualified_name": "OUTFILE-STATUS",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "ARRYFILE-STATUS",
+        "line": 97,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "ARRYFILE-STAT1",
+            "line": 98,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "ARRYFILE-STATUS.ARRYFILE-STAT1"
+          },
+          {
+            "level": 5,
+            "name": "ARRYFILE-STAT2",
+            "line": 99,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "ARRYFILE-STATUS.ARRYFILE-STAT2"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 2,
+        "qualified_name": "ARRYFILE-STATUS",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "VBRCFILE-STATUS",
+        "line": 100,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "VBRCFILE-STAT1",
+            "line": 101,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "VBRCFILE-STATUS.VBRCFILE-STAT1"
+          },
+          {
+            "level": 5,
+            "name": "VBRCFILE-STAT2",
+            "line": 102,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "VBRCFILE-STATUS.VBRCFILE-STAT2"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 2,
+        "qualified_name": "VBRCFILE-STATUS",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "IO-STATUS",
+        "line": 104,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "IO-STAT1",
+            "line": 105,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "IO-STATUS.IO-STAT1"
+          },
+          {
+            "level": 5,
+            "name": "IO-STAT2",
+            "line": 106,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "IO-STATUS.IO-STAT2"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 2,
+        "qualified_name": "IO-STATUS",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "TWO-BYTES-BINARY",
+        "line": 107,
+        "usage": "BINARY",
+        "pic": "9(4)",
+        "children": [],
+        "encoding": "binary",
+        "slack_bytes_before": 0,
+        "total_bytes": 2,
+        "qualified_name": "TWO-BYTES-BINARY",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "TWO-BYTES-ALPHA",
+        "line": 108,
+        "redefines": "TWO-BYTES-BINARY",
+        "usage": "BINARY",
+        "children": [
+          {
+            "level": 5,
+            "name": "TWO-BYTES-LEFT",
+            "line": 109,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "TWO-BYTES-ALPHA.TWO-BYTES-LEFT"
+          },
+          {
+            "level": 5,
+            "name": "TWO-BYTES-RIGHT",
+            "line": 110,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "TWO-BYTES-ALPHA.TWO-BYTES-RIGHT"
+          }
+        ],
+        "total_bytes": 2,
+        "slack_bytes_before": 0,
+        "qualified_name": "TWO-BYTES-ALPHA",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "IO-STATUS-04",
+        "line": 111,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "IO-STATUS-0401",
+            "line": 112,
+            "usage": "DISPLAY",
+            "pic": "9",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "IO-STATUS-04.IO-STATUS-0401"
+          },
+          {
+            "level": 5,
+            "name": "IO-STATUS-0403",
+            "line": 113,
+            "usage": "DISPLAY",
+            "pic": "999",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 3,
+            "qualified_name": "IO-STATUS-04.IO-STATUS-0403"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 4,
+        "qualified_name": "IO-STATUS-04",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "APPL-RESULT",
+        "line": 115,
+        "usage": "COMP",
+        "pic": "S9(9)",
+        "children": [],
+        "encoding": "binary",
+        "slack_bytes_before": 0,
+        "total_bytes": 4,
+        "qualified_name": "APPL-RESULT",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "END-OF-FILE",
+        "line": 119,
+        "usage": "DISPLAY",
+        "pic": "X(01)",
+        "children": [],
+        "encoding": "display",
+        "slack_bytes_before": 0,
+        "total_bytes": 1,
+        "qualified_name": "END-OF-FILE",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "ABCODE",
+        "line": 120,
+        "usage": "BINARY",
+        "pic": "S9(9)",
+        "children": [],
+        "encoding": "binary",
+        "slack_bytes_before": 0,
+        "total_bytes": 4,
+        "qualified_name": "ABCODE",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "TIMING",
+        "line": 121,
+        "usage": "BINARY",
+        "pic": "S9(9)",
+        "children": [],
+        "encoding": "binary",
+        "slack_bytes_before": 0,
+        "total_bytes": 4,
+        "qualified_name": "TIMING",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "WS-RECD-LEN",
+        "line": 122,
+        "usage": "DISPLAY",
+        "pic": "9(04)",
+        "children": [],
+        "encoding": "zoned-decimal",
+        "slack_bytes_before": 0,
+        "total_bytes": 4,
+        "qualified_name": "WS-RECD-LEN",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "VBRC-REC1",
+        "line": 123,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "VB1-ACCT-ID",
+            "line": 124,
+            "usage": "DISPLAY",
+            "pic": "9(11)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 11,
+            "qualified_name": "VBRC-REC1.VB1-ACCT-ID"
+          },
+          {
+            "level": 5,
+            "name": "VB1-ACCT-ACTIVE-STATUS",
+            "line": 125,
+            "usage": "DISPLAY",
+            "pic": "X(01)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "VBRC-REC1.VB1-ACCT-ACTIVE-STATUS"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 12,
+        "qualified_name": "VBRC-REC1",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "VBRC-REC2",
+        "line": 126,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "VB2-ACCT-ID",
+            "line": 127,
+            "usage": "DISPLAY",
+            "pic": "9(11)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 11,
+            "qualified_name": "VBRC-REC2.VB2-ACCT-ID"
+          },
+          {
+            "level": 5,
+            "name": "VB2-ACCT-CURR-BAL",
+            "line": 128,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "VBRC-REC2.VB2-ACCT-CURR-BAL"
+          },
+          {
+            "level": 5,
+            "name": "VB2-ACCT-CREDIT-LIMIT",
+            "line": 129,
+            "usage": "DISPLAY",
+            "pic": "S9(10)V99",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 12,
+            "qualified_name": "VBRC-REC2.VB2-ACCT-CREDIT-LIMIT"
+          },
+          {
+            "level": 5,
+            "name": "VB2-ACCT-REISSUE-YYYY",
+            "line": 130,
+            "usage": "DISPLAY",
+            "pic": "X(04)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 4,
+            "qualified_name": "VBRC-REC2.VB2-ACCT-REISSUE-YYYY"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 39,
+        "qualified_name": "VBRC-REC2",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "WS-ACCT-REISSUE-DATE",
+        "line": 131,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "WS-ACCT-REISSUE-YYYY",
+            "line": 132,
+            "usage": "DISPLAY",
+            "pic": "X(04)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 4,
+            "qualified_name": "WS-ACCT-REISSUE-DATE.WS-ACCT-REISSUE-YYYY"
+          },
+          {
+            "level": 5,
+            "name": "WS-FILLER-1",
+            "line": 133,
+            "usage": "DISPLAY",
+            "pic": "X(01)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "WS-ACCT-REISSUE-DATE.WS-FILLER-1"
+          },
+          {
+            "level": 5,
+            "name": "WS-ACCT-REISSUE-MM",
+            "line": 134,
+            "usage": "DISPLAY",
+            "pic": "X(02)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 2,
+            "qualified_name": "WS-ACCT-REISSUE-DATE.WS-ACCT-REISSUE-MM"
+          },
+          {
+            "level": 5,
+            "name": "WS-FILLER-2",
+            "line": 135,
+            "usage": "DISPLAY",
+            "pic": "X(01)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "WS-ACCT-REISSUE-DATE.WS-FILLER-2"
+          },
+          {
+            "level": 5,
+            "name": "WS-ACCT-REISSUE-DD",
+            "line": 136,
+            "usage": "DISPLAY",
+            "pic": "X(02)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 2,
+            "qualified_name": "WS-ACCT-REISSUE-DATE.WS-ACCT-REISSUE-DD"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 10,
+        "qualified_name": "WS-ACCT-REISSUE-DATE",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "WS-REISSUE-DATE",
+        "line": 137,
+        "redefines": "WS-ACCT-REISSUE-DATE",
+        "usage": "DISPLAY",
+        "pic": "X(10)",
+        "children": [],
+        "total_bytes": 10,
+        "slack_bytes_before": 0,
+        "qualified_name": "WS-REISSUE-DATE",
+        "section": "working_storage"
+      }
+    ],
+    "linkage": []
+  },
+  "totals": {
+    "working_storage_bytes": 474,
+    "linkage_bytes": 0
+  }
+}

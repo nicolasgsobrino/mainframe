@@ -1,0 +1,71 @@
+{
+  "program": "COSGN00C",
+  "source_path": "app/cbl/COSGN00C.cbl",
+  "source_sha256": "4f901ae6b113eebae60ae1d94b30f8cb9906d031a4419770bf56980bdf97e377",
+  "cfg_path": "validation/pass1/COSGN00C_annotations.json",
+  "cfg_sha256": "de970ffb2a23639bef0ebc27e331e4dd410f5ad4f556362e8f3710ddab54f856",
+  "paragraphs": [
+    {
+      "paragraph": "MAIN-PARA",
+      "first_line": 75,
+      "last_line": 98,
+      "terminator": "cics-return",
+      "falls_through_to": null,
+      "last_verb": "EXEC CICS",
+      "last_raw": "EXEC CICS RETURN",
+      "classification_source": "raw"
+    },
+    {
+      "paragraph": "PROCESS-ENTER-KEY",
+      "first_line": 110,
+      "last_line": 139,
+      "terminator": "implicit",
+      "falls_through_to": "SEND-SIGNON-SCREEN",
+      "last_verb": "PERFORM",
+      "last_raw": "PERFORM READ-USER-SEC-FILE",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "SEND-SIGNON-SCREEN",
+      "first_line": 147,
+      "last_line": 151,
+      "terminator": "implicit",
+      "falls_through_to": "SEND-PLAIN-TEXT",
+      "last_verb": "EXEC CICS",
+      "last_raw": "EXEC CICS SEND",
+      "classification_source": "raw"
+    },
+    {
+      "paragraph": "SEND-PLAIN-TEXT",
+      "first_line": 164,
+      "last_line": 171,
+      "terminator": "cics-return",
+      "falls_through_to": null,
+      "last_verb": "EXEC CICS",
+      "last_raw": "EXEC CICS RETURN",
+      "classification_source": "raw"
+    },
+    {
+      "paragraph": "POPULATE-HEADER-INFO",
+      "first_line": 179,
+      "last_line": 202,
+      "terminator": "implicit",
+      "falls_through_to": "READ-USER-SEC-FILE",
+      "last_verb": "EXEC CICS",
+      "last_raw": "EXEC CICS ASSIGN",
+      "classification_source": "raw"
+    },
+    {
+      "paragraph": "READ-USER-SEC-FILE",
+      "first_line": 211,
+      "last_line": 256,
+      "terminator": "implicit-end-of-program",
+      "falls_through_to": null,
+      "last_verb": "PERFORM",
+      "last_raw": "PERFORM SEND-SIGNON-SCREEN",
+      "classification_source": "annotations"
+    }
+  ],
+  "c5_assertion": "PASS",
+  "c5_violations": []
+}

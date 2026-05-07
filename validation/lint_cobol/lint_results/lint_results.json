@@ -1,0 +1,368 @@
+{
+  "generated_at": "2026-05-06T20:15:02.029049+00:00",
+  "layer": 2,
+  "summary": {
+    "total_files": 62,
+    "total_errors": 0,
+    "total_warnings": 2,
+    "total_info": 22
+  },
+  "files": {
+    "CBACT01C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBACT02C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBACT03C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBACT04C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBCUS01C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBEXPORT": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBIMPORT": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBSTM03A": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBSTM03B": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBTRN01C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBTRN02C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CBTRN03C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COACTUPC": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 1,
+      "info": 7
+    },
+    "COACTVWC": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 2
+    },
+    "COADM01C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COBIL00C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COBSWAIT": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COCRDLIC": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 1
+    },
+    "COCRDSLC": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COCRDUPC": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COMEN01C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CORPT00C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COSGN00C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COTRN00C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COTRN01C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COTRN02C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COUSR00C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COUSR01C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COUSR02C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "COUSR03C": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "CSUTLDTC": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "info": 1
+    }
+  },
+  "findings": [
+    {
+      "rule": "L003",
+      "severity": "WARNING",
+      "file": "COACTUPC",
+      "line": 4226,
+      "message": "Stub EXIT paragraph 'ABEND-ROUTINE-EXIT' at line 4226 contains only EXIT. Verify this is not a tool-inserted fake before production compile (Type C \u2014 strip if so)."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 898,
+      "message": "PERFORM YYYY-STORE-PFKEY THRU YYYY-STORE-PFKEY-EXIT at line 898. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1480,
+      "message": "PERFORM EDIT-DATE-CCYYMMDD THRU EDIT-DATE-CCYYMMDD-EXIT at line 1480. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1492,
+      "message": "PERFORM EDIT-DATE-CCYYMMDD THRU EDIT-DATE-CCYYMMDD-EXIT at line 1492. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1505,
+      "message": "PERFORM EDIT-DATE-CCYYMMDD THRU EDIT-DATE-CCYYMMDD-EXIT at line 1505. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1536,
+      "message": "PERFORM EDIT-DATE-CCYYMMDD THRU EDIT-DATE-CCYYMMDD-EXIT at line 1536. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1540,
+      "message": "PERFORM EDIT-DATE-OF-BIRTH THRU EDIT-DATE-OF-BIRTH-EXIT at line 1540. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 2639,
+      "message": "PERFORM ABEND-ROUTINE THRU ABEND-ROUTINE-EXIT at line 2639. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTVWC",
+      "line": 299,
+      "message": "PERFORM YYYY-STORE-PFKEY THRU YYYY-STORE-PFKEY-EXIT at line 299. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTVWC",
+      "line": 381,
+      "message": "PERFORM SEND-PLAIN-TEXT THRU SEND-PLAIN-TEXT-EXIT at line 381. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COCRDLIC",
+      "line": 349,
+      "message": "PERFORM YYYY-STORE-PFKEY THRU YYYY-STORE-PFKEY-EXIT at line 349. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "CSUTLDTC",
+      "line": 93,
+      "message": "PERFORM A000-MAIN THRU A000-MAIN-EXIT at line 93. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L003",
+      "severity": "WARNING",
+      "file": "COACTUPC",
+      "line": 4226,
+      "message": "Stub EXIT paragraph 'ABEND-ROUTINE-EXIT' at line 4226 contains only EXIT. Verify this is not a tool-inserted fake before production compile (Type C \u2014 strip if so)."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 898,
+      "message": "PERFORM YYYY-STORE-PFKEY THRU YYYY-STORE-PFKEY-EXIT at line 898. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1480,
+      "message": "PERFORM EDIT-DATE-CCYYMMDD THRU EDIT-DATE-CCYYMMDD-EXIT at line 1480. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1492,
+      "message": "PERFORM EDIT-DATE-CCYYMMDD THRU EDIT-DATE-CCYYMMDD-EXIT at line 1492. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1505,
+      "message": "PERFORM EDIT-DATE-CCYYMMDD THRU EDIT-DATE-CCYYMMDD-EXIT at line 1505. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1536,
+      "message": "PERFORM EDIT-DATE-CCYYMMDD THRU EDIT-DATE-CCYYMMDD-EXIT at line 1536. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 1540,
+      "message": "PERFORM EDIT-DATE-OF-BIRTH THRU EDIT-DATE-OF-BIRTH-EXIT at line 1540. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTUPC",
+      "line": 2639,
+      "message": "PERFORM ABEND-ROUTINE THRU ABEND-ROUTINE-EXIT at line 2639. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTVWC",
+      "line": 299,
+      "message": "PERFORM YYYY-STORE-PFKEY THRU YYYY-STORE-PFKEY-EXIT at line 299. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COACTVWC",
+      "line": 381,
+      "message": "PERFORM SEND-PLAIN-TEXT THRU SEND-PLAIN-TEXT-EXIT at line 381. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "COCRDLIC",
+      "line": 349,
+      "message": "PERFORM YYYY-STORE-PFKEY THRU YYYY-STORE-PFKEY-EXIT at line 349. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    },
+    {
+      "rule": "L004",
+      "severity": "INFO",
+      "file": "CSUTLDTC",
+      "line": 93,
+      "message": "PERFORM A000-MAIN THRU A000-MAIN-EXIT at line 93. Verify paragraph adjacency \u2014 all paragraphs between these two are included in the execution path."
+    }
+  ]
+}

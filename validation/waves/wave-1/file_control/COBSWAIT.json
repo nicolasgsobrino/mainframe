@@ -1,0 +1,8 @@
+{
+  "program": "COBSWAIT",
+  "source_path": "app/cbl/COBSWAIT.cbl",
+  "source_sha256": "38a8d28235e58509776f5c8c74c113d5848a7ac68fab753c55ab887221c3b43a",
+  "byte_layouts_path": "validation/pass1/byte_layouts/COBSWAIT.json",
+  "byte_layouts_sha256": "c689db00f319bf30427a38cfa06380ea2f0bd35983e52a5c7bcc4ec45a65ffd6",
+  "file_control": []
+}

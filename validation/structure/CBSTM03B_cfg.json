@@ -1,0 +1,180 @@
+{
+  "program_id": "CBSTM03B",
+  "source_file": "app/cbl/CBSTM03B.cbl",
+  "source_sha": "980bce36ff0b1450883fac047c15ff8123916fc3",
+  "cfg_tool": "Cobol-REKT smojol-cli + extract_cfg_summary.py",
+  "paragraphs": [
+    {
+      "name": "0000-START",
+      "reachable": true,
+      "performs": [
+        "9999-GOBACK"
+      ],
+      "goto_targets": [
+        "9999-GOBACK"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "1000-TRNXFILE-PROC",
+      "reachable": true,
+      "performs": [
+        "1900-EXIT"
+      ],
+      "goto_targets": [
+        "1900-EXIT"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "1900-EXIT",
+      "reachable": true,
+      "performs": [
+        "1999-EXIT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "1999-EXIT",
+      "reachable": true,
+      "performs": [
+        "2000-XREFFILE-PROC"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "2000-XREFFILE-PROC",
+      "reachable": true,
+      "performs": [
+        "2900-EXIT"
+      ],
+      "goto_targets": [
+        "2900-EXIT"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "2900-EXIT",
+      "reachable": true,
+      "performs": [
+        "2999-EXIT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "2999-EXIT",
+      "reachable": true,
+      "performs": [
+        "3000-CUSTFILE-PROC"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "3000-CUSTFILE-PROC",
+      "reachable": true,
+      "performs": [
+        "3900-EXIT"
+      ],
+      "goto_targets": [
+        "3900-EXIT"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "3900-EXIT",
+      "reachable": true,
+      "performs": [
+        "3999-EXIT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "3999-EXIT",
+      "reachable": true,
+      "performs": [
+        "4000-ACCTFILE-PROC"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "4000-ACCTFILE-PROC",
+      "reachable": true,
+      "performs": [
+        "4900-EXIT"
+      ],
+      "goto_targets": [
+        "4900-EXIT"
+      ],
+      "goto_flag": true
+    },
+    {
+      "name": "4900-EXIT",
+      "reachable": true,
+      "performs": [
+        "4999-EXIT"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "4999-EXIT",
+      "reachable": true,
+      "performs": [],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "9999-GOBACK",
+      "reachable": true,
+      "performs": [
+        "1000-TRNXFILE-PROC"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    }
+  ],
+  "data_items": [
+    {
+      "name": "FD-TRNXFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-XREFFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-CUSTFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "FD-ACCTFILE-REC",
+      "level": 1
+    },
+    {
+      "name": "TRNXFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "XREFFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "CUSTFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "ACCTFILE-STATUS",
+      "level": 1
+    },
+    {
+      "name": "LK-M03B-AREA",
+      "level": 1
+    }
+  ]
+}

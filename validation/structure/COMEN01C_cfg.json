@@ -1,0 +1,74 @@
+{
+  "program_id": "COMEN01C",
+  "source_file": "app/cbl/COMEN01C.cbl",
+  "source_sha": "7cbc35f543aa6154e67958e356f34d87c739b42e",
+  "cfg_tool": "Cobol-REKT smojol-cli + extract_cfg_summary.py",
+  "paragraphs": [
+    {
+      "name": "BUILD-MENU-OPTIONS",
+      "reachable": true,
+      "performs": [],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "MAIN-PARA",
+      "reachable": true,
+      "performs": [
+        "PROCESS-ENTER-KEY",
+        "SEND-MENU-SCREEN",
+        "RECEIVE-MENU-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "POPULATE-HEADER-INFO",
+      "reachable": true,
+      "performs": [
+        "BUILD-MENU-OPTIONS"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "PROCESS-ENTER-KEY",
+      "reachable": true,
+      "performs": [
+        "SEND-MENU-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "RECEIVE-MENU-SCREEN",
+      "reachable": true,
+      "performs": [
+        "POPULATE-HEADER-INFO"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "SEND-MENU-SCREEN",
+      "reachable": true,
+      "performs": [
+        "RECEIVE-MENU-SCREEN",
+        "BUILD-MENU-OPTIONS",
+        "POPULATE-HEADER-INFO"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    }
+  ],
+  "data_items": [
+    {
+      "name": "WS-VARIABLES",
+      "level": 1
+    },
+    {
+      "name": "DFHCOMMAREA",
+      "level": 1
+    }
+  ]
+}

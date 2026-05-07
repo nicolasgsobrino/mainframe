@@ -1,0 +1,798 @@
+{
+  "program": "CBACT01C",
+  "source_path": "app/cbl/CBACT01C.cbl",
+  "source_sha256": "f8eb6e3a561ff96a1889a8f777a8998850a11dddae221da2c5018067d7b95551",
+  "cfg_path": "validation/pass1/CBACT01C_annotations.json",
+  "cfg_sha256": "52d20dbb6a92de2f4f165c08960e6b2e4ade973a4064862cd3c2091e4d3e4a9f",
+  "byte_layouts_path": "validation/pass1/byte_layouts/CBACT01C.json",
+  "byte_layouts_sha256": "2d2ed0f5832b35c3bf340247a81a33cac0e8b2d8c48dd569c45cba7763154330",
+  "paragraphs": [
+    {
+      "paragraph": "CBACT01C-MAIN",
+      "classification_source": "annotations",
+      "mutates": [],
+      "reads": [
+        {
+          "fd_name": "END-OF-FILE",
+          "verb": "IF",
+          "line": 148,
+          "raw": "IF END-OF-FILE = 'N'"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD",
+          "verb": "DISPLAY",
+          "line": 151,
+          "raw": "DISPLAY ACCOUNT-RECORD"
+        }
+      ]
+    },
+    {
+      "paragraph": "1000-ACCTFILE-GET-NEXT",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 168,
+          "raw": "MOVE 0 TO APPL-RESULT"
+        },
+        {
+          "fd_name": "ARR-ARRAY-REC",
+          "verb": "INITIALIZE",
+          "line": 169,
+          "raw": "INITIALIZE ARR-ARRAY-REC"
+        },
+        {
+          "fd_name": "VBRC-REC1",
+          "verb": "INITIALIZE",
+          "line": 175,
+          "raw": "INITIALIZE VBRC-REC1"
+        },
+        {
+          "fd_name": "END-OF-FILE",
+          "verb": "MOVE",
+          "line": 190,
+          "raw": "MOVE 'Y' TO END-OF-FILE"
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 193,
+          "raw": "MOVE ACCTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ACCTFILE-STATUS",
+          "verb": "IF",
+          "line": 167,
+          "raw": "IF ACCTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 186,
+          "raw": "IF APPL-AOK"
+        },
+        {
+          "fd_name": "APPL-EOF",
+          "verb": "IF",
+          "line": 189,
+          "raw": "IF APPL-EOF"
+        }
+      ]
+    },
+    {
+      "paragraph": "1100-DISPLAY-ACCT-RECORD",
+      "classification_source": "annotations",
+      "mutates": [],
+      "reads": [
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ID",
+          "verb": "DISPLAY",
+          "line": 201,
+          "raw": "DISPLAY 'ACCT-ID                 :' ACCT-ID"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ACTIVE-STATUS",
+          "verb": "DISPLAY",
+          "line": 202,
+          "raw": "DISPLAY 'ACCT-ACTIVE-STATUS      :' ACCT-ACTIVE-STATUS"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CURR-BAL",
+          "verb": "DISPLAY",
+          "line": 203,
+          "raw": "DISPLAY 'ACCT-CURR-BAL           :' ACCT-CURR-BAL"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CREDIT-LIMIT",
+          "verb": "DISPLAY",
+          "line": 204,
+          "raw": "DISPLAY 'ACCT-CREDIT-LIMIT       :' ACCT-CREDIT-LIMIT"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CASH-CREDIT-LIMIT",
+          "verb": "DISPLAY",
+          "line": 205,
+          "raw": "DISPLAY 'ACCT-CASH-CREDIT-LIMIT  :' ACCT-CASH-CREDIT-LIMIT"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-OPEN-DATE",
+          "verb": "DISPLAY",
+          "line": 206,
+          "raw": "DISPLAY 'ACCT-OPEN-DATE          :' ACCT-OPEN-DATE"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-EXPIRAION-DATE",
+          "verb": "DISPLAY",
+          "line": 207,
+          "raw": "DISPLAY 'ACCT-EXPIRAION-DATE     :' ACCT-EXPIRAION-DATE"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-REISSUE-DATE",
+          "verb": "DISPLAY",
+          "line": 208,
+          "raw": "DISPLAY 'ACCT-REISSUE-DATE       :' ACCT-REISSUE-DATE"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CURR-CYC-CREDIT",
+          "verb": "DISPLAY",
+          "line": 209,
+          "raw": "DISPLAY 'ACCT-CURR-CYC-CREDIT    :' ACCT-CURR-CYC-CREDIT"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CURR-CYC-DEBIT",
+          "verb": "DISPLAY",
+          "line": 210,
+          "raw": "DISPLAY 'ACCT-CURR-CYC-DEBIT     :' ACCT-CURR-CYC-DEBIT"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-GROUP-ID",
+          "verb": "DISPLAY",
+          "line": 211,
+          "raw": "DISPLAY 'ACCT-GROUP-ID           :' ACCT-GROUP-ID"
+        }
+      ]
+    },
+    {
+      "paragraph": "1300-POPUL-ACCT-RECORD",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-ID",
+          "verb": "MOVE",
+          "line": 216,
+          "raw": "MOVE ACCT-ID TO OUT-ACCT-ID."
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-ACTIVE-STATUS",
+          "verb": "MOVE",
+          "line": 217,
+          "raw": "MOVE ACCT-ACTIVE-STATUS TO OUT-ACCT-ACTIVE-STATUS."
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-CURR-BAL",
+          "verb": "MOVE",
+          "line": 218,
+          "raw": "MOVE ACCT-CURR-BAL TO OUT-ACCT-CURR-BAL."
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-CREDIT-LIMIT",
+          "verb": "MOVE",
+          "line": 219,
+          "raw": "MOVE ACCT-CREDIT-LIMIT TO OUT-ACCT-CREDIT-LIMIT."
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-CASH-CREDIT-LIMIT",
+          "verb": "MOVE",
+          "line": 220,
+          "raw": "MOVE ACCT-CASH-CREDIT-LIMIT TO OUT-ACCT-CASH-CREDIT-LIMIT."
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-OPEN-DATE",
+          "verb": "MOVE",
+          "line": 221,
+          "raw": "MOVE ACCT-OPEN-DATE TO OUT-ACCT-OPEN-DATE."
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-EXPIRAION-DATE",
+          "verb": "MOVE",
+          "line": 222,
+          "raw": "MOVE ACCT-EXPIRAION-DATE TO OUT-ACCT-EXPIRAION-DATE."
+        },
+        {
+          "fd_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-INP-DATE",
+          "verb": "MOVE",
+          "line": 223,
+          "raw": "MOVE ACCT-REISSUE-DATE TO CODATECN-INP-DATE"
+        },
+        {
+          "fd_name": "CODATECN-REC.CODATECN-IN-REC.CODATECN-TYPE",
+          "verb": "MOVE",
+          "line": 225,
+          "raw": "MOVE '2' TO CODATECN-TYPE."
+        },
+        {
+          "fd_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-OUTTYPE",
+          "verb": "MOVE",
+          "line": 226,
+          "raw": "MOVE '2' TO CODATECN-OUTTYPE."
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-REISSUE-DATE",
+          "verb": "MOVE",
+          "line": 233,
+          "raw": "MOVE CODATECN-0UT-DATE TO OUT-ACCT-REISSUE-DATE."
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-CURR-CYC-CREDIT",
+          "verb": "MOVE",
+          "line": 235,
+          "raw": "MOVE ACCT-CURR-CYC-CREDIT TO OUT-ACCT-CURR-CYC-CREDIT."
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-CURR-CYC-DEBIT",
+          "verb": "MOVE",
+          "line": 237,
+          "raw": "MOVE 2525.00 TO OUT-ACCT-CURR-CYC-DEBIT"
+        },
+        {
+          "fd_name": "OUT-ACCT-REC.OUT-ACCT-GROUP-ID",
+          "verb": "MOVE",
+          "line": 239,
+          "raw": "MOVE ACCT-GROUP-ID TO OUT-ACCT-GROUP-ID."
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ID",
+          "verb": "MOVE",
+          "line": 216,
+          "raw": "MOVE ACCT-ID TO OUT-ACCT-ID."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ACTIVE-STATUS",
+          "verb": "MOVE",
+          "line": 217,
+          "raw": "MOVE ACCT-ACTIVE-STATUS TO OUT-ACCT-ACTIVE-STATUS."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CURR-BAL",
+          "verb": "MOVE",
+          "line": 218,
+          "raw": "MOVE ACCT-CURR-BAL TO OUT-ACCT-CURR-BAL."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CREDIT-LIMIT",
+          "verb": "MOVE",
+          "line": 219,
+          "raw": "MOVE ACCT-CREDIT-LIMIT TO OUT-ACCT-CREDIT-LIMIT."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CASH-CREDIT-LIMIT",
+          "verb": "MOVE",
+          "line": 220,
+          "raw": "MOVE ACCT-CASH-CREDIT-LIMIT TO OUT-ACCT-CASH-CREDIT-LIMIT."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-OPEN-DATE",
+          "verb": "MOVE",
+          "line": 221,
+          "raw": "MOVE ACCT-OPEN-DATE TO OUT-ACCT-OPEN-DATE."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-EXPIRAION-DATE",
+          "verb": "MOVE",
+          "line": 222,
+          "raw": "MOVE ACCT-EXPIRAION-DATE TO OUT-ACCT-EXPIRAION-DATE."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-REISSUE-DATE",
+          "verb": "MOVE",
+          "line": 223,
+          "raw": "MOVE ACCT-REISSUE-DATE TO CODATECN-INP-DATE"
+        },
+        {
+          "fd_name": "CODATECN-REC.CODATECN-OUT-REC.CODATECN-0UT-DATE",
+          "verb": "MOVE",
+          "line": 233,
+          "raw": "MOVE CODATECN-0UT-DATE TO OUT-ACCT-REISSUE-DATE."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CURR-CYC-CREDIT",
+          "verb": "MOVE",
+          "line": 235,
+          "raw": "MOVE ACCT-CURR-CYC-CREDIT TO OUT-ACCT-CURR-CYC-CREDIT."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CURR-CYC-DEBIT",
+          "verb": "IF",
+          "line": 236,
+          "raw": "IF ACCT-CURR-CYC-DEBIT EQUAL TO ZERO"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-GROUP-ID",
+          "verb": "MOVE",
+          "line": 239,
+          "raw": "MOVE ACCT-GROUP-ID TO OUT-ACCT-GROUP-ID."
+        }
+      ]
+    },
+    {
+      "paragraph": "1350-WRITE-ACCT-RECORD",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 247,
+          "raw": "MOVE OUTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "OUTFILE-STATUS",
+          "verb": "IF",
+          "line": 245,
+          "raw": "IF OUTFILE-STATUS NOT = '00' AND OUTFILE-STATUS NOT = '10'"
+        }
+      ]
+    },
+    {
+      "paragraph": "1400-POPUL-ARRAY-RECORD",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "ARR-ARRAY-REC.ARR-ACCT-ID",
+          "verb": "MOVE",
+          "line": 254,
+          "raw": "MOVE ACCT-ID TO ARR-ACCT-ID."
+        },
+        {
+          "fd_name": "ARR-ARRAY-REC.ARR-ACCT-BAL.ARR-ACCT-CURR-BAL",
+          "verb": "MOVE",
+          "line": 255,
+          "raw": "MOVE ACCT-CURR-BAL TO ARR-ACCT-CURR-BAL(1)."
+        },
+        {
+          "fd_name": "ARR-ARRAY-REC.ARR-ACCT-BAL.ARR-ACCT-CURR-CYC-DEBIT",
+          "verb": "MOVE",
+          "line": 256,
+          "raw": "MOVE 1005.00 TO ARR-ACCT-CURR-CYC-DEBIT(1)."
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ID",
+          "verb": "MOVE",
+          "line": 254,
+          "raw": "MOVE ACCT-ID TO ARR-ACCT-ID."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CURR-BAL",
+          "verb": "MOVE",
+          "line": 255,
+          "raw": "MOVE ACCT-CURR-BAL TO ARR-ACCT-CURR-BAL(1)."
+        }
+      ]
+    },
+    {
+      "paragraph": "1450-WRITE-ARRY-RECORD",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 270,
+          "raw": "MOVE ARRYFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ARRYFILE-STATUS",
+          "verb": "IF",
+          "line": 266,
+          "raw": "IF ARRYFILE-STATUS NOT = '00'"
+        }
+      ]
+    },
+    {
+      "paragraph": "1500-POPUL-VBRC-RECORD",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "VBRC-REC1.VB1-ACCT-ID",
+          "verb": "MOVE",
+          "line": 277,
+          "raw": "MOVE ACCT-ID TO VB1-ACCT-ID"
+        },
+        {
+          "fd_name": "VBRC-REC1.VB1-ACCT-ACTIVE-STATUS",
+          "verb": "MOVE",
+          "line": 279,
+          "raw": "MOVE ACCT-ACTIVE-STATUS TO VB1-ACCT-ACTIVE-STATUS."
+        },
+        {
+          "fd_name": "VBRC-REC2.VB2-ACCT-CURR-BAL",
+          "verb": "MOVE",
+          "line": 280,
+          "raw": "MOVE ACCT-CURR-BAL TO VB2-ACCT-CURR-BAL."
+        },
+        {
+          "fd_name": "VBRC-REC2.VB2-ACCT-CREDIT-LIMIT",
+          "verb": "MOVE",
+          "line": 281,
+          "raw": "MOVE ACCT-CREDIT-LIMIT TO VB2-ACCT-CREDIT-LIMIT."
+        },
+        {
+          "fd_name": "VBRC-REC2.VB2-ACCT-REISSUE-YYYY",
+          "verb": "MOVE",
+          "line": 282,
+          "raw": "MOVE WS-ACCT-REISSUE-YYYY TO VB2-ACCT-REISSUE-YYYY."
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ID",
+          "verb": "MOVE",
+          "line": 277,
+          "raw": "MOVE ACCT-ID TO VB1-ACCT-ID"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ACTIVE-STATUS",
+          "verb": "MOVE",
+          "line": 279,
+          "raw": "MOVE ACCT-ACTIVE-STATUS TO VB1-ACCT-ACTIVE-STATUS."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CURR-BAL",
+          "verb": "MOVE",
+          "line": 280,
+          "raw": "MOVE ACCT-CURR-BAL TO VB2-ACCT-CURR-BAL."
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-CREDIT-LIMIT",
+          "verb": "MOVE",
+          "line": 281,
+          "raw": "MOVE ACCT-CREDIT-LIMIT TO VB2-ACCT-CREDIT-LIMIT."
+        },
+        {
+          "fd_name": "WS-ACCT-REISSUE-DATE.WS-ACCT-REISSUE-YYYY",
+          "verb": "MOVE",
+          "line": 282,
+          "raw": "MOVE WS-ACCT-REISSUE-YYYY TO VB2-ACCT-REISSUE-YYYY."
+        },
+        {
+          "fd_name": "VBRC-REC1",
+          "verb": "DISPLAY",
+          "line": 283,
+          "raw": "DISPLAY 'VBRC-REC1:' VBRC-REC1."
+        },
+        {
+          "fd_name": "VBRC-REC2",
+          "verb": "DISPLAY",
+          "line": 284,
+          "raw": "DISPLAY 'VBRC-REC2:' VBRC-REC2."
+        }
+      ]
+    },
+    {
+      "paragraph": "1550-WRITE-VB1-RECORD",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "WS-RECD-LEN",
+          "verb": "MOVE",
+          "line": 288,
+          "raw": "MOVE 12 TO WS-RECD-LEN."
+        },
+        {
+          "fd_name": "VBR-REC",
+          "verb": "MOVE",
+          "line": 289,
+          "raw": "MOVE VBRC-REC1 TO VBR-REC(1:WS-RECD-LEN)."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 296,
+          "raw": "MOVE VBRCFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "VBRC-REC1",
+          "verb": "MOVE",
+          "line": 289,
+          "raw": "MOVE VBRC-REC1 TO VBR-REC(1:WS-RECD-LEN)."
+        },
+        {
+          "fd_name": "VBRCFILE-STATUS",
+          "verb": "IF",
+          "line": 292,
+          "raw": "IF VBRCFILE-STATUS NOT = '00'"
+        }
+      ]
+    },
+    {
+      "paragraph": "1575-WRITE-VB2-RECORD",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "WS-RECD-LEN",
+          "verb": "MOVE",
+          "line": 303,
+          "raw": "MOVE 39 TO WS-RECD-LEN."
+        },
+        {
+          "fd_name": "VBR-REC",
+          "verb": "MOVE",
+          "line": 304,
+          "raw": "MOVE VBRC-REC2 TO VBR-REC(1:WS-RECD-LEN)."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 311,
+          "raw": "MOVE VBRCFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "VBRC-REC2",
+          "verb": "MOVE",
+          "line": 304,
+          "raw": "MOVE VBRC-REC2 TO VBR-REC(1:WS-RECD-LEN)."
+        },
+        {
+          "fd_name": "VBRCFILE-STATUS",
+          "verb": "IF",
+          "line": 307,
+          "raw": "IF VBRCFILE-STATUS NOT = '00'"
+        }
+      ]
+    },
+    {
+      "paragraph": "0000-ACCTFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 318,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 329,
+          "raw": "MOVE ACCTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ACCTFILE-STATUS",
+          "verb": "IF",
+          "line": 320,
+          "raw": "IF ACCTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 325,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "2000-OUTFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 335,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 346,
+          "raw": "MOVE OUTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "OUTFILE-STATUS",
+          "verb": "IF",
+          "line": 337,
+          "raw": "IF OUTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 342,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "3000-ARRFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 353,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 364,
+          "raw": "MOVE ARRYFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ARRYFILE-STATUS",
+          "verb": "IF",
+          "line": 355,
+          "raw": "IF ARRYFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 360,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "4000-VBRFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 371,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 382,
+          "raw": "MOVE VBRCFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "VBRCFILE-STATUS",
+          "verb": "IF",
+          "line": 373,
+          "raw": "IF VBRCFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 378,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "9000-ACCTFILE-CLOSE",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "ADD",
+          "line": 389,
+          "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 400,
+          "raw": "MOVE ACCTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ACCTFILE-STATUS",
+          "verb": "IF",
+          "line": 391,
+          "raw": "IF ACCTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 396,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "9999-ABEND-PROGRAM",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "TIMING",
+          "verb": "MOVE",
+          "line": 408,
+          "raw": "MOVE 0 TO TIMING"
+        },
+        {
+          "fd_name": "ABCODE",
+          "verb": "MOVE",
+          "line": 409,
+          "raw": "MOVE 999 TO ABCODE"
+        }
+      ],
+      "reads": []
+    },
+    {
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "IO-STATUS-04",
+          "verb": "MOVE",
+          "line": 416,
+          "raw": "MOVE IO-STAT1 TO IO-STATUS-04(1:1)"
+        },
+        {
+          "fd_name": "TWO-BYTES-BINARY",
+          "verb": "MOVE",
+          "line": 417,
+          "raw": "MOVE 0 TO TWO-BYTES-BINARY"
+        },
+        {
+          "fd_name": "TWO-BYTES-ALPHA.TWO-BYTES-RIGHT",
+          "verb": "MOVE",
+          "line": 418,
+          "raw": "MOVE IO-STAT2 TO TWO-BYTES-RIGHT"
+        },
+        {
+          "fd_name": "IO-STATUS-04.IO-STATUS-0403",
+          "verb": "MOVE",
+          "line": 419,
+          "raw": "MOVE TWO-BYTES-BINARY TO IO-STATUS-0403"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "IF",
+          "line": 414,
+          "raw": "IF IO-STATUS NOT NUMERIC"
+        },
+        {
+          "fd_name": "IO-STATUS.IO-STAT1",
+          "verb": "MOVE",
+          "line": 416,
+          "raw": "MOVE IO-STAT1 TO IO-STATUS-04(1:1)"
+        },
+        {
+          "fd_name": "IO-STATUS.IO-STAT2",
+          "verb": "MOVE",
+          "line": 418,
+          "raw": "MOVE IO-STAT2 TO TWO-BYTES-RIGHT"
+        },
+        {
+          "fd_name": "TWO-BYTES-BINARY",
+          "verb": "MOVE",
+          "line": 419,
+          "raw": "MOVE TWO-BYTES-BINARY TO IO-STATUS-0403"
+        },
+        {
+          "fd_name": "IO-STATUS-04",
+          "verb": "DISPLAY",
+          "line": 420,
+          "raw": "DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04"
+        }
+      ]
+    }
+  ]
+}

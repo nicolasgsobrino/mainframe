@@ -1,0 +1,191 @@
+{
+  "program": "CBTRN01C",
+  "source_path": "app/cbl/CBTRN01C.cbl",
+  "source_sha256": "55c2aebd59528aa42b28878ba5ca4d17a00b3548fc25e4ce1529710d366fd576",
+  "cfg_path": "validation/pass1/CBTRN01C_annotations.json",
+  "cfg_sha256": "68d85c10d0d90e888231c0c299a0347b8d9d602c63a4f1dc92a2cf96cd2dc56a",
+  "paragraphs": [
+    {
+      "paragraph": "MAIN-PARA",
+      "first_line": 156,
+      "last_line": 197,
+      "terminator": "goback",
+      "falls_through_to": null,
+      "last_verb": "GOBACK",
+      "last_raw": "GOBACK.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "first_line": 203,
+      "last_line": 225,
+      "terminator": "implicit",
+      "falls_through_to": "2000-LOOKUP-XREF",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "2000-LOOKUP-XREF",
+      "first_line": 228,
+      "last_line": 238,
+      "terminator": "implicit",
+      "falls_through_to": "3000-READ-ACCOUNT",
+      "last_verb": "DISPLAY",
+      "last_raw": "DISPLAY 'CUSTOMER ID: ' XREF-CUST-ID",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "3000-READ-ACCOUNT",
+      "first_line": 242,
+      "last_line": 249,
+      "terminator": "implicit",
+      "falls_through_to": "0000-DALYTRAN-OPEN",
+      "last_verb": "DISPLAY",
+      "last_raw": "DISPLAY 'SUCCESSFUL READ OF ACCOUNT FILE'",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "first_line": 253,
+      "last_line": 268,
+      "terminator": "implicit",
+      "falls_through_to": "0100-CUSTFILE-OPEN",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "first_line": 272,
+      "last_line": 287,
+      "terminator": "implicit",
+      "falls_through_to": "0200-XREFFILE-OPEN",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "0200-XREFFILE-OPEN",
+      "first_line": 290,
+      "last_line": 305,
+      "terminator": "implicit",
+      "falls_through_to": "0300-CARDFILE-OPEN",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "0300-CARDFILE-OPEN",
+      "first_line": 308,
+      "last_line": 323,
+      "terminator": "implicit",
+      "falls_through_to": "0400-ACCTFILE-OPEN",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "first_line": 326,
+      "last_line": 341,
+      "terminator": "implicit",
+      "falls_through_to": "0500-TRANFILE-OPEN",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "0500-TRANFILE-OPEN",
+      "first_line": 344,
+      "last_line": 359,
+      "terminator": "implicit",
+      "falls_through_to": "9000-DALYTRAN-CLOSE",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "first_line": 362,
+      "last_line": 377,
+      "terminator": "implicit",
+      "falls_through_to": "9100-CUSTFILE-CLOSE",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "first_line": 380,
+      "last_line": 395,
+      "terminator": "implicit",
+      "falls_through_to": "9200-XREFFILE-CLOSE",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "first_line": 398,
+      "last_line": 413,
+      "terminator": "implicit",
+      "falls_through_to": "9300-CARDFILE-CLOSE",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "first_line": 416,
+      "last_line": 431,
+      "terminator": "implicit",
+      "falls_through_to": "9400-ACCTFILE-CLOSE",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "first_line": 434,
+      "last_line": 449,
+      "terminator": "implicit",
+      "falls_through_to": "9500-TRANFILE-CLOSE",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "first_line": 452,
+      "last_line": 467,
+      "terminator": "implicit",
+      "falls_through_to": "Z-ABEND-PROGRAM",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "Z-ABEND-PROGRAM",
+      "first_line": 470,
+      "last_line": 473,
+      "terminator": "implicit",
+      "falls_through_to": "Z-DISPLAY-IO-STATUS",
+      "last_verb": "CALL",
+      "last_raw": "CALL 'CEE3ABD' USING ABCODE TIMING.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "first_line": 477,
+      "last_line": 489,
+      "terminator": "implicit-end-of-program",
+      "falls_through_to": null,
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    }
+  ],
+  "c5_assertion": "PASS",
+  "c5_violations": []
+}

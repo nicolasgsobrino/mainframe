@@ -1,0 +1,181 @@
+{
+  "program": "CBACT01C",
+  "source_path": "app/cbl/CBACT01C.cbl",
+  "source_sha256": "f8eb6e3a561ff96a1889a8f777a8998850a11dddae221da2c5018067d7b95551",
+  "cfg_path": "validation/pass1/CBACT01C_annotations.json",
+  "cfg_sha256": "52d20dbb6a92de2f4f165c08960e6b2e4ade973a4064862cd3c2091e4d3e4a9f",
+  "paragraphs": [
+    {
+      "paragraph": "CBACT01C-MAIN",
+      "first_line": 141,
+      "last_line": 160,
+      "terminator": "goback",
+      "falls_through_to": null,
+      "last_verb": "GOBACK",
+      "last_raw": "GOBACK.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1000-ACCTFILE-GET-NEXT",
+      "first_line": 166,
+      "last_line": 198,
+      "terminator": "implicit",
+      "falls_through_to": "1100-DISPLAY-ACCT-RECORD",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1100-DISPLAY-ACCT-RECORD",
+      "first_line": 201,
+      "last_line": 213,
+      "terminator": "implicit",
+      "falls_through_to": "1300-POPUL-ACCT-RECORD",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1300-POPUL-ACCT-RECORD",
+      "first_line": 216,
+      "last_line": 240,
+      "terminator": "implicit",
+      "falls_through_to": "1350-WRITE-ACCT-RECORD",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1350-WRITE-ACCT-RECORD",
+      "first_line": 243,
+      "last_line": 251,
+      "terminator": "implicit",
+      "falls_through_to": "1400-POPUL-ARRAY-RECORD",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1400-POPUL-ARRAY-RECORD",
+      "first_line": 254,
+      "last_line": 261,
+      "terminator": "implicit",
+      "falls_through_to": "1450-WRITE-ARRY-RECORD",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1450-WRITE-ARRY-RECORD",
+      "first_line": 264,
+      "last_line": 274,
+      "terminator": "implicit",
+      "falls_through_to": "1500-POPUL-VBRC-RECORD",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1500-POPUL-VBRC-RECORD",
+      "first_line": 277,
+      "last_line": 285,
+      "terminator": "implicit",
+      "falls_through_to": "1550-WRITE-VB1-RECORD",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1550-WRITE-VB1-RECORD",
+      "first_line": 288,
+      "last_line": 300,
+      "terminator": "implicit",
+      "falls_through_to": "1575-WRITE-VB2-RECORD",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "1575-WRITE-VB2-RECORD",
+      "first_line": 303,
+      "last_line": 315,
+      "terminator": "implicit",
+      "falls_through_to": "0000-ACCTFILE-OPEN",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "0000-ACCTFILE-OPEN",
+      "first_line": 318,
+      "last_line": 333,
+      "terminator": "implicit",
+      "falls_through_to": "2000-OUTFILE-OPEN",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "2000-OUTFILE-OPEN",
+      "first_line": 335,
+      "last_line": 350,
+      "terminator": "implicit",
+      "falls_through_to": "3000-ARRFILE-OPEN",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "3000-ARRFILE-OPEN",
+      "first_line": 353,
+      "last_line": 368,
+      "terminator": "implicit",
+      "falls_through_to": "4000-VBRFILE-OPEN",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "4000-VBRFILE-OPEN",
+      "first_line": 371,
+      "last_line": 386,
+      "terminator": "implicit",
+      "falls_through_to": "9000-ACCTFILE-CLOSE",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9000-ACCTFILE-CLOSE",
+      "first_line": 389,
+      "last_line": 404,
+      "terminator": "implicit",
+      "falls_through_to": "9999-ABEND-PROGRAM",
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9999-ABEND-PROGRAM",
+      "first_line": 407,
+      "last_line": 410,
+      "terminator": "implicit",
+      "falls_through_to": "9910-DISPLAY-IO-STATUS",
+      "last_verb": "CALL",
+      "last_raw": "CALL 'CEE3ABD' USING ABCODE TIMING.",
+      "classification_source": "annotations"
+    },
+    {
+      "paragraph": "9910-DISPLAY-IO-STATUS",
+      "first_line": 414,
+      "last_line": 426,
+      "terminator": "implicit-end-of-program",
+      "falls_through_to": null,
+      "last_verb": "EXIT",
+      "last_raw": "EXIT.",
+      "classification_source": "annotations"
+    }
+  ],
+  "c5_assertion": "PASS",
+  "c5_violations": []
+}

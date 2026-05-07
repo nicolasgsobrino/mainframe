@@ -1,0 +1,17 @@
+{
+  "program_id": "COBSWAIT",
+  "source_file": "app/cbl/COBSWAIT.cbl",
+  "source_sha": "dc5edd66b1900e4f616bcb52e1362e037c2b85b2",
+  "cfg_tool": "Cobol-REKT smojol-cli + extract_cfg_summary.py",
+  "paragraphs": [],
+  "data_items": [
+    {
+      "name": "MVSWAIT-TIME",
+      "level": 1
+    },
+    {
+      "name": "PARM-VALUE",
+      "level": 1
+    }
+  ]
+}

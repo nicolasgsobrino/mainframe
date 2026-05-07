@@ -1,0 +1,110 @@
+schema_version: syncd/1
+programs:
+  CBSTM03A:
+    locked_numbers:
+      paragraphs_expected: 25
+      l01_items_expected: 18
+      reachable_expected: 25
+      dead_paragraphs_allowed: 0
+      source_sha: 290c3f4a9c51e1f9aa5bb180237dfbeb1d02b26a
+      cfg_sha: d1665343e8479bf7fb554d118de0e8fd346bba09
+    locked_at: '2026-05-05T21:12:34Z'
+  CBCUS01C:
+    locked_numbers:
+      paragraphs_expected: 5
+      l01_items_expected: 10
+      reachable_expected: 5
+      dead_paragraphs_allowed: 0
+      source_sha: ad4c512be0d7bd72a933966d299ea21fb31b6b5b
+      cfg_sha: d9f83aea2d118b8869b70eea5f7ce0287c4fe4e5
+    locked_at: '2026-05-05T21:12:33Z'
+  COBSWAIT:
+    locked_numbers:
+      paragraphs_expected: 0
+      l01_items_expected: 2
+      reachable_expected: 0
+      dead_paragraphs_allowed: 0
+      source_sha: 7957347717cf04be2dc4f5be24aa94668cf780ab
+      cfg_sha: 6e8f9cfb9ce4a1a18788b663f3eb55a4dbdcf9d3
+    locked_at: '2026-05-05T21:12:34Z'
+  CBACT01C:
+    locked_numbers:
+      paragraphs_expected: 16
+      l01_items_expected: 21
+      reachable_expected: 16
+      dead_paragraphs_allowed: 0
+      source_sha: e680f8e4239a85eb9f95f129f282aa28e165496a
+      cfg_sha: 8bbd95cf7a25ece650309e5dc3965eb2d82fa524
+    locked_at: '2026-05-05T21:25:17Z'
+  CBACT02C:
+    locked_numbers:
+      paragraphs_expected: 5
+      l01_items_expected: 10
+      reachable_expected: 5
+      dead_paragraphs_allowed: 0
+      source_sha: c913858a230043953fa4fd560a3b7bba46c11322
+      cfg_sha: 753092a3f7adb29439f85ae8f0c31cd87aa7ec98
+    locked_at: '2026-05-05T21:25:18Z'
+  CBACT03C:
+    locked_numbers:
+      paragraphs_expected: 5
+      l01_items_expected: 10
+      reachable_expected: 5
+      dead_paragraphs_allowed: 0
+      source_sha: a548096e689b823929559eb66051007d7c15cc57
+      cfg_sha: 0a25888c4562325b9374e9066e61d4966ab7a90c
+    locked_at: '2026-05-05T21:25:18Z'
+  CBACT04C:
+    locked_numbers:
+      paragraphs_expected: 22
+      l01_items_expected: 24
+      reachable_expected: 22
+      dead_paragraphs_allowed: 0
+      source_sha: c5e0280e2ed0891877b43eda7bc7c6dc86752421
+      cfg_sha: 7dfec5b5c5e7c8e968b79cc11c3a04831e8b381f
+    locked_at: '2026-05-05T21:25:18Z'
+  CBSTM03B:
+    locked_numbers:
+      paragraphs_expected: 14
+      l01_items_expected: 9
+      reachable_expected: 14
+      dead_paragraphs_allowed: 0
+      source_sha: 7d70690ea9afada3c21f227c0a1f9602af39c89d
+      cfg_sha: de9524d9df05343ef3a27822641591f53204f66c
+    locked_at: '2026-05-05T21:25:18Z'
+  CBTRN01C:
+    locked_numbers:
+      paragraphs_expected: 18
+      l01_items_expected: 21
+      reachable_expected: 18
+      dead_paragraphs_allowed: 0
+      source_sha: 450bd63983e78e1cca8719e72cbdf7cfccfb9630
+      cfg_sha: 0e0a2f54a9591a597f51ef2e0401b352d8f1f100
+    locked_at: '2026-05-05T21:25:19Z'
+  COMEN01C:
+    locked_numbers:
+      paragraphs_expected: 6
+      l01_items_expected: 2
+      reachable_expected: 6
+      dead_paragraphs_allowed: 0
+      source_sha: 222db83b1ae9c01ef521342199d0234a4abd152d
+      cfg_sha: 6fbcad23c6684277ee0add0ce92ce98d1346148d
+    locked_at: '2026-05-05T21:25:19Z'
+  COSGN00C:
+    locked_numbers:
+      paragraphs_expected: 9
+      l01_items_expected: 14
+      reachable_expected: 6
+      dead_paragraphs_allowed: 3
+      source_sha: 28e2061e3f0ec1fbde590b0cf2236e2919567aee
+      cfg_sha: 7dd7e876c0b376bc730c9c4eec9dd4fab05c6a0c
+    locked_at: '2026-05-05T21:25:19Z'
+  COCRDUPC:
+    locked_numbers:
+      paragraphs_expected: 0
+      l01_items_expected: 0
+      reachable_expected: 0
+      dead_paragraphs_allowed: 0
+      source_sha: 10f06557a9e332711bf2e077a821ad6c4bc3c532
+      cfg_sha: ae6ab54c4849a9b4e892cb8303df63597b257d0e
+    locked_at: '2026-05-05T21:25:19Z'

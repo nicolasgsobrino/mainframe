@@ -1,0 +1,664 @@
+{
+  "program": "CBTRN01C",
+  "source_path": "app/cbl/CBTRN01C.cbl",
+  "source_sha256": "55c2aebd59528aa42b28878ba5ca4d17a00b3548fc25e4ce1529710d366fd576",
+  "cfg_path": "validation/pass1/CBTRN01C_annotations.json",
+  "cfg_sha256": "68d85c10d0d90e888231c0c299a0347b8d9d602c63a4f1dc92a2cf96cd2dc56a",
+  "byte_layouts_path": "validation/pass1/byte_layouts/CBTRN01C.json",
+  "byte_layouts_sha256": "8af78185f6bc5e91101cd1bce9184b52170781725defb35ad46918649a634952",
+  "paragraphs": [
+    {
+      "paragraph": "MAIN-PARA",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "WS-MISC-VARIABLES.WS-XREF-READ-STATUS",
+          "verb": "MOVE",
+          "line": 170,
+          "raw": "MOVE 0 TO WS-XREF-READ-STATUS"
+        },
+        {
+          "fd_name": "CARD-XREF-RECORD.XREF-CARD-NUM",
+          "verb": "MOVE",
+          "line": 171,
+          "raw": "MOVE DALYTRAN-CARD-NUM TO XREF-CARD-NUM"
+        },
+        {
+          "fd_name": "WS-MISC-VARIABLES.WS-ACCT-READ-STATUS",
+          "verb": "MOVE",
+          "line": 174,
+          "raw": "MOVE 0 TO WS-ACCT-READ-STATUS"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ID",
+          "verb": "MOVE",
+          "line": 175,
+          "raw": "MOVE XREF-ACCT-ID TO ACCT-ID"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "END-OF-DAILY-TRANS-FILE",
+          "verb": "IF",
+          "line": 165,
+          "raw": "IF END-OF-DAILY-TRANS-FILE = 'N'"
+        },
+        {
+          "fd_name": "DALYTRAN-RECORD",
+          "verb": "DISPLAY",
+          "line": 168,
+          "raw": "DISPLAY DALYTRAN-RECORD"
+        },
+        {
+          "fd_name": "DALYTRAN-RECORD.DALYTRAN-CARD-NUM",
+          "verb": "MOVE",
+          "line": 171,
+          "raw": "MOVE DALYTRAN-CARD-NUM TO XREF-CARD-NUM"
+        },
+        {
+          "fd_name": "WS-MISC-VARIABLES.WS-XREF-READ-STATUS",
+          "verb": "IF",
+          "line": 173,
+          "raw": "IF WS-XREF-READ-STATUS = 0"
+        },
+        {
+          "fd_name": "CARD-XREF-RECORD.XREF-ACCT-ID",
+          "verb": "MOVE",
+          "line": 175,
+          "raw": "MOVE XREF-ACCT-ID TO ACCT-ID"
+        },
+        {
+          "fd_name": "WS-MISC-VARIABLES.WS-ACCT-READ-STATUS",
+          "verb": "IF",
+          "line": 177,
+          "raw": "IF WS-ACCT-READ-STATUS NOT = 0"
+        },
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ID",
+          "verb": "DISPLAY",
+          "line": 178,
+          "raw": "DISPLAY 'ACCOUNT ' ACCT-ID ' NOT FOUND'"
+        }
+      ]
+    },
+    {
+      "paragraph": "1000-DALYTRAN-GET-NEXT",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 205,
+          "raw": "MOVE 0 TO APPL-RESULT"
+        },
+        {
+          "fd_name": "END-OF-DAILY-TRANS-FILE",
+          "verb": "MOVE",
+          "line": 217,
+          "raw": "MOVE 'Y' TO END-OF-DAILY-TRANS-FILE"
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 220,
+          "raw": "MOVE DALYTRAN-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "DALYTRAN-STATUS",
+          "verb": "IF",
+          "line": 204,
+          "raw": "IF DALYTRAN-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 213,
+          "raw": "IF APPL-AOK"
+        },
+        {
+          "fd_name": "APPL-EOF",
+          "verb": "IF",
+          "line": 216,
+          "raw": "IF APPL-EOF"
+        }
+      ]
+    },
+    {
+      "paragraph": "2000-LOOKUP-XREF",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "FD-XREFFILE-REC.FD-XREF-CARD-NUM",
+          "verb": "MOVE",
+          "line": 228,
+          "raw": "MOVE XREF-CARD-NUM TO FD-XREF-CARD-NUM"
+        },
+        {
+          "fd_name": "WS-MISC-VARIABLES.WS-XREF-READ-STATUS",
+          "verb": "MOVE",
+          "line": 233,
+          "raw": "MOVE 4 TO WS-XREF-READ-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CARD-XREF-RECORD.XREF-CARD-NUM",
+          "verb": "MOVE",
+          "line": 228,
+          "raw": "MOVE XREF-CARD-NUM TO FD-XREF-CARD-NUM"
+        },
+        {
+          "fd_name": "CARD-XREF-RECORD.XREF-ACCT-ID",
+          "verb": "DISPLAY",
+          "line": 237,
+          "raw": "DISPLAY 'ACCOUNT ID : ' XREF-ACCT-ID"
+        },
+        {
+          "fd_name": "CARD-XREF-RECORD.XREF-CUST-ID",
+          "verb": "DISPLAY",
+          "line": 238,
+          "raw": "DISPLAY 'CUSTOMER ID: ' XREF-CUST-ID"
+        }
+      ]
+    },
+    {
+      "paragraph": "3000-READ-ACCOUNT",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "FD-ACCTFILE-REC.FD-ACCT-ID",
+          "verb": "MOVE",
+          "line": 242,
+          "raw": "MOVE ACCT-ID TO FD-ACCT-ID"
+        },
+        {
+          "fd_name": "WS-MISC-VARIABLES.WS-ACCT-READ-STATUS",
+          "verb": "MOVE",
+          "line": 247,
+          "raw": "MOVE 4 TO WS-ACCT-READ-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ACCOUNT-RECORD.ACCT-ID",
+          "verb": "MOVE",
+          "line": 242,
+          "raw": "MOVE ACCT-ID TO FD-ACCT-ID"
+        }
+      ]
+    },
+    {
+      "paragraph": "0000-DALYTRAN-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 253,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 264,
+          "raw": "MOVE DALYTRAN-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "DALYTRAN-STATUS",
+          "verb": "IF",
+          "line": 255,
+          "raw": "IF DALYTRAN-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 260,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "0100-CUSTFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 272,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 283,
+          "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CUSTFILE-STATUS",
+          "verb": "IF",
+          "line": 274,
+          "raw": "IF CUSTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 279,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "0200-XREFFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 290,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 301,
+          "raw": "MOVE XREFFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "XREFFILE-STATUS",
+          "verb": "IF",
+          "line": 292,
+          "raw": "IF XREFFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 297,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "0300-CARDFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 308,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 319,
+          "raw": "MOVE CARDFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CARDFILE-STATUS",
+          "verb": "IF",
+          "line": 310,
+          "raw": "IF CARDFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 315,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "0400-ACCTFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 326,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 337,
+          "raw": "MOVE ACCTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ACCTFILE-STATUS",
+          "verb": "IF",
+          "line": 328,
+          "raw": "IF ACCTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 333,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "0500-TRANFILE-OPEN",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "MOVE",
+          "line": 344,
+          "raw": "MOVE 8 TO APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 355,
+          "raw": "MOVE TRANFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "TRANFILE-STATUS",
+          "verb": "IF",
+          "line": 346,
+          "raw": "IF TRANFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 351,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "9000-DALYTRAN-CLOSE",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "ADD",
+          "line": 362,
+          "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 373,
+          "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "DALYTRAN-STATUS",
+          "verb": "IF",
+          "line": 364,
+          "raw": "IF DALYTRAN-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 369,
+          "raw": "IF APPL-AOK"
+        },
+        {
+          "fd_name": "CUSTFILE-STATUS",
+          "verb": "MOVE",
+          "line": 373,
+          "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+        }
+      ]
+    },
+    {
+      "paragraph": "9100-CUSTFILE-CLOSE",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "ADD",
+          "line": 380,
+          "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 391,
+          "raw": "MOVE CUSTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CUSTFILE-STATUS",
+          "verb": "IF",
+          "line": 382,
+          "raw": "IF CUSTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 387,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "9200-XREFFILE-CLOSE",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "ADD",
+          "line": 398,
+          "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 409,
+          "raw": "MOVE XREFFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "XREFFILE-STATUS",
+          "verb": "IF",
+          "line": 400,
+          "raw": "IF XREFFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 405,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "9300-CARDFILE-CLOSE",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "ADD",
+          "line": 416,
+          "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 427,
+          "raw": "MOVE CARDFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "CARDFILE-STATUS",
+          "verb": "IF",
+          "line": 418,
+          "raw": "IF CARDFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 423,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "9400-ACCTFILE-CLOSE",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "ADD",
+          "line": 434,
+          "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 445,
+          "raw": "MOVE ACCTFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "ACCTFILE-STATUS",
+          "verb": "IF",
+          "line": 436,
+          "raw": "IF ACCTFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 441,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "9500-TRANFILE-CLOSE",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "APPL-RESULT",
+          "verb": "ADD",
+          "line": 452,
+          "raw": "ADD 8 TO ZERO GIVING APPL-RESULT."
+        },
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "MOVE",
+          "line": 463,
+          "raw": "MOVE TRANFILE-STATUS TO IO-STATUS"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "TRANFILE-STATUS",
+          "verb": "IF",
+          "line": 454,
+          "raw": "IF TRANFILE-STATUS = '00'"
+        },
+        {
+          "fd_name": "APPL-AOK",
+          "verb": "IF",
+          "line": 459,
+          "raw": "IF APPL-AOK"
+        }
+      ]
+    },
+    {
+      "paragraph": "Z-ABEND-PROGRAM",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "TIMING",
+          "verb": "MOVE",
+          "line": 471,
+          "raw": "MOVE 0 TO TIMING"
+        },
+        {
+          "fd_name": "ABCODE",
+          "verb": "MOVE",
+          "line": 472,
+          "raw": "MOVE 999 TO ABCODE"
+        }
+      ],
+      "reads": []
+    },
+    {
+      "paragraph": "Z-DISPLAY-IO-STATUS",
+      "classification_source": "annotations",
+      "mutates": [
+        {
+          "fd_name": "IO-STATUS-04",
+          "verb": "MOVE",
+          "line": 479,
+          "raw": "MOVE IO-STAT1 TO IO-STATUS-04(1:1)"
+        },
+        {
+          "fd_name": "TWO-BYTES-BINARY",
+          "verb": "MOVE",
+          "line": 480,
+          "raw": "MOVE 0 TO TWO-BYTES-BINARY"
+        },
+        {
+          "fd_name": "TWO-BYTES-ALPHA.TWO-BYTES-RIGHT",
+          "verb": "MOVE",
+          "line": 481,
+          "raw": "MOVE IO-STAT2 TO TWO-BYTES-RIGHT"
+        },
+        {
+          "fd_name": "IO-STATUS-04.IO-STATUS-0403",
+          "verb": "MOVE",
+          "line": 482,
+          "raw": "MOVE TWO-BYTES-BINARY TO IO-STATUS-0403"
+        }
+      ],
+      "reads": [
+        {
+          "fd_name": "IO-STATUS",
+          "verb": "IF",
+          "line": 477,
+          "raw": "IF IO-STATUS NOT NUMERIC"
+        },
+        {
+          "fd_name": "IO-STATUS.IO-STAT1",
+          "verb": "MOVE",
+          "line": 479,
+          "raw": "MOVE IO-STAT1 TO IO-STATUS-04(1:1)"
+        },
+        {
+          "fd_name": "IO-STATUS.IO-STAT2",
+          "verb": "MOVE",
+          "line": 481,
+          "raw": "MOVE IO-STAT2 TO TWO-BYTES-RIGHT"
+        },
+        {
+          "fd_name": "TWO-BYTES-BINARY",
+          "verb": "MOVE",
+          "line": 482,
+          "raw": "MOVE TWO-BYTES-BINARY TO IO-STATUS-0403"
+        },
+        {
+          "fd_name": "IO-STATUS-04",
+          "verb": "DISPLAY",
+          "line": 483,
+          "raw": "DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-05-001",
+  "gate": "G0",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "main",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "facee5d1e589d2d112f19e8c73b2cc3497320a79",
+  "ts": "2026-05-05T17:38:00Z"
+}
+{
+  "event": "decompose",
+  "task_id": "T-2026-05-05-001",
+  "gate": "G0",
+  "irreducible_unit": "CBCUS01C.md gold candidate",
+  "inputs": ["CBCUS01C.cbl", "CBCUS01C_cfg.json", "SYNC-MANIFEST.yaml"],
+  "invariants": {
+    "paragraphs": 5,
+    "l01_items": 10,
+    "reachable": 5,
+    "dead": 0
+  },
+  "ts": "2026-05-05T17:38:00Z"
+}
+{
+  "event": "gate_close",
+  "task_id": "T-2026-05-05-001",
+  "gate": "G0",
+  "status": "PASS",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "main",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "facee5d1e589d2d112f19e8c73b2cc3497320a79",
+  "ts": "2026-05-05T17:44:00Z"
+}
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-05-001",
+  "gate": "G1",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "main",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "facee5d1e589d2d112f19e8c73b2cc3497320a79",
+  "ts": "2026-05-05T18:07:00Z"
+}
+{
+  "event": "gate_close",
+  "task_id": "T-2026-05-05-001",
+  "gate": "G1",
+  "status": "PASS",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "main",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "facee5d1e589d2d112f19e8c73b2cc3497320a79",
+  "ts": "2026-05-05T18:07:00Z"
+}
+{
+  "event": "gate_open",
+  "task_id": "T-2026-05-05-001",
+  "gate": "G2",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "main",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "facee5d1e589d2d112f19e8c73b2cc3497320a79",
+  "ts": "2026-05-05T18:20:00Z"
+}
+{
+  "event": "gate_close",
+  "task_id": "T-2026-05-05-001",
+  "gate": "G2",
+  "status": "PASS",
+  "agent": "qwen3-coder-next-80b",
+  "branch": "main",
+  "branch_scope_sha": "4e43543844c5e6167e45c8d33624cc02ce2c6e23",
+  "manifest_sha": "facee5d1e589d2d112f19e8c73b2cc3497320a79",
+  "ts": "2026-05-05T18:20:00Z"
+}
+{
+  "event": "task_halted",
+  "task_id": "T-2026-05-05-001",
+  "gate": "G2",
+  "reason": "proof-point objective achieved; 3 defects surfaced and documented; halting to preserve demo-prep time per Operation Tidy Option (c) close plan",
+  "defects_logged": ["NOTE-G0-01", "NOTE-G2-01", "FLAG F-G2-01", "DRIFT-G2-02", "SCAFFOLD-G2-03"],
+  "ts": "2026-05-05T18:37:49Z"
+}

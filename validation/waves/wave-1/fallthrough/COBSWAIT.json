@@ -1,0 +1,21 @@
+{
+  "program": "COBSWAIT",
+  "source_path": "app/cbl/COBSWAIT.cbl",
+  "source_sha256": "38a8d28235e58509776f5c8c74c113d5848a7ac68fab753c55ab887221c3b43a",
+  "cfg_path": "validation/pass1/COBSWAIT_annotations.json",
+  "cfg_sha256": "d0274371233b9e10dc9769ed67827bd1cd6e279a1471d854268c88222a13ea48",
+  "paragraphs": [
+    {
+      "paragraph": "COBSWAIT-MAIN",
+      "first_line": 36,
+      "last_line": 40,
+      "terminator": "stop-run",
+      "falls_through_to": null,
+      "last_verb": "STOP RUN",
+      "last_raw": "STOP RUN.",
+      "classification_source": "annotations"
+    }
+  ],
+  "c5_assertion": "PASS",
+  "c5_violations": []
+}

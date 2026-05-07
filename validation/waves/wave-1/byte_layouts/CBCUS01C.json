@@ -1,0 +1,503 @@
+{
+  "program": "CBCUS01C",
+  "source_path": "app/cbl/CBCUS01C.cbl",
+  "source_sha256": "233dbc3bc33a3b9ac555922085a92be56e88d16316bff624b5723c4c36c99714",
+  "sections": {
+    "file": [
+      {
+        "level": 1,
+        "name": "FD-CUSTFILE-REC",
+        "line": 38,
+        "usage": "DISPLAY",
+        "fd": "CUSTFILE-FILE",
+        "children": [
+          {
+            "level": 5,
+            "name": "FD-CUST-ID",
+            "line": 39,
+            "usage": "DISPLAY",
+            "pic": "9(09)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 9,
+            "qualified_name": "FD-CUSTFILE-REC.FD-CUST-ID"
+          },
+          {
+            "level": 5,
+            "name": "FD-CUST-DATA",
+            "line": 40,
+            "usage": "DISPLAY",
+            "pic": "X(491)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 491,
+            "qualified_name": "FD-CUSTFILE-REC.FD-CUST-DATA"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 500,
+        "qualified_name": "FD-CUSTFILE-REC",
+        "section": "file"
+      }
+    ],
+    "working_storage": [
+      {
+        "level": 1,
+        "name": "CUSTOMER-RECORD",
+        "line": 4,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "CUST-ID",
+            "line": 5,
+            "usage": "DISPLAY",
+            "pic": "9(09)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 9,
+            "qualified_name": "CUSTOMER-RECORD.CUST-ID"
+          },
+          {
+            "level": 5,
+            "name": "CUST-FIRST-NAME",
+            "line": 6,
+            "usage": "DISPLAY",
+            "pic": "X(25)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 25,
+            "qualified_name": "CUSTOMER-RECORD.CUST-FIRST-NAME"
+          },
+          {
+            "level": 5,
+            "name": "CUST-MIDDLE-NAME",
+            "line": 7,
+            "usage": "DISPLAY",
+            "pic": "X(25)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 25,
+            "qualified_name": "CUSTOMER-RECORD.CUST-MIDDLE-NAME"
+          },
+          {
+            "level": 5,
+            "name": "CUST-LAST-NAME",
+            "line": 8,
+            "usage": "DISPLAY",
+            "pic": "X(25)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 25,
+            "qualified_name": "CUSTOMER-RECORD.CUST-LAST-NAME"
+          },
+          {
+            "level": 5,
+            "name": "CUST-ADDR-LINE-1",
+            "line": 9,
+            "usage": "DISPLAY",
+            "pic": "X(50)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 50,
+            "qualified_name": "CUSTOMER-RECORD.CUST-ADDR-LINE-1"
+          },
+          {
+            "level": 5,
+            "name": "CUST-ADDR-LINE-2",
+            "line": 10,
+            "usage": "DISPLAY",
+            "pic": "X(50)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 50,
+            "qualified_name": "CUSTOMER-RECORD.CUST-ADDR-LINE-2"
+          },
+          {
+            "level": 5,
+            "name": "CUST-ADDR-LINE-3",
+            "line": 11,
+            "usage": "DISPLAY",
+            "pic": "X(50)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 50,
+            "qualified_name": "CUSTOMER-RECORD.CUST-ADDR-LINE-3"
+          },
+          {
+            "level": 5,
+            "name": "CUST-ADDR-STATE-CD",
+            "line": 12,
+            "usage": "DISPLAY",
+            "pic": "X(02)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 2,
+            "qualified_name": "CUSTOMER-RECORD.CUST-ADDR-STATE-CD"
+          },
+          {
+            "level": 5,
+            "name": "CUST-ADDR-COUNTRY-CD",
+            "line": 13,
+            "usage": "DISPLAY",
+            "pic": "X(03)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 3,
+            "qualified_name": "CUSTOMER-RECORD.CUST-ADDR-COUNTRY-CD"
+          },
+          {
+            "level": 5,
+            "name": "CUST-ADDR-ZIP",
+            "line": 14,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "CUSTOMER-RECORD.CUST-ADDR-ZIP"
+          },
+          {
+            "level": 5,
+            "name": "CUST-PHONE-NUM-1",
+            "line": 15,
+            "usage": "DISPLAY",
+            "pic": "X(15)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 15,
+            "qualified_name": "CUSTOMER-RECORD.CUST-PHONE-NUM-1"
+          },
+          {
+            "level": 5,
+            "name": "CUST-PHONE-NUM-2",
+            "line": 16,
+            "usage": "DISPLAY",
+            "pic": "X(15)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 15,
+            "qualified_name": "CUSTOMER-RECORD.CUST-PHONE-NUM-2"
+          },
+          {
+            "level": 5,
+            "name": "CUST-SSN",
+            "line": 17,
+            "usage": "DISPLAY",
+            "pic": "9(09)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 9,
+            "qualified_name": "CUSTOMER-RECORD.CUST-SSN"
+          },
+          {
+            "level": 5,
+            "name": "CUST-GOVT-ISSUED-ID",
+            "line": 18,
+            "usage": "DISPLAY",
+            "pic": "X(20)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 20,
+            "qualified_name": "CUSTOMER-RECORD.CUST-GOVT-ISSUED-ID"
+          },
+          {
+            "level": 5,
+            "name": "CUST-DOB-YYYY-MM-DD",
+            "line": 19,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "CUSTOMER-RECORD.CUST-DOB-YYYY-MM-DD"
+          },
+          {
+            "level": 5,
+            "name": "CUST-EFT-ACCOUNT-ID",
+            "line": 20,
+            "usage": "DISPLAY",
+            "pic": "X(10)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 10,
+            "qualified_name": "CUSTOMER-RECORD.CUST-EFT-ACCOUNT-ID"
+          },
+          {
+            "level": 5,
+            "name": "CUST-PRI-CARD-HOLDER-IND",
+            "line": 21,
+            "usage": "DISPLAY",
+            "pic": "X(01)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "CUSTOMER-RECORD.CUST-PRI-CARD-HOLDER-IND"
+          },
+          {
+            "level": 5,
+            "name": "CUST-FICO-CREDIT-SCORE",
+            "line": 22,
+            "usage": "DISPLAY",
+            "pic": "9(03)",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 3,
+            "qualified_name": "CUSTOMER-RECORD.CUST-FICO-CREDIT-SCORE"
+          },
+          {
+            "level": 5,
+            "name": "FILLER",
+            "line": 23,
+            "usage": "DISPLAY",
+            "pic": "X(168)",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 168,
+            "qualified_name": "CUSTOMER-RECORD.FILLER"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 500,
+        "qualified_name": "CUSTOMER-RECORD",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "CUSTFILE-STATUS",
+        "line": 46,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "CUSTFILE-STAT1",
+            "line": 47,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "CUSTFILE-STATUS.CUSTFILE-STAT1"
+          },
+          {
+            "level": 5,
+            "name": "CUSTFILE-STAT2",
+            "line": 48,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "CUSTFILE-STATUS.CUSTFILE-STAT2"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 2,
+        "qualified_name": "CUSTFILE-STATUS",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "IO-STATUS",
+        "line": 50,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "IO-STAT1",
+            "line": 51,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "IO-STATUS.IO-STAT1"
+          },
+          {
+            "level": 5,
+            "name": "IO-STAT2",
+            "line": 52,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "IO-STATUS.IO-STAT2"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 2,
+        "qualified_name": "IO-STATUS",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "TWO-BYTES-BINARY",
+        "line": 53,
+        "usage": "BINARY",
+        "pic": "9(4)",
+        "children": [],
+        "encoding": "binary",
+        "slack_bytes_before": 0,
+        "total_bytes": 2,
+        "qualified_name": "TWO-BYTES-BINARY",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "TWO-BYTES-ALPHA",
+        "line": 54,
+        "redefines": "TWO-BYTES-BINARY",
+        "usage": "BINARY",
+        "children": [
+          {
+            "level": 5,
+            "name": "TWO-BYTES-LEFT",
+            "line": 55,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "TWO-BYTES-ALPHA.TWO-BYTES-LEFT"
+          },
+          {
+            "level": 5,
+            "name": "TWO-BYTES-RIGHT",
+            "line": 56,
+            "usage": "DISPLAY",
+            "pic": "X",
+            "children": [],
+            "encoding": "display",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "TWO-BYTES-ALPHA.TWO-BYTES-RIGHT"
+          }
+        ],
+        "total_bytes": 2,
+        "slack_bytes_before": 0,
+        "qualified_name": "TWO-BYTES-ALPHA",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "IO-STATUS-04",
+        "line": 57,
+        "usage": "DISPLAY",
+        "children": [
+          {
+            "level": 5,
+            "name": "IO-STATUS-0401",
+            "line": 58,
+            "usage": "DISPLAY",
+            "pic": "9",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 1,
+            "qualified_name": "IO-STATUS-04.IO-STATUS-0401"
+          },
+          {
+            "level": 5,
+            "name": "IO-STATUS-0403",
+            "line": 59,
+            "usage": "DISPLAY",
+            "pic": "999",
+            "children": [],
+            "encoding": "zoned-decimal",
+            "slack_bytes_before": 0,
+            "total_bytes": 3,
+            "qualified_name": "IO-STATUS-04.IO-STATUS-0403"
+          }
+        ],
+        "slack_bytes_before": 0,
+        "total_bytes": 4,
+        "qualified_name": "IO-STATUS-04",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "APPL-RESULT",
+        "line": 61,
+        "usage": "COMP",
+        "pic": "S9(9)",
+        "children": [],
+        "encoding": "binary",
+        "slack_bytes_before": 0,
+        "total_bytes": 4,
+        "qualified_name": "APPL-RESULT",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "END-OF-FILE",
+        "line": 65,
+        "usage": "DISPLAY",
+        "pic": "X(01)",
+        "children": [],
+        "encoding": "display",
+        "slack_bytes_before": 0,
+        "total_bytes": 1,
+        "qualified_name": "END-OF-FILE",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "ABCODE",
+        "line": 66,
+        "usage": "BINARY",
+        "pic": "S9(9)",
+        "children": [],
+        "encoding": "binary",
+        "slack_bytes_before": 0,
+        "total_bytes": 4,
+        "qualified_name": "ABCODE",
+        "section": "working_storage"
+      },
+      {
+        "level": 1,
+        "name": "TIMING",
+        "line": 67,
+        "usage": "BINARY",
+        "pic": "S9(9)",
+        "children": [],
+        "encoding": "binary",
+        "slack_bytes_before": 0,
+        "total_bytes": 4,
+        "qualified_name": "TIMING",
+        "section": "working_storage"
+      }
+    ],
+    "linkage": []
+  },
+  "totals": {
+    "working_storage_bytes": 523,
+    "linkage_bytes": 0
+  }
+}

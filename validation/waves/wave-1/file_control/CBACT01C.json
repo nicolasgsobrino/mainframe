@@ -1,0 +1,74 @@
+{
+  "program": "CBACT01C",
+  "source_path": "app/cbl/CBACT01C.cbl",
+  "source_sha256": "f8eb6e3a561ff96a1889a8f777a8998850a11dddae221da2c5018067d7b95551",
+  "byte_layouts_path": "validation/pass1/byte_layouts/CBACT01C.json",
+  "byte_layouts_sha256": "2d2ed0f5832b35c3bf340247a81a33cac0e8b2d8c48dd569c45cba7763154330",
+  "file_control": [
+    {
+      "logical_name": "ACCTFILE-FILE",
+      "ddname": "ACCTFILE",
+      "organization": "INDEXED",
+      "access_mode": "SEQUENTIAL",
+      "record_key": "FD-ACCT-ID",
+      "alternate_keys": [],
+      "file_status": "ACCTFILE-STATUS",
+      "record_format": "FB",
+      "record_length": 300,
+      "input_codepage": "IBM-1047",
+      "codepage_default_applied": true,
+      "sign_convention": "mainframe-ebcdic",
+      "endianness": "big"
+    },
+    {
+      "logical_name": "OUT-FILE",
+      "ddname": "OUTFILE",
+      "organization": "SEQUENTIAL",
+      "access_mode": "SEQUENTIAL",
+      "record_key": null,
+      "alternate_keys": [],
+      "file_status": "OUTFILE-STATUS",
+      "record_format": "FB",
+      "record_length": 107,
+      "input_codepage": "IBM-1047",
+      "codepage_default_applied": true,
+      "sign_convention": "mainframe-ebcdic",
+      "endianness": "big"
+    },
+    {
+      "logical_name": "ARRY-FILE",
+      "ddname": "ARRYFILE",
+      "organization": "SEQUENTIAL",
+      "access_mode": "SEQUENTIAL",
+      "record_key": null,
+      "alternate_keys": [],
+      "file_status": "ARRYFILE-STATUS",
+      "record_format": "FB",
+      "record_length": 110,
+      "input_codepage": "IBM-1047",
+      "codepage_default_applied": true,
+      "sign_convention": "mainframe-ebcdic",
+      "endianness": "big"
+    },
+    {
+      "logical_name": "VBRC-FILE",
+      "ddname": "VBRCFILE",
+      "organization": "SEQUENTIAL",
+      "access_mode": "SEQUENTIAL",
+      "record_key": null,
+      "alternate_keys": [],
+      "file_status": "VBRCFILE-STATUS",
+      "record_format": "V",
+      "record_length": 80,
+      "input_codepage": "IBM-1047",
+      "codepage_default_applied": true,
+      "sign_convention": "none",
+      "endianness": "big",
+      "record_varying": {
+        "min": 10,
+        "max": 80,
+        "depending_on": "WS-RECD-LEN"
+      }
+    }
+  ]
+}

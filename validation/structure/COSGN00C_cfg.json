@@ -1,0 +1,311 @@
+{
+  "program_id": "COSGN00C",
+  "source_file": "app/cbl/COSGN00C.cbl",
+  "source_sha": "c3e7f8e4fb96466d3822ad82ceda8a96fb555d78",
+  "cfg_tool": "Cobol-REKT smojol-cli v0.1.0-RC8 + extract_cfg_summary.py",
+  "paragraphs": [
+    {
+      "name": "MAIN-PARA",
+      "reachable": true,
+      "performs": [
+        "SEND-SIGNON-SCREEN",
+        "PROCESS-ENTER-KEY",
+        "SEND-PLAIN-TEXT",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "READ-USER-SEC-FILE",
+        "POPULATE-HEADER-INFO",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "END-IF",
+      "reachable": false,
+      "performs": [
+        "SEND-SIGNON-SCREEN",
+        "PROCESS-ENTER-KEY",
+        "SEND-PLAIN-TEXT",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "READ-USER-SEC-FILE",
+        "POPULATE-HEADER-INFO",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "END-EXEC",
+      "reachable": false,
+      "performs": [
+        "SEND-SIGNON-SCREEN",
+        "PROCESS-ENTER-KEY",
+        "SEND-PLAIN-TEXT",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "READ-USER-SEC-FILE",
+        "POPULATE-HEADER-INFO",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "PROCESS-ENTER-KEY",
+      "reachable": true,
+      "performs": [
+        "SEND-SIGNON-SCREEN",
+        "SEND-PLAIN-TEXT",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "READ-USER-SEC-FILE",
+        "POPULATE-HEADER-INFO",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "END-EVALUATE",
+      "reachable": false,
+      "performs": [
+        "SEND-SIGNON-SCREEN",
+        "PROCESS-ENTER-KEY",
+        "SEND-PLAIN-TEXT",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "READ-USER-SEC-FILE",
+        "POPULATE-HEADER-INFO",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "SEND-SIGNON-SCREEN",
+      "reachable": true,
+      "performs": [
+        "PROCESS-ENTER-KEY",
+        "SEND-PLAIN-TEXT",
+        "READ-USER-SEC-FILE",
+        "POPULATE-HEADER-INFO"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "SEND-PLAIN-TEXT",
+      "reachable": true,
+      "performs": [
+        "SEND-SIGNON-SCREEN",
+        "PROCESS-ENTER-KEY",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "READ-USER-SEC-FILE",
+        "POPULATE-HEADER-INFO",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "POPULATE-HEADER-INFO",
+      "reachable": true,
+      "performs": [
+        "SEND-SIGNON-SCREEN",
+        "PROCESS-ENTER-KEY",
+        "SEND-PLAIN-TEXT",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "READ-USER-SEC-FILE",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    },
+    {
+      "name": "READ-USER-SEC-FILE",
+      "reachable": true,
+      "performs": [
+        "SEND-SIGNON-SCREEN",
+        "PROCESS-ENTER-KEY",
+        "SEND-PLAIN-TEXT",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "POPULATE-HEADER-INFO",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN",
+        "SEND-SIGNON-SCREEN"
+      ],
+      "goto_targets": [],
+      "goto_flag": false
+    }
+  ],
+  "data_items": [
+    {
+      "name": "WS-VARIABLES",
+      "level": 1,
+      "picture": null,
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "WS-PGMNAME",
+      "level": 5,
+      "picture": "X(08)",
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "WS-TRANID",
+      "level": 5,
+      "picture": "X(04)",
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "WS-MESSAGE",
+      "level": 5,
+      "picture": "X(80)",
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "WS-USRSEC-FILE",
+      "level": 5,
+      "picture": "X(08)",
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "WS-ERR-FLG",
+      "level": 5,
+      "picture": "X(01)",
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "ERR-FLG-ON",
+      "level": 88,
+      "picture": null,
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "ERR-FLG-OFF",
+      "level": 88,
+      "picture": null,
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "WS-RESP-CD",
+      "level": 5,
+      "picture": "S9(09)",
+      "usage": "COMP",
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "WS-REAS-CD",
+      "level": 5,
+      "picture": "S9(09)",
+      "usage": "COMP",
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "WS-USER-ID",
+      "level": 5,
+      "picture": "X(08)",
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "WS-USER-PWD",
+      "level": 5,
+      "picture": "X(08)",
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "DFHCOMMAREA",
+      "level": 1,
+      "picture": null,
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    },
+    {
+      "name": "LK-COMMAREA",
+      "level": 5,
+      "picture": "X(01)",
+      "usage": null,
+      "redefines": null,
+      "reachable": true
+    }
+  ],
+  "redefines_clauses": [],
+  "copybooks_used": [
+    "COCOM01Y",
+    "COSGN00",
+    "COTTL01Y",
+    "CSDAT01Y",
+    "CSMSG01Y",
+    "CSUSR01Y",
+    "DFHAID",
+    "DFHBMSCA"
+  ],
+  "calls_to": [],
+  "cics_commands": [
+    "RETURN",
+    "RECEIVE",
+    "SEND",
+    "ASSIGN",
+    "READ",
+    "XCTL"
+  ],
+  "dead_code_paragraphs": [
+    "END-IF",
+    "END-EXEC",
+    "END-EVALUATE"
+  ],
+  "dead_code_items": [],
+  "irreducible_gotos": [],
+  "smojol_cfg_path": "/tmp/rekt-reports/COSGN00C/COSGN00C.cbl.report/cfg/cfg-COSGN00C.cbl.json",
+  "smojol_node_count": 9
+}

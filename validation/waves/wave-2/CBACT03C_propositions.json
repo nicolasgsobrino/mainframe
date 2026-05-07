@@ -1,0 +1,1266 @@
+[
+  {
+    "seq": 1,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 71,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "DISPLAY 'START OF EXECUTION OF PROGRAM CBACT03C'.",
+    "operands": [
+      "'START OF EXECUTION OF PROGRAM CBACT03C'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 2,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 72,
+    "verb": "PERFORM",
+    "proposition": "Execute the 0000-XREFFILE-OPEN procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "PERFORM 0000-XREFFILE-OPEN.",
+    "operands": [
+      "0000-XREFFILE-OPEN"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 3,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 74,
+    "verb": "PERFORM",
+    "proposition": "Execute a procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "PERFORM UNTIL END-OF-FILE = 'Y'",
+    "operands": [
+      "END-OF-FILE",
+      "'Y'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 4,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 75,
+    "verb": "IF",
+    "proposition": "When END-OF-FILE = 'N'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF END-OF-FILE = 'N'",
+    "raw": "IF END-OF-FILE = 'N'",
+    "operands": [
+      "END-OF-FILE",
+      "'N'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 5,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 76,
+    "verb": "PERFORM",
+    "proposition": "Execute the 1000-XREFFILE-GET-NEXT procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF END-OF-FILE = 'N'",
+    "raw": "PERFORM 1000-XREFFILE-GET-NEXT",
+    "operands": [
+      "1000-XREFFILE-GET-NEXT"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 6,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 77,
+    "verb": "IF",
+    "proposition": "When END-OF-FILE = 'N'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF END-OF-FILE = 'N'",
+    "raw": "IF END-OF-FILE = 'N'",
+    "operands": [
+      "END-OF-FILE",
+      "'N'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 7,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 78,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF END-OF-FILE = 'N'",
+    "raw": "DISPLAY CARD-XREF-RECORD",
+    "operands": [
+      "CARD-XREF-RECORD"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 8,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 83,
+    "verb": "PERFORM",
+    "proposition": "Execute the 9000-XREFFILE-CLOSE procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "PERFORM 9000-XREFFILE-CLOSE.",
+    "operands": [
+      "9000-XREFFILE-CLOSE"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 9,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 85,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "DISPLAY 'END OF EXECUTION OF PROGRAM CBACT03C'.",
+    "operands": [
+      "'END OF EXECUTION OF PROGRAM CBACT03C'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 10,
+    "paragraph": "CBACT03C-MAIN",
+    "line": 87,
+    "verb": "GOBACK",
+    "proposition": "Return control to caller",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "GOBACK.",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 11,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 93,
+    "verb": "READ",
+    "proposition": "Retrieve next record from CARD-XREF-RECORD",
+    "proposition_source": "TEMPLATE",
+    "modifies": "CARD-XREF-RECORD",
+    "cfg_branch_context": null,
+    "raw": "READ XREFFILE-FILE INTO CARD-XREF-RECORD.",
+    "operands": [
+      "XREFFILE-FILE",
+      "CARD-XREF-RECORD"
+    ],
+    "operand_types": [
+      "unresolved",
+      "working-storage"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 12,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 94,
+    "verb": "IF",
+    "proposition": "When XREFFILE-STATUS = '00'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "IF XREFFILE-STATUS = '00'",
+    "operands": [
+      "XREFFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 13,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 95,
+    "verb": "MOVE",
+    "proposition": "Set APPL-RESULT to 0",
+    "proposition_source": "TEMPLATE",
+    "modifies": "APPL-RESULT",
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "MOVE 0 TO APPL-RESULT",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 14,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 96,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "DISPLAY CARD-XREF-RECORD",
+    "operands": [
+      "CARD-XREF-RECORD"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 15,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 98,
+    "verb": "IF",
+    "proposition": "When XREFFILE-STATUS = '00'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "IF XREFFILE-STATUS = '10'",
+    "operands": [
+      "XREFFILE-STATUS",
+      "'10'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 16,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 99,
+    "verb": "MOVE",
+    "proposition": "Set APPL-RESULT to 16",
+    "proposition_source": "TEMPLATE",
+    "modifies": "APPL-RESULT",
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "MOVE 16 TO APPL-RESULT",
+    "operands": [
+      "16",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 17,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 101,
+    "verb": "MOVE",
+    "proposition": "Set APPL-RESULT to 12",
+    "proposition_source": "TEMPLATE",
+    "modifies": "APPL-RESULT",
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "MOVE 12 TO APPL-RESULT",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 18,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 104,
+    "verb": "IF",
+    "proposition": "When APPL-AOK",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "IF APPL-AOK",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 19,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 105,
+    "verb": "CONTINUE",
+    "proposition": "Continue without action",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 20,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 107,
+    "verb": "IF",
+    "proposition": "When APPL-AOK",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "IF APPL-EOF",
+    "operands": [
+      "APPL-EOF"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 21,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 108,
+    "verb": "MOVE",
+    "proposition": "Set END-OF-FILE to 'Y'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "END-OF-FILE",
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "MOVE 'Y' TO END-OF-FILE",
+    "operands": [
+      "'Y'",
+      "END-OF-FILE"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 22,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 110,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "DISPLAY 'ERROR READING XREFFILE'",
+    "operands": [
+      "'ERROR READING XREFFILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 23,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 111,
+    "verb": "MOVE",
+    "proposition": "Set IO-STATUS to XREFFILE-STATUS",
+    "proposition_source": "TEMPLATE",
+    "modifies": "IO-STATUS",
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "MOVE XREFFILE-STATUS TO IO-STATUS",
+    "operands": [
+      "XREFFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 24,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 112,
+    "verb": "PERFORM",
+    "proposition": "Execute the 9910-DISPLAY-IO-STATUS procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "PERFORM 9910-DISPLAY-IO-STATUS",
+    "operands": [
+      "9910-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 25,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 113,
+    "verb": "PERFORM",
+    "proposition": "Execute the 9999-ABEND-PROGRAM procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "PERFORM 9999-ABEND-PROGRAM",
+    "operands": [
+      "9999-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 26,
+    "paragraph": "1000-XREFFILE-GET-NEXT",
+    "line": 116,
+    "verb": "EXIT",
+    "proposition": "Exit the current paragraph",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXIT.",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 27,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 119,
+    "verb": "MOVE",
+    "proposition": "Set APPL-RESULT to 8",
+    "proposition_source": "TEMPLATE",
+    "modifies": "APPL-RESULT",
+    "cfg_branch_context": null,
+    "raw": "MOVE 8 TO APPL-RESULT.",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 28,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 120,
+    "verb": "OPEN",
+    "proposition": "Open file",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "OPEN INPUT XREFFILE-FILE",
+    "operands": [
+      "XREFFILE-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 29,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 121,
+    "verb": "IF",
+    "proposition": "When XREFFILE-STATUS = '00'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "IF XREFFILE-STATUS = '00'",
+    "operands": [
+      "XREFFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 30,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 122,
+    "verb": "MOVE",
+    "proposition": "Set APPL-RESULT to 0",
+    "proposition_source": "TEMPLATE",
+    "modifies": "APPL-RESULT",
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "MOVE 0 TO APPL-RESULT",
+    "operands": [
+      "0",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 31,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 124,
+    "verb": "MOVE",
+    "proposition": "Set APPL-RESULT to 12",
+    "proposition_source": "TEMPLATE",
+    "modifies": "APPL-RESULT",
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "MOVE 12 TO APPL-RESULT",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 32,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 126,
+    "verb": "IF",
+    "proposition": "When APPL-AOK",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "IF APPL-AOK",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 33,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 127,
+    "verb": "CONTINUE",
+    "proposition": "Continue without action",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 34,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 129,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "DISPLAY 'ERROR OPENING XREFFILE'",
+    "operands": [
+      "'ERROR OPENING XREFFILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 35,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 130,
+    "verb": "MOVE",
+    "proposition": "Set IO-STATUS to XREFFILE-STATUS",
+    "proposition_source": "TEMPLATE",
+    "modifies": "IO-STATUS",
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "MOVE XREFFILE-STATUS TO IO-STATUS",
+    "operands": [
+      "XREFFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 36,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 131,
+    "verb": "PERFORM",
+    "proposition": "Execute the 9910-DISPLAY-IO-STATUS procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "PERFORM 9910-DISPLAY-IO-STATUS",
+    "operands": [
+      "9910-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 37,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 132,
+    "verb": "PERFORM",
+    "proposition": "Execute the 9999-ABEND-PROGRAM procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "PERFORM 9999-ABEND-PROGRAM",
+    "operands": [
+      "9999-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 38,
+    "paragraph": "0000-XREFFILE-OPEN",
+    "line": 134,
+    "verb": "EXIT",
+    "proposition": "Exit the current paragraph",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXIT.",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 39,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 137,
+    "verb": "ADD",
+    "proposition": "Accumulate 8 into APPL-RESULT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "APPL-RESULT",
+    "cfg_branch_context": null,
+    "raw": "ADD 8 TO ZERO GIVING APPL-RESULT.",
+    "operands": [
+      "8",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 40,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 138,
+    "verb": "CLOSE",
+    "proposition": "Close file",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "CLOSE XREFFILE-FILE",
+    "operands": [
+      "XREFFILE-FILE"
+    ],
+    "operand_types": [
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 41,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 139,
+    "verb": "IF",
+    "proposition": "When XREFFILE-STATUS = '00'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "IF XREFFILE-STATUS = '00'",
+    "operands": [
+      "XREFFILE-STATUS",
+      "'00'"
+    ],
+    "operand_types": [
+      "working-storage",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 42,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 140,
+    "verb": "SUBTRACT",
+    "proposition": "Reduce APPL-RESULT by APPL-RESULT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "APPL-RESULT",
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "SUBTRACT APPL-RESULT FROM APPL-RESULT",
+    "operands": [
+      "APPL-RESULT",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 43,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 142,
+    "verb": "ADD",
+    "proposition": "Accumulate 12 into APPL-RESULT",
+    "proposition_source": "TEMPLATE",
+    "modifies": "APPL-RESULT",
+    "cfg_branch_context": "IF XREFFILE-STATUS = '00'",
+    "raw": "ADD 12 TO ZERO GIVING APPL-RESULT",
+    "operands": [
+      "12",
+      "APPL-RESULT"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 44,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 144,
+    "verb": "IF",
+    "proposition": "When APPL-AOK",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "IF APPL-AOK",
+    "operands": [
+      "APPL-AOK"
+    ],
+    "operand_types": [
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 45,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 145,
+    "verb": "CONTINUE",
+    "proposition": "Continue without action",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "CONTINUE",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 46,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 147,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "DISPLAY 'ERROR CLOSING XREFFILE'",
+    "operands": [
+      "'ERROR CLOSING XREFFILE'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 47,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 148,
+    "verb": "MOVE",
+    "proposition": "Set IO-STATUS to XREFFILE-STATUS",
+    "proposition_source": "TEMPLATE",
+    "modifies": "IO-STATUS",
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "MOVE XREFFILE-STATUS TO IO-STATUS",
+    "operands": [
+      "XREFFILE-STATUS",
+      "IO-STATUS"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 48,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 149,
+    "verb": "PERFORM",
+    "proposition": "Execute the 9910-DISPLAY-IO-STATUS procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "PERFORM 9910-DISPLAY-IO-STATUS",
+    "operands": [
+      "9910-DISPLAY-IO-STATUS"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 49,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 150,
+    "verb": "PERFORM",
+    "proposition": "Execute the 9999-ABEND-PROGRAM procedure",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF APPL-AOK",
+    "raw": "PERFORM 9999-ABEND-PROGRAM",
+    "operands": [
+      "9999-ABEND-PROGRAM"
+    ],
+    "operand_types": [
+      "paragraph"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 50,
+    "paragraph": "9000-XREFFILE-CLOSE",
+    "line": 152,
+    "verb": "EXIT",
+    "proposition": "Exit the current paragraph",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXIT.",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 51,
+    "paragraph": "9999-ABEND-PROGRAM",
+    "line": 155,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "DISPLAY 'ABENDING PROGRAM'",
+    "operands": [
+      "'ABENDING PROGRAM'"
+    ],
+    "operand_types": [
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 52,
+    "paragraph": "9999-ABEND-PROGRAM",
+    "line": 156,
+    "verb": "MOVE",
+    "proposition": "Set TIMING to 0",
+    "proposition_source": "TEMPLATE",
+    "modifies": "TIMING",
+    "cfg_branch_context": null,
+    "raw": "MOVE 0 TO TIMING",
+    "operands": [
+      "0",
+      "TIMING"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 53,
+    "paragraph": "9999-ABEND-PROGRAM",
+    "line": 157,
+    "verb": "MOVE",
+    "proposition": "Set ABCODE to 999",
+    "proposition_source": "TEMPLATE",
+    "modifies": "ABCODE",
+    "cfg_branch_context": null,
+    "raw": "MOVE 999 TO ABCODE",
+    "operands": [
+      "999",
+      "ABCODE"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 54,
+    "paragraph": "9999-ABEND-PROGRAM",
+    "line": 158,
+    "verb": "CALL",
+    "proposition": "Invoke external program 'CEE3ABD'",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "CALL 'CEE3ABD' USING ABCODE TIMING.",
+    "operands": [
+      "'CEE3ABD'",
+      "ABCODE",
+      "TIMING"
+    ],
+    "operand_types": [
+      "external-program",
+      "working-storage",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 55,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 162,
+    "verb": "IF",
+    "proposition": "When IO-STATUS NOT NUMERIC",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "raw": "IF IO-STATUS NOT NUMERIC",
+    "operands": [
+      "IO-STATUS",
+      "NUMERIC"
+    ],
+    "operand_types": [
+      "working-storage",
+      "unresolved"
+    ],
+    "operand_unresolved": true,
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 56,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 164,
+    "verb": "MOVE",
+    "proposition": "Set 1 to IO-STAT1",
+    "proposition_source": "TEMPLATE",
+    "modifies": "IO-STATUS-04",
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "raw": "MOVE IO-STAT1 TO IO-STATUS-04(1:1)",
+    "operands": [
+      "IO-STAT1",
+      "IO-STATUS-04",
+      "1",
+      "1"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage",
+      "literal",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 57,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 165,
+    "verb": "MOVE",
+    "proposition": "Set TWO-BYTES-BINARY to 0",
+    "proposition_source": "TEMPLATE",
+    "modifies": "TWO-BYTES-BINARY",
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "raw": "MOVE 0 TO TWO-BYTES-BINARY",
+    "operands": [
+      "0",
+      "TWO-BYTES-BINARY"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 58,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 166,
+    "verb": "MOVE",
+    "proposition": "Set TWO-BYTES-RIGHT to IO-STAT2",
+    "proposition_source": "TEMPLATE",
+    "modifies": "TWO-BYTES-RIGHT",
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "raw": "MOVE IO-STAT2 TO TWO-BYTES-RIGHT",
+    "operands": [
+      "IO-STAT2",
+      "TWO-BYTES-RIGHT"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 59,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 167,
+    "verb": "MOVE",
+    "proposition": "Set IO-STATUS-0403 to TWO-BYTES-BINARY",
+    "proposition_source": "TEMPLATE",
+    "modifies": "IO-STATUS-0403",
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "raw": "MOVE TWO-BYTES-BINARY TO IO-STATUS-0403",
+    "operands": [
+      "TWO-BYTES-BINARY",
+      "IO-STATUS-0403"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 60,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 168,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "raw": "DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+    "operands": [
+      "'FILE STATUS IS: NNNN'",
+      "IO-STATUS-04"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 61,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 170,
+    "verb": "MOVE",
+    "proposition": "Set IO-STATUS-04 to '0000'",
+    "proposition_source": "TEMPLATE",
+    "modifies": "IO-STATUS-04",
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "raw": "MOVE '0000' TO IO-STATUS-04",
+    "operands": [
+      "'0000'",
+      "IO-STATUS-04"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 62,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 171,
+    "verb": "MOVE",
+    "proposition": "Set 2 to IO-STATUS",
+    "proposition_source": "TEMPLATE",
+    "modifies": "IO-STATUS-04",
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "raw": "MOVE IO-STATUS TO IO-STATUS-04(3:2)",
+    "operands": [
+      "IO-STATUS",
+      "IO-STATUS-04",
+      "3",
+      "2"
+    ],
+    "operand_types": [
+      "working-storage",
+      "working-storage",
+      "literal",
+      "literal"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 63,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 172,
+    "verb": "DISPLAY",
+    "proposition": "Display output message",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": "IF IO-STATUS NOT NUMERIC",
+    "raw": "DISPLAY 'FILE STATUS IS: NNNN' IO-STATUS-04",
+    "operands": [
+      "'FILE STATUS IS: NNNN'",
+      "IO-STATUS-04"
+    ],
+    "operand_types": [
+      "literal",
+      "working-storage"
+    ],
+    "confidence": 1.0,
+    "needs_llm": false
+  },
+  {
+    "seq": 64,
+    "paragraph": "9910-DISPLAY-IO-STATUS",
+    "line": 174,
+    "verb": "EXIT",
+    "proposition": "Exit the current paragraph",
+    "proposition_source": "TEMPLATE",
+    "modifies": null,
+    "cfg_branch_context": null,
+    "raw": "EXIT.",
+    "operands": [],
+    "operand_types": [],
+    "confidence": 1.0,
+    "needs_llm": false
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "event": "cfg_phantom_filtered",
+    "paragraph_candidate": "END-PERFORM",
+    "line": 186,
+    "reason": "Cobol-REKT artefact: scope terminator or data-item name"
+  },
+  {
+    "event": "cfg_phantom_filtered",
+    "paragraph_candidate": "END-READ",
+    "line": 239,
+    "reason": "Cobol-REKT artefact: scope terminator or data-item name"
+  },
+  {
+    "event": "cfg_phantom_filtered",
+    "paragraph_candidate": "END-READ",
+    "line": 250,
+    "reason": "Cobol-REKT artefact: scope terminator or data-item name"
+  }
+]

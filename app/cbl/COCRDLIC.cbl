@@ -513,10 +513,13 @@
                     GO TO COMMON-RETURN                                         
       *****************************************************************         
       *        TRANSFER TO CARD DETAIL VIEW                                     
+      * fix: split compound IF into two separate nested IFs so each             
+      *      IF line has only one condition type - workaround for               
+      *      smojol-cli ConditionVisitor NPE on mixed boolean+relational        
       *****************************************************************         
                WHEN CCARD-AID-ENTER                                             
-                AND VIEW-REQUESTED-ON(I-SELECTED)                               
-                AND CDEMO-FROM-PROGRAM  EQUAL LIT-THISPGM                       
+                   IF VIEW-REQUESTED-ON(I-SELECTED)                             
+                       IF CDEMO-FROM-PROGRAM EQUAL LIT-THISPGM                  
                    MOVE LIT-THISTRANID    TO CDEMO-FROM-TRANID                  
                    MOVE LIT-THISPGM       TO CDEMO-FROM-PROGRAM                 
                    SET  CDEMO-USRTYP-USER TO TRUE                               
@@ -539,12 +542,17 @@
                         PROGRAM (CCARD-NEXT-PROG)                               
                         COMMAREA(CARDDEMO-COMMAREA)                             
                    END-EXEC                                                     
+                       END-IF                                                   
+                   END-IF                                                       
       *****************************************************************         
       *        TRANSFER TO CARD UPDATED PROGRAM                                 
+      * fix: split compound IF into two separate nested IFs so each             
+      *      IF line has only one condition type - workaround for               
+      *      smojol-cli ConditionVisitor NPE on mixed boolean+relational        
       *****************************************************************         
                WHEN CCARD-AID-ENTER                                             
-                AND UPDATE-REQUESTED-ON(I-SELECTED)                             
-                AND CDEMO-FROM-PROGRAM  EQUAL LIT-THISPGM                       
+                   IF UPDATE-REQUESTED-ON(I-SELECTED)                           
+                       IF CDEMO-FROM-PROGRAM EQUAL LIT-THISPGM                  
                    MOVE LIT-THISTRANID    TO CDEMO-FROM-TRANID                  
                    MOVE LIT-THISPGM       TO CDEMO-FROM-PROGRAM                 
                    SET  CDEMO-USRTYP-USER TO TRUE                               
@@ -567,6 +575,8 @@
                         PROGRAM (CCARD-NEXT-PROG)                               
                         COMMAREA(CARDDEMO-COMMAREA)                             
                    END-EXEC                                                     
+                       END-IF                                                   
+                   END-IF                                                       
                                                                                 
       *****************************************************************         
                WHEN OTHER                                                       
