@@ -3,6 +3,77 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)
 
+## Python Django Port
+
+This repo now includes a Python port of CardDemo that keeps the mainframe demo contract intact while replacing the COBOL runtime with Django, Typer batch commands, PostgreSQL, and RabbitMQ.
+
+The original COBOL, BMS, copybook, DDL, JCL, and data files remain in `app/`. The Python implementation reads the ASCII sample records from `app/data/ASCII/`, maps the copybook fields to Django models, and exposes CICS-style transactions under `/tx/<TRANID>`.
+
+### Python Architecture
+
+- `models/`: one Django ORM model per VSAM record, Db2 table, or IMS segment used by the base and optional modules.
+- `services/`: business logic translated from COBOL programs, including signon, menus, account inquiry, posting, interest, and authorization processing.
+- `screens/`: BMS-faithful 24 by 80 HTML screens with PF-key form posts.
+- `carddemo/batch/`: Typer CLI equivalents of JCL jobs.
+- `carddemo/workers/`: RabbitMQ consumers for authorization and inquiry queues.
+
+### Run Locally
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+docker compose up -d postgres rabbitmq
+python manage.py migrate
+python -m carddemo.batch seed
+python manage.py runserver
+```
+
+Open `http://127.0.0.1:8000/tx/CC00` and sign in with either:
+
+- `ADMIN001` / `PASSWORD`
+- `USER0001` / `PASSWORD`
+
+### Batch Commands
+
+```bash
+python -m carddemo.batch seed
+python -m carddemo.batch posttran
+python -m carddemo.batch intcalc
+python -m carddemo.batch tranrept
+python -m carddemo.batch cbpaup0
+```
+
+The parity wrapper is:
+
+```bash
+scripts/run_full_batch.sh
+```
+
+### Queue Workers
+
+```bash
+python -m carddemo.workers.auth_consumer
+python -m carddemo.workers.mq_inquiry_consumer
+```
+
+RabbitMQ queue names mirror the modernization plan:
+
+- `CARDDEMO.AUTH.REQ` and `CARDDEMO.AUTH.RESP`
+- `CARDDEMO.DATE.REQ` and `CARDDEMO.DATE.RESP`
+- `CARDDEMO.ACCT.REQ` and `CARDDEMO.ACCT.RESP`
+
+### Implemented Parity Slice
+
+- Core tables for users, customers, accounts, cards, card cross-reference, transaction types, transaction categories, disclosure groups, transaction category balances, daily transactions, posted transactions, rejects, pending auth summaries/details, and fraud records.
+- Seed loader for the ASCII fixed-width files.
+- Signon with `ADMIN001` and `USER0001`, with Django password hashes.
+- Main menu option text and numbering from `COMEN02Y` and `COADM02Y`.
+- Account view flow for `/tx/CAVW`.
+- Posting logic from `CBTRN02C`: card lookup, account lookup, credit-limit validation, expiration validation, account balance update, category balance update, transaction insert, and reject insert.
+- Interest calculation using disclosure groups and Decimal `ROUND_HALF_UP`.
+- Authorization request handling and RabbitMQ consumer scaffolding.
+
 ## Executive Summary
 CardDemo is a comprehensive mainframe application that simulates a credit card management system. Designed specifically to showcase AWS and partner technologies for mainframe migration and modernization scenarios, it provides a realistic environment for testing various modernization approaches including discovery, migration, performance testing, service enablement, and more.
 
@@ -395,4 +466,3 @@ The CardDemo application has been enhanced with optional features that extend it
 These optional features make CardDemo an even more useful resource for customers looking to modernize their mainframe applications. With modules for DB2, MQ, IMS DB, JCL utilities, and more data formats now available, customers can leverage CardDemo to test a wider array of mainframe migration, refactoring, replatforming, and augmentation scenarios.
 
 Last updated: April 2025
-

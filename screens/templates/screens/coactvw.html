@@ -1,0 +1,10 @@
+{% extends "screens/base.html" %}
+{% block form %}
+<form method="post">
+  {% csrf_token %}
+  <label>Account ID<input name="acct_id" value="{{ acct_id }}" maxlength="11" inputmode="numeric"></label>
+  <button name="pfkey" value="ENTER" type="submit">Enter</button>
+  <button name="pfkey" value="PF3" type="submit">F3=Back</button>
+  <button name="pfkey" value="PF4" type="submit">F4=Clear</button>
+</form>
+{% endblock %}

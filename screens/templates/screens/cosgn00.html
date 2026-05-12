@@ -1,0 +1,10 @@
+{% extends "screens/base.html" %}
+{% block form %}
+<form method="post">
+  {% csrf_token %}
+  <label>User ID<input name="user_id" maxlength="8" autocomplete="username"></label>
+  <label>Password<input name="password" type="password" maxlength="8" autocomplete="current-password"></label>
+  <button name="pfkey" value="ENTER" type="submit">Enter</button>
+  <button name="pfkey" value="PF4" type="submit">F4=Clear</button>
+</form>
+{% endblock %}

@@ -6,3 +6,8 @@ batch-app/markers/*
 /.idea/
 .DS_Store
 **/.DS_Store
+.venv/
+*.egg-info/
+carddemo.sqlite3
+__pycache__/
+*.pyc

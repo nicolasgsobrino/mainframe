@@ -1,0 +1,25 @@
+{% extends "screens/base.html" %}
+{% block form %}
+<form method="post">
+  {% csrf_token %}
+  {% for field in fields %}
+    <label>{{ field.label }}
+      <input
+        name="{{ field.name }}"
+        value="{{ field.value }}"
+        maxlength="{{ field.maxlength|default:'80' }}"
+        {% if field.inputmode %}inputmode="{{ field.inputmode }}"{% endif %}
+        {% if field.type %}type="{{ field.type }}"{% endif %}
+      >
+    </label>
+  {% endfor %}
+  {% for hidden in hidden_fields %}
+    <input type="hidden" name="{{ hidden.name }}" value="{{ hidden.value }}">
+  {% endfor %}
+  <button name="pfkey" value="ENTER" type="submit">Enter</button>
+  <button name="pfkey" value="PF3" type="submit">F3=Back</button>
+  <button name="pfkey" value="PF4" type="submit">F4=Clear</button>
+  <button name="pfkey" value="PF7" type="submit">F7=Prev</button>
+  <button name="pfkey" value="PF8" type="submit">F8=Next</button>
+</form>
+{% endblock %}
