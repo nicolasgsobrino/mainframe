@@ -1,13 +1,30 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "carddemo-dev-only-secret-key")
-DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
+DEBUG = os.getenv("DJANGO_DEBUG", "0").lower() in {"1", "true"}
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+RUNNING_TESTS = any("pytest" in arg for arg in sys.argv)
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "carddemo-dev-only-secret-key"
+    elif RUNNING_TESTS:
+        SECRET_KEY = "carddemo-test-secret-key"
+    else:
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is disabled")
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
+    if host.strip()
+]
+if RUNNING_TESTS and "testserver" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("testserver")
 
 INSTALLED_APPS = [
     "django.contrib.auth",

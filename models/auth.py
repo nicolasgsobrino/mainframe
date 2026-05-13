@@ -54,9 +54,15 @@ class PendingAuthDetail(models.Model):
     class Meta:
         db_table = "pending_auth_detail"
         constraints = [
-            models.UniqueConstraint(fields=["auth_date", "auth_time"], name="pending_auth_detail_pk")
+            models.UniqueConstraint(
+                fields=["card_num", "transaction_id"],
+                name="pending_auth_detail_pk",
+            )
         ]
-        indexes = [models.Index(fields=["auth_date", "auth_time"])]
+        indexes = [
+            models.Index(fields=["auth_date", "auth_time"]),
+            models.Index(fields=["card_num", "transaction_id"]),
+        ]
 
 
 class AuthFraud(models.Model):
@@ -89,5 +95,7 @@ class AuthFraud(models.Model):
 
     class Meta:
         db_table = "auth_fraud"
-        constraints = [models.UniqueConstraint(fields=["card_num", "auth_ts"], name="auth_fraud_pk")]
+        constraints = [
+            models.UniqueConstraint(fields=["card_num", "auth_ts"], name="auth_fraud_pk")
+        ]
         indexes = [models.Index(fields=["card_num", "auth_ts"])]

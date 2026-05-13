@@ -36,7 +36,7 @@ class DailyTransaction(TransactionBase):
 
 
 class DailyReject(models.Model):
-    dalytran_id = models.CharField(max_length=16)
+    dalytran_id = models.CharField(max_length=16, unique=True)
     reason = models.CharField(max_length=80)
     card_num = models.CharField(max_length=16)
     raw_payload = models.TextField(blank=True)

@@ -415,7 +415,7 @@ def card_view(request: HttpRequest, tranid: str = "CCDL") -> HttpResponse:
     _put(rows, 4, 24, card_num)
     if card:
         _put(rows, 7, 5, f"Account ID : {int(card.card_acct_id):011d}")
-        _put(rows, 8, 5, f"CVV        : {int(card.card_cvv_cd):03d}")
+        _put(rows, 8, 5, f"CVV        : {card.card_cvv_cd.zfill(3)}")
         _put(rows, 9, 5, f"Name       : {card.card_embossed_name}")
         _put(rows, 10, 5, f"Expiry     : {card.card_expiraion_date}")
         _put(rows, 11, 5, f"Status     : {card.card_active_status}")
@@ -645,6 +645,8 @@ def bill_payment(request: HttpRequest, tranid: str = "CB00") -> HttpResponse:
         amount, amount_message = _clean_decimal(amount_value, "Payment amount")
         if not message:
             message = amount_message
+        if not message and amount is not None and amount <= 0:
+            message = "Payment amount must be greater than 0"
         if not message:
             account = Account.objects.filter(acct_id=acct_id).first()
             if not account:

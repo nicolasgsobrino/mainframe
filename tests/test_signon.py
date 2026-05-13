@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from services.menu import resolve_option
 from services.seed import seed_all
 
 
@@ -30,3 +31,8 @@ def test_main_menu_shows_admin_options(client):
     assert " 1. Account View" in content
     assert "11. Pending Authorization View" in content
     assert " 6. Transaction Type Maintenance (Db2)" in content
+
+
+def test_admin_menu_resolution_prefers_admin_options():
+    assert resolve_option("A", "1").tranid == "CU00"
+    assert resolve_option("U", "1").tranid == "CAVW"

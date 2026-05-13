@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from django.core.validators import RegexValidator
 from django.db import models
 
 
 class Card(models.Model):
     card_num = models.CharField(max_length=16, primary_key=True)
     card_acct_id = models.DecimalField(max_digits=11, decimal_places=0, db_index=True)
-    card_cvv_cd = models.DecimalField(max_digits=3, decimal_places=0)
+    card_cvv_cd = models.CharField(
+        max_length=3,
+        validators=[RegexValidator(r"^\d{3}$", "CVV must be exactly three digits")],
+    )
     card_embossed_name = models.CharField(max_length=50)
     card_expiraion_date = models.CharField(max_length=10)
     card_active_status = models.CharField(max_length=1)

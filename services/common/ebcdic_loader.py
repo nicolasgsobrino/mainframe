@@ -85,7 +85,7 @@ CUSTOMER_LAYOUT = [
 CARD_LAYOUT = [
     chars("card_num", 16),
     digits("card_acct_id", 11),
-    digits("card_cvv_cd", 3),
+    chars("card_cvv_cd", 3),
     chars("card_embossed_name", 50),
     chars("card_expiraion_date", 10),
     chars("card_active_status", 1),

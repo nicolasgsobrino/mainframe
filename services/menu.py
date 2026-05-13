@@ -37,7 +37,7 @@ ADMIN_MENU = [
 
 
 def menu_options(user_type: str) -> list[MenuOption]:
-    return MAIN_MENU + (ADMIN_MENU if user_type == "A" else [])
+    return (ADMIN_MENU + MAIN_MENU) if user_type == "A" else MAIN_MENU
 
 
 def resolve_option(user_type: str, option: str) -> MenuOption | None:

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from django.utils import timezone
 
 
@@ -11,4 +9,4 @@ def db2_timestamp() -> str:
 
 
 def system_date() -> str:
-    return datetime.now().strftime("%Y-%m-%d")
+    return timezone.localdate().strftime("%Y-%m-%d")

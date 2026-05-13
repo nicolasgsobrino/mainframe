@@ -72,6 +72,26 @@ def test_account_update_and_bill_payment(client):
 
 
 @pytest.mark.django_db
+def test_bill_payment_rejects_non_positive_amounts(client):
+    seed_all()
+    sign_in(client)
+    account = Account.objects.get(acct_id=1)
+    original_balance = account.acct_curr_bal
+    original_debit = account.acct_curr_cyc_debit
+
+    response = client.post(
+        "/tx/CB00",
+        {"acct_id": "1", "amount": "-10.00", "pfkey": "ENTER"},
+    )
+
+    assert response.status_code == 200
+    assert "Payment amount must be greater than 0" in response.content.decode()
+    account.refresh_from_db()
+    assert account.acct_curr_bal == original_balance
+    assert account.acct_curr_cyc_debit == original_debit
+
+
+@pytest.mark.django_db
 def test_transaction_add_list_and_view(client):
     seed_all()
     sign_in(client)

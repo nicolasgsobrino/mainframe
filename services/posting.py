@@ -39,11 +39,13 @@ def validate_daily_transaction(daily: DailyTransaction) -> tuple[CardXref | None
 def post_daily_transactions() -> PostingResult:
     processed = posted = rejected = 0
     DailyReject.objects.all().delete()
-    Transaction.objects.all().delete()
 
     for daily in DailyTransaction.objects.order_by("dalytran_id"):
         processed += 1
         with transaction.atomic():
+            if Transaction.objects.filter(tran_id=daily.dalytran_id).exists():
+                continue
+
             xref, reason = validate_daily_transaction(daily)
             if reason or xref is None:
                 DailyReject.objects.create(

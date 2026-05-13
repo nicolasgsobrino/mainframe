@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from models.account import Account
@@ -68,7 +69,7 @@ def process_authorization(request: AuthRequest) -> str:
     with transaction.atomic():
         if xref and card:
             account = Account.objects.get(acct_id=xref.xref_acct_id)
-            summary, _ = PendingAuthSummary.objects.get_or_create(
+            summary, _ = PendingAuthSummary.objects.select_for_update().get_or_create(
                 card_num=request.card_num,
                 defaults={
                     "acct_id": xref.xref_acct_id,
@@ -82,20 +83,24 @@ def process_authorization(request: AuthRequest) -> str:
                 },
             )
             if approved:
-                summary.approved_auth_cnt += 1
-                summary.approved_auth_amt += approved_amt
+                PendingAuthSummary.objects.filter(pk=summary.pk).update(
+                    approved_auth_cnt=F("approved_auth_cnt") + 1,
+                    approved_auth_amt=F("approved_auth_amt") + approved_amt,
+                )
             else:
-                summary.declined_auth_cnt += 1
-                summary.declined_auth_amt += request.transaction_amt
-            summary.save()
+                PendingAuthSummary.objects.filter(pk=summary.pk).update(
+                    declined_auth_cnt=F("declined_auth_cnt") + 1,
+                    declined_auth_amt=F("declined_auth_amt") + request.transaction_amt,
+                )
 
         PendingAuthDetail.objects.update_or_create(
-            auth_date=request.auth_date,
-            auth_time=request.auth_time,
+            card_num=request.card_num,
+            transaction_id=request.transaction_id,
             defaults={
                 "auth_orig_date": request.auth_date,
                 "auth_orig_time": request.auth_time,
-                "card_num": request.card_num,
+                "auth_date": request.auth_date,
+                "auth_time": request.auth_time,
                 "auth_type": request.auth_type,
                 "card_expiry_date": request.card_expiry_date,
                 "message_type": request.message_type,
@@ -114,7 +119,6 @@ def process_authorization(request: AuthRequest) -> str:
                 "merchant_city": request.merchant_city,
                 "merchant_state": request.merchant_state,
                 "merchant_zip": request.merchant_zip,
-                "transaction_id": request.transaction_id,
                 "match_status": "P" if approved else "D",
             },
         )

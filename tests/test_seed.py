@@ -23,6 +23,7 @@ def test_seed_loads_core_ascii_records():
     assert Account.objects.count() == 50
     assert Customer.objects.count() == 50
     assert Card.objects.count() == 50
+    assert Card.objects.filter(card_cvv_cd="003").exists()
     assert CardXref.objects.count() == 50
     assert DailyTransaction.objects.count() == 300
     assert SecUser.objects.filter(usr_id="ADMIN001", usr_type="A").exists()
