@@ -22,7 +22,7 @@ INIT     STM   14,12,12(13)            STORE REGISTERS IN COBOL PROG
          ST    1,BINLBL                LOAD BINLBL WITH DELAY VALUE
          ASMWAIT BINLBL                START INTERVAL CONTROL TIMER
          LM    14,12,12(13)            RESTORE COBOL REGS
-         MVI   12(13),X'FF'            *ML purpose of this? - can we remove it?
+         MVI   12(13),X'FF'            *ML save area marker
          SR    15,15                   ZERO R15 BEFORE RETURN
          BR    14                      RETURN TO COBOL
 BINLBL   DS    F                       TIMER EVENT CONTROL BLOCK

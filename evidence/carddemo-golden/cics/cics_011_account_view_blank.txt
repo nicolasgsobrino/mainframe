@@ -1,0 +1,24 @@
+ Tran: CAVW                AWS Mainframe Modernization           Date: 05/22/26
+ Prog: COACTVWC                    CardDemo                      Time: 10:43:53
+
+                                 View Account
+                   Account Number :                      Active Y/N:
+        Opened:                        Credit Limit        :
+        Expiry:                        Cash credit Limit   :
+        Reissue:                       Current Balance     :
+                                       Current Cycle Credit:
+        Account Group:                 Current Cycle Debit :
+                                Customer Details
+        Customer id  :                           SSN:
+        Date of birth:                           FICO Score:
+ First Name                 Middle Name:               Last Name :
+
+ Address:                                                      State
+                                                               Zip
+ City                                                          Country
+ Phone 1:               Government Issued Id Ref    :
+ Phone 2:               EFT Account Id:              Primary Card Holder Y/N:
+
+                       Enter or update id of account to display
+
+   F3=Exit

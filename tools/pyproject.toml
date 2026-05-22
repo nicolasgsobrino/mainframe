@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "capture-golden"
+version = "0.1.0"
+description = "Internal golden-master capture toolkit for mainframe ADCD workflows"
+requires-python = ">=3.8"
+readme = "capture_golden/README.md"
+authors = [
+  { name = "Internal Mainframe Modernization Team" }
+]
+dependencies = []
+
+[project.optional-dependencies]
+cics = ["py3270>=0.3.5"]
+
+[project.scripts]
+capture-golden = "capture_golden.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["capture_golden*"]

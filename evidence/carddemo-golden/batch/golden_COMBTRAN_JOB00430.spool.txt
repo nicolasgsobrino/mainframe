@@ -1,0 +1,136 @@
+1                         J E S 2  J O B  L O G  --  S Y S T E M  V S 0 1  --  N O D E  N 1              
+0 
+ 11.12.23 JOB00430 ---- FRIDAY,    22 MAY 2026 ----
+ 11.12.23 JOB00430  IRR010I  USERID IBMUSER  IS ASSIGNED TO THIS JOB.
+ 11.12.24 JOB00430  ICH70001I IBMUSER  LAST ACCESS AT 11:12:19 ON FRIDAY, MAY 22, 2026
+ 11.12.24 JOB00430  $HASP373 COMBTRAN STARTED - INIT 6    - CLASS A        - SYS VS01
+ 11.12.24 JOB00430  IEF403I COMBTRAN - STARTED - TIME=11.12.24
+ 11.12.33 JOB00430  IEF404I COMBTRAN - ENDED - TIME=11.12.33
+ 11.12.33 JOB00430  $HASP395 COMBTRAN ENDED - RC=0000
+0------ JES2 JOB STATISTICS ------
+-  22 MAY 2026 JOB EXECUTION DATE
+-           52 CARDS READ
+-          137 SYSOUT PRINT RECORDS
+-            0 SYSOUT PUNCH RECORDS
+-           14 SYSOUT SPOOL KBYTES
+-         0.14 MINUTES EXECUTION TIME
+ !! END OF JES SPOOL FILE !!
+        1 //COMBTRAN JOB 'COMBINE TRANSACTIONS',CLASS=A,MSGCLASS=0,               JOB00430
+          //  NOTIFY=&SYSUID                                                              
+          //******************************************************************            
+          //* Copyright Amazon.com, Inc. or its affiliates.                               
+          //* All Rights Reserved.                                                        
+          //*                                                                             
+          //* Licensed under the Apache License, Version 2.0 (the "License").             
+          //* You may not use this file except in compliance with the License.            
+          //* You may obtain a copy of the License at                                     
+          //*                                                                             
+          //*    http://www.apache.org/licenses/LICENSE-2.0                               
+          //*                                                                             
+          //* Unless required by applicable law or agreed to in writing,                  
+          //* software distributed under the License is distributed on an                 
+          //* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,                
+          //* either express or implied. See the License for the specific                 
+          //* language governing permissions and limitations under the License            
+          //******************************************************************            
+          //* *******************************************************************         
+          //* Sort current transaction file and system generated transactions             
+          //* *******************************************************************         
+          IEFC653I SUBSTITUTION JCL - 'COMBINE TRANSACTIONS',CLASS=A,MSGCLASS=0,NOTIFY=IBMUSER
+ !! END OF JES SPOOL FILE !!
+ ICH70001I IBMUSER  LAST ACCESS AT 11:12:19 ON FRIDAY, MAY 22, 2026
+ IEFA111I COMBTRAN IS USING THE FOLLOWING JOB RELATED SETTINGS:
+          SWA=BELOW,TIOT SIZE=64K,DSENQSHR=DISALLOW,GDGBIAS=JOB
+ IEF236I ALLOC. FOR COMBTRAN STEP05R
+ IGD103I SMS ALLOCATED TO DDNAME SORTIN
+ IGD103I SMS ALLOCATED TO DDNAME
+ IEF237I JES2 ALLOCATED TO SYMNAMES
+ IEF237I JES2 ALLOCATED TO SYSIN
+ IEF237I JES2 ALLOCATED TO SYSOUT
+ IGD101I SMS ALLOCATED TO DDNAME (SORTOUT )
+         DSN (IBMUSER.CARDDEMO.TRANSACT.COMBINED.G0001V00 )
+         STORCLAS (SCBASE) MGMTCLAS (        ) DATACLAS (        )
+         VOL SER NOS= USRVS1                                                                
+ IEF142I COMBTRAN STEP05R - STEP WAS EXECUTED - COND CODE 0000
+ IGD104I IBMUSER.CARDDEMO.TRANSACT.BKUP.G0003V00      RETAINED,  DDNAME=SORTIN  
+ IGD104I IBMUSER.CARDDEMO.SYSTRAN.G0001V00            RETAINED,  DDNAME=        
+ IEF285I   IBMUSER.COMBTRAN.JOB00430.D0000101.?         SYSIN         
+ IEF285I   IBMUSER.COMBTRAN.JOB00430.D0000102.?         SYSIN         
+ IEF285I   IBMUSER.COMBTRAN.JOB00430.D0000104.?         SYSOUT        
+ IGD107I IBMUSER.CARDDEMO.TRANSACT.COMBINED.G0001V00  ROLLED IN, DDNAME=SORTOUT 
+ IEF373I STEP/STEP05R /START 2026142.1112
+ IEF032I STEP/STEP05R /STOP  2026142.1112 
+         CPU:     0 HR  00 MIN  01.68 SEC    SRB:     0 HR  00 MIN  00.06 SEC    
+         VIRT:  1072K  SYS:   316K  EXT:     6156K  SYS:    10352K
+         ATB- REAL:                  1252K  SLOTS:                     0K
+              VIRT- ALLOC:      14M SHRD:       0M
+ IEF236I ALLOC. FOR COMBTRAN STEP10
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IGD103I SMS ALLOCATED TO DDNAME TRANSACT
+ IGD103I SMS ALLOCATED TO DDNAME TRANVSAM
+ IEF237I JES2 ALLOCATED TO SYSIN
+ IEF142I COMBTRAN STEP10 - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.COMBTRAN.JOB00430.D0000105.?         SYSOUT        
+ IGD104I IBMUSER.CARDDEMO.TRANSACT.COMBINED.G0001V00  RETAINED,  DDNAME=TRANSACT
+ IGD104I IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS          RETAINED,  DDNAME=TRANVSAM
+ IEF285I   IBMUSER.COMBTRAN.JOB00430.D0000103.?         SYSIN         
+ IEF373I STEP/STEP10  /START 2026142.1112
+ IEF032I STEP/STEP10  /STOP  2026142.1112 
+         CPU:     0 HR  00 MIN  00.72 SEC    SRB:     0 HR  00 MIN  00.02 SEC    
+         VIRT:   240K  SYS:   316K  EXT:      944K  SYS:    10504K
+         ATB- REAL:                  1276K  SLOTS:                     0K
+              VIRT- ALLOC:      16M SHRD:       0M
+ IEF375I  JOB/COMBTRAN/START 2026142.1112
+ IEF033I  JOB/COMBTRAN/STOP  2026142.1112 
+         CPU:     0 HR  00 MIN  02.40 SEC    SRB:     0 HR  00 MIN  00.08 SEC    
+ !! END OF JES SPOOL FILE !!
+1ICE270I 0 PROCESSING SYMNAMES STATEMENTS                                                                                
+ ICE280I 1 ORIGINAL STATEMENTS FROM SYSIN    FOLLOW                                                                      
+            SORT FIELDS=(TRAN-ID,A)                                                                                      
+ ICE282I 0 PERFORMING SYMBOL SUBSTITUTION AS NEEDED                                                                      
+ ICE201I 1 RECORD TYPE IS F - DATA STARTS IN POSITION 1                                                                  
+ ICE751I 0 C5-NONE   C6-NONE   C7-NONE   C8-NONE   E4-NONE   C9-NONE   E5-H53894 E7-NONE                                 
+ ICE143I 0 BLOCKSET     SORT  TECHNIQUE SELECTED                                                                         
+ ICE250I 0 VISIT http://www.ibm.com/storage/dfsort FOR DFSORT PAPERS, EXAMPLES AND MORE                                  
+ ICE000I 1 - CONTROL STATEMENTS FOR 5655-ZOS, Z/OS DFSORT V3R1  - 11:12 ON FRI MAY 22, 2026 -                            
+0           SORT FIELDS=(1,16,CH,A)                                                                                      
+ ICE193I 0 ICEAM1 INVOCATION ENVIRONMENT IN EFFECT - ICEAM1 ENVIRONMENT SELECTED                                         
+ ICE088I 1 COMBTRAN.STEP05R .        , INPUT LRECL = 350, BLKSIZE = 27650, TYPE = FB                                     
+ ICE093I 0 MAIN STORAGE = (MAX,6291456,6291456)                                                                          
+ ICE156I 0 MAIN STORAGE ABOVE 16MB = (6234096,6234096)                                                                   
+ ICE127I 0 OPTIONS: OVFLO=RC0 ,PAD=RC0 ,TRUNC=RC0 ,SPANINC=RC16,VLSCMP=N,SZERO=Y,RESET=Y,VSAMEMT=Y,DYNSPC=256            
+ ICE128I 0 OPTIONS: SIZE=6291456,MAXLIM=1048576,MINLIM=450560,EQUALS=N,LIST=Y,ERET=RC16 ,MSGDDN=SYSOUT                   
+ ICE129I 0 OPTIONS: VIO=N,RESDNT=ALL ,SMF=NO   ,WRKSEC=Y,OUTSEC=Y,VERIFY=N,CHALT=N,DYNALOC=N             ,ABCODE=MSG     
+ ICE130I 0 OPTIONS: RESALL=4096,RESINV=0,SVC=109 ,CHECK=Y,WRKREL=Y,OUTREL=Y,CKPT=N,COBEXIT=COB2,ZSORT=N                  
+ ICE131I 0 OPTIONS: TMAXLIM=6291456,ARESALL=0,ARESINV=0,OVERRGN=65536,CINV=Y,CFW=Y,DSA=0                                 
+ ICE132I 0 OPTIONS: VLSHRT=N,ZDPRINT=Y,IEXIT=N,TEXIT=N,LISTX=N,EFS=NONE    ,EXITCK=S,PARMDDN=DFSPARM ,FSZEST=N           
+ ICE133I 0 OPTIONS: HIPRMAX=OPTIMAL,DSPSIZE=MAX ,ODMAXBF=0,SOLRF=Y,VLLONG=N,VSAMIO=N,MOSIZE=MAX                          
+ ICE235I 0 OPTIONS: NULLOUT=RC0                                                                                          
+ ICE236I 0 OPTIONS: DYNAPCT=10 ,MOWRK=Y,TUNE=STOR,EXPMAX=MAX    ,EXPOLD=50%    ,EXPRES=10%                               
+ ICE084I 0 EXCP ACCESS METHOD USED FOR SORTOUT                                                                           
+ ICE084I 0 EXCP ACCESS METHOD USED FOR SORTIN                                                                            
+ ICE750I 0 DC 128100 TC 0 CS DSVVV KSZ 16 VSZ 16                                                                         
+ ICE752I 0 FSZ=366 RC  IGN=0 E  AVG=352 0  WSP=167 C  DYN=0 0                                                            
+ ICE751I 1 DE-NONE   D5-NONE   D9-NONE   E8-NONE                                                                         
+ ICE090I 0 OUTPUT LRECL = 350, BLKSIZE = 27650, TYPE = FB   (SDB)                                                        
+ ICE080I 0 IN MAIN STORAGE SORT                                                                                          
+ ICE055I 0 INSERT 0, DELETE 0                                                                                            
+ ICE054I 0 RECORDS - IN: 312, OUT: 312                                                                                   
+ ICE134I 0 NUMBER OF BYTES SORTED: 109200                                                                                
+ ICE253I 0 RECORDS SORTED - PROCESSED: 312, EXPECTED: 366                                                                
+ ICE199I 0 MEMORY OBJECT USED AS MAIN STORAGE = 0M BYTES                                                                 
+ ICE299I 0 MEMORY OBJECT USED AS WORK STORAGE = 0M BYTES                                                                 
+ ICE399I 0 MEMORY OBJECT USED IN ZSORT PATH = 0M BYTES                                                                   
+ ICE180I 0 HIPERSPACE STORAGE USED = 0K BYTES                                                                            
+ ICE188I 0 DATA SPACE STORAGE USED = 0K BYTES                                                                            
+ ICE267I 0 ZSORT ACCELERATOR PATH NOT USED    RSN=193                                                                    
+ ICE052I 0 END OF DFSORT                                                                                                 
+ !! END OF JES SPOOL FILE !!
+1IDCAMS  SYSTEM SERVICES                                           TIME: 11:12:30        05/22/26     PAGE      1
+0        
+    REPRO INFILE(TRANSACT) OUTFILE(TRANVSAM)
+0IDC0005I NUMBER OF RECORDS PROCESSED WAS 312
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
+0        
+0IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
+ !! END OF JES SPOOL FILE !!

@@ -6,6 +6,17 @@
 ## Executive Summary
 CardDemo is a comprehensive mainframe application that simulates a credit card management system. Designed specifically to showcase AWS and partner technologies for mainframe migration and modernization scenarios, it provides a realistic environment for testing various modernization approaches including discovery, migration, performance testing, service enablement, and more.
 
+## Golden Master Capture
+
+This fork also contains ADCD-oriented golden-master capture tooling for CICS
+and batch validation. The canonical protocol is documented in
+[docs/golden-master-capture.md](./docs/golden-master-capture.md).
+
+Reusable tooling lives in the importable package
+[tools/capture_golden](./tools/capture_golden). Do not add ad hoc capture
+scripts for new corpora; extend the package and keep evidence under
+`evidence/<corpus>-golden`.
+
 ## Table of Contents
 - [Description](#description)
 - [Technologies](#technologies)
@@ -395,4 +406,3 @@ The CardDemo application has been enhanced with optional features that extend it
 These optional features make CardDemo an even more useful resource for customers looking to modernize their mainframe applications. With modules for DB2, MQ, IMS DB, JCL utilities, and more data formats now available, customers can leverage CardDemo to test a wider array of mainframe migration, refactoring, replatforming, and augmentation scenarios.
 
 Last updated: April 2025
-

@@ -1,0 +1,155 @@
+1                         J E S 2  J O B  L O G  --  S Y S T E M  V S 0 1  --  N O D E  N 1              
+0 
+ 11.21.02 JOB00440 ---- FRIDAY,    22 MAY 2026 ----
+ 11.21.02 JOB00440  IRR010I  USERID IBMUSER  IS ASSIGNED TO THIS JOB.
+ 11.21.03 JOB00440  ICH70001I IBMUSER  LAST ACCESS AT 11:20:58 ON FRIDAY, MAY 22, 2026
+ 11.21.03 JOB00440  $HASP373 PRTCATBL STARTED - INIT 6    - CLASS A        - SYS VS01
+ 11.21.03 JOB00440  IEF403I PRTCATBL - STARTED - TIME=11.21.03
+ 11.21.10 JOB00440  IEF404I PRTCATBL - ENDED - TIME=11.21.10
+ 11.21.10 JOB00440  $HASP395 PRTCATBL ENDED - RC=0000
+0------ JES2 JOB STATISTICS ------
+-  22 MAY 2026 JOB EXECUTION DATE
+-           66 CARDS READ
+-          158 SYSOUT PRINT RECORDS
+-            0 SYSOUT PUNCH RECORDS
+-           17 SYSOUT SPOOL KBYTES
+-         0.12 MINUTES EXECUTION TIME
+ !! END OF JES SPOOL FILE !!
+        1 //PRTCATBL JOB 'Print Trasaction Category Balance File',                JOB00440
+          // CLASS=A,MSGCLASS=0,NOTIFY=&SYSUID                                            
+          //******************************************************************            
+          //* Copyright Amazon.com, Inc. or its affiliates.                               
+          //* All Rights Reserved.                                                        
+          //*                                                                             
+          //* Licensed under the Apache License, Version 2.0 (the "License").             
+          //* You may not use this file except in compliance with the License.            
+          //* You may obtain a copy of the License at                                     
+          //*                                                                             
+          //*    http://www.apache.org/licenses/LICENSE-2.0                               
+          //*                                                                             
+          //* Unless required by applicable law or agreed to in writing,                  
+          //* software distributed under the License is distributed on an                 
+          //* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,                
+          //* either express or implied. See the License for the specific                 
+          //* language governing permissions and limitations under the License            
+          //******************************************************************            
+          IEFC653I SUBSTITUTION JCL - 'Print Trasaction Category Balance File',CLASS=A,MSGCLASS=0,NOTIFY=IBMUSER
+ !! END OF JES SPOOL FILE !!
+  STMT NO. MESSAGE
+         5 IEFC001I PROCEDURE REPROC WAS EXPANDED USING PRIVATE LIBRARY IBMUSER.CARDDEMO.PROC
+ ICH70001I IBMUSER  LAST ACCESS AT 11:20:58 ON FRIDAY, MAY 22, 2026
+ IEFA111I PRTCATBL IS USING THE FOLLOWING JOB RELATED SETTINGS:
+          SWA=BELOW,TIOT SIZE=64K,DSENQSHR=DISALLOW,GDGBIAS=JOB
+ IEF236I ALLOC. FOR PRTCATBL DELDEF
+ IGD101I SMS ALLOCATED TO DDNAME (THEFILE )
+         DSN (IBMUSER.CARDDEMO.TCATBALF.REPT              )
+         STORCLAS (SCBASE) MGMTCLAS (        ) DATACLAS (        )
+         VOL SER NOS= USRVS1                                                                
+ IEF142I PRTCATBL DELDEF - STEP WAS EXECUTED - COND CODE 0000
+ IGD105I IBMUSER.CARDDEMO.TCATBALF.REPT               DELETED,   DDNAME=THEFILE 
+ IEF373I STEP/DELDEF  /START 2026142.1121
+ IEF032I STEP/DELDEF  /STOP  2026142.1121 
+         CPU:     0 HR  00 MIN  00.03 SEC    SRB:     0 HR  00 MIN  00.00 SEC    
+         VIRT:     8K  SYS:   296K  EXT:        0K  SYS:    10136K
+         ATB- REAL:                  1252K  SLOTS:                     0K
+              VIRT- ALLOC:      14M SHRD:       0M
+ IEF236I ALLOC. FOR PRTCATBL PRC001 STEP05R
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IGD103I SMS ALLOCATED TO DDNAME FILEIN
+ IGD101I SMS ALLOCATED TO DDNAME (FILEOUT )
+         DSN (IBMUSER.CARDDEMO.TCATBALF.BKUP.G0001V00     )
+         STORCLAS (SCBASE) MGMTCLAS (        ) DATACLAS (        )
+         VOL SER NOS= USRVS1                                                                
+ IGD103I SMS ALLOCATED TO DDNAME SYSIN
+ IEF142I PRTCATBL PRC001 STEP05R - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.PRTCATBL.JOB00440.D0000103.?         SYSOUT        
+ IGD104I IBMUSER.CARDDEMO.TCATBALF.VSAM.KSDS          RETAINED,  DDNAME=FILEIN  
+ IGD107I IBMUSER.CARDDEMO.TCATBALF.BKUP.G0001V00      ROLLED IN, DDNAME=FILEOUT 
+ IGD104I IBMUSER.CARDDEMO.CNTL                        RETAINED,  DDNAME=SYSIN   
+ IEF373I STEP/PRC001  /START 2026142.1121
+ IEF032I STEP/PRC001  /STOP  2026142.1121 
+         CPU:     0 HR  00 MIN  00.76 SEC    SRB:     0 HR  00 MIN  00.03 SEC    
+         VIRT:   380K  SYS:   320K  EXT:      944K  SYS:    10396K
+         ATB- REAL:                  1276K  SLOTS:                     0K
+              VIRT- ALLOC:      16M SHRD:       0M
+ IEF236I ALLOC. FOR PRTCATBL STEP10R
+ IGD103I SMS ALLOCATED TO DDNAME SORTIN
+ IEF237I JES2 ALLOCATED TO SYMNAMES
+ IEF237I JES2 ALLOCATED TO SYSIN
+ IEF237I JES2 ALLOCATED TO SYSOUT
+ IGD101I SMS ALLOCATED TO DDNAME (SORTOUT )
+         DSN (IBMUSER.CARDDEMO.TCATBALF.REPT              )
+         STORCLAS (SCBASE) MGMTCLAS (        ) DATACLAS (        )
+         VOL SER NOS= USRVS1                                                                
+ IEF142I PRTCATBL STEP10R - STEP WAS EXECUTED - COND CODE 0000
+ IGD104I IBMUSER.CARDDEMO.TCATBALF.BKUP.G0001V00      RETAINED,  DDNAME=SORTIN  
+ IEF285I   IBMUSER.PRTCATBL.JOB00440.D0000101.?         SYSIN         
+ IEF285I   IBMUSER.PRTCATBL.JOB00440.D0000102.?         SYSIN         
+ IEF285I   IBMUSER.PRTCATBL.JOB00440.D0000104.?         SYSOUT        
+ IGD104I IBMUSER.CARDDEMO.TCATBALF.REPT               RETAINED,  DDNAME=SORTOUT 
+ IEF373I STEP/STEP10R /START 2026142.1121
+ IEF032I STEP/STEP10R /STOP  2026142.1121 
+         CPU:     0 HR  00 MIN  00.96 SEC    SRB:     0 HR  00 MIN  00.02 SEC    
+         VIRT:  1088K  SYS:   316K  EXT:     6204K  SYS:    10356K
+         ATB- REAL:                  1252K  SLOTS:                     0K
+              VIRT- ALLOC:      14M SHRD:       0M
+ IEF375I  JOB/PRTCATBL/START 2026142.1121
+ IEF033I  JOB/PRTCATBL/STOP  2026142.1121 
+         CPU:     0 HR  00 MIN  01.75 SEC    SRB:     0 HR  00 MIN  00.05 SEC    
+ !! END OF JES SPOOL FILE !!
+1IDCAMS  SYSTEM SERVICES                                           TIME: 11:21:05        05/22/26     PAGE      1
+0        
+     REPRO INFILE(FILEIN) OUTFILE(FILEOUT)
+0IDC0005I NUMBER OF RECORDS PROCESSED WAS 100
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
+0        
+0IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
+ !! END OF JES SPOOL FILE !!
+1ICE270I 0 PROCESSING SYMNAMES STATEMENTS                                                                                
+ ICE280I 1 ORIGINAL STATEMENTS FROM SYSIN    FOLLOW                                                                      
+            SORT FIELDS=(TRANCAT-ACCT-ID,A,TRANCAT-TYPE-CD,A,TRANCAT-CD,A)                                               
+            OUTREC FIELDS=(TRANCAT-ACCT-ID,X,                                                                            
+                TRANCAT-TYPE-CD,X,                                                                                       
+                TRANCAT-CD,X,                                                                                            
+                TRAN-CAT-BAL,EDIT=(TTTTTTTTT.TT),9X)                                                                     
+ ICE282I 0 PERFORMING SYMBOL SUBSTITUTION AS NEEDED                                                                      
+ ICE201I 1 RECORD TYPE IS F - DATA STARTS IN POSITION 1                                                                  
+ ICE751I 0 C5-NONE   C6-NONE   C7-NONE   C8-NONE   E9-NONE   C9-NONE   E5-H53894 E7-NONE                                 
+ ICE143I 0 BLOCKSET     SORT  TECHNIQUE SELECTED                                                                         
+ ICE250I 0 VISIT http://www.ibm.com/storage/dfsort FOR DFSORT PAPERS, EXAMPLES AND MORE                                  
+ ICE000I 1 - CONTROL STATEMENTS FOR 5655-ZOS, Z/OS DFSORT V3R1  - 11:21 ON FRI MAY 22, 2026 -                            
+0           SORT FIELDS=(1,11,ZD,A,12,2,CH,A,14,4,ZD,A)                                                                  
+            OUTREC FIELDS=(1,11,X,12,2,X,14,4,X,18,11,ZD,EDIT=(TTTTTTTTT.TT),9X)                                         
+ ICE193I 0 ICEAM1 INVOCATION ENVIRONMENT IN EFFECT - ICEAM1 ENVIRONMENT SELECTED                                         
+ ICE088I 1 PRTCATBL.STEP10R .        , INPUT LRECL = 50, BLKSIZE = 27950, TYPE = FB                                      
+ ICE093I 0 MAIN STORAGE = (MAX,6291456,6291456)                                                                          
+ ICE156I 0 MAIN STORAGE ABOVE 16MB = (6234096,6234096)                                                                   
+ ICE127I 0 OPTIONS: OVFLO=RC0 ,PAD=RC0 ,TRUNC=RC0 ,SPANINC=RC16,VLSCMP=N,SZERO=Y,RESET=Y,VSAMEMT=Y,DYNSPC=256            
+ ICE128I 0 OPTIONS: SIZE=6291456,MAXLIM=1048576,MINLIM=450560,EQUALS=N,LIST=Y,ERET=RC16 ,MSGDDN=SYSOUT                   
+ ICE129I 0 OPTIONS: VIO=N,RESDNT=ALL ,SMF=NO   ,WRKSEC=Y,OUTSEC=Y,VERIFY=N,CHALT=N,DYNALOC=N             ,ABCODE=MSG     
+ ICE130I 0 OPTIONS: RESALL=4096,RESINV=0,SVC=109 ,CHECK=Y,WRKREL=Y,OUTREL=Y,CKPT=N,COBEXIT=COB2,ZSORT=N                  
+ ICE131I 0 OPTIONS: TMAXLIM=6291456,ARESALL=0,ARESINV=0,OVERRGN=65536,CINV=Y,CFW=Y,DSA=0                                 
+ ICE132I 0 OPTIONS: VLSHRT=N,ZDPRINT=Y,IEXIT=N,TEXIT=N,LISTX=N,EFS=NONE    ,EXITCK=S,PARMDDN=DFSPARM ,FSZEST=N           
+ ICE133I 0 OPTIONS: HIPRMAX=OPTIMAL,DSPSIZE=MAX ,ODMAXBF=0,SOLRF=Y,VLLONG=N,VSAMIO=N,MOSIZE=MAX                          
+ ICE235I 0 OPTIONS: NULLOUT=RC0                                                                                          
+ ICE236I 0 OPTIONS: DYNAPCT=10 ,MOWRK=Y,TUNE=STOR,EXPMAX=MAX    ,EXPOLD=50%    ,EXPRES=10%                               
+ ICE084I 0 EXCP ACCESS METHOD USED FOR SORTOUT                                                                           
+ ICE084I 0 EXCP ACCESS METHOD USED FOR SORTIN                                                                            
+ ICE750I 0 DC 27950 TC 0 CS DSVOO KSZ 17 VSZ 17                                                                          
+ ICE752I 0 FSZ=559 RC  IGN=0 E  AVG=68 0  WSP=50 C  DYN=0 0                                                              
+ ICE751I 1 DE-NONE   D5-NONE   D9-NONE   E8-NONE                                                                         
+ ICE090I 0 OUTPUT LRECL = 40, BLKSIZE = 27960, TYPE = FB   (SDB)                                                         
+ ICE171I 0 SORTOUT LRECL OF 40 IS DIFFERENT FROM SORTIN(NN) LRECL OF 50 - RC=0                                           
+ ICE080I 0 IN MAIN STORAGE SORT                                                                                          
+ ICE055I 0 INSERT 0, DELETE 0                                                                                            
+ ICE054I 0 RECORDS - IN: 100, OUT: 100                                                                                   
+ ICE134I 0 NUMBER OF BYTES SORTED: 5000                                                                                  
+ ICE253I 0 RECORDS SORTED - PROCESSED: 100, EXPECTED: 559                                                                
+ ICE199I 0 MEMORY OBJECT USED AS MAIN STORAGE = 0M BYTES                                                                 
+ ICE299I 0 MEMORY OBJECT USED AS WORK STORAGE = 0M BYTES                                                                 
+ ICE399I 0 MEMORY OBJECT USED IN ZSORT PATH = 0M BYTES                                                                   
+ ICE180I 0 HIPERSPACE STORAGE USED = 0K BYTES                                                                            
+ ICE188I 0 DATA SPACE STORAGE USED = 0K BYTES                                                                            
+ ICE267I 0 ZSORT ACCELERATOR PATH NOT USED    RSN=193                                                                    
+ ICE052I 0 END OF DFSORT                                                                                                 
+ !! END OF JES SPOOL FILE !!

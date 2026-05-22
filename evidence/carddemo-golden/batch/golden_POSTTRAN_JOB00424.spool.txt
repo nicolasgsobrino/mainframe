@@ -1,0 +1,132 @@
+1                         J E S 2  J O B  L O G  --  S Y S T E M  V S 0 1  --  N O D E  N 1              
+0 
+ 11.05.57 JOB00424 ---- FRIDAY,    22 MAY 2026 ----
+ 11.05.57 JOB00424  IRR010I  USERID IBMUSER  IS ASSIGNED TO THIS JOB.
+ 11.05.58 JOB00424  ICH70001I IBMUSER  LAST ACCESS AT 11:05:54 ON FRIDAY, MAY 22, 2026
+ 11.05.58 JOB00424  $HASP373 POSTTRAN STARTED - INIT 6    - CLASS A        - SYS VS01
+ 11.05.58 JOB00424  IEF403I POSTTRAN - STARTED - TIME=11.05.58
+ 11.06.13 JOB00424  IEF404I POSTTRAN - ENDED - TIME=11.06.13
+ 11.06.13 JOB00424  $HASP395 POSTTRAN ENDED - RC=0004
+0------ JES2 JOB STATISTICS ------
+-  22 MAY 2026 JOB EXECUTION DATE
+-           45 CARDS READ
+-          132 SYSOUT PRINT RECORDS
+-            0 SYSOUT PUNCH RECORDS
+-           12 SYSOUT SPOOL KBYTES
+-         0.24 MINUTES EXECUTION TIME
+ !! END OF JES SPOOL FILE !!
+        1 //POSTTRAN JOB 'POSTTRAN',CLASS=A,MSGCLASS=0,                           JOB00424
+          // NOTIFY=&SYSUID                                                               
+          //******************************************************************            
+          //* Copyright Amazon.com, Inc. or its affiliates.                               
+          //* All Rights Reserved.                                                        
+          //*                                                                             
+          //* Licensed under the Apache License, Version 2.0 (the "License").             
+          //* You may not use this file except in compliance with the License.            
+          //* You may obtain a copy of the License at                                     
+          //*                                                                             
+          //*    http://www.apache.org/licenses/LICENSE-2.0                               
+          //*                                                                             
+          //* Unless required by applicable law or agreed to in writing,                  
+          //* software distributed under the License is distributed on an                 
+          //* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,                
+          //* either express or implied. See the License for the specific                 
+          //* language governing permissions and limitations under the License            
+          //******************************************************************            
+          //* *******************************************************************         
+          //* Process and load daily transaction file and create transaction              
+          //* category balance and update transaction master vsam                         
+          //* *******************************************************************         
+          IEFC653I SUBSTITUTION JCL - 'POSTTRAN',CLASS=A,MSGCLASS=0,NOTIFY=IBMUSER
+ !! END OF JES SPOOL FILE !!
+ ICH70001I IBMUSER  LAST ACCESS AT 11:05:54 ON FRIDAY, MAY 22, 2026
+ IEFA111I POSTTRAN IS USING THE FOLLOWING JOB RELATED SETTINGS:
+          SWA=BELOW,TIOT SIZE=64K,DSENQSHR=DISALLOW,GDGBIAS=JOB
+ IEF236I ALLOC. FOR POSTTRAN STEP15
+ IGD103I SMS ALLOCATED TO DDNAME STEPLIB
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IEF237I JES2 ALLOCATED TO SYSOUT
+ IGD103I SMS ALLOCATED TO DDNAME TRANFILE
+ IGD103I SMS ALLOCATED TO DDNAME DALYTRAN
+ IGD103I SMS ALLOCATED TO DDNAME XREFFILE
+ IGD101I SMS ALLOCATED TO DDNAME (DALYREJS)
+         DSN (IBMUSER.CARDDEMO.DALYREJS.G0001V00          )
+         STORCLAS (SCBASE) MGMTCLAS (        ) DATACLAS (        )
+         VOL SER NOS= USRVS1                                                                
+ IGD103I SMS ALLOCATED TO DDNAME ACCTFILE
+ IGD103I SMS ALLOCATED TO DDNAME TCATBALF
+ IEF142I POSTTRAN STEP15 - STEP WAS EXECUTED - COND CODE 0004
+ IGD104I IBMUSER.CARDDEMO.LOADLIB                     RETAINED,  DDNAME=STEPLIB 
+ IEF285I   IBMUSER.POSTTRAN.JOB00424.D0000101.?         SYSOUT        
+ IEF285I   IBMUSER.POSTTRAN.JOB00424.D0000102.?         SYSOUT        
+ IGD104I IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS          RETAINED,  DDNAME=TRANFILE
+ IGD104I IBMUSER.CARDDEMO.DALYTRAN.PS                 RETAINED,  DDNAME=DALYTRAN
+ IGD104I IBMUSER.CARDDEMO.CARDXREF.VSAM.KSDS          RETAINED,  DDNAME=XREFFILE
+ IGD107I IBMUSER.CARDDEMO.DALYREJS.G0001V00           ROLLED IN, DDNAME=DALYREJS
+ IGD104I IBMUSER.CARDDEMO.ACCTDATA.VSAM.KSDS          RETAINED,  DDNAME=ACCTFILE
+ IGD104I IBMUSER.CARDDEMO.TCATBALF.VSAM.KSDS          RETAINED,  DDNAME=TCATBALF
+ IEF373I STEP/STEP15  /START 2026142.1105
+ IEF032I STEP/STEP15  /STOP  2026142.1106 
+         CPU:     0 HR  00 MIN  04.17 SEC    SRB:     0 HR  00 MIN  00.52 SEC    
+         VIRT:    88K  SYS:   332K  EXT:     3644K  SYS:    10484K
+         ATB- REAL:                  1324K  SLOTS:                     0K
+              VIRT- ALLOC:      16M SHRD:       0M
+ IEF375I  JOB/POSTTRAN/START 2026142.1105
+ IEF033I  JOB/POSTTRAN/STOP  2026142.1106 
+         CPU:     0 HR  00 MIN  04.17 SEC    SRB:     0 HR  00 MIN  00.52 SEC    
+ !! END OF JES SPOOL FILE !!
+ START OF EXECUTION OF PROGRAM CBTRN02C                                                                                  
+ TCATBAL record not found for key : 00000000020030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000013030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000048030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000022030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000039030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000044030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000015030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000043030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000011030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000008030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000005030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000030030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000033030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000002030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000047030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000032030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000029030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000045030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000028030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000006030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000041030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000042030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000049030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000025030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000007030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000018030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000001030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000026030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000003030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000010030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000017030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000050030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000019030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000037030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000038030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000046030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000014030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000012030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000040030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000035030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000036030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000024030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000031030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000021030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000034030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000016030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000004030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000027030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000009030001.. Creating.                                                        
+ TCATBAL record not found for key : 00000000023030001.. Creating.                                                        
+ TRANSACTIONS PROCESSED :000000300                                                                                       
+ TRANSACTIONS REJECTED  :000000038                                                                                       
+ END OF EXECUTION OF PROGRAM CBTRN02C                                                                                    
+ !! END OF JES SPOOL FILE !!

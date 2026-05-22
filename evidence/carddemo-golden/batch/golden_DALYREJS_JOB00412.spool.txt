@@ -1,0 +1,69 @@
+1                         J E S 2  J O B  L O G  --  S Y S T E M  V S 0 1  --  N O D E  N 1              
+0 
+ 10.53.08 JOB00412 ---- FRIDAY,    22 MAY 2026 ----
+ 10.53.08 JOB00412  IRR010I  USERID IBMUSER  IS ASSIGNED TO THIS JOB.
+ 10.53.09 JOB00412  ICH70001I IBMUSER  LAST ACCESS AT 10:53:04 ON FRIDAY, MAY 22, 2026
+ 10.53.09 JOB00412  $HASP373 DALYREJS STARTED - INIT 6    - CLASS A        - SYS VS01
+ 10.53.09 JOB00412  IEF403I DALYREJS - STARTED - TIME=10.53.09
+ 10.53.10 JOB00412  IEF404I DALYREJS - ENDED - TIME=10.53.10
+ 10.53.10 JOB00412  $HASP395 DALYREJS ENDED - RC=0000
+0------ JES2 JOB STATISTICS ------
+-  22 MAY 2026 JOB EXECUTION DATE
+-           32 CARDS READ
+-           69 SYSOUT PRINT RECORDS
+-            0 SYSOUT PUNCH RECORDS
+-            8 SYSOUT SPOOL KBYTES
+-         0.01 MINUTES EXECUTION TIME
+ !! END OF JES SPOOL FILE !!
+        1 //DALYREJS JOB 'DEF GDG FOR REJS',CLASS=A,MSGCLASS=0,NOTIFY=&SYSUID     JOB00412
+          //******************************************************************            
+          //* Copyright Amazon.com, Inc. or its affiliates.                               
+          //* All Rights Reserved.                                                        
+          //*                                                                             
+          //* Licensed under the Apache License, Version 2.0 (the "License").             
+          //* You may not use this file except in compliance with the License.            
+          //* You may obtain a copy of the License at                                     
+          //*                                                                             
+          //*    http://www.apache.org/licenses/LICENSE-2.0                               
+          //*                                                                             
+          //* Unless required by applicable law or agreed to in writing,                  
+          //* software distributed under the License is distributed on an                 
+          //* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,                
+          //* either express or implied. See the License for the specific                 
+          //* language governing permissions and limitations under the License            
+          //******************************************************************            
+          //* *******************************************************************         
+          //* DELETE TRANSACATION MASTER VSAM FILE IF ONE ALREADY EXISTS                  
+          //* *******************************************************************         
+          IEFC653I SUBSTITUTION JCL - 'DEF GDG FOR REJS',CLASS=A,MSGCLASS=0,NOTIFY=IBMUSER
+ !! END OF JES SPOOL FILE !!
+ ICH70001I IBMUSER  LAST ACCESS AT 10:53:04 ON FRIDAY, MAY 22, 2026
+ IEFA111I DALYREJS IS USING THE FOLLOWING JOB RELATED SETTINGS:
+          SWA=BELOW,TIOT SIZE=64K,DSENQSHR=DISALLOW,GDGBIAS=JOB
+ IEF236I ALLOC. FOR DALYREJS STEP05
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IEF237I JES2 ALLOCATED TO SYSIN
+ IEF142I DALYREJS STEP05 - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.DALYREJS.JOB00412.D0000102.?         SYSOUT        
+ IEF285I   IBMUSER.DALYREJS.JOB00412.D0000101.?         SYSIN         
+ IEF373I STEP/STEP05  /START 2026142.1053
+ IEF032I STEP/STEP05  /STOP  2026142.1053 
+         CPU:     0 HR  00 MIN  00.26 SEC    SRB:     0 HR  00 MIN  00.01 SEC    
+         VIRT:   216K  SYS:   308K  EXT:       32K  SYS:    10248K
+         ATB- REAL:                  1252K  SLOTS:                     0K
+              VIRT- ALLOC:      14M SHRD:       0M
+ IEF375I  JOB/DALYREJS/START 2026142.1053
+ IEF033I  JOB/DALYREJS/STOP  2026142.1053 
+         CPU:     0 HR  00 MIN  00.26 SEC    SRB:     0 HR  00 MIN  00.01 SEC    
+ !! END OF JES SPOOL FILE !!
+1IDCAMS  SYSTEM SERVICES                                           TIME: 10:53:09        05/22/26     PAGE      1
+0        
+    DEFINE GENERATIONDATAGROUP -
+    (NAME(IBMUSER.CARDDEMO.DALYREJS) -
+     LIMIT(5) -
+     SCRATCH -
+    )    
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
+0        
+0IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
+ !! END OF JES SPOOL FILE !!

@@ -1,3 +1,4 @@
+       CBL CICS('SP')
       ******************************************************************
       * Program     : COMEN01C.CBL
       * Application : CardDemo

@@ -1,0 +1,144 @@
+1                         J E S 2  J O B  L O G  --  S Y S T E M  V S 0 1  --  N O D E  N 1              
+0 
+ 11.11.22 JOB00428 ---- FRIDAY,    22 MAY 2026 ----
+ 11.11.22 JOB00428  IRR010I  USERID IBMUSER  IS ASSIGNED TO THIS JOB.
+ 11.11.24 JOB00428  ICH70001I IBMUSER  LAST ACCESS AT 11:11:15 ON FRIDAY, MAY 22, 2026
+ 11.11.24 JOB00428  $HASP373 TRANBKP  STARTED - INIT 6    - CLASS A        - SYS VS01
+ 11.11.24 JOB00428  IEF403I TRANBKP - STARTED - TIME=11.11.24
+ 11.11.30 JOB00428  IEF404I TRANBKP - ENDED - TIME=11.11.30
+ 11.11.30 JOB00428  $HASP395 TRANBKP  ENDED - RC=0000
+0------ JES2 JOB STATISTICS ------
+-  22 MAY 2026 JOB EXECUTION DATE
+-           71 CARDS READ
+-          146 SYSOUT PRINT RECORDS
+-            0 SYSOUT PUNCH RECORDS
+-           15 SYSOUT SPOOL KBYTES
+-         0.11 MINUTES EXECUTION TIME
+ !! END OF JES SPOOL FILE !!
+        1 //TRANBKP JOB 'REPRO and Delete Transaction Master',CLASS=A,MSGCLASS=0, JOB00428
+          //  NOTIFY=&SYSUID                                                              
+          //******************************************************************            
+          //* Copyright Amazon.com, Inc. or its affiliates.                               
+          //* All Rights Reserved.                                                        
+          //*                                                                             
+          //* Licensed under the Apache License, Version 2.0 (the "License").             
+          //* You may not use this file except in compliance with the License.            
+          //* You may obtain a copy of the License at                                     
+          //*                                                                             
+          //*    http://www.apache.org/licenses/LICENSE-2.0                               
+          //*                                                                             
+          //* Unless required by applicable law or agreed to in writing,                  
+          //* software distributed under the License is distributed on an                 
+          //* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,                
+          //* either express or implied. See the License for the specific                 
+          //* language governing permissions and limitations under the License            
+          //******************************************************************            
+          IEFC653I SUBSTITUTION JCL - 'REPRO and Delete Transaction Master',CLASS=A,MSGCLASS=0,NOTIFY=IBMUSER
+ !! END OF JES SPOOL FILE !!
+  STMT NO. MESSAGE
+         3 IEFC001I PROCEDURE REPROC WAS EXPANDED USING PRIVATE LIBRARY IBMUSER.CARDDEMO.PROC
+ ICH70001I IBMUSER  LAST ACCESS AT 11:11:15 ON FRIDAY, MAY 22, 2026
+ IEFA111I TRANBKP IS USING THE FOLLOWING JOB RELATED SETTINGS:
+          SWA=BELOW,TIOT SIZE=64K,DSENQSHR=DISALLOW,GDGBIAS=JOB
+ IEF236I ALLOC. FOR TRANBKP PRC001 STEP05R
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IGD103I SMS ALLOCATED TO DDNAME FILEIN
+ IGD101I SMS ALLOCATED TO DDNAME (FILEOUT )
+         DSN (IBMUSER.CARDDEMO.TRANSACT.BKUP.G0003V00     )
+         STORCLAS (SCBASE) MGMTCLAS (        ) DATACLAS (        )
+         VOL SER NOS= USRVS1                                                                
+ IGD103I SMS ALLOCATED TO DDNAME SYSIN
+ IEF142I TRANBKP PRC001 STEP05R - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.TRANBKP.JOB00428.D0000103.?          SYSOUT        
+ IGD104I IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS          RETAINED,  DDNAME=FILEIN  
+ IGD107I IBMUSER.CARDDEMO.TRANSACT.BKUP.G0003V00      ROLLED IN, DDNAME=FILEOUT 
+ IGD104I IBMUSER.CARDDEMO.CNTL                        RETAINED,  DDNAME=SYSIN   
+ IEF373I STEP/PRC001  /START 2026142.1111
+ IEF032I STEP/PRC001  /STOP  2026142.1111 
+         CPU:     0 HR  00 MIN  00.86 SEC    SRB:     0 HR  00 MIN  00.03 SEC    
+         VIRT:   376K  SYS:   320K  EXT:      944K  SYS:    10396K
+         ATB- REAL:                  1276K  SLOTS:                     0K
+              VIRT- ALLOC:      16M SHRD:       0M
+ IEF236I ALLOC. FOR TRANBKP STEP05
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IEF237I JES2 ALLOCATED TO SYSIN
+ IGD103I SMS ALLOCATED TO DDNAME SYS00001
+ IGD104I IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS          RETAINED,  DDNAME=SYS00001
+ IEF142I TRANBKP STEP05 - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.TRANBKP.JOB00428.D0000104.?          SYSOUT        
+ IEF285I   IBMUSER.TRANBKP.JOB00428.D0000101.?          SYSIN         
+ IEF373I STEP/STEP05  /START 2026142.1111
+ IEF032I STEP/STEP05  /STOP  2026142.1111 
+         CPU:     0 HR  00 MIN  00.47 SEC    SRB:     0 HR  00 MIN  00.02 SEC    
+         VIRT:    88K  SYS:   324K  EXT:       20K  SYS:    10392K
+         ATB- REAL:                  1252K  SLOTS:                     0K
+              VIRT- ALLOC:      14M SHRD:       0M
+ IEF236I ALLOC. FOR TRANBKP STEP10
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IEF237I JES2 ALLOCATED TO SYSIN
+ IEF142I TRANBKP STEP10 - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.TRANBKP.JOB00428.D0000105.?          SYSOUT        
+ IEF285I   IBMUSER.TRANBKP.JOB00428.D0000102.?          SYSIN         
+ IEF373I STEP/STEP10  /START 2026142.1111
+ IEF032I STEP/STEP10  /STOP  2026142.1111 
+         CPU:     0 HR  00 MIN  00.52 SEC    SRB:     0 HR  00 MIN  00.02 SEC    
+         VIRT:   224K  SYS:   328K  EXT:      388K  SYS:    10396K
+         ATB- REAL:                  1252K  SLOTS:                     0K
+              VIRT- ALLOC:      14M SHRD:       0M
+ IEF375I  JOB/TRANBKP /START 2026142.1111
+ IEF033I  JOB/TRANBKP /STOP  2026142.1111 
+         CPU:     0 HR  00 MIN  01.85 SEC    SRB:     0 HR  00 MIN  00.07 SEC    
+ !! END OF JES SPOOL FILE !!
+1IDCAMS  SYSTEM SERVICES                                           TIME: 11:11:25        05/22/26     PAGE      1
+0        
+     REPRO INFILE(FILEIN) OUTFILE(FILEOUT)
+0IDC0005I NUMBER OF RECORDS PROCESSED WAS 262
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
+0        
+0IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
+ !! END OF JES SPOOL FILE !!
+1IDCAMS  SYSTEM SERVICES                                           TIME: 11:11:28        05/22/26     PAGE      1
+0        
+    DELETE IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS -
+           CLUSTER
+0IDC0550I ENTRY (D) IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS.DATA DELETED
+0IDC0550I ENTRY (I) IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS.INDEX DELETED
+0IDC0550I ENTRY (C) IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS DELETED
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
+0        
+    IF MAXCC LE 08 THEN SET MAXCC = 0
+         
+    DELETE IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX -
+           ALTERNATEINDEX
+0IDC3012I ENTRY IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX NOT FOUND
+ IDC3009I ** VSAM CATALOG RETURN CODE IS 8 - REASON CODE IS IGG0CLA3-42
+ IDC0551I ** ENTRY IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX NOT DELETED
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 8
+0        
+    IF MAXCC LE 08 THEN SET MAXCC = 0
+         
+0IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
+ !! END OF JES SPOOL FILE !!
+1IDCAMS  SYSTEM SERVICES                                           TIME: 11:11:29        05/22/26     PAGE      1
+0        
+    DEFINE CLUSTER (NAME(IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS) -
+           CYLINDERS(1 5) -
+           VOLUMES(USRVS1 -
+           ) -
+           KEYS(16 0) -
+           RECORDSIZE(350 350) -
+           SHAREOPTIONS(2 3) -
+           ERASE -
+           INDEXED -
+           ) -
+           DATA (NAME(IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS.DATA) -
+           ) -
+           INDEX (NAME(IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS.INDEX) -
+           )
+0IDC0508I DATA ALLOCATION STATUS FOR VOLUME USRVS1 IS 0
+0IDC0509I INDEX ALLOCATION STATUS FOR VOLUME USRVS1 IS 0
+ IDC0181I STORAGECLASS USED IS SCBASE
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
+0        
+0IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
+ !! END OF JES SPOOL FILE !!

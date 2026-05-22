@@ -110,7 +110,7 @@
                10  FILLER  VALUE SPACES                 PIC X(40).
            05  ST-LINE8.
                10  FILLER  VALUE 'Current Balance    :' PIC X(20).
-               10  ST-CURR-BAL                          PIC 9(9).99-.
+               10  ST-CURR-BAL              PIC ZZZZZZZZZ.99-.
                10  FILLER  VALUE SPACES                 PIC X(07).
                10  FILLER  VALUE SPACES                 PIC X(40).
            05  ST-LINE9.
@@ -921,4 +921,3 @@
        9999-ABEND-PROGRAM.
            DISPLAY 'ABENDING PROGRAM'
            CALL 'CEE3ABD'.
-

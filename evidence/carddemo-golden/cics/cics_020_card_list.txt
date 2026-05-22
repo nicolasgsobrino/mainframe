@@ -1,0 +1,24 @@
+ Tran: CCLI                AWS Mainframe Modernization           Date: 05/22/26
+ Prog: COCRDLIC                    CardDemo                      Time: 10:44:35
+
+                               List Credit Cards                      Page  1
+
+                      Account Number    :
+                      Credit Card Number:
+
+          Select     Account Number           Card Number         Active
+          ------    ---------------        ---------------       --------
+                      00000000050          0500024453765740        Y
+                      00000000027          0683586198171516        Y
+                      00000000002          0923877193247330        Y
+                      00000000020          0927987108636232        Y
+                      00000000012          0982496213629795        Y
+                      00000000044          1014086565224350        Y
+                      00000000037          1142167692878931        Y
+
+
+                   TYPE S FOR DETAIL, U TO UPDATE ANY RECORD
+
+
+
+   F3=Exit F7=Backward  F8=Forward

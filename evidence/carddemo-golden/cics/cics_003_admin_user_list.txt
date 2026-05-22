@@ -1,0 +1,24 @@
+ Tran: CU00                AWS Mainframe Modernization           Date: 05/22/26
+ Prog: COUSR00C                    CardDemo                      Time: 10:43:20
+
+                                   List Users                    Page: 00000001
+
+     Search User ID:
+
+     Sel    User ID          First Name              Last Name          Type
+     ---    --------    --------------------    --------------------    ----
+            ADMIN001    MARGARET                GOLD                     A
+            ADMIN002    RUSSELL                 RUSSELL                  A
+            ADMIN003    RAYMOND                 WHITMORE                 A
+            ADMIN004    EMMANUEL                CASGRAIN                 A
+            ADMIN005    GRANVILLE               LACHAPELLE               A
+            USER0001    LAWRENCE                THOMAS                   U
+            USER0002    AJITH                   KUMAR                    U
+            USER0003    LAURITZ                 ALME                     U
+            USER0004    AVERARDO                MAZZI                    U
+            USER0005    LEE                     TING                     U
+
+            Type 'U' to Update or 'D' to Delete a User from the list
+
+ You have reached the bottom of the page...
+ ENTER=Continue  F3=Back  F7=Backward  F8=Forward

@@ -28,7 +28,7 @@
   SET       MAXCC = 0
   DEFINE    CLUSTER  (NAME(AWS.M2.CARDDEMO.TRXFL.VSAM.KSDS)     -
                       KEYS(32 0)                                -
-                      VOLUMES(TSU023)                           -
+                      VOLUMES(AWSHJ1)                           -
                       RECORDSIZE(350 350)                       -
                       SHAREOPTIONS(2 3)                         -
                       ERASE                                     -
@@ -87,7 +87,7 @@
 //STMTFILE DD DISP=(NEW,CATLG,DELETE),
 //         UNIT=SYSDA,
 //         DCB=(LRECL=80,BLKSIZE=8000,RECFM=FB),
-//         SPACE=(CYL,(1,1),RLSE), 00,RECFM=FB), ATA.VSAM.KSDS
+//         SPACE=(CYL,(1,1),RLSE),
 //         DSN=AWS.M2.CARDDEMO.STATEMNT.PS
 //HTMLFILE DD  DISP=(NEW,CATLG,DELETE),
 //         UNIT=SYSDA,

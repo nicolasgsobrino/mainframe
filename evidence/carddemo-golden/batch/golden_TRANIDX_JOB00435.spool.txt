@@ -1,0 +1,142 @@
+1                         J E S 2  J O B  L O G  --  S Y S T E M  V S 0 1  --  N O D E  N 1              
+0 
+ 11.15.36 JOB00435 ---- FRIDAY,    22 MAY 2026 ----
+ 11.15.36 JOB00435  IRR010I  USERID IBMUSER  IS ASSIGNED TO THIS JOB.
+ 11.15.37 JOB00435  ICH70001I IBMUSER  LAST ACCESS AT 11:15:33 ON FRIDAY, MAY 22, 2026
+ 11.15.38 JOB00435  $HASP373 TRANIDX  STARTED - INIT 6    - CLASS A        - SYS VS01
+ 11.15.38 JOB00435  IEF403I TRANIDX - STARTED - TIME=11.15.38
+ 11.15.50 JOB00435  IEF404I TRANIDX - ENDED - TIME=11.15.50
+ 11.15.50 JOB00435  $HASP395 TRANIDX  ENDED - RC=0000
+0------ JES2 JOB STATISTICS ------
+-  22 MAY 2026 JOB EXECUTION DATE
+-           58 CARDS READ
+-          144 SYSOUT PRINT RECORDS
+-            0 SYSOUT PUNCH RECORDS
+-           16 SYSOUT SPOOL KBYTES
+-         0.21 MINUTES EXECUTION TIME
+ !! END OF JES SPOOL FILE !!
+        1 //TRANIDX JOB 'Define AIX on Transaction Master',CLASS=A,MSGCLASS=0,    JOB00435
+          //  NOTIFY=&SYSUID                                                              
+          //******************************************************************            
+          //* Copyright Amazon.com, Inc. or its affiliates.                               
+          //* All Rights Reserved.                                                        
+          //*                                                                             
+          //* Licensed under the Apache License, Version 2.0 (the "License").             
+          //* You may not use this file except in compliance with the License.            
+          //* You may obtain a copy of the License at                                     
+          //*                                                                             
+          //*    http://www.apache.org/licenses/LICENSE-2.0                               
+          //*                                                                             
+          //* Unless required by applicable law or agreed to in writing,                  
+          //* software distributed under the License is distributed on an                 
+          //* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,                
+          //* either express or implied. See the License for the specific                 
+          //* language governing permissions and limitations under the License            
+          //******************************************************************            
+          //*-------------------------------------------------------------------*         
+          //* CREATE ALTERNATE INDEX ON PROCESSED TIMESTAMP                               
+          //*-------------------------------------------------------------------*         
+          IEFC653I SUBSTITUTION JCL - 'Define AIX on Transaction Master',CLASS=A,MSGCLASS=0,NOTIFY=IBMUSER
+ !! END OF JES SPOOL FILE !!
+ ICH70001I IBMUSER  LAST ACCESS AT 11:15:33 ON FRIDAY, MAY 22, 2026
+ IEFA111I TRANIDX IS USING THE FOLLOWING JOB RELATED SETTINGS:
+          SWA=BELOW,TIOT SIZE=64K,DSENQSHR=DISALLOW,GDGBIAS=JOB
+ IEF236I ALLOC. FOR TRANIDX STEP20
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IEF237I JES2 ALLOCATED TO SYSIN
+ IEF142I TRANIDX STEP20 - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.TRANIDX.JOB00435.D0000104.?          SYSOUT        
+ IEF285I   IBMUSER.TRANIDX.JOB00435.D0000101.?          SYSIN         
+ IEF373I STEP/STEP20  /START 2026142.1115
+ IEF032I STEP/STEP20  /STOP  2026142.1115 
+         CPU:     0 HR  00 MIN  00.52 SEC    SRB:     0 HR  00 MIN  00.03 SEC    
+         VIRT:   224K  SYS:   328K  EXT:      376K  SYS:    10376K
+         ATB- REAL:                  1252K  SLOTS:                     0K
+              VIRT- ALLOC:      14M SHRD:       0M
+ IEF236I ALLOC. FOR TRANIDX STEP25
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IEF237I JES2 ALLOCATED TO SYSIN
+ IEF142I TRANIDX STEP25 - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.TRANIDX.JOB00435.D0000105.?          SYSOUT        
+ IEF285I   IBMUSER.TRANIDX.JOB00435.D0000102.?          SYSIN         
+ IEF373I STEP/STEP25  /START 2026142.1115
+ IEF032I STEP/STEP25  /STOP  2026142.1115 
+         CPU:     0 HR  00 MIN  00.24 SEC    SRB:     0 HR  00 MIN  00.01 SEC    
+         VIRT:   216K  SYS:   312K  EXT:       32K  SYS:    10300K
+         ATB- REAL:                  1252K  SLOTS:                     0K
+              VIRT- ALLOC:      14M SHRD:       0M
+ IEF236I ALLOC. FOR TRANIDX STEP30
+ IEF237I JES2 ALLOCATED TO SYSPRINT
+ IEF237I JES2 ALLOCATED TO SYSIN
+ IEF237I JES2 ALLOCATED TO SYSOUT
+ IGD103I SMS ALLOCATED TO DDNAME SYS00001
+ IGD103I SMS ALLOCATED TO DDNAME SYS00002
+ IGD101I SMS ALLOCATED TO DDNAME (SORTWK01)
+         DSN (SYS26142.T111544.RA000.TRANIDX.R0104005     )
+         STORCLAS (SCNOVIO) MGMTCLAS (        ) DATACLAS (        )
+         VOL SER NOS= USRVS1                                                                
+ IGD101I SMS ALLOCATED TO DDNAME (SORTWK02)
+         DSN (SYS26142.T111545.RA000.TRANIDX.R0104006     )
+         STORCLAS (SCNOVIO) MGMTCLAS (        ) DATACLAS (        )
+         VOL SER NOS= USRVS1                                                                
+ IGD101I SMS ALLOCATED TO DDNAME (SORTWK03)
+         DSN (SYS26142.T111546.RA000.TRANIDX.R0104007     )
+         STORCLAS (SCNOVIO) MGMTCLAS (        ) DATACLAS (        )
+         VOL SER NOS= USRVS1                                                                
+ IGD105I SYS26142.T111544.RA000.TRANIDX.R0104005      DELETED,   DDNAME=SORTWK01
+ IGD105I SYS26142.T111545.RA000.TRANIDX.R0104006      DELETED,   DDNAME=SORTWK02
+ IGD105I SYS26142.T111546.RA000.TRANIDX.R0104007      DELETED,   DDNAME=SORTWK03
+ IGD104I IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX           RETAINED,  DDNAME=SYS00002
+ IGD104I IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS          RETAINED,  DDNAME=SYS00001
+ IEF142I TRANIDX STEP30 - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.TRANIDX.JOB00435.D0000106.?          SYSOUT        
+ IEF285I   IBMUSER.TRANIDX.JOB00435.D0000103.?          SYSIN         
+ IEF285I   IBMUSER.TRANIDX.JOB00435.D0000107.?          SYSOUT        
+ IEF373I STEP/STEP30  /START 2026142.1115
+ IEF032I STEP/STEP30  /STOP  2026142.1115 
+         CPU:     0 HR  00 MIN  04.34 SEC    SRB:     0 HR  00 MIN  00.10 SEC    
+         VIRT:  1040K  SYS:   336K  EXT:     6260K  SYS:    10828K
+         ATB- REAL:                  1292K  SLOTS:                     0K
+              VIRT- ALLOC:      16M SHRD:       0M
+ IEF375I  JOB/TRANIDX /START 2026142.1115
+ IEF033I  JOB/TRANIDX /STOP  2026142.1115 
+         CPU:     0 HR  00 MIN  05.10 SEC    SRB:     0 HR  00 MIN  00.14 SEC    
+ !! END OF JES SPOOL FILE !!
+1IDCAMS  SYSTEM SERVICES                                           TIME: 11:15:38        05/22/26     PAGE      1
+0        
+    DEFINE ALTERNATEINDEX (NAME(IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX)-
+    RELATE(IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS)                    -
+    KEYS(26 304)                                                  -
+    NONUNIQUEKEY                                                  -
+    UPGRADE                                                       -
+    RECORDSIZE(350,350)                                           -
+    VOLUMES(USRVS1)                                               -
+    CYLINDERS(5,1))                                               -
+    DATA (NAME(IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX.DATA))           -
+    INDEX (NAME(IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX.INDEX))
+0IDC0508I DATA ALLOCATION STATUS FOR VOLUME USRVS1 IS 0
+0IDC0509I INDEX ALLOCATION STATUS FOR VOLUME USRVS1 IS 0
+ IDC0181I STORAGECLASS USED IS SCBASE
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
+0        
+0IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
+ !! END OF JES SPOOL FILE !!
+1IDCAMS  SYSTEM SERVICES                                           TIME: 11:15:39        05/22/26     PAGE      1
+0        
+   DEFINE PATH                                           -
+    (NAME(IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX.PATH)        -
+     PATHENTRY(IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX))
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
+0        
+0IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
+ !! END OF JES SPOOL FILE !!
+1IDCAMS  SYSTEM SERVICES                                           TIME: 11:15:40        05/22/26     PAGE      1
+0        
+    BLDINDEX                                                      -
+    INDATASET(IBMUSER.CARDDEMO.TRANSACT.VSAM.KSDS)                 -
+    OUTDATASET(IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX)
+0IDC0652I IBMUSER.CARDDEMO.TRANSACT.VSAM.AIX SUCCESSFULLY BUILT
+0IDC0001I FUNCTION COMPLETED, HIGHEST CONDITION CODE WAS 0
+0        
+0IDC0002I IDCAMS PROCESSING COMPLETE. MAXIMUM CONDITION CODE WAS 0
+ !! END OF JES SPOOL FILE !!

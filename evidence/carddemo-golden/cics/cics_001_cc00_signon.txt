@@ -1,0 +1,24 @@
+ Tran : CC00               AWS Mainframe Modernization          Date : 05/22/26
+ Prog : COSGN00C                   CardDemo                     Time : 10:43:11
+ AppID: CICSTS61                                                SysID: CICS
+
+      This is a Credit Card Demo Application for Mainframe Modernization
+
+                     +========================================+
+                     |%%%%%%%  NATIONAL RESERVE NOTE  %%%%%%%%|
+                     |%(1)  THE UNITED STATES OF KICSLAND (1)%|
+                     |%$$              ___       ********  $$%|
+                     |%$    {x}       (o o)                 $%|
+                     |%$     ******  (  V  )      O N E     $%|
+                     |%(1)          ---m-m---             (1)%|
+                     |%%~~~~~~~~~~~ ONE DOLLAR ~~~~~~~~~~~~~%%|
+                     +========================================+
+
+                Type your User ID and Password, then press ENTER:
+
+                             User ID     :          (8 Char)
+                             Password    :          (8 Char)
+
+
+
+ ENTER=Sign-on  F3=Exit

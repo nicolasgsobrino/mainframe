@@ -1,0 +1,429 @@
+1                         J E S 2  J O B  L O G  --  S Y S T E M  V S 0 1  --  N O D E  N 1              
+0 
+ 11.22.19 JOB00441 ---- FRIDAY,    22 MAY 2026 ----
+ 11.22.19 JOB00441  IRR010I  USERID IBMUSER  IS ASSIGNED TO THIS JOB.
+ 11.22.20 JOB00441  ICH70001I IBMUSER  LAST ACCESS AT 11:22:15 ON FRIDAY, MAY 22, 2026
+ 11.22.20 JOB00441  $HASP373 OPENFIL  STARTED - INIT 6    - CLASS A        - SYS VS01
+ 11.22.21 JOB00441  IEF403I OPENFIL - STARTED - TIME=11.22.21
+ 11.22.25 JOB00441  IEA630I  OPERATOR IBMUSER  NOW ACTIVE,   SYSTEM=VS01    , LU=
+ 11.22.25 JOB00441  F CICSTS61,'CEMT SET FIL(TRANSACT ) OPE'
+ 11.22.26 JOB00441  F CICSTS61,'CEMT SET FIL(CCXREF ) OPE'
+ 11.22.28 JOB00441  F CICSTS61,'CEMT SET FIL(ACCTDAT ) OPE'
+ 11.22.30 JOB00441  F CICSTS61,'CEMT SET FIL(CXACAIX ) OPE'
+ 11.22.31 JOB00441  F CICSTS61,'CEMT SET FIL(USRSEC ) OPE'
+ 11.22.34 JOB00441  IEA631I  OPERATOR IBMUSER  NOW INACTIVE, SYSTEM=VS01    , LU=
+ 11.22.38 JOB00441  IEF404I OPENFIL - ENDED - TIME=11.22.38
+ 11.22.39 JOB00441  $HASP395 OPENFIL  ENDED - RC=0000
+0------ JES2 JOB STATISTICS ------
+-  22 MAY 2026 JOB EXECUTION DATE
+-           34 CARDS READ
+-          429 SYSOUT PRINT RECORDS
+-            0 SYSOUT PUNCH RECORDS
+-           26 SYSOUT SPOOL KBYTES
+-         0.30 MINUTES EXECUTION TIME
+ !! END OF JES SPOOL FILE !!
+        1 //OPENFIL JOB 'Open files in CICS',CLASS=A,MSGCLASS=0,                  JOB00441
+          // NOTIFY=&SYSUID                                                               
+          //******************************************************************            
+          //* Copyright Amazon.com, Inc. or its affiliates.                               
+          //* All Rights Reserved.                                                        
+          //*                                                                             
+          //* Licensed under the Apache License, Version 2.0 (the "License").             
+          //* You may not use this file except in compliance with the License.            
+          //* You may obtain a copy of the License at                                     
+          //*                                                                             
+          //*    http://www.apache.org/licenses/LICENSE-2.0                               
+          //*                                                                             
+          //* Unless required by applicable law or agreed to in writing,                  
+          //* software distributed under the License is distributed on an                 
+          //* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,                
+          //* either express or implied. See the License for the specific                 
+          //* language governing permissions and limitations under the License            
+          //******************************************************************            
+          //*********************************************************************         
+          //* Open files in CICS region                                                   
+          //*********************************************************************         
+          IEFC653I SUBSTITUTION JCL - 'Open files in CICS',CLASS=A,MSGCLASS=0,NOTIFY=IBMUSER
+ !! END OF JES SPOOL FILE !!
+ ICH70001I IBMUSER  LAST ACCESS AT 11:22:15 ON FRIDAY, MAY 22, 2026
+ IEFA111I OPENFIL IS USING THE FOLLOWING JOB RELATED SETTINGS:
+          SWA=BELOW,TIOT SIZE=64K,DSENQSHR=DISALLOW,GDGBIAS=JOB
+ IEF236I ALLOC. FOR OPENFIL OPCIFIL
+ IEF237I JES2 ALLOCATED TO ISFOUT
+ IEF237I JES2 ALLOCATED TO CMDOUT
+ IEF237I JES2 ALLOCATED TO ISFIN
+ IEF142I OPENFIL OPCIFIL - STEP WAS EXECUTED - COND CODE 0000
+ IEF285I   IBMUSER.OPENFIL.JOB00441.D0000102.?          SYSOUT        
+ IEF285I   IBMUSER.OPENFIL.JOB00441.D0000103.?          SYSOUT        
+ IEF285I   IBMUSER.OPENFIL.JOB00441.D0000101.?          SYSIN         
+ IEF373I STEP/OPCIFIL /START 2026142.1122
+ IEF032I STEP/OPCIFIL /STOP  2026142.1122 
+         CPU:     0 HR  00 MIN  05.05 SEC    SRB:     0 HR  00 MIN  00.25 SEC    
+         VIRT:    64K  SYS:   316K  EXT:     5724K  SYS:    10736K
+         ATB- REAL:                  1352K  SLOTS:                     0K
+              VIRT- ALLOC:     416M SHRD:       0M
+ IEF375I  JOB/OPENFIL /START 2026142.1122
+ IEF033I  JOB/OPENFIL /STOP  2026142.1122 
+         CPU:     0 HR  00 MIN  05.05 SEC    SRB:     0 HR  00 MIN  00.25 SEC    
+ !! END OF JES SPOOL FILE !!
+1 SDSF MENU 3.1    LOCAL     VS01                        LINE 1-57 (98)                                                              
+  COMMAND INPUT ===>                                            SCROLL ===>                                                          
+  NP   NAME     Description              Group    Status                                                                             
+       DA       Active users             Jobs                                                                                        
+       I        Input queue              Jobs                                                                                        
+       O        Output queue             Output                                                                                      
+       H        Held output queue        Output                                                                                      
+       ST       Status of jobs           Jobs                                                                                        
+       JG       Job groups               JES                                                                                         
+       SYM      System symbols           System                                                                                      
+       LOG      System log               Log                                                                                         
+       SR       System requests          Log                                                                                         
+       MAS      Members in the MAS       JES                                                                                         
+       JC       Job classes              JES                                                                                         
+       SE       Scheduling environments  WLM                                                                                         
+       RES      WLM resources            WLM                                                                                         
+       ENC      Enclaves                 WLM                                                                                         
+       PS       Processes                OMVS                                                                                        
+       SYS      System information       System                                                                                      
+       ENQ      Enqueues                 System                                                                                      
+       ENQC     Enqueue contention       System                                                                                      
+       ENQD     Enqueued data sets       Sysplex                                                                                     
+       DYNX     Dynamic exits            System                                                                                      
+       AS       Address space memory     Jobs                                                                                        
+       INIT     Initiators               JES                                                                                         
+       PR       Printers                 JES                                                                                         
+       PUN      Punches                  JES                                                                                         
+       RDR      Readers                  JES                                                                                         
+       LINE     Lines                    Network                                                                                     
+       NODE     Nodes                    Network                                                                                     
+       SO       Spool offload            JES                                                                                         
+       SP       Spool volumes            JES                                                                                         
+       NS       Network servers          Network                                                                                     
+       NC       Network connections      Network                                                                                     
+       RM       Resource monitor         JES                                                                                         
+       CK       Health checker           System                                                                                      
+       LNK      Link list data sets      System                                                                                      
+       LPA      Link pack data sets      System                                                                                      
+       APF      APF data sets            System                                                                                      
+       PAG      Page data sets           System                                                                                      
+       PARM     Parmlib data sets        System                                                                                      
+       PROC     Proclib data sets        JES                                                                                         
+       SSI      Subsystem information    System                                                                                      
+       CFC      CF connections           Sysplex                                                                                     
+       CFS      CF structures            Sysplex                                                                                     
+       VMAP     Virtual storage map      Memory                                                                                      
+       SMSG     SMS storage groups       Devices                                                                                     
+       SMSV     SMS volumes              Devices                                                                                     
+       FS       File systems             OMVS                                                                                        
+       CSR      Common storage remaining Memory                                                                                      
+       GT       Generic tracker          System                                                                                      
+       NA       Network activity         Network                                                                                     
+       DEV      Device activity          Devices                                                                                     
+       EMCS     Extended consoles        Sysplex                                                                                     
+       BPXO     OMVS options             OMVS                                                                                        
+       LPD      Link pack directory      Program                                                                                     
+       XCFM     XCF groups and members   Sysplex                                                                                     
+       WLM      WLM policy data          WLM                                                                                         
+       SRVC     Service classes          WLM                                                                                         
+       REPC     WLM report classes       WLM                                                                                         
+1 SDSF MENU 3.1    LOCAL     VS01                         NO RESPONSE RECEIVED                                                       
+  COMMAND INPUT ===>                                            SCROLL ===>                                                          
+  NP   NAME     Description              Group    Status                                                                             
+       DA       Active users             Jobs                                                                                        
+       I        Input queue              Jobs                                                                                        
+       O        Output queue             Output                                                                                      
+       H        Held output queue        Output                                                                                      
+       ST       Status of jobs           Jobs                                                                                        
+       JG       Job groups               JES                                                                                         
+       SYM      System symbols           System                                                                                      
+       LOG      System log               Log                                                                                         
+       SR       System requests          Log                                                                                         
+       MAS      Members in the MAS       JES                                                                                         
+       JC       Job classes              JES                                                                                         
+       SE       Scheduling environments  WLM                                                                                         
+       RES      WLM resources            WLM                                                                                         
+       ENC      Enclaves                 WLM                                                                                         
+       PS       Processes                OMVS                                                                                        
+       SYS      System information       System                                                                                      
+       ENQ      Enqueues                 System                                                                                      
+       ENQC     Enqueue contention       System                                                                                      
+       ENQD     Enqueued data sets       Sysplex                                                                                     
+       DYNX     Dynamic exits            System                                                                                      
+       AS       Address space memory     Jobs                                                                                        
+       INIT     Initiators               JES                                                                                         
+       PR       Printers                 JES                                                                                         
+       PUN      Punches                  JES                                                                                         
+       RDR      Readers                  JES                                                                                         
+       LINE     Lines                    Network                                                                                     
+       NODE     Nodes                    Network                                                                                     
+       SO       Spool offload            JES                                                                                         
+       SP       Spool volumes            JES                                                                                         
+       NS       Network servers          Network                                                                                     
+       NC       Network connections      Network                                                                                     
+       RM       Resource monitor         JES                                                                                         
+       CK       Health checker           System                                                                                      
+       LNK      Link list data sets      System                                                                                      
+       LPA      Link pack data sets      System                                                                                      
+       APF      APF data sets            System                                                                                      
+       PAG      Page data sets           System                                                                                      
+       PARM     Parmlib data sets        System                                                                                      
+       PROC     Proclib data sets        JES                                                                                         
+       SSI      Subsystem information    System                                                                                      
+       CFC      CF connections           Sysplex                                                                                     
+       CFS      CF structures            Sysplex                                                                                     
+       VMAP     Virtual storage map      Memory                                                                                      
+       SMSG     SMS storage groups       Devices                                                                                     
+       SMSV     SMS volumes              Devices                                                                                     
+       FS       File systems             OMVS                                                                                        
+       CSR      Common storage remaining Memory                                                                                      
+       GT       Generic tracker          System                                                                                      
+       NA       Network activity         Network                                                                                     
+       DEV      Device activity          Devices                                                                                     
+       EMCS     Extended consoles        Sysplex                                                                                     
+       BPXO     OMVS options             OMVS                                                                                        
+       LPD      Link pack directory      Program                                                                                     
+       XCFM     XCF groups and members   Sysplex                                                                                     
+       WLM      WLM policy data          WLM                                                                                         
+       SRVC     Service classes          WLM                                                                                         
+       REPC     WLM report classes       WLM                                                                                         
+1 SDSF MENU 3.1    LOCAL     VS01                         NO RESPONSE RECEIVED                                                       
+  COMMAND INPUT ===>                                            SCROLL ===>                                                          
+  NP   NAME     Description              Group    Status                                                                             
+       DA       Active users             Jobs                                                                                        
+       I        Input queue              Jobs                                                                                        
+       O        Output queue             Output                                                                                      
+       H        Held output queue        Output                                                                                      
+       ST       Status of jobs           Jobs                                                                                        
+       JG       Job groups               JES                                                                                         
+       SYM      System symbols           System                                                                                      
+       LOG      System log               Log                                                                                         
+       SR       System requests          Log                                                                                         
+       MAS      Members in the MAS       JES                                                                                         
+       JC       Job classes              JES                                                                                         
+       SE       Scheduling environments  WLM                                                                                         
+       RES      WLM resources            WLM                                                                                         
+       ENC      Enclaves                 WLM                                                                                         
+       PS       Processes                OMVS                                                                                        
+       SYS      System information       System                                                                                      
+       ENQ      Enqueues                 System                                                                                      
+       ENQC     Enqueue contention       System                                                                                      
+       ENQD     Enqueued data sets       Sysplex                                                                                     
+       DYNX     Dynamic exits            System                                                                                      
+       AS       Address space memory     Jobs                                                                                        
+       INIT     Initiators               JES                                                                                         
+       PR       Printers                 JES                                                                                         
+       PUN      Punches                  JES                                                                                         
+       RDR      Readers                  JES                                                                                         
+       LINE     Lines                    Network                                                                                     
+       NODE     Nodes                    Network                                                                                     
+       SO       Spool offload            JES                                                                                         
+       SP       Spool volumes            JES                                                                                         
+       NS       Network servers          Network                                                                                     
+       NC       Network connections      Network                                                                                     
+       RM       Resource monitor         JES                                                                                         
+       CK       Health checker           System                                                                                      
+       LNK      Link list data sets      System                                                                                      
+       LPA      Link pack data sets      System                                                                                      
+       APF      APF data sets            System                                                                                      
+       PAG      Page data sets           System                                                                                      
+       PARM     Parmlib data sets        System                                                                                      
+       PROC     Proclib data sets        JES                                                                                         
+       SSI      Subsystem information    System                                                                                      
+       CFC      CF connections           Sysplex                                                                                     
+       CFS      CF structures            Sysplex                                                                                     
+       VMAP     Virtual storage map      Memory                                                                                      
+       SMSG     SMS storage groups       Devices                                                                                     
+       SMSV     SMS volumes              Devices                                                                                     
+       FS       File systems             OMVS                                                                                        
+       CSR      Common storage remaining Memory                                                                                      
+       GT       Generic tracker          System                                                                                      
+       NA       Network activity         Network                                                                                     
+       DEV      Device activity          Devices                                                                                     
+       EMCS     Extended consoles        Sysplex                                                                                     
+       BPXO     OMVS options             OMVS                                                                                        
+       LPD      Link pack directory      Program                                                                                     
+       XCFM     XCF groups and members   Sysplex                                                                                     
+       WLM      WLM policy data          WLM                                                                                         
+       SRVC     Service classes          WLM                                                                                         
+       REPC     WLM report classes       WLM                                                                                         
+1 SDSF MENU 3.1    LOCAL     VS01                         NO RESPONSE RECEIVED                                                       
+  COMMAND INPUT ===>                                            SCROLL ===>                                                          
+  NP   NAME     Description              Group    Status                                                                             
+       DA       Active users             Jobs                                                                                        
+       I        Input queue              Jobs                                                                                        
+       O        Output queue             Output                                                                                      
+       H        Held output queue        Output                                                                                      
+       ST       Status of jobs           Jobs                                                                                        
+       JG       Job groups               JES                                                                                         
+       SYM      System symbols           System                                                                                      
+       LOG      System log               Log                                                                                         
+       SR       System requests          Log                                                                                         
+       MAS      Members in the MAS       JES                                                                                         
+       JC       Job classes              JES                                                                                         
+       SE       Scheduling environments  WLM                                                                                         
+       RES      WLM resources            WLM                                                                                         
+       ENC      Enclaves                 WLM                                                                                         
+       PS       Processes                OMVS                                                                                        
+       SYS      System information       System                                                                                      
+       ENQ      Enqueues                 System                                                                                      
+       ENQC     Enqueue contention       System                                                                                      
+       ENQD     Enqueued data sets       Sysplex                                                                                     
+       DYNX     Dynamic exits            System                                                                                      
+       AS       Address space memory     Jobs                                                                                        
+       INIT     Initiators               JES                                                                                         
+       PR       Printers                 JES                                                                                         
+       PUN      Punches                  JES                                                                                         
+       RDR      Readers                  JES                                                                                         
+       LINE     Lines                    Network                                                                                     
+       NODE     Nodes                    Network                                                                                     
+       SO       Spool offload            JES                                                                                         
+       SP       Spool volumes            JES                                                                                         
+       NS       Network servers          Network                                                                                     
+       NC       Network connections      Network                                                                                     
+       RM       Resource monitor         JES                                                                                         
+       CK       Health checker           System                                                                                      
+       LNK      Link list data sets      System                                                                                      
+       LPA      Link pack data sets      System                                                                                      
+       APF      APF data sets            System                                                                                      
+       PAG      Page data sets           System                                                                                      
+       PARM     Parmlib data sets        System                                                                                      
+       PROC     Proclib data sets        JES                                                                                         
+       SSI      Subsystem information    System                                                                                      
+       CFC      CF connections           Sysplex                                                                                     
+       CFS      CF structures            Sysplex                                                                                     
+       VMAP     Virtual storage map      Memory                                                                                      
+       SMSG     SMS storage groups       Devices                                                                                     
+       SMSV     SMS volumes              Devices                                                                                     
+       FS       File systems             OMVS                                                                                        
+       CSR      Common storage remaining Memory                                                                                      
+       GT       Generic tracker          System                                                                                      
+       NA       Network activity         Network                                                                                     
+       DEV      Device activity          Devices                                                                                     
+       EMCS     Extended consoles        Sysplex                                                                                     
+       BPXO     OMVS options             OMVS                                                                                        
+       LPD      Link pack directory      Program                                                                                     
+       XCFM     XCF groups and members   Sysplex                                                                                     
+       WLM      WLM policy data          WLM                                                                                         
+       SRVC     Service classes          WLM                                                                                         
+       REPC     WLM report classes       WLM                                                                                         
+1 SDSF MENU 3.1    LOCAL     VS01                         NO RESPONSE RECEIVED                                                       
+  COMMAND INPUT ===>                                            SCROLL ===>                                                          
+  NP   NAME     Description              Group    Status                                                                             
+       DA       Active users             Jobs                                                                                        
+       I        Input queue              Jobs                                                                                        
+       O        Output queue             Output                                                                                      
+       H        Held output queue        Output                                                                                      
+       ST       Status of jobs           Jobs                                                                                        
+       JG       Job groups               JES                                                                                         
+       SYM      System symbols           System                                                                                      
+       LOG      System log               Log                                                                                         
+       SR       System requests          Log                                                                                         
+       MAS      Members in the MAS       JES                                                                                         
+       JC       Job classes              JES                                                                                         
+       SE       Scheduling environments  WLM                                                                                         
+       RES      WLM resources            WLM                                                                                         
+       ENC      Enclaves                 WLM                                                                                         
+       PS       Processes                OMVS                                                                                        
+       SYS      System information       System                                                                                      
+       ENQ      Enqueues                 System                                                                                      
+       ENQC     Enqueue contention       System                                                                                      
+       ENQD     Enqueued data sets       Sysplex                                                                                     
+       DYNX     Dynamic exits            System                                                                                      
+       AS       Address space memory     Jobs                                                                                        
+       INIT     Initiators               JES                                                                                         
+       PR       Printers                 JES                                                                                         
+       PUN      Punches                  JES                                                                                         
+       RDR      Readers                  JES                                                                                         
+       LINE     Lines                    Network                                                                                     
+       NODE     Nodes                    Network                                                                                     
+       SO       Spool offload            JES                                                                                         
+       SP       Spool volumes            JES                                                                                         
+       NS       Network servers          Network                                                                                     
+       NC       Network connections      Network                                                                                     
+       RM       Resource monitor         JES                                                                                         
+       CK       Health checker           System                                                                                      
+       LNK      Link list data sets      System                                                                                      
+       LPA      Link pack data sets      System                                                                                      
+       APF      APF data sets            System                                                                                      
+       PAG      Page data sets           System                                                                                      
+       PARM     Parmlib data sets        System                                                                                      
+       PROC     Proclib data sets        JES                                                                                         
+       SSI      Subsystem information    System                                                                                      
+       CFC      CF connections           Sysplex                                                                                     
+       CFS      CF structures            Sysplex                                                                                     
+       VMAP     Virtual storage map      Memory                                                                                      
+       SMSG     SMS storage groups       Devices                                                                                     
+       SMSV     SMS volumes              Devices                                                                                     
+       FS       File systems             OMVS                                                                                        
+       CSR      Common storage remaining Memory                                                                                      
+       GT       Generic tracker          System                                                                                      
+       NA       Network activity         Network                                                                                     
+       DEV      Device activity          Devices                                                                                     
+       EMCS     Extended consoles        Sysplex                                                                                     
+       BPXO     OMVS options             OMVS                                                                                        
+       LPD      Link pack directory      Program                                                                                     
+       XCFM     XCF groups and members   Sysplex                                                                                     
+       WLM      WLM policy data          WLM                                                                                         
+       SRVC     Service classes          WLM                                                                                         
+       REPC     WLM report classes       WLM                                                                                         
+1 SDSF MENU 3.1    LOCAL     VS01                         NO RESPONSE RECEIVED                                                       
+  COMMAND INPUT ===>                                            SCROLL ===>                                                          
+  NP   NAME     Description              Group    Status                                                                             
+       DA       Active users             Jobs                                                                                        
+       I        Input queue              Jobs                                                                                        
+       O        Output queue             Output                                                                                      
+       H        Held output queue        Output                                                                                      
+       ST       Status of jobs           Jobs                                                                                        
+       JG       Job groups               JES                                                                                         
+       SYM      System symbols           System                                                                                      
+       LOG      System log               Log                                                                                         
+       SR       System requests          Log                                                                                         
+       MAS      Members in the MAS       JES                                                                                         
+       JC       Job classes              JES                                                                                         
+       SE       Scheduling environments  WLM                                                                                         
+       RES      WLM resources            WLM                                                                                         
+       ENC      Enclaves                 WLM                                                                                         
+       PS       Processes                OMVS                                                                                        
+       SYS      System information       System                                                                                      
+       ENQ      Enqueues                 System                                                                                      
+       ENQC     Enqueue contention       System                                                                                      
+       ENQD     Enqueued data sets       Sysplex                                                                                     
+       DYNX     Dynamic exits            System                                                                                      
+       AS       Address space memory     Jobs                                                                                        
+       INIT     Initiators               JES                                                                                         
+       PR       Printers                 JES                                                                                         
+       PUN      Punches                  JES                                                                                         
+       RDR      Readers                  JES                                                                                         
+       LINE     Lines                    Network                                                                                     
+       NODE     Nodes                    Network                                                                                     
+       SO       Spool offload            JES                                                                                         
+       SP       Spool volumes            JES                                                                                         
+       NS       Network servers          Network                                                                                     
+       NC       Network connections      Network                                                                                     
+       RM       Resource monitor         JES                                                                                         
+       CK       Health checker           System                                                                                      
+       LNK      Link list data sets      System                                                                                      
+       LPA      Link pack data sets      System                                                                                      
+       APF      APF data sets            System                                                                                      
+       PAG      Page data sets           System                                                                                      
+       PARM     Parmlib data sets        System                                                                                      
+       PROC     Proclib data sets        JES                                                                                         
+       SSI      Subsystem information    System                                                                                      
+       CFC      CF connections           Sysplex                                                                                     
+       CFS      CF structures            Sysplex                                                                                     
+       VMAP     Virtual storage map      Memory                                                                                      
+       SMSG     SMS storage groups       Devices                                                                                     
+       SMSV     SMS volumes              Devices                                                                                     
+       FS       File systems             OMVS                                                                                        
+       CSR      Common storage remaining Memory                                                                                      
+       GT       Generic tracker          System                                                                                      
+       NA       Network activity         Network                                                                                     
+       DEV      Device activity          Devices                                                                                     
+       EMCS     Extended consoles        Sysplex                                                                                     
+       BPXO     OMVS options             OMVS                                                                                        
+       LPD      Link pack directory      Program                                                                                     
+       XCFM     XCF groups and members   Sysplex                                                                                     
+       WLM      WLM policy data          WLM                                                                                         
+       SRVC     Service classes          WLM                                                                                         
+       REPC     WLM report classes       WLM                                                                                         
+ !! END OF JES SPOOL FILE !!
