@@ -100,9 +100,17 @@ func DecodePacked(b []byte, scale int) (decimal.Decimal, error) {
 //   - d: value to encode.
 //   - digits: total number of BCD digits in the field (integer + decimal).
 //   - scale: implied decimal digits (V in PICTURE clause).
+//   - unsigned: when true the sign nibble is 0xF (PIC 9… without S prefix);
+//     when false the sign nibble is 0xC (positive) or 0xD (negative).
+//
+// Note: negative-zero (value == 0 with a 0xD sign nibble on disk) cannot be
+// round-tripped through decimal.Decimal because the shopspring library does not
+// distinguish −0 from +0. Values decoded from a 0xD-signed zero field will
+// re-encode as 0xC. This is an accepted limitation for COMP-3 fields in this
+// package.
 //
 // The encoded byte slice has length PackedSize(digits).
-func EncodePacked(d decimal.Decimal, digits, scale int) ([]byte, error) {
+func EncodePacked(d decimal.Decimal, digits, scale int, unsigned bool) ([]byte, error) {
 	if digits <= 0 {
 		return nil, fmt.Errorf("cobolfmt: packed: digits must be > 0")
 	}
@@ -139,11 +147,16 @@ func EncodePacked(d decimal.Decimal, digits, scale int) ([]byte, error) {
 	for _, ch := range raw {
 		nibbles = append(nibbles, byte(ch-'0'))
 	}
-	if negative {
-		nibbles = append(nibbles, 0xD)
-	} else {
-		nibbles = append(nibbles, 0xC)
+	var signNibble byte
+	switch {
+	case unsigned:
+		signNibble = 0xF
+	case negative:
+		signNibble = 0xD
+	default:
+		signNibble = 0xC
 	}
+	nibbles = append(nibbles, signNibble)
 
 	for i := 0; i < size; i++ {
 		out[i] = (nibbles[i*2] << 4) | nibbles[i*2+1]

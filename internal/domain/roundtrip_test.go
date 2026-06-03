@@ -323,6 +323,53 @@ func TestUserSecRoundTrip(t *testing.T) {
 	t.Logf("tested %d user-sec records byte-for-byte", count)
 }
 
+// TestExportRoundTrip decodes every record from the multi-record CVEXPORT
+// fixture and re-encodes it, verifying byte-identical output.
+//
+// This test exercises the COMP and COMP-3 fields in CVEXPORT.cpy:
+//   - EXP-CUST-FICO-CREDIT-SCORE PIC 9(03) COMP-3 (unsigned, 0xF sign nibble)
+//   - EXP-ACCT-CURR-BAL / EXP-ACCT-CASH-CREDIT-LIMIT PIC S9(10)V99 COMP-3
+//   - EXP-TRAN-AMT PIC S9(09)V99 COMP-3
+//   - Various COMP binary fields
+//
+// The fixture is required; the test fails (not skips) if it is absent so
+// that CI cannot pass vacuously on a checkout without fixtures.
+func TestExportRoundTrip(t *testing.T) {
+	dir := fixtureDir(t)
+	path := filepath.Join(dir, "AWS.M2.CARDDEMO.EXPORT.DATA.PS")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("fixture %s not found: %v — fixture is required for this test", path, err)
+	}
+
+	if len(data)%domain.ExportRecordLen != 0 {
+		t.Fatalf("fixture length %d not a multiple of %d", len(data), domain.ExportRecordLen)
+	}
+
+	count := len(data) / domain.ExportRecordLen
+	for i := 0; i < count; i++ {
+		raw := data[i*domain.ExportRecordLen : (i+1)*domain.ExportRecordLen]
+
+		rec, err := domain.DecodeExportRecord(raw)
+		if err != nil {
+			t.Errorf("record %d: DecodeExportRecord: %v", i, err)
+			continue
+		}
+
+		encoded, err := rec.Encode()
+		if err != nil {
+			t.Errorf("record %d: Encode: %v", i, err)
+			continue
+		}
+
+		if !bytes.Equal(raw, encoded) {
+			t.Errorf("record %d (type %q): round-trip mismatch\n  orig:    %X\n  encoded: %X",
+				i, rec.RecType, raw[:min(64, len(raw))], encoded[:min(64, len(encoded))])
+		}
+	}
+	t.Logf("tested %d export records byte-for-byte", count)
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
