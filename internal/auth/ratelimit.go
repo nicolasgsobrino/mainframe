@@ -18,11 +18,11 @@ import (
 // Reset(key) to clear the user counter so a legitimate user is not locked out
 // after their own typo.
 type RateLimiter struct {
-	mu       sync.Mutex
-	buckets  map[string]*bucket
-	max      int
-	window   time.Duration
-	now      func() time.Time
+	mu      sync.Mutex
+	buckets map[string]*bucket
+	max     int
+	window  time.Duration
+	now     func() time.Time
 }
 
 type bucket struct {

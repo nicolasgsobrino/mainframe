@@ -22,12 +22,12 @@ const (
 
 // Event is intentionally narrow: never carry password material, even hashed.
 type Event struct {
-	At      time.Time
-	Action  Action
-	Actor   string // authenticated user, "" if pre-auth
-	Target  string // user id being acted on, may equal Actor for self
-	Remote  string // remote IP / forwarded address
-	Reason  string // freeform short reason, e.g. "wrong password"
+	At     time.Time
+	Action Action
+	Actor  string // authenticated user, "" if pre-auth
+	Target string // user id being acted on, may equal Actor for self
+	Remote string // remote IP / forwarded address
+	Reason string // freeform short reason, e.g. "wrong password"
 }
 
 // Sink receives audit events. Implementations must be safe for concurrent use.

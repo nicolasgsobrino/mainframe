@@ -57,11 +57,11 @@ const (
 )
 
 var (
-	ErrUserIDEmpty    = errors.New("user id is required")
-	ErrUserIDTooLong  = errors.New("user id exceeds 8 characters")
-	ErrFirstNameEmpty = errors.New("first name is required")
-	ErrLastNameEmpty  = errors.New("last name is required")
-	ErrPasswordEmpty  = errors.New("password is required")
+	ErrUserIDEmpty     = errors.New("user id is required")
+	ErrUserIDTooLong   = errors.New("user id exceeds 8 characters")
+	ErrFirstNameEmpty  = errors.New("first name is required")
+	ErrLastNameEmpty   = errors.New("last name is required")
+	ErrPasswordEmpty   = errors.New("password is required")
 	ErrPasswordTooLong = errors.New("password exceeds 8 characters")
 	ErrInvalidUserType = errors.New("user type must be 'A' (admin) or 'U' (user)")
 )

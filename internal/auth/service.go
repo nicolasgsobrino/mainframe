@@ -29,12 +29,12 @@ var ErrRateLimited = errors.New("too many login attempts")
 // Service is the authn/authz layer over a UserSec repository. Handlers depend
 // on this; tests use it directly without going through HTTP.
 type Service struct {
-	Users          repo.UserSecRepo
-	Sessions       SessionStore
-	Audit          audit.Sink
-	IPLimiter      *RateLimiter
-	UserLimiter    *RateLimiter
-	SessionTTL     time.Duration
+	Users       repo.UserSecRepo
+	Sessions    SessionStore
+	Audit       audit.Sink
+	IPLimiter   *RateLimiter
+	UserLimiter *RateLimiter
+	SessionTTL  time.Duration
 }
 
 // NewService wires sensible defaults around a repo + store.

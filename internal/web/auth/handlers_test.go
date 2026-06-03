@@ -71,12 +71,21 @@ func newTestServer(t *testing.T) *testServer {
 	}
 }
 
-func (ts *testServer) get(t *testing.T, path string, accept string) *http.Response {
+func (ts *testServer) get(t *testing.T, path string) *http.Response {
 	t.Helper()
 	req, _ := http.NewRequest(http.MethodGet, ts.srv.URL+path, nil)
-	if accept != "" {
-		req.Header.Set("Accept", accept)
+	req.Header.Set("Accept", "text/html")
+	resp, err := ts.client.Do(req)
+	if err != nil {
+		t.Fatalf("GET %s: %v", path, err)
 	}
+	return resp
+}
+
+func (ts *testServer) getJSON(t *testing.T, path string) *http.Response {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodGet, ts.srv.URL+path, nil)
+	req.Header.Set("Accept", "application/json")
 	resp, err := ts.client.Do(req)
 	if err != nil {
 		t.Fatalf("GET %s: %v", path, err)
@@ -88,8 +97,8 @@ func (ts *testServer) get(t *testing.T, path string, accept string) *http.Respon
 // jar, then returns the token value for use in the form post.
 func (ts *testServer) loginCSRFToken(t *testing.T) string {
 	t.Helper()
-	resp := ts.get(t, "/login", "text/html")
-	defer resp.Body.Close()
+	resp := ts.get(t, "/login")
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("GET /login: %d", resp.StatusCode)
 	}
@@ -146,7 +155,7 @@ func TestEndToEndAcceptanceFlow(t *testing.T) {
 
 	// Admin login
 	resp := ts.login(t, "ADMIN001", "PASSWORD")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("admin login: want 303, got %d", resp.StatusCode)
 	}
@@ -154,8 +163,8 @@ func TestEndToEndAcceptanceFlow(t *testing.T) {
 		t.Fatalf("admin login redirect: got %q", loc)
 	}
 
-	resp = ts.get(t, "/admin/users", "text/html")
-	resp.Body.Close()
+	resp = ts.get(t, "/admin/users")
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("admin GET /admin/users: want 200, got %d", resp.StatusCode)
 	}
@@ -164,11 +173,11 @@ func TestEndToEndAcceptanceFlow(t *testing.T) {
 	logoutForm := url.Values{}
 	logoutForm.Set(authpkg.CSRFFormField, ts.sessionCSRFToken(t))
 	resp = ts.postForm(t, "/logout", logoutForm)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Regular user login
 	resp = ts.login(t, "USER0001", "PASSWORD")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("user login: want 303, got %d", resp.StatusCode)
 	}
@@ -177,8 +186,8 @@ func TestEndToEndAcceptanceFlow(t *testing.T) {
 	}
 
 	// Regular user is forbidden from admin pages
-	resp = ts.get(t, "/admin/users", "text/html")
-	resp.Body.Close()
+	resp = ts.get(t, "/admin/users")
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("user GET /admin/users: want 403, got %d", resp.StatusCode)
 	}
@@ -195,7 +204,7 @@ func TestLoginRejectsMissingCSRF(t *testing.T) {
 	form.Set("user_id", "ADMIN001")
 	form.Set("password", "PASSWORD")
 	resp := ts.postForm(t, "/login", form)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("expected 403 without CSRF, got %d", resp.StatusCode)
 	}
@@ -209,7 +218,7 @@ func TestLoginWithBadCSRFRejected(t *testing.T) {
 	form.Set("password", "PASSWORD")
 	form.Set(authpkg.CSRFFormField, "tampered")
 	resp := ts.postForm(t, "/login", form)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("expected 403 with bad CSRF, got %d", resp.StatusCode)
 	}
@@ -217,8 +226,8 @@ func TestLoginWithBadCSRFRejected(t *testing.T) {
 
 func TestUnauthenticatedAdminRedirects(t *testing.T) {
 	ts := newTestServer(t)
-	resp := ts.get(t, "/admin/users", "text/html")
-	resp.Body.Close()
+	resp := ts.get(t, "/admin/users")
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("anon GET /admin/users: want 303, got %d", resp.StatusCode)
 	}
@@ -230,7 +239,7 @@ func TestUnauthenticatedAdminRedirects(t *testing.T) {
 func TestSessionCookieFlags(t *testing.T) {
 	ts := newTestServer(t)
 	resp := ts.login(t, "ADMIN001", "PASSWORD")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	var sessCookie *http.Cookie
 	for _, c := range resp.Cookies() {
 		if c.Name == authpkg.SessionCookieName {
@@ -262,14 +271,14 @@ func TestBruteForceLockoutOverHTTP(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		resp := ts.login(t, "ADMIN001", "wrong")
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("attempt %d: want 401, got %d", i, resp.StatusCode)
 		}
 	}
 	// Next attempt — even with the right password — must be 429.
 	resp := ts.login(t, "ADMIN001", "PASSWORD")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusTooManyRequests {
 		t.Fatalf("expected 429 after lockout, got %d", resp.StatusCode)
 	}
@@ -278,7 +287,7 @@ func TestBruteForceLockoutOverHTTP(t *testing.T) {
 func TestAdminCreateUpdateDeleteUserOverHTTP(t *testing.T) {
 	ts := newTestServer(t)
 	resp := ts.login(t, "ADMIN001", "PASSWORD")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	tok := ts.sessionCSRFToken(t)
 
 	// Create
@@ -290,7 +299,7 @@ func TestAdminCreateUpdateDeleteUserOverHTTP(t *testing.T) {
 	form.Set("password", "secret")
 	form.Set("user_type", "U")
 	resp = ts.postForm(t, "/admin/users", form)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("create: want 303, got %d", resp.StatusCode)
 	}
@@ -303,12 +312,12 @@ func TestAdminCreateUpdateDeleteUserOverHTTP(t *testing.T) {
 	}
 
 	// JSON GET (and verify hash never leaks)
-	req, _ := http.NewRequest(http.MethodGet, ts.srv.URL+"/admin/users/OP01", nil)
-	req.Header.Set("Accept", "application/json")
-	resp, _ = ts.client.Do(req)
+	resp = ts.getJSON(t, "/admin/users/OP01")
 	body := map[string]any{}
-	json.NewDecoder(resp.Body).Decode(&body)
-	resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatalf("decode json: %v", err)
+	}
+	_ = resp.Body.Close()
 	if _, leaked := body["pwd_hash"]; leaked {
 		t.Fatal("password hash leaked over JSON")
 	}
@@ -320,7 +329,7 @@ func TestAdminCreateUpdateDeleteUserOverHTTP(t *testing.T) {
 	form.Set("last_name", "Smith")
 	form.Set("user_type", "A")
 	resp = ts.postForm(t, "/admin/users/OP01", form)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("update: want 303, got %d", resp.StatusCode)
 	}
@@ -333,7 +342,7 @@ func TestAdminCreateUpdateDeleteUserOverHTTP(t *testing.T) {
 	form = url.Values{}
 	form.Set(authpkg.CSRFFormField, tok)
 	resp = ts.postForm(t, "/admin/users/OP01/delete", form)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("delete: want 303, got %d", resp.StatusCode)
 	}
@@ -348,4 +357,3 @@ func TestAdminCreateUpdateDeleteUserOverHTTP(t *testing.T) {
 		}
 	}
 }
-
