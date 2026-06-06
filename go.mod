@@ -1,6 +1,6 @@
 module github.com/aws-samples/aws-mainframe-modernization-carddemo
 
-go 1.26.2
+go 1.26.4
 
 require (
 	github.com/shopspring/decimal v1.4.0

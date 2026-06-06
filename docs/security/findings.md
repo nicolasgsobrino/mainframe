@@ -1,15 +1,15 @@
 # AppSec findings — CardDemo Go port
 
 Tracks: RAU-47.
-Last updated: 2026-06-06 (full SAST + code review, post RAU-39/RAU-42 merge).
+Last updated: 2026-06-06 (full SAST + code review, post RAU-39/RAU-42 merge; go.mod upgraded to 1.26.4).
 
 ## Posture summary
 
 | Severity | Open | Accepted-risk | Fixed |
 |---|---:|---:|---:|
-| High | 2 | 0 | 2 |
+| High | 0 | 0 | 4 |
 | Medium | 4 | 4 | 2 |
-| Low | 2 | 2 | 0 |
+| Low | 1 | 2 | 2 |
 
 Sign-off requires: zero open HIGH; all MEDIUM fixed or accepted-with-rationale.
 
@@ -31,24 +31,13 @@ Sign-off requires: zero open HIGH; all MEDIUM fixed or accepted-with-rationale.
 - **CWE:** CWE-79 (Stored/Reflected XSS)
 - **Surface:** `internal/web/auth/handlers.go:467` (adminEditTpl), `handlers.go:452` (adminListTpl), `handlers.go:430` (loginTpl)
 - **Source:** govulncheck — GO-2026-4980, GO-2026-4982
-- **Status:** OPEN
+- **Status:** FIXED (this PR — `go.mod` upgraded from `1.26.2` to `1.26.4`)
 - **Owner:** RAU-47
 - **Discovered:** 2026-06-06
 
-**What.** Two vulnerabilities in the Go standard library `html/template` package (fixed in go1.26.3): GO-2026-4980 bypasses the template escaper, and GO-2026-4982 bypasses meta-content URL escaping. Both allow attacker-controlled template data to inject unescaped JavaScript into the HTML output. All three templates in `handlers.go` (login, admin list, admin edit) call `template.Template.Execute` with user-supplied data and are in the reachable call graph.
+**What.** Two vulnerabilities in the Go standard library `html/template` package: GO-2026-4980 bypasses the template escaper, and GO-2026-4982 bypasses meta-content URL escaping. Both were reachable via `auth.renderAdminEdit` at `internal/web/auth/handlers.go:467`, traced by govulncheck through `renderLogin`, `renderAdminList`, `renderAdminEdit`.
 
-**Where.** `internal/web/auth/handlers.go:430,452,467` calls `loginTpl.Execute`, `adminListTpl.Execute`, `adminEditTpl.Execute`. Traced by govulncheck through `renderLogin`, `renderAdminList`, `renderAdminEdit`.
-
-**Impact.** An admin or attacker who can influence template data (e.g., via a crafted UserID or name field stored in the in-memory store) can inject JavaScript that executes in another admin's browser — session hijack, credential exfiltration, or admin account takeover.
-
-**Remediation.** Upgrade `go` directive in `go.mod` from `1.26.2` to `1.26.4` and re-run `go mod tidy`. The vulnerabilities are fixed in the standard library at go1.26.3 (combined patch at go1.26.4 also resolves F-002 and F-016 in one upgrade).
-
-```diff
--go 1.26.2
-+go 1.26.4
-```
-
-**Notes.** Blocking for production. Govulncheck will flag this in CI until the toolchain is upgraded.
+**Fix.** `go.mod` `go` directive updated from `1.26.2` to `1.26.4`. `go mod tidy` run. `govulncheck ./...` on the updated module: **No vulnerabilities found** (0 reachable, 0 in imports). Fixed in standard library at go1.26.3.
 
 ---
 
@@ -59,17 +48,13 @@ Sign-off requires: zero open HIGH; all MEDIUM fixed or accepted-with-rationale.
 - **CWE:** CWE-74 (Improper Neutralization of Special Elements in Output)
 - **Surface:** `cmd/carddemo/main.go:64` — `http.Server.ListenAndServe` call chain
 - **Source:** govulncheck — GO-2026-5039
-- **Status:** OPEN
+- **Status:** FIXED (this PR — same `go.mod` upgrade to `1.26.4` as F-001)
 - **Owner:** RAU-47
 - **Discovered:** 2026-06-06
 
-**What.** Arbitrary inputs are included in `net/textproto` errors without escaping (fixed in go1.26.4). Malformed HTTP headers can cause the server to include raw attacker-controlled bytes in error messages, potentially leaking into logs or error responses.
+**What.** Arbitrary inputs included in `net/textproto` errors without escaping. Malformed HTTP headers could cause raw attacker-controlled bytes to appear in error messages, potentially leaking into logs or error responses. Reachable via `carddemo.main` → `http.Server.ListenAndServe` → `textproto.Reader.ReadMIMEHeader`.
 
-**Where.** Traced from `carddemo.main` → `http.Server.ListenAndServe` → `textproto.Reader.ReadMIMEHeader`.
-
-**Impact.** Log injection; potential information disclosure if error text is reflected in HTTP responses.
-
-**Remediation.** Same as F-001: upgrade `go` directive to `1.26.4`.
+**Fix.** Resolved by the go1.26.4 upgrade (fixed in go1.26.4).
 
 ---
 
@@ -248,18 +233,18 @@ PCI-DSS requirement 3.3 prohibits storing CVV after authorization. PCI-DSS 3.4 r
 
 ## LOW Findings
 
-### F-012 — Go 1.26.2: crypto/x509 hostname-parsing DoS (GO-2026-5037)
+### F-012 — crypto/x509 hostname-parsing DoS (GO-2026-5037)
 
 - **Severity:** Low (no attacker input reaches x509 hostname parsing in current code)
 - **OWASP:** A06:2021 — Vulnerable and Outdated Components
 - **CWE:** CWE-400 (Uncontrolled Resource Consumption)
 - **Surface:** Standard library — `crypto/x509`
 - **Source:** govulncheck — GO-2026-5037
-- **Status:** OPEN — resolved by the same go1.26.4 upgrade as F-001/F-002
+- **Status:** FIXED (this PR — go1.26.4 upgrade; fixed in go1.26.4)
 - **Owner:** RAU-47
 - **Discovered:** 2026-06-06
 
-**Notes.** The current codebase does not perform TLS certificate verification in the hot path; govulncheck traces an indirect path through `fmt.Sprintf` → `x509.HostnameError.Error`. Low exploitability today; upgrade remains correct.
+**Notes.** Govulncheck traced an indirect path through `fmt.Sprintf` → `x509.HostnameError.Error`. Low exploitability (no attacker-controlled TLS hostname verification in this codebase). Cleared by the go1.26.4 upgrade.
 
 ---
 
@@ -311,6 +296,23 @@ if _, err := fmt.Sscanf(s[:2], "%d", &yy); err != nil {
 - **Owner:** RAU-47
 - **Rationale:** `MemorySessionStore` is the expected implementation for the current development phase; a durable SQLite/Postgres-backed store is planned in RAU-38. On restart all sessions are invalidated — users are logged out and must re-authenticate. This is safe (sessions do not survive restart, so there is no stale-session risk) but creates a denial-of-service on every process restart. Accepted for demo/dev phase.
 - **Discovered:** 2026-06-06
+
+---
+
+### F-016 — net Dial/LookupPort NUL-byte panic (GO-2026-4971, Windows-only)
+
+- **Severity:** Low (Windows-only; CardDemo targets Linux; not directly user-reachable)
+- **OWASP:** A06:2021 — Vulnerable and Outdated Components
+- **CWE:** CWE-476 (NULL Pointer Dereference)
+- **Surface:** Standard library — `net` package (`net.Dial`, `net.LookupPort`)
+- **Source:** govulncheck — GO-2026-4971
+- **Status:** FIXED (this PR — go1.26.4 upgrade; fixed in go1.26.3)
+- **Owner:** RAU-47
+- **Discovered:** 2026-06-06
+
+**What.** A NUL byte (`\x00`) embedded in an address or port string passed to `net.Dial` or `net.LookupPort` causes a panic on Windows due to how the Windows socket API handles NUL-terminated strings. Govulncheck traces reachability via `cmd/carddemo/main.go` → `http.Server.ListenAndServe` → `net.Listen` → `net.ResolveTCPAddr`.
+
+**Low-severity rationale.** Exploiting this requires supplying a NUL byte in the server bind address (`CARDDEMO_ADDR`), which is operator-supplied at startup and not attacker-controlled in the expected deployment. Additionally, CardDemo targets Linux; the panic is Windows-specific. Cleared by the go1.26.4 upgrade regardless of exploitability.
 
 ---
 
