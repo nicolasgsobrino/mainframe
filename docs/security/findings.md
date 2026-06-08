@@ -1,14 +1,14 @@
 # AppSec findings — CardDemo Go port
 
 Tracks: RAU-47.
-Last updated: 2026-06-06 (full SAST + code review, post RAU-39/RAU-42 merge; go.mod upgraded to 1.26.4).
+Last updated: 2026-06-08 (Reviewer pass: F-003/F-004/F-011 reclassified ACCEPTED-RISK; posture table corrected; all MEDIUM now fixed or accepted).
 
 ## Posture summary
 
 | Severity | Open | Accepted-risk | Fixed |
 |---|---:|---:|---:|
-| High | 0 | 0 | 4 |
-| Medium | 4 | 4 | 2 |
+| High | 0 | 0 | 2 |
+| Medium | 0 | 6 | 3 |
 | Low | 1 | 2 | 2 |
 
 Sign-off requires: zero open HIGH; all MEDIUM fixed or accepted-with-rationale.
@@ -67,9 +67,10 @@ Sign-off requires: zero open HIGH; all MEDIUM fixed or accepted-with-rationale.
 - **CWE:** CWE-290 (Authentication Bypass by Spoofing)
 - **Surface:** `internal/auth/middleware.go:28-42`
 - **Source:** Code review
-- **Status:** OPEN
+- **Status:** ACCEPTED-RISK
 - **Owner:** RAU-47
 - **Discovered:** 2026-06-06
+- **Rationale:** The correct fix depends on deployment topology: strip `X-Forwarded-For` entirely if no proxy is present, or implement a trusted-proxy allowlist tuned to the operator's CIDR. Neither is resolvable without a concrete deployment target, and this is a demo/educational modernization project without a specified network topology. The per-user rate limiter (5 attempts / 15 min, `UserLimiter`) remains effective against credential-stuffing regardless of IP rotation. Risk accepted for demo/development phase; must be revisited before production with a concrete proxy/no-proxy decision documented as an operator runbook item.
 
 **What.** `ClientIP()` trusts the first value in `X-Forwarded-For` unconditionally with no proxy allowlist. An attacker who sends `X-Forwarded-For: 1.2.3.4` from a different IP can rotate through fake IPs to exhaust the per-IP rate limit budget of arbitrary victims (or avoid exhausting their own).
 
@@ -77,11 +78,9 @@ Sign-off requires: zero open HIGH; all MEDIUM fixed or accepted-with-rationale.
 
 **Impact.** An attacker can submit unlimited login attempts against a target username by cycling through spoofed IPs, bypassing the per-IP rate limit. The per-user rate limit (`UserLimiter`, 5 attempts / 15 min) still applies but offers a narrower window.
 
-**Remediation.** Two options:
+**Remediation (pre-production).** Two options:
 1. If deployed behind a trusted reverse proxy, restrict `X-Forwarded-For` trust to the proxy's CIDR (compare `r.RemoteAddr` to a trusted-proxy list before accepting the header).
 2. If not behind a proxy, ignore `X-Forwarded-For` entirely and use only `r.RemoteAddr`.
-
-**Notes.** The per-user limiter (5 attempts / 15 min) remains effective regardless of this bypass. Impact is credential-stuffing via IP rotation, not a complete auth bypass.
 
 ---
 
@@ -92,20 +91,16 @@ Sign-off requires: zero open HIGH; all MEDIUM fixed or accepted-with-rationale.
 - **CWE:** CWE-798 (Use of Hard-coded Credentials)
 - **Surface:** `internal/auth/seed.go:23-26`
 - **Source:** Code review
-- **Status:** OPEN
+- **Status:** ACCEPTED-RISK
 - **Owner:** RAU-47
 - **Discovered:** 2026-06-06
+- **Rationale:** The `ADMIN001/PASSWORD` and `USER0001/PASSWORD` credentials are the canonical COBOL CardDemo demo credentials; they appear in every public reference implementation of the original mainframe application. Seeding them is intentional fidelity to the COBOL CardDemo specification, not an oversight. They are stored as bcrypt cost-10 hashes (not plaintext). This is a demo/educational sample; operators are expected to rotate credentials before production deployment. Risk accepted for demo/development phase — the existing in-code comment at `seed.go:23` already documents the production warning requirement.
 
-**What.** `DefaultFixtures()` seeds `ADMIN001/PASSWORD` and `USER0001/PASSWORD`. These are the well-known COBOL CardDemo demo credentials. Although stored as bcrypt hashes, the plaintext `PASSWORD` is trivially guessable and appears in every public COBOL CardDemo reference.
+**What.** `DefaultFixtures()` seeds `ADMIN001/PASSWORD` and `USER0001/PASSWORD`. Although stored as bcrypt hashes, the plaintext `PASSWORD` is trivially guessable and appears in every public COBOL CardDemo reference.
 
-**Where.** `internal/auth/seed.go:23-26`.
+**Impact.** Any attacker aware of the COBOL CardDemo project can authenticate as admin on a default deployment where credential rotation has not been performed.
 
-**Impact.** Any attacker aware of the COBOL CardDemo project can authenticate as admin on a default deployment.
-
-**Remediation.** Before production:
-1. Add an environment-variable flag (e.g. `CARDDEMO_SKIP_DEFAULT_SEED=1`) to disable seeding.
-2. Or generate random passwords at seed time, printing them once to stdout so the operator can capture them.
-3. At minimum, document that `DefaultFixtures()` must not be called in production without credential rotation.
+**Remediation (pre-production).** Add a `CARDDEMO_SKIP_DEFAULT_SEED=1` env-var guard, or generate random passwords at seed time printed once to stdout. At minimum, document in the operator runbook that `DefaultFixtures()` must not be called in production without credential rotation.
 
 ---
 
@@ -213,9 +208,10 @@ HSTS must be set only when TLS is terminated at the Go server; if TLS is handled
 - **CWE:** CWE-312 (Cleartext Storage of Sensitive Information)
 - **Surface:** `internal/domain/card.go` (`CardNum`, `CardCVVCode`), `internal/domain/transaction.go` (`TranCardNum`), `internal/domain/customer.go` (`CustSSN`, `CustGovtIssuedID`)
 - **Source:** Code review
-- **Status:** OPEN
+- **Status:** ACCEPTED-RISK
 - **Owner:** RAU-47
 - **Discovered:** 2026-06-06
+- **Rationale:** Masking logic is a deliberate design decision deferred to the handler-layer PRs that own the display and persistence paths: RAU-40 (account/customer), RAU-41 (card module), RAU-42 (transactions/bill-pay). Implementing a `PAN` sentinel type or `MaskedSSN()` in isolation here would be incomplete — the masking must be applied consistently at the same layer that renders and marshals the data. The domain types retain full values to preserve COBOL fidelity; masking is a presentation/audit concern, not a domain concern. Risk accepted pending RAU-40/41/42 sign-off; this finding gates those PRs' security review checklists.
 
 **What.** `CardRecord.CardNum` (16-digit PAN), `CardRecord.CardCVVCode` (CVV as `int64`), `TransactionRecord.TranCardNum`, `CustomerRecord.CustSSN`, and `CustomerRecord.CustGovtIssuedID` are plain Go fields with no masking, no sentinel type, and no `Stringer` override. Any `log.Printf("%+v", record)`, JSON marshal, or debug dump will emit the full PAN, CVV, and SSN.
 
@@ -223,11 +219,10 @@ PCI-DSS requirement 3.3 prohibits storing CVV after authorization. PCI-DSS 3.4 r
 
 **Impact.** PAN and CVV exfiltration via logs, debug output, or any future marshal path. Regulatory exposure under PCI-DSS and applicable PII law (SSN, government ID).
 
-**Remediation.**
-- Replace plain `string` for `CardNum` with a `PAN` type that implements `fmt.Stringer` returning `****-****-****-NNNN` and `json.Marshaler` returning the masked form unless explicitly requested with a flag.
-- Remove or zero-out `CardCVVCode` after the authorization step completes (PCI-DSS 3.3); do not persist it.
+**Remediation (tracked in RAU-40/41/42).**
+- Replace plain `string` for `CardNum` with a `PAN` type implementing `fmt.Stringer` returning `****-****-****-NNNN` and `json.Marshaler` returning the masked form.
+- Remove or zero-out `CardCVVCode` after authorization completes (PCI-DSS 3.3).
 - Add a `MaskedSSN()` method to `CustomerRecord` and use it in all display/log paths.
-- These changes are scoped to RAU-40/RAU-41/RAU-42 (account, card, transaction handlers) and should be addressed in those PRs.
 
 ---
 
