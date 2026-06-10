@@ -170,7 +170,7 @@ Because the user store is currently in-memory, "restoring state" means restartin
 
 ```bash
 # Just restart the server — default users are always re-seeded at startup.
-make run-web
+go run ./cmd/carddemo
 ```
 
 ### Restore batch data files from mainframe export
@@ -195,7 +195,7 @@ go run ./cmd/batch import --all --input-dir /backup/
 ```bash
 # 1. Stop the server
 # 2. Restart — in-memory store is cleared and default users re-seeded
-make run-web
+go run ./cmd/carddemo
 ```
 
 ---
@@ -235,7 +235,7 @@ curl -b /tmp/cookies -c /tmp/cookies \
 **Fix:**
 
 ```bash
-CARDDEMO_INSECURE_COOKIES=1 make run-web
+CARDDEMO_INSECURE_COOKIES=1 go run ./cmd/carddemo
 ```
 
 ---
@@ -323,7 +323,7 @@ make test      — run the full test suite
 make lint      — run golangci-lint
 make vet       — run go vet
 make tidy      — go mod tidy
-make run-web   — start cmd/carddemo on :8080
+make run-web   — start cmd/web health-check stub on :8080 (pending RAU-43; use `go run ./cmd/carddemo` for login)
 make run-batch — print cmd/batch usage
 make clean     — remove build artefacts
 make help      — list all targets
