@@ -20,7 +20,7 @@ Reference for running, seeding, restoring, and troubleshooting the CardDemo Go p
 Default users are seeded **automatically at web server startup** via `internal/auth.SeedDefaultUsers`. No separate seed command is needed.
 
 ```bash
-make run-web
+go run ./cmd/carddemo
 # Output: carddemo listening on :8080
 # Seeding happens in the first lines of startup; check logs if it fails.
 ```
@@ -51,9 +51,11 @@ cp app/data/EBCDIC/* /your/data/dir/
 ### Quickstart
 
 ```bash
-make run-web
-# Equivalent: go run ./cmd/carddemo
+go run ./cmd/carddemo
+# → carddemo listening on :8080
 ```
+
+> **`make run-web` vs `cmd/carddemo`:** `make run-web` starts `cmd/web`, which only serves `GET /healthz` and has no user seeding or login routes (stub pending RAU-43). Use `go run ./cmd/carddemo` for the working auth + admin server today.
 
 Navigates to: `http://localhost:8080/login`
 

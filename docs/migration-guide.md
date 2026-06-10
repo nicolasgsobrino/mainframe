@@ -9,11 +9,12 @@ This guide maps every legacy artifact — COBOL program, copybook, and JCL job �
 1. [Architecture overview](#architecture-overview)
 2. [Online transaction mapping](#online-transaction-mapping)
 3. [Batch program mapping](#batch-program-mapping)
-4. [JCL-to-subcommand mapping](#jcl-to-subcommand-mapping)
-5. [Copybook-to-Go struct mapping](#copybook-to-go-struct-mapping)
-6. [Data type mapping (COBOL → Go)](#data-type-mapping)
-7. [Authentication migration](#authentication-migration)
-8. [Persistence migration](#persistence-migration)
+4. [Utility and out-of-scope programs](#utility-and-out-of-scope-programs)
+5. [JCL-to-subcommand mapping](#jcl-to-subcommand-mapping)
+6. [Copybook-to-Go struct mapping](#copybook-to-go-struct-mapping)
+7. [Data type mapping (COBOL → Go)](#data-type-mapping)
+8. [Authentication migration](#authentication-migration)
+9. [Persistence migration](#persistence-migration)
 
 ---
 
@@ -117,6 +118,51 @@ Each COBOL batch program is replaced by a Go function wired to a `cmd/batch` sub
 | `CBSTM03B.CBL` | Report file | `report-file` | `internal/batch` | Stub (RAU-44) |
 | `CBEXPORT.cbl` | Data export | `export` | `internal/batch` | Stub (RAU-44) |
 | `CBIMPORT.cbl` | Data import | `import` | `internal/batch` | Stub (RAU-44) |
+
+---
+
+## Utility and out-of-scope programs
+
+The tables above cover the 29 programs that map directly to the base Go port (17 online + 12 batch). The remaining 15 programs fall into two categories: base utilities and optional-module programs. All 44 source files are accounted for below.
+
+### Base utility programs (`app/cbl/`)
+
+| COBOL program | Function | Go equivalent | Notes |
+|---|---|---|---|
+| `COBSWAIT.cbl` | Timer/wait utility | _(not ported)_ | Used by `WAITSTEP.jcl` to pause a job stream. Equivalent: `sleep` in a shell script or a scheduler delay. |
+| `CSUTLDTC.cbl` | Date conversion utility | `internal/cobolfmt` | Date decode/encode logic is absorbed into `internal/cobolfmt/date.go`; no standalone binary. |
+
+### Optional-module programs (not in scope for base port)
+
+The CardDemo repo ships three optional modules — IMS/DB2/MQ authorizations, DB2 transaction types, and VSAM+MQ account extraction. None of these are included in the Go port's base scope.
+
+#### `app/app-authorization-ims-db2-mq/cbl/` — Pending authorization module
+
+| COBOL program | Function | Status |
+|---|---|---|
+| `COPAUS0C.cbl` | Pending Authorization Summary (CICS) | Not ported — optional module |
+| `COPAUS1C.cbl` | Pending Authorization Details (CICS) | Not ported — optional module |
+| `COPAUS2C.cbl` | Process Authorization Requests (CICS, MQ trigger) | Not ported — optional module |
+| `COPAUA0C.cbl` | Authorization processing (CICS) | Not ported — optional module |
+| `CBPAUP0C.cbl` | Batch purge of expired authorizations | Not ported — optional module |
+| `PAUDBLOD.CBL` | IMS DB load utility | Not ported — optional module |
+| `PAUDBUNL.CBL` | IMS DB unload utility | Not ported — optional module |
+| `DBUNLDGS.CBL` | DB2 unload utility | Not ported — optional module |
+
+#### `app/app-transaction-type-db2/cbl/` — DB2 transaction type management module
+
+| COBOL program | Function | Status |
+|---|---|---|
+| `COTRTLIC.cbl` | Transaction Type List/Update/Delete (CICS, `CTLI`) | Not ported — optional module |
+| `COTRTUPC.cbl` | Transaction Type Add/Edit (CICS, `CTTU`) | Not ported — optional module |
+| `COBTUPDT.cbl` | Maintain transaction type table (batch `MNTTRDB2`) | Not ported — optional module |
+
+#### `app/app-vsam-mq/cbl/` — MQ account extraction module
+
+| COBOL program | Function | Status |
+|---|---|---|
+| `COACCT01.cbl` | Account details inquiry via MQ (`CDRA`) | Not ported — optional module |
+| `CODATE01.cbl` | System date inquiry via MQ (`CDRD`) | Not ported — optional module |
 
 ---
 

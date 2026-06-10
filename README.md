@@ -4,7 +4,7 @@ A faithful, modernised re-implementation of the [AWS Mainframe Modernization Car
 
 ```
 module: github.com/aws-samples/aws-mainframe-modernization-carddemo
-go:     1.21+
+go:     1.26.4
 ```
 
 ---
@@ -49,7 +49,7 @@ graph TD
 
 ## Prerequisites
 
-- Go 1.21 or later (`go version`)
+- Go 1.26.4 or later (`go version`)
 - `make` (optional but used throughout this guide)
 
 ---
@@ -64,9 +64,10 @@ cd aws-mainframe-modernization-carddemo
 # 2. Build everything
 make build
 
-# 3. Start the web server
-#    Default users are seeded automatically on first startup.
-make run-web
+# 3. Start the auth + admin server (seeds ADMIN001 / USER0001 automatically)
+#    NOTE: `make run-web` starts cmd/web — a health-check-only stub pending RAU-43.
+#    The working login binary today is cmd/carddemo:
+go run ./cmd/carddemo
 # → carddemo listening on :8080
 
 # 4. Open http://localhost:8080/login
@@ -89,7 +90,7 @@ CARDDEMO_ADDR=:9090 go run ./cmd/carddemo
 | `ADMIN001` | `PASSWORD` | Admin | ADMIN001 in `AWS.M2.CARDDEMO.USRSEC.PS` |
 | `USER0001` | `PASSWORD` | Regular user | USER0001 in `AWS.M2.CARDDEMO.USRSEC.PS` |
 
-Users are seeded at server startup from `internal/auth.DefaultFixtures()`. Passwords are stored as bcrypt hashes; the plaintext `PASSWORD` only appears at seed time and is never persisted.
+Users are seeded at server startup via `internal/auth.SeedDefaultUsers`. Passwords are stored as bcrypt hashes; the plaintext `PASSWORD` only appears at seed time and is never persisted.
 
 ---
 
@@ -165,7 +166,7 @@ make vet        # go vet
 make tidy       # go mod tidy
 
 # Disable the Secure cookie flag for local HTTP testing
-CARDDEMO_INSECURE_COOKIES=1 make run-web
+CARDDEMO_INSECURE_COOKIES=1 go run ./cmd/carddemo
 ```
 
 ---
