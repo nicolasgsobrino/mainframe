@@ -429,8 +429,9 @@
                15  ACCT-UPDATE-REISSUE-DATE            PIC X(10).
                15  ACCT-UPDATE-CURR-CYC-CREDIT         PIC S9(10)V99.
                15  ACCT-UPDATE-CURR-CYC-DEBIT          PIC S9(10)V99.
+               15  ACCT-UPDATE-ADDR-ZIP                PIC X(10).
                15  ACCT-UPDATE-GROUP-ID                PIC X(10).
-               15  FILLER                              PIC X(188).
+               15  FILLER                              PIC X(178).
           05 CUST-UPDATE-RECORD.
       *****************************************************************
       *    Data-structure for  CUSTOMER entity (RECLN 300)
@@ -3998,6 +3999,8 @@
                   ACUP-NEW-REISSUE-DAY
            DELIMITED BY SIZE
                                        INTO ACCT-UPDATE-REISSUE-DATE
+      * Account-level Zip (not edited on screen - carry existing value)
+           MOVE ACCT-ADDR-ZIP            TO ACCT-UPDATE-ADDR-ZIP
       * Account Group
            MOVE ACUP-NEW-GROUP-ID        TO ACCT-UPDATE-GROUP-ID
 
