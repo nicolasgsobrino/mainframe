@@ -1,0 +1,282 @@
+"""
+Motor de simulación del ciclo de remediación (6 fases) y del agente Devin.
+
+ServiceNow = plano de control (estado, gates HITL). Devin = capa agente que en
+cada fase produce artefactos (Impact Graph, MVT, resultados de test, IaC de lab,
+PR, informe de auditoría). La ejecución técnica se delega a herramientas externas
+(SCCM/BigFix/Ansible/CI-CD) que aquí se simulan.
+"""
+from __future__ import annotations
+import random
+from datetime import datetime, timedelta
+
+from .seed import NOW, iso
+
+PHASES = [
+    ("detection", "Detección e ingesta"),
+    ("prioritization", "Priorización"),
+    ("pre_implementation", "Pre-implementación (MVT)"),
+    ("lab_testing", "Pruebas en laboratorio"),
+    ("prototype", "Validación en prototipo"),
+    ("deployment", "Despliegue por anillos e informe"),
+]
+PHASE_IDS = [p[0] for p in PHASES]
+
+
+def _rng(task_id: str) -> random.Random:
+    return random.Random(hash(task_id) & 0xFFFFFFFF)
+
+
+# ---------------------------------------------------------------------------
+# Impact Graph (blast radius)
+# ---------------------------------------------------------------------------
+def build_impact_graph(task, cis, edges):
+    ci_by_id = {c["id"]: c for c in cis}
+    root_id = task["ci_id"]
+    nodes = {}
+    graph_edges = []
+
+    def add(cid):
+        if cid in ci_by_id and cid not in nodes:
+            c = ci_by_id[cid]
+            nodes[cid] = {
+                "id": cid, "name": c["name"], "ci_class": c["ci_class"],
+                "criticality": c.get("criticality", "medium"),
+                "environment": c.get("environment", "-"),
+                "is_root": cid == root_id,
+            }
+
+    add(root_id)
+    # BFS over relationships in both directions (transitive impact)
+    frontier = [root_id]
+    seen = {root_id}
+    depth = 0
+    while frontier and depth < 4:
+        nxt = []
+        for cid in frontier:
+            for e in edges:
+                if e["source"] == cid and e["target"] not in seen:
+                    add(cid); add(e["target"])
+                    graph_edges.append(e); seen.add(e["target"]); nxt.append(e["target"])
+                elif e["target"] == cid and e["source"] not in seen:
+                    add(cid); add(e["source"])
+                    graph_edges.append(e); seen.add(e["source"]); nxt.append(e["source"])
+        frontier = nxt
+        depth += 1
+
+    affected_layers = sorted({n["ci_class"] for n in nodes.values()})
+    return {
+        "nodes": list(nodes.values()),
+        "edges": [{"source": e["source"], "target": e["target"], "type": e["type"]}
+                  for e in graph_edges if e["source"] in nodes and e["target"] in nodes],
+        "affected_layers": affected_layers,
+        "affected_count": len(nodes),
+        "business_services": [n["name"] for n in nodes.values() if n["ci_class"] == "business_service"],
+    }
+
+
+# ---------------------------------------------------------------------------
+# MVT — Minimum Viable Test Plan (fase 3)
+# ---------------------------------------------------------------------------
+LAYER_TO_CLASSES = {
+    "os": ["server"], "database": ["database"], "middleware": ["middleware"],
+    "runtime": ["runtime"], "application": ["application"], "external": ["business_service"],
+}
+
+
+def build_mvt(task, impact, catalog):
+    rng = _rng(task["id"] + "mvt")
+    layers = set(impact["affected_layers"])
+    exposed = task.get("exposed")
+    track = task["track"]
+    remediation_type = "dependency" if track == "B" else "patch"
+
+    selected, excluded = [], []
+    for tc in catalog:
+        include = False
+        reason = ""
+        applies_layer = tc["layer"]
+        # regla determinista: incluir si la capa está afectada
+        layer_present = False
+        if applies_layer == "os" and "server" in layers:
+            layer_present = True
+        elif applies_layer == "database" and "database" in layers:
+            layer_present = True
+        elif applies_layer == "middleware" and "middleware" in layers:
+            layer_present = True
+        elif applies_layer == "runtime" and "runtime" in layers:
+            layer_present = True
+        elif applies_layer == "application" and "application" in layers:
+            layer_present = True
+        elif applies_layer == "external" and exposed:
+            layer_present = True
+
+        # filtro por tipo de remediación
+        type_ok = tc["remediation_type"] in ("any", remediation_type)
+        # filtro por criticidad
+        crit_rank = {"low": 0, "medium": 1, "high": 2, "critical": 3, "any": 0}
+        crit_ok = crit_rank.get(tc["criticality"], 0) <= crit_rank.get(task["criticality"], 1) or tc["criticality"] == "any"
+
+        if layer_present and type_ok and crit_ok:
+            include = True
+            reason = f"Capa '{applies_layer}' presente en el blast radius y aplica a remediación '{remediation_type}'."
+        elif layer_present and type_ok and not crit_ok:
+            reason = f"Capa afectada pero criticidad de la prueba ({tc['criticality']}) superior a la del cambio; excluida para MVT."
+        elif not layer_present:
+            reason = f"Capa '{applies_layer}' no presente en el blast radius."
+        else:
+            reason = f"Tipo de remediación '{remediation_type}' no aplica a esta prueba."
+
+        entry = {**tc, "reason": reason}
+        (selected if include else excluded).append(entry)
+
+    # Track B siempre añade SCA re-scan y regresión selectiva
+    confidence = min(96, 60 + len(selected) * 3 + (10 if track == "B" else 6))
+    return {
+        "selected": selected,
+        "excluded": excluded,
+        "remediation_type": remediation_type,
+        "confidence": confidence,
+        "rationale": (
+            f"Devin construyó el Impact Graph ({impact['affected_count']} CIs, capas: "
+            f"{', '.join(impact['affected_layers'])}) y propuso el conjunto mínimo de "
+            f"{len(selected)} pruebas que preserva la confianza del despliegue, excluyendo "
+            f"{len(excluded)} pruebas no aplicables. Aprobación final: owner técnico / QA / SRE (HITL)."
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Lab testing (fase 4)
+# ---------------------------------------------------------------------------
+def build_lab_results(task, mvt, force_pass=False):
+    rng = _rng(task["id"] + "lab")
+    results = []
+    for tc in mvt["selected"]:
+        # 92% pass; algún fallo ocasional en cambios de alta criticidad
+        fail_chance = 0.0 if force_pass else (0.10 if task["criticality"] in ("critical", "high") else 0.04)
+        status = "fail" if rng.random() < fail_chance else "pass"
+        results.append({
+            "test_id": tc["id"], "name": tc["name"], "layer": tc["layer"],
+            "tool": tc["tool"], "status": status,
+            "duration_s": rng.randint(4, 120),
+            "evidence": f"{tc['evidence']}://evidence/{task['id']}/{tc['id']}",
+        })
+    passed = sum(1 for r in results if r["status"] == "pass")
+    verdict = "pass" if passed == len(results) else "fail"
+    return {
+        "results": results, "passed": passed, "total": len(results),
+        "verdict": verdict,
+        "patch_tests": [r for r in results if r["layer"] in ("os", "database", "middleware", "runtime")],
+        "app_tests": [r for r in results if r["layer"] in ("application", "external")],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Prototype (fase 5) — IaC lab blueprint
+# ---------------------------------------------------------------------------
+def build_prototype(task, impact):
+    rng = _rng(task["id"] + "proto")
+    components = []
+    for layer in impact["affected_layers"]:
+        if layer == "server":
+            components.append({"type": "compute", "tool": "Terraform", "spec": "RHEL 8.8 / 4 vCPU / 16GB"})
+        elif layer == "database":
+            components.append({"type": "database", "tool": "Docker", "spec": "Oracle 19c (seed data)"})
+        elif layer == "middleware":
+            components.append({"type": "middleware", "tool": "Ansible", "spec": "Tomcat 9 / WebLogic"})
+        elif layer == "runtime":
+            components.append({"type": "runtime", "tool": "Ansible", "spec": "OpenJDK 17"})
+        elif layer == "application":
+            components.append({"type": "application", "tool": "Helm", "spec": f"{task['ci_name']} (staging build)"})
+    approach = "ephemeral-iac" if task["track"] == "B" or rng.random() > 0.4 else "reuse-staging"
+    verdict = "pass"
+    return {
+        "approach": approach,
+        "lab_blueprint": components,
+        "provision_tool": "Terraform + Ansible" if approach == "ephemeral-iac" else "Reused staging env",
+        "metrics": {
+            "cpu_peak_pct": rng.randint(35, 78),
+            "mem_peak_pct": rng.randint(40, 82),
+            "error_rate_pct": round(rng.uniform(0.0, 0.4), 2),
+            "p95_latency_ms": rng.randint(120, 480),
+        },
+        "verdict": verdict,
+        "teardown": "controlled-destroy" if approach == "ephemeral-iac" else "kept-for-analysis",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Deployment (fase 6) — rings + audit
+# ---------------------------------------------------------------------------
+RING_DEFS = [
+    (0, "Anillo 0 · Interno / no crítico"),
+    (1, "Anillo 1 · Producción bajo impacto"),
+    (2, "Anillo 2 · Producción criticidad media"),
+    (3, "Anillo 3 · Producción crítica"),
+    (4, "Anillo 4 · Resto del alcance"),
+]
+
+
+def build_deployment(task, impact, progress_rings: int):
+    rng = _rng(task["id"] + "deploy")
+    total_assets = max(6, impact["affected_count"] * rng.randint(2, 6))
+    executor = {
+        "A": rng.choice(["Ansible", "BigFix", "SCCM", "Azure Update Manager"]),
+        "B": "CI/CD (GitHub Actions)",
+    }[task["track"]]
+    rings = []
+    remaining = total_assets
+    for i, (rn, label) in enumerate(RING_DEFS):
+        share = [0.05, 0.10, 0.25, 0.35, 0.25][i]
+        assets = max(1, round(total_assets * share))
+        if i == len(RING_DEFS) - 1:
+            assets = max(1, remaining)
+        remaining -= assets
+        if i < progress_rings:
+            status = "completed"
+        elif i == progress_rings:
+            status = "in_progress"
+        else:
+            status = "pending"
+        rings.append({
+            "ring": rn, "label": label, "assets": assets, "status": status,
+            "post_checks": ["version-assert", "health-check", "smoke-test", "synthetic-probe"] if status == "completed" else [],
+            "result": "healthy" if status == "completed" else "-",
+        })
+    exceptions = []
+    if rng.random() > 0.5:
+        exceptions.append({
+            "asset": f"{task['ci_name']}-legacy-{rng.randint(1,9):02d}",
+            "reason": rng.choice(["Sin ventana disponible", "Congelado por cambio", "Dependencia de proveedor", "Apagado"]),
+            "owner": task["owner"], "expires": iso(NOW + timedelta(days=30)),
+            "compensating_control": "WAF rule + network isolation",
+        })
+    pr_url = None
+    if task["track"] == "B":
+        pr_url = f"https://github.com/{'bank-org'}/{task['ci_name']}/pull/{rng.randint(200,999)}"
+    return {
+        "executor": executor, "total_assets": total_assets, "rings": rings,
+        "exceptions": exceptions, "pr_url": pr_url,
+        "strategy": "risk-based progressive rings",
+    }
+
+
+def build_audit(task, impact, mvt, lab, proto, deploy):
+    return {
+        "report_id": f"AUD-{task['id'][-5:]}",
+        "generated_at": iso(NOW),
+        "trace": [
+            {"step": "Finding", "ref": task["cve"], "detail": f"Detectado por escáneres, VI {task['vulnerable_item_id']}"},
+            {"step": "Vulnerable Item", "ref": task["vulnerable_item_id"], "detail": f"Riesgo {task['risk_score']}/100, track {task['track']}"},
+            {"step": "Impact Graph", "ref": f"{impact['affected_count']} CIs", "detail": ", ".join(impact["affected_layers"])},
+            {"step": "Test Plan (MVT)", "ref": f"{len(mvt['selected'])} tests", "detail": f"Confianza {mvt['confidence']}%"},
+            {"step": "Lab results", "ref": f"{lab['passed']}/{lab['total']}", "detail": f"Veredicto {lab['verdict']}"},
+            {"step": "Prototype", "ref": proto["approach"], "detail": f"Veredicto {proto['verdict']}"},
+            {"step": "Change Request", "ref": task["change_type"], "detail": "Aprobado (CAB)"},
+            {"step": "Deployment", "ref": deploy["executor"], "detail": f"{deploy['total_assets']} activos en {len(deploy['rings'])} anillos"},
+            {"step": "Rescan & closure", "ref": "verified", "detail": "Vulnerable Item → fixed"},
+        ],
+        "dora_relevant": any(n for n in impact["nodes"] if n["ci_class"] == "business_service"),
+        "evidences_count": len(mvt["selected"]) + len(deploy["rings"]) + 3,
+    }
