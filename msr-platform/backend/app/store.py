@@ -59,6 +59,8 @@ class Store:
         self.pipelines[tid] = {
             "task_id": tid, "phase_index": phase_index,
             "statuses": statuses, "rings_done": rings_done,
+            "rolled_back_rings": [],
+            "rollback": {"status": "armed", "triggered": False},
             "artifacts": {"impact": impact, "mvt": mvt, "lab": lab,
                           "prototype": proto, "deployment": deploy, "audit": audit},
             "logs": logs,
@@ -204,14 +206,17 @@ class Store:
         if pid == "deployment":
             if p["rings_done"] < len(engine.RING_DEFS):
                 p["rings_done"] += 1
-                deploy = engine.build_deployment(t, p["artifacts"]["impact"], p["rings_done"])
-                p["artifacts"]["deployment"] = deploy
-                p["artifacts"]["audit"] = engine.build_audit(
-                    t, p["artifacts"]["impact"], p["artifacts"]["mvt"],
-                    p["artifacts"]["lab"], p["artifacts"]["prototype"], deploy)
+                deploy = self._rebuild_deploy(tid)
                 ring = deploy["rings"][p["rings_done"] - 1]
+                self._log(tid, {"actor": "Owner (HITL)", "phase": pid,
+                                "msg": f"[HITL] Aprobado despliegue de {ring['label']} ({ring['assets']} activos)."})
+                # registrar las acciones ejecutadas (evidencia de ejecución)
+                if ring.get("actions"):
+                    for s in ring["actions"]["steps"]:
+                        self._log(tid, {"actor": s["actor"], "phase": pid,
+                                        "msg": f"$ {s['command']} → {s['output']} ({s['duration_s']}s)"})
                 self._log(tid, {"actor": "ServiceNow", "phase": pid,
-                                "msg": f"[HITL] Aprobado avance. {ring['label']}: {ring['assets']} activos desplegados y validados."})
+                                "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy."})
                 if p["rings_done"] >= len(engine.RING_DEFS):
                     t["status"] = "remediated"
                     vi = self.vulnerable_items[t["vulnerable_item_id"]]
@@ -232,6 +237,68 @@ class Store:
             for l in self._phase_logs(nxt, t, a["impact"], a["mvt"], a["lab"], a["prototype"], a["deployment"]):
                 self._log(tid, l)
         return self.task_detail(tid)
+
+    # ------------------------------------------------------------------
+    def _rebuild_deploy(self, tid):
+        """Reconstruye el despliegue preservando estado de rollback y auditoría."""
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        a = p["artifacts"]
+        deploy = engine.build_deployment(
+            t, a["impact"], p["rings_done"],
+            rollback=p["rollback"], rolled_back_rings=p["rolled_back_rings"])
+        a["deployment"] = deploy
+        a["audit"] = engine.build_audit(t, a["impact"], a["mvt"], a["lab"], a["prototype"], deploy)
+        return deploy
+
+    def rollback(self, tid, reason=None, trigger="manual"):
+        """Ejecuta el rollback del último anillo desplegado (manual o automático)."""
+        if tid not in self.pipelines:
+            return None
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        if p["rings_done"] <= 0:
+            return self.task_detail(tid)
+        ring_no = engine.RING_DEFS[p["rings_done"] - 1][0]
+        plan = p["artifacts"]["deployment"]["rollback_plan"]
+        reason = reason or ("Fallo de post-checks / breach de health-check" if trigger == "auto" else "Rollback solicitado por el owner")
+        self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
+                        "msg": f"⟲ ROLLBACK ({trigger}) del anillo {ring_no}. Motivo: {reason}. RTO objetivo {plan['rto_minutes']} min."})
+        # ejecutar los pasos del plan de rollback (evidencia)
+        for s in plan["steps"]:
+            self._log(tid, {"actor": s["actor"], "phase": "deployment",
+                            "msg": f"$ {s['command']} → {s['desc']}"})
+        # marcar anillo revertido y retroceder el progreso
+        if ring_no not in p["rolled_back_rings"]:
+            p["rolled_back_rings"].append(ring_no)
+        p["rings_done"] -= 1
+        p["rollback"] = {
+            "status": "completed", "triggered": True, "trigger_type": trigger,
+            "reason": reason, "ring": ring_no, "ts": iso(NOW),
+            "restored_version": plan["target_version"],
+            "verdict": "healthy tras rollback",
+        }
+        # el VI vuelve a estar abierto/en riesgo
+        vi = self.vulnerable_items[t["vulnerable_item_id"]]
+        vi["status"] = "in_progress"
+        if t.get("status") == "remediated":
+            t["status"] = "in_flight"
+        self._rebuild_deploy(tid)
+        self._log(tid, {"actor": "Devin", "phase": "deployment",
+                        "msg": f"Rollback completado. Versión restaurada: {plan['target_version']}. Servicio healthy; anillo {ring_no} marcado como revertido para re-análisis."})
+        return self.task_detail(tid)
+
+    def simulate_incident(self, tid):
+        """Simula una anomalía post-despliegue que dispara rollback automático."""
+        if tid not in self.pipelines:
+            return None
+        p = self.pipelines[tid]
+        if p["rings_done"] <= 0:
+            return self.task_detail(tid)
+        ring_no = engine.RING_DEFS[p["rings_done"] - 1][0]
+        self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
+                        "msg": f"⚠ Anomalía detectada en anillo {ring_no}: error rate 4.7% (SLO 1%), p95 1.8s. Post-check FAILED → disparando rollback automático."})
+        return self.rollback(tid, reason="Post-check falló: error rate 4.7% > SLO, p95 1.8s", trigger="auto")
 
     def _log(self, tid, entry):
         entry = {**entry, "ts": iso(NOW), "task_id": tid}

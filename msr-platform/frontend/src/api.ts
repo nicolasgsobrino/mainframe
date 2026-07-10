@@ -11,6 +11,10 @@ export const api = {
   task: (id: string): Promise<TaskDetail> => fetch(`/api/tasks/${id}`).then(j),
   approve: (id: string): Promise<TaskDetail> =>
     fetch(`/api/tasks/${id}/approve`, { method: "POST" }).then(j),
+  rollback: (id: string): Promise<TaskDetail> =>
+    fetch(`/api/tasks/${id}/rollback`, { method: "POST" }).then(j),
+  simulateIncident: (id: string): Promise<TaskDetail> =>
+    fetch(`/api/tasks/${id}/simulate-incident`, { method: "POST" }).then(j),
   cmdb: (): Promise<{ cis: CI[]; edges: Edge[] }> => fetch("/api/cmdb").then(j),
   catalog: (): Promise<TestCase[]> => fetch("/api/catalog").then(j),
   vitems: (): Promise<VulnerableItem[]> => fetch("/api/vulnerable-items").then(j),

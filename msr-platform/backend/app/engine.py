@@ -218,31 +218,146 @@ RING_DEFS = [
 ]
 
 
-def build_deployment(task, impact, progress_rings: int):
-    rng = _rng(task["id"] + "deploy")
-    total_assets = max(6, impact["affected_count"] * rng.randint(2, 6))
-    executor = {
+def _deploy_executor(task, rng):
+    return {
         "A": rng.choice(["Ansible", "BigFix", "SCCM", "Azure Update Manager"]),
         "B": "CI/CD (GitHub Actions)",
     }[task["track"]]
+
+
+def _prev_version(task, vi_version=None):
+    v = task.get("vulnerable_version") or vi_version or "1.0.0"
+    return v
+
+
+def _fixed_version(version):
+    """Deriva una versión 'parcheada' incrementando el patch."""
+    parts = str(version).replace("v", "").split(".")
+    try:
+        parts = [int(p) for p in parts[:3]]
+        while len(parts) < 3:
+            parts.append(0)
+        parts[-1] += 1
+        return ".".join(str(p) for p in parts)
+    except ValueError:
+        return str(version) + "-patched"
+
+
+def build_ring_actions(task, ring_no, assets, executor, ts_base):
+    """Acciones concretas que ejecutan Devin + el ejecutor técnico para un anillo.
+
+    Devuelve una lista ordenada de pasos con comando, actor, herramienta,
+    salida simulada, estado y duración — para que la demo muestre que las
+    acciones se ejecutaron realmente (no solo que 'se aprobó').
+    """
+    rng = _rng(task["id"] + f"actions{ring_no}")
+    prev = _prev_version(task)
+    fixed = _fixed_version(prev)
+    comp = task.get("component", task["ci_name"])
+    ci = task["ci_name"]
+    steps = []
+
+    def add(actor, tool, command, output, duration=None):
+        steps.append({
+            "seq": len(steps) + 1, "actor": actor, "tool": tool,
+            "command": command, "output": output, "status": "ok",
+            "duration_s": duration if duration is not None else rng.randint(2, 40),
+        })
+
+    if task["track"] == "B":
+        add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-bump", f"Switched to branch 'fix/{task['cve'].lower()}-bump'")
+        add("Devin", "CI/CD", f"bump {comp}: {prev} → {fixed}", f"1 file changed · lockfile updated")
+        add("Devin", "CI/CD", f"gh pr merge --squash (ring {ring_no})", "Merged. Deploy workflow triggered.")
+        add("GitHub Actions", "Docker", f"docker build -t {ci}:{fixed} .", f"Successfully tagged {ci}:{fixed}")
+        add("GitHub Actions", "Helm", f"helm upgrade {ci} --set image.tag={fixed} --set canary.weight={[5,10,25,35,100][min(ring_no,4)]}", f"Rollout deployed to {assets} pods")
+    else:
+        add("Devin", executor, f"snapshot create {ci} --pre-patch (ring {ring_no})", f"Snapshot snap-{rng.randint(10000,99999)} created for {assets} hosts")
+        add(executor, executor, f"deploy patch {comp} {prev} → {fixed} --limit ring{ring_no}", f"{assets} hosts targeted · maintenance window OK")
+        add(executor, "OS", f"install {comp}-{fixed}", f"{assets}/{assets} hosts updated")
+        add(executor, "OS", "systemctl restart affected-services", f"services restarted on {assets} hosts")
+
+    # Post-checks (evidencia de validación tras aplicar)
+    for chk in ["version-assert", "health-check", "smoke-test", "synthetic-probe"]:
+        add("Devin", "post-check", chk, f"{chk}: OK ({assets}/{assets})", rng.randint(1, 12))
+    return {"steps": steps, "from_version": prev, "to_version": fixed}
+
+
+def build_rollback_plan(task, impact):
+    """Plan de rollback armado desde el inicio (contemplación del rollback)."""
+    rng = _rng(task["id"] + "rbplan")
+    prev = _prev_version(task)
+    fixed = _fixed_version(prev)
+    ci = task["ci_name"]
+    comp = task.get("component", ci)
+    if task["track"] == "B":
+        strategy = "artifact-redeploy (imagen previa)"
+        steps = [
+            {"actor": "Devin", "tool": "Helm", "command": f"helm rollback {ci} <previous-revision>",
+             "desc": f"Redeploy de la imagen {ci}:{prev} (revisión estable anterior)."},
+            {"actor": "GitHub Actions", "tool": "CI/CD", "command": f"deploy {ci}:{prev} --canary.weight=100",
+             "desc": "Restablece el 100% del tráfico al artefacto sano."},
+            {"actor": "Devin", "tool": "post-check", "command": "health-check + smoke-test",
+             "desc": "Verifica salud tras el rollback."},
+        ]
+        snapshot_ref = f"registry/{ci}:{prev}"
+    else:
+        strategy = "snapshot-restore (VM / paquete)"
+        steps = [
+            {"actor": "Devin", "tool": "Ansible", "command": f"package downgrade {comp} {fixed} → {prev}",
+             "desc": f"Restaura la versión previa {comp}-{prev}."},
+            {"actor": "Ansible", "tool": "IaC", "command": "restore snapshot <pre-patch>",
+             "desc": "Restaura el snapshot tomado antes del parche si el downgrade no basta."},
+            {"actor": "Ansible", "tool": "OS", "command": "systemctl restart affected-services",
+             "desc": "Reinicia servicios y valida arranque."},
+            {"actor": "Devin", "tool": "post-check", "command": "health-check + synthetic-probe",
+             "desc": "Verifica salud tras el rollback."},
+        ]
+        snapshot_ref = f"snap-pre-{task['cve'].lower()}"
+    return {
+        "strategy": strategy,
+        "snapshot_ref": snapshot_ref,
+        "target_version": prev,
+        "from_version": fixed,
+        "rto_minutes": rng.choice([5, 8, 10, 15]),
+        "auto_trigger": "fallo de post-checks / breach de health-check tras un anillo",
+        "steps": steps,
+        "tested_in_lab": True,
+    }
+
+
+def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_back_rings=None):
+    rng = _rng(task["id"] + "deploy")
+    rolled_back_rings = set(rolled_back_rings or [])
+    total_assets = max(6, impact["affected_count"] * rng.randint(2, 6))
+    executor = _deploy_executor(task, rng)
     rings = []
     remaining = total_assets
+    ts_base = 0
     for i, (rn, label) in enumerate(RING_DEFS):
         share = [0.05, 0.10, 0.25, 0.35, 0.25][i]
         assets = max(1, round(total_assets * share))
         if i == len(RING_DEFS) - 1:
             assets = max(1, remaining)
         remaining -= assets
-        if i < progress_rings:
+        if rn in rolled_back_rings:
+            status = "rolled_back"
+        elif i < progress_rings:
             status = "completed"
         elif i == progress_rings:
             status = "in_progress"
         else:
             status = "pending"
+        actions = build_ring_actions(task, rn, assets, executor, ts_base) if status in ("completed", "rolled_back") else None
         rings.append({
             "ring": rn, "label": label, "assets": assets, "status": status,
-            "post_checks": ["version-assert", "health-check", "smoke-test", "synthetic-probe"] if status == "completed" else [],
-            "result": "healthy" if status == "completed" else "-",
+            "post_checks": ["version-assert", "health-check", "smoke-test", "synthetic-probe"] if status in ("completed", "rolled_back") else [],
+            "result": {"completed": "healthy", "rolled_back": "reverted", "in_progress": "-", "pending": "-"}[status],
+            "actions": actions,
+            "health": {
+                "error_rate_pct": round(rng.uniform(0.0, 0.3), 2),
+                "p95_latency_ms": rng.randint(120, 420),
+                "availability_pct": round(rng.uniform(99.9, 100.0), 2),
+            } if status == "completed" else None,
         })
     exceptions = []
     if rng.random() > 0.5:
@@ -259,6 +374,8 @@ def build_deployment(task, impact, progress_rings: int):
         "executor": executor, "total_assets": total_assets, "rings": rings,
         "exceptions": exceptions, "pr_url": pr_url,
         "strategy": "risk-based progressive rings",
+        "rollback_plan": build_rollback_plan(task, impact),
+        "rollback": rollback or {"status": "armed", "triggered": False},
     }
 
 

@@ -33,6 +33,16 @@ export default function TaskDetail() {
     const r = await api.approve(id!);
     setD(r); setSel(r.phase_index); setBusy(false);
   };
+  const rollback = async () => {
+    setBusy(true);
+    const r = await api.rollback(id!);
+    setD(r); setSel(r.phase_index); setBusy(false);
+  };
+  const simulate = async () => {
+    setBusy(true);
+    const r = await api.simulateIncident(id!);
+    setD(r); setSel(r.phase_index); setBusy(false);
+  };
 
   const canApprove = !done && (
     currentPhaseId !== "lab_testing" || a.lab.verdict === "pass"
@@ -135,7 +145,14 @@ export default function TaskDetail() {
           <div className="card p-4">
             <div className="text-sm font-semibold mb-1">Aprobación humana (HITL)</div>
             {done ? (
-              <div className="text-xs text-green-400">Tarea remediada. Vulnerable Item cerrado con evidencia de auditoría.</div>
+              <div className="space-y-3">
+                <div className="text-xs text-green-400">Tarea remediada. Vulnerable Item cerrado con evidencia de auditoría.</div>
+                <div className="text-xs text-gray-400">¿Anomalía detectada en producción tras el despliegue? Puedes ejecutar un rollback.</div>
+                <button disabled={busy} onClick={rollback}
+                  className="btn w-full justify-center btn-ghost border border-amber-500/40 text-amber-300 hover:bg-amber-500/10">
+                  {busy ? "Procesando…" : "⟲ Ejecutar rollback del último anillo"}
+                </button>
+              </div>
             ) : (
               <>
                 <div className="text-xs text-gray-400 mb-3">
@@ -151,6 +168,19 @@ export default function TaskDetail() {
                   className={`btn w-full justify-center ${canApprove ? "btn-brand" : "btn-ghost opacity-50 cursor-not-allowed"}`}>
                   {busy ? "Procesando…" : currentPhaseId === "deployment" ? "Aprobar y desplegar anillo" : "Aprobar fase y avanzar"}
                 </button>
+                {currentPhaseId === "deployment" && d.rings_done > 0 && (
+                  <div className="mt-3 pt-3 border-t border-line space-y-2">
+                    <div className="text-[11px] text-gray-500">Gestión de rollback (anillo {d.rings_done} desplegado)</div>
+                    <button disabled={busy} onClick={rollback}
+                      className="btn w-full justify-center btn-ghost border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs">
+                      ⟲ Rollback manual del anillo
+                    </button>
+                    <button disabled={busy} onClick={simulate}
+                      className="btn w-full justify-center btn-ghost border border-red-500/40 text-red-300 hover:bg-red-500/10 text-xs">
+                      ⚠ Simular incidente → rollback automático
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -285,6 +315,7 @@ function PhaseArtifacts({ phaseId, d }: { phaseId: string; d: TD }) {
     );
 
   // deployment
+  const rb = a.deployment.rollback;
   return (
     <>
       <Panel title="Fase 6 · Despliegue por anillos" sub={`Estrategia ${a.deployment.strategy} · ejecutor: ${a.deployment.executor} · ${a.deployment.total_assets} activos`}>
@@ -293,17 +324,7 @@ function PhaseArtifacts({ phaseId, d }: { phaseId: string; d: TD }) {
         )}
         <div className="space-y-2">
           {a.deployment.rings.map((r) => (
-            <div key={r.ring} className="flex items-center gap-3 bg-ink rounded-lg px-3 py-2 border border-line">
-              <span className={`chip ${r.status === "completed" ? "bg-green-500/15 text-green-400" : r.status === "in_progress" ? "bg-sky-500/15 text-sky-300" : "bg-gray-500/15 text-gray-400"}`}>
-                {r.status === "completed" ? "✓" : r.status === "in_progress" ? "▶" : "·"}
-              </span>
-              <div className="flex-1">
-                <div className="text-sm text-gray-200">{r.label}</div>
-                {r.post_checks.length > 0 && <div className="text-[11px] text-gray-500">post-checks: {r.post_checks.join(" · ")}</div>}
-              </div>
-              <span className="text-xs text-gray-400">{r.assets} activos</span>
-              {r.result !== "-" && <span className="chip bg-green-500/10 text-green-400">{r.result}</span>}
-            </div>
+            <RingRow key={r.ring} r={r} />
           ))}
         </div>
         {a.deployment.exceptions.length > 0 && (
@@ -317,6 +338,41 @@ function PhaseArtifacts({ phaseId, d }: { phaseId: string; d: TD }) {
           </div>
         )}
       </Panel>
+
+      <Panel title="Gestión de Rollback" sub={`Plan armado desde el inicio y probado en lab · estrategia: ${a.deployment.rollback_plan.strategy}`}>
+        {rb.triggered && (
+          <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="chip bg-amber-500/20 text-amber-300">ROLLBACK EJECUTADO</span>
+              <span className="chip bg-ink-panel text-gray-400">{rb.trigger_type === "auto" ? "automático" : "manual"}</span>
+              <span className="text-xs text-gray-500 ml-auto">anillo {rb.ring}</span>
+            </div>
+            <div className="text-xs text-amber-200">{rb.reason}</div>
+            <div className="text-xs text-gray-400 mt-1">Versión restaurada: <span className="font-mono text-gray-200">{rb.restored_version}</span> · {rb.verdict}</div>
+          </div>
+        )}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <Meta k="Estrategia" v={a.deployment.rollback_plan.strategy} />
+          <Meta k="RTO objetivo" v={`${a.deployment.rollback_plan.rto_minutes} min`} />
+          <Meta k="Versión estable" v={a.deployment.rollback_plan.target_version} />
+          <Meta k="Probado en lab" v={a.deployment.rollback_plan.tested_in_lab ? "Sí" : "No"} />
+        </div>
+        <div className="text-xs text-gray-500 mb-1">Disparo automático: {a.deployment.rollback_plan.auto_trigger}</div>
+        <div className="text-xs text-gray-500 mb-1 mt-3">Pasos del plan de rollback</div>
+        <div className="space-y-1">
+          {a.deployment.rollback_plan.steps.map((s, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs bg-ink rounded-lg px-3 py-2 border border-line">
+              <span className="chip bg-amber-500/15 text-amber-300 shrink-0">{i + 1}</span>
+              <span className={`chip shrink-0 ${s.actor === "Devin" ? "bg-brand/15 text-brand" : "bg-sky-500/15 text-sky-300"}`}>{s.actor}</span>
+              <div className="flex-1">
+                <code className="text-gray-200">{s.command}</code>
+                <div className="text-gray-500 mt-0.5">{s.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
       <Panel title="Informe de auditoría (audit-ready)" sub={`Devin genera el informe automáticamente · ${a.audit.report_id} · ${a.audit.evidences_count} evidencias${a.audit.dora_relevant ? " · DORA relevante" : ""}`}>
         <div className="space-y-1">
           {a.audit.trace.map((t, i) => (
@@ -330,6 +386,55 @@ function PhaseArtifacts({ phaseId, d }: { phaseId: string; d: TD }) {
         </div>
       </Panel>
     </>
+  );
+}
+
+function RingRow({ r }: { r: any }) {
+  const [open, setOpen] = useState(false);
+  const hasActions = r.actions && r.actions.steps.length > 0;
+  const statusChip =
+    r.status === "completed" ? "bg-green-500/15 text-green-400"
+    : r.status === "rolled_back" ? "bg-amber-500/15 text-amber-300"
+    : r.status === "in_progress" ? "bg-sky-500/15 text-sky-300"
+    : "bg-gray-500/15 text-gray-400";
+  const icon =
+    r.status === "completed" ? "✓" : r.status === "rolled_back" ? "⟲" : r.status === "in_progress" ? "▶" : "·";
+  return (
+    <div className="bg-ink rounded-lg border border-line">
+      <button onClick={() => hasActions && setOpen(!open)}
+        className={`w-full flex items-center gap-3 px-3 py-2 text-left ${hasActions ? "cursor-pointer" : "cursor-default"}`}>
+        <span className={`chip ${statusChip}`}>{icon}</span>
+        <div className="flex-1">
+          <div className="text-sm text-gray-200">{r.label}</div>
+          {r.health && (
+            <div className="text-[11px] text-gray-500">
+              err {r.health.error_rate_pct}% · p95 {r.health.p95_latency_ms}ms · avail {r.health.availability_pct}%
+            </div>
+          )}
+        </div>
+        <span className="text-xs text-gray-400">{r.assets} activos</span>
+        {r.result !== "-" && (
+          <span className={`chip ${r.status === "rolled_back" ? "bg-amber-500/10 text-amber-300" : "bg-green-500/10 text-green-400"}`}>{r.result}</span>
+        )}
+        {hasActions && <span className="text-gray-500 text-xs w-4">{open ? "▾" : "▸"}</span>}
+      </button>
+      {open && hasActions && (
+        <div className="border-t border-line px-3 py-2 space-y-1 font-mono text-[11px]">
+          <div className="text-gray-500 mb-1">Acciones ejecutadas · {r.actions.from_version} → {r.actions.to_version}</div>
+          {r.actions.steps.map((s: any) => (
+            <div key={s.seq} className="flex items-start gap-2">
+              <span className={`chip shrink-0 ${s.actor === "Devin" ? "bg-brand/15 text-brand" : s.tool === "post-check" ? "bg-purple-500/15 text-purple-300" : "bg-sky-500/15 text-sky-300"}`}>{s.actor}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-gray-300 truncate">$ {s.command}</div>
+                <div className="text-gray-500 truncate">→ {s.output}</div>
+              </div>
+              <span className="text-green-400 shrink-0">ok</span>
+              <span className="text-gray-600 shrink-0">{s.duration_s}s</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

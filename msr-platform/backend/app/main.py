@@ -45,6 +45,22 @@ def approve(tid: str):
     return d
 
 
+@app.post("/api/tasks/{tid}/rollback")
+def rollback(tid: str):
+    d = STORE.rollback(tid, trigger="manual")
+    if not d:
+        raise HTTPException(404, "task not found")
+    return d
+
+
+@app.post("/api/tasks/{tid}/simulate-incident")
+def simulate_incident(tid: str):
+    d = STORE.simulate_incident(tid)
+    if not d:
+        raise HTTPException(404, "task not found")
+    return d
+
+
 @app.get("/api/cmdb")
 def cmdb():
     return {"cis": STORE.cis, "edges": STORE.edges}

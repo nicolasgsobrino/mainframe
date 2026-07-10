@@ -55,13 +55,29 @@ export interface Prototype {
   approach: string; lab_blueprint: { type: string; tool: string; spec: string }[];
   provision_tool: string; metrics: Record<string, number>; verdict: string; teardown: string;
 }
+export interface RingAction {
+  seq: number; actor: string; tool: string; command: string;
+  output: string; status: string; duration_s: number;
+}
 export interface Ring {
   ring: number; label: string; assets: number; status: string; post_checks: string[]; result: string;
+  actions: { steps: RingAction[]; from_version: string; to_version: string } | null;
+  health: { error_rate_pct: number; p95_latency_ms: number; availability_pct: number } | null;
+}
+export interface RollbackPlan {
+  strategy: string; snapshot_ref: string; target_version: string; from_version: string;
+  rto_minutes: number; auto_trigger: string; tested_in_lab: boolean;
+  steps: { actor: string; tool: string; command: string; desc: string }[];
+}
+export interface RollbackState {
+  status: string; triggered: boolean; trigger_type?: string; reason?: string;
+  ring?: number; ts?: string; restored_version?: string; verdict?: string;
 }
 export interface Deployment {
   executor: string; total_assets: number; rings: Ring[];
   exceptions: { asset: string; reason: string; owner: string; expires: string; compensating_control: string }[];
   pr_url: string | null; strategy: string;
+  rollback_plan: RollbackPlan; rollback: RollbackState;
 }
 export interface Audit {
   report_id: string; generated_at: string;

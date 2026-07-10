@@ -142,10 +142,21 @@ con **HITL** en cada transición y **un playbook de Devin por fase**.
    agente trabajar la siguiente fase en el panel.
 6. **Fases 4-5 (1 min).** Resultados de lab (parche + app) y **lab efímero con IaC** + métricas.
 7. **Fase 6 · Despliegue + auditoría (2 min).** Anillos 0→4, pulsa **Aprobar y desplegar anillo**
-   (avanza un anillo cada vez). Enseña el **PR de remediación**, las **excepciones** y el
-   **informe audit-ready**. *"Toda la cadena queda trazada para DORA."*
-8. **Cierre (30 s).** Vuelve al Dashboard. *"ServiceNow gobierna, Devin ejecuta, el humano aprueba.
-   Días → minutos, con evidencia completa."*
+   (avanza un anillo cada vez). **Despliega un anillo (Anillo 0) y haz clic en la fila del anillo
+   para desplegar las acciones ejecutadas**: comandos concretos por actor (Devin, ejecutor,
+   post-checks), salida y duración, más las métricas de salud (error rate / p95 / disponibilidad).
+   *"No solo se aprueba: se ve exactamente qué acción se ejecutó y su evidencia."* Enseña el
+   **PR de remediación**, las **excepciones** y el **informe audit-ready**. *"Toda la cadena queda
+   trazada para DORA."*
+8. **Rollback (1 min).** En el panel de **Gestión de Rollback** enseña que el plan está **armado y
+   probado en lab desde el inicio** (estrategia, RTO, versión estable, pasos). Luego pulsa
+   **"⚠ Simular incidente → rollback automático"**: aparece la anomalía (error rate 4.7% > SLO),
+   el rollback se dispara solo, ejecuta sus pasos y **restaura la versión estable**; el anillo queda
+   marcado como *revertido* y el Vulnerable Item vuelve a abrirse para re-análisis. También existe
+   **"⟲ Rollback manual"** para el owner. *"El rollback no es un plan en un PDF: es ejecutable,
+   automático ante fallo de post-checks y trazado."*
+9. **Cierre (30 s).** Vuelve al Dashboard. *"ServiceNow gobierna, Devin ejecuta, el humano aprueba.
+   Días → minutos, con evidencia completa y rollback seguro."*
 
 **Tarea alternativa Track A:** elige un CVE de infra (regreSSHion / Zerologon / XZ) para mostrar
 que ahí Devin es **copiloto** (genera tests, IaC y evidencia) pero **no aplica el parche** —lo hace
