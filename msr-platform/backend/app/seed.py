@@ -35,19 +35,29 @@ BUSINESS_SERVICES = [
     ("BSVC-0010", "Corporate Portal", "low", False),
 ]
 
+# --- 3 carriles (tracks) de remediación ---
+# A · Infraestructura (SO, middleware, runtime, BBDD, red, endpoints) → parche in-place
+# B · Aplicaciones y dependencias (código propio, librerías OSS, SBOM) → PR + build + deploy
+# C · Contenedores & Cloud-native (imágenes base, K8s, IaC/cloud) → rebuild imagen + rollout
+TRACKS = {
+    "A": "Infraestructura",
+    "B": "Aplicaciones y dependencias",
+    "C": "Contenedores & Cloud-native",
+}
+
 # Aplicaciones (código propio / COTS)
 APPLICATIONS = [
     ("APP-1001", "payments-api", "Java", "BSVC-0001", "B"),
     ("APP-1002", "payments-batch", "Java", "BSVC-0001", "A"),
     ("APP-1003", "retail-web-frontend", "Node", "BSVC-0002", "B"),
-    ("APP-1004", "retail-bff", "Node", "BSVC-0002", "B"),
+    ("APP-1004", "retail-bff", "Node", "BSVC-0002", "C"),
     ("APP-1005", "mobile-gateway", "Java", "BSVC-0003", "B"),
     ("APP-1006", "cards-auth-service", "Java", "BSVC-0004", "B"),
-    ("APP-1007", "fraud-scoring-ml", "Python", "BSVC-0005", "B"),
+    ("APP-1007", "fraud-scoring-ml", "Python", "BSVC-0005", "C"),
     ("APP-1008", "ledger-core", ".NET", "BSVC-0006", "A"),
     ("APP-1009", "crm-portal", ".NET", "BSVC-0007", "A"),
     ("APP-1010", "regulatory-reporter", "Java", "BSVC-0008", "B"),
-    ("APP-1011", "dwh-etl", "Python", "BSVC-0009", "B"),
+    ("APP-1011", "dwh-etl", "Python", "BSVC-0009", "C"),
     ("APP-1012", "corp-portal-cms", "PHP", "BSVC-0010", "A"),
 ]
 
@@ -80,6 +90,61 @@ OWNERS = [
     "payments-squad@bank.example", "retail-squad@bank.example", "cards-squad@bank.example",
     "fraud-squad@bank.example", "platform-team@bank.example", "appsec@bank.example",
 ]
+
+
+# --- Modelo CMDB estandarizado (alineado con ServiceNow CSDM) ---
+CMDB_SOURCE = "ServiceNow CMDB (CSDM 4.0)"
+SYS_CLASS = {
+    "business_service": "cmdb_ci_service",
+    "application": "cmdb_ci_appl",
+    "database": "cmdb_ci_database",
+    "server": "cmdb_ci_server",
+    "middleware": "cmdb_ci_app_server",
+    "runtime": "cmdb_ci_runtime",
+    "container": "cmdb_ci_docker_container",
+    "network_device": "cmdb_ci_netgear",
+    "endpoint": "cmdb_ci_computer",
+    "cloud_resource": "cmdb_ci_cloud_resource",
+}
+CRIT_TIER = {
+    "critical": "1 - most critical",
+    "high": "2 - somewhat critical",
+    "medium": "3 - less critical",
+    "low": "4 - not critical",
+}
+# Track por clase de CI (los infra van al carril A, contenedores/cloud al C)
+CLASS_TRACK = {
+    "server": "A", "middleware": "A", "runtime": "A", "database": "A",
+    "network_device": "A", "endpoint": "A",
+    "container": "C", "cloud_resource": "C",
+}
+SUPPORT_GROUPS = [
+    "SG-Infra-Linux", "SG-Infra-Windows", "SG-DBA", "SG-Network", "SG-Endpoint",
+    "SG-Platform-K8s", "SG-Cloud-FinOps", "SG-AppSec", "SG-Payments", "SG-Retail",
+]
+
+
+def _std_fields(ci):
+    """Añade los campos estandarizados (CSDM) que llegarían de una CMDB real."""
+    crit = ci.get("criticality", "medium")
+    cls = ci["ci_class"]
+    ci.setdefault("sys_class_name", SYS_CLASS.get(cls, "cmdb_ci"))
+    ci.setdefault("install_status", "Installed")
+    ci.setdefault("business_criticality", CRIT_TIER.get(crit, CRIT_TIER["medium"]))
+    ci.setdefault("cmdb_source", CMDB_SOURCE)
+    if "track" not in ci and cls in CLASS_TRACK:
+        ci["track"] = CLASS_TRACK[cls]
+    if "support_group" not in ci:
+        og = ci.get("owner", "")
+        if "linux" in og:
+            ci["support_group"] = "SG-Infra-Linux"
+        elif "windows" in og:
+            ci["support_group"] = "SG-Infra-Windows"
+        elif "dba" in og:
+            ci["support_group"] = "SG-DBA"
+        else:
+            ci["support_group"] = RNG.choice(SUPPORT_GROUPS)
+    return ci
 
 
 def build_cmdb():
@@ -150,6 +215,123 @@ def build_cmdb():
         edges.append({"source": db_id, "target": sid, "type": "hosted_on"})
         edges.append({"source": db_id, "target": bsvc, "type": "supports"})
 
+    # -----------------------------------------------------------------
+    # Escalado a ~10.000 CIs con patrimonio sintético (granja de servidores,
+    # contenedores, red, endpoints y recursos cloud) manteniendo el modelo CSDM.
+    # -----------------------------------------------------------------
+    cis, edges = _scale_estate(cis, edges, target=10000)
+
+    # Normalización final: todos los CIs con campos estandarizados (CSDM).
+    for c in cis:
+        _std_fields(c)
+    return cis, edges
+
+
+CONTAINER_IMAGES = [
+    "eclipse-temurin:17-jre", "node:18-alpine", "python:3.11-slim", "nginx:1.25",
+    "openjdk:11-jre", "redis:7", "postgres:15", "amazoncorretto:17", "distroless/java17",
+]
+CLOUD_KINDS = [
+    ("AWS Lambda", "aws"), ("EKS Node Group", "aws"), ("Azure Function", "azure"),
+    ("AKS Node Pool", "azure"), ("S3 Bucket Policy", "aws"), ("RDS Instance", "aws"),
+    ("API Gateway", "aws"), ("Azure App Service", "azure"),
+]
+NET_KINDS = ["Cisco Catalyst 9300", "Fortinet FortiGate 600F", "F5 BIG-IP i5800",
+             "Palo Alto PA-5450", "Juniper MX204", "Cisco Nexus 9508"]
+
+
+def _scale_estate(cis, edges, target=10000):
+    """Genera CIs sintéticos hasta alcanzar ~`target`, con relaciones realistas."""
+    apps = [c for c in cis if c["ci_class"] == "application"]
+    services = [c for c in cis if c["ci_class"] == "business_service"]
+    crit_choices = ["critical", "high", "high", "medium", "medium", "medium", "low"]
+    env_choices = ["production", "production", "production", "pre-production", "development"]
+    idx = 40000
+
+    def nid(prefix):
+        nonlocal idx
+        idx += 1
+        return f"{prefix}-{idx}"
+
+    while len(cis) < target:
+        roll = RNG.random()
+        crit = RNG.choice(crit_choices)
+        env = RNG.choice(env_choices)
+        loc = RNG.choice(LOCATIONS)
+        if roll < 0.42:
+            # servidor (carril A)
+            os_name, fam = RNG.choice(OS_TYPES)
+            cid = nid("SRV")
+            cis.append({"id": cid, "name": f"srv-{fam}-{idx}", "ci_class": "server",
+                        "os": os_name, "os_family": fam, "criticality": crit, "environment": env,
+                        "owner": "infra-linux@bank.example" if fam == "linux" else "infra-windows@bank.example",
+                        "location": loc, "version": os_name,
+                        "maintenance_window": RNG.choice(["Sat 02:00-06:00", "Sun 01:00-05:00", "Daily 03:00-04:00"])})
+            if apps and RNG.random() < 0.6:
+                app = RNG.choice(apps)
+                edges.append({"source": cid, "target": app["id"], "type": "runs"})
+            # a veces middleware/runtime encima
+            if RNG.random() < 0.5:
+                mid = nid("MW")
+                cis.append({"id": mid, "name": RNG.choice(MIDDLEWARE_TYPES), "ci_class": "middleware",
+                            "criticality": crit, "environment": env, "owner": "platform-team@bank.example",
+                            "location": loc, "version": "-"})
+                edges.append({"source": mid, "target": cid, "type": "installed_on"})
+            if RNG.random() < 0.5 and len(cis) < target:
+                rt = nid("RT")
+                cis.append({"id": rt, "name": RNG.choice(RUNTIME_TYPES), "ci_class": "runtime",
+                            "criticality": crit, "environment": env, "owner": "platform-team@bank.example",
+                            "location": loc, "version": "-"})
+                edges.append({"source": rt, "target": cid, "type": "installed_on"})
+        elif roll < 0.62:
+            # contenedor (carril C)
+            cid = nid("CNT")
+            img = RNG.choice(CONTAINER_IMAGES)
+            cis.append({"id": cid, "name": f"pod/{img.split(':')[0].split('/')[-1]}-{idx}", "ci_class": "container",
+                        "criticality": crit, "environment": env, "owner": "platform-team@bank.example",
+                        "location": RNG.choice(["EKS eu-west-1", "AKS West Europe", "OpenShift DC-Madrid"]),
+                        "version": img, "track": "C", "image": img})
+            if apps and RNG.random() < 0.7:
+                app = RNG.choice(apps)
+                edges.append({"source": cid, "target": app["id"], "type": "runs"})
+        elif roll < 0.74:
+            # endpoint / workstation (carril A)
+            cid = nid("EP")
+            cis.append({"id": cid, "name": f"WKS-{RNG.choice(['MAD','BCN','VAL'])}-{idx}", "ci_class": "endpoint",
+                        "criticality": "low" if RNG.random() < 0.8 else "medium", "environment": "production",
+                        "owner": "endpoint-team@bank.example", "location": loc,
+                        "version": RNG.choice(["Windows 11 23H2", "macOS 14", "Windows 10 22H2"])})
+        elif roll < 0.84:
+            # recurso cloud (carril C)
+            kind, cloud = RNG.choice(CLOUD_KINDS)
+            cid = nid("CLD")
+            cis.append({"id": cid, "name": f"{kind} · {cloud}-{idx}", "ci_class": "cloud_resource",
+                        "criticality": crit, "environment": env, "owner": "SG-Cloud-FinOps",
+                        "location": "AWS eu-west-1" if cloud == "aws" else "Azure West Europe",
+                        "version": kind, "track": "C", "cloud": cloud})
+            if apps and RNG.random() < 0.5:
+                edges.append({"source": cid, "target": RNG.choice(apps)["id"], "type": "supports"})
+        elif roll < 0.90:
+            # dispositivo de red (carril A)
+            cid = nid("NET")
+            cis.append({"id": cid, "name": f"{RNG.choice(NET_KINDS)} #{idx}", "ci_class": "network_device",
+                        "criticality": crit, "environment": "production", "owner": "network-team@bank.example",
+                        "location": loc, "version": RNG.choice(["17.9", "7.4", "16.1", "11.1"])})
+        else:
+            # aplicación adicional (carril A/B/C)
+            track = RNG.choice(["A", "B", "B", "C"])
+            svc = RNG.choice(services) if services else None
+            cid = nid("APP")
+            tech = RNG.choice(["Java", "Node", "Python", ".NET", "Go"])
+            cis.append({"id": cid, "name": f"svc-{tech.lower()}-{idx}", "ci_class": "application",
+                        "criticality": svc["criticality"] if svc else crit, "environment": env, "tech": tech,
+                        "track": track, "owner": RNG.choice(OWNERS), "location": "-",
+                        "version": f"{RNG.randint(1,9)}.{RNG.randint(0,9)}.{RNG.randint(0,9)}",
+                        "repo": f"bank-org/svc-{tech.lower()}-{idx}",
+                        "dora_relevant": bool(svc and svc.get("dora_relevant"))})
+            if svc:
+                edges.append({"source": cid, "target": svc["id"], "type": "supports"})
+                apps.append(cis[-1])
     return cis, edges
 
 
@@ -161,14 +343,14 @@ CVE_CATALOG = [
     ("CVE-2021-44228", "Apache Log4j2 JNDI RCE (Log4Shell)", 10.0, 0.975, True, True, "B", "log4j-core", "2.14.1"),
     ("CVE-2022-22965", "Spring Framework RCE (Spring4Shell)", 9.8, 0.943, True, True, "B", "spring-beans", "5.3.17"),
     ("CVE-2022-1471", "SnakeYAML Deserialization RCE", 9.8, 0.61, False, True, "B", "snakeyaml", "1.30"),
-    ("CVE-2023-4863", "libwebp Heap Buffer Overflow", 8.8, 0.71, True, True, "B", "libwebp", "1.2.4"),
+    ("CVE-2023-4863", "libwebp Heap Buffer Overflow", 8.8, 0.71, True, True, "C", "libwebp", "1.2.4"),
     ("CVE-2023-44487", "HTTP/2 Rapid Reset DoS", 7.5, 0.88, True, True, "A", "nginx", "1.24.0"),
     ("CVE-2024-3094", "XZ Utils Backdoor", 10.0, 0.42, True, True, "A", "xz-utils", "5.6.0"),
     ("CVE-2023-50164", "Apache Struts Path Traversal RCE", 9.8, 0.66, True, True, "B", "struts2-core", "2.5.30"),
     ("CVE-2022-42889", "Apache Commons Text RCE (Text4Shell)", 9.8, 0.55, False, True, "B", "commons-text", "1.9"),
     ("CVE-2023-34362", "MOVEit Transfer SQLi RCE", 9.8, 0.94, True, True, "A", "MOVEit Transfer", "15.0"),
     ("CVE-2021-34527", "Windows Print Spooler RCE (PrintNightmare)", 8.8, 0.72, True, True, "A", "Windows Spooler", "-"),
-    ("CVE-2024-21626", "runc Container Escape", 8.6, 0.15, False, True, "B", "runc", "1.1.11"),
+    ("CVE-2024-21626", "runc Container Escape", 8.6, 0.15, False, True, "C", "runc", "1.1.11"),
     ("CVE-2023-22515", "Atlassian Confluence Priv Esc", 9.8, 0.90, True, True, "A", "Confluence", "8.5.1"),
     ("CVE-2022-3602", "OpenSSL X.509 Buffer Overflow", 7.5, 0.20, False, False, "A", "openssl", "3.0.6"),
     ("CVE-2023-38545", "curl SOCKS5 Heap Overflow", 8.8, 0.18, False, False, "A", "curl", "8.3.0"),
@@ -182,6 +364,9 @@ CVE_CATALOG = [
     ("CVE-2023-20198", "Cisco IOS XE Web UI Priv Esc", 10.0, 0.93, True, True, "A", "IOS XE", "17.9"),
     ("CVE-2024-1709", "ConnectWise ScreenConnect Auth Bypass", 10.0, 0.94, True, True, "A", "ScreenConnect", "23.9"),
     ("CVE-2020-1472", "Netlogon Priv Esc (Zerologon)", 10.0, 0.70, True, True, "A", "Windows Netlogon", "-"),
+    ("CVE-2022-23648", "containerd Host File Access", 7.5, 0.30, False, True, "C", "containerd", "1.5.9"),
+    ("CVE-2021-25741", "Kubernetes kubelet Path Traversal", 8.1, 0.25, False, True, "C", "kubelet", "1.21.0"),
+    ("CVE-2023-5044", "Ingress-NGINX Annotation Injection", 7.6, 0.28, False, True, "C", "ingress-nginx", "1.8.0"),
 ]
 
 
@@ -238,6 +423,9 @@ def build_records(cis, edges):
         (23, None, False),       # Zerologon (Track A)
         (6, "APP-1001", True),   # Struts payments (Track B)
         (12, None, False),       # OpenSSL (Track A, baja)
+        (10, "APP-1004", False), # runc Container Escape en retail-bff (Track C)
+        (24, "APP-1007", True),  # containerd Host File Access en fraud-scoring-ml (Track C)
+        (3, "APP-1011", False),  # libwebp en dwh-etl (Track C)
     ]
 
     vitems = []

@@ -2,18 +2,29 @@ export interface Kpis {
   open_findings: number; vulnerable_items: number; remediation_tasks: number;
   kev_count: number; remediated: number; in_flight: number; cis: number; avg_risk: number;
 }
+export interface CmdbSummary {
+  total: number; edges: number; source: string;
+  by_class: Record<string, number>;
+  by_track: Record<string, number>;
+  by_criticality: Record<string, number>;
+  by_environment: Record<string, number>;
+}
 export interface Overview {
   funnel: { label: string; value: number }[];
   kpis: Kpis;
   by_priority: Record<string, number>;
   by_phase: Record<string, number>;
   by_track: Record<string, number>;
+  by_criticality: Record<string, number>;
+  tracks: Record<string, string>;
+  deployment: { rings_deployed: number; rollbacks: number; in_deployment: number };
+  cmdb: CmdbSummary;
   sla: { at_risk: number; on_track: number };
 }
 
 export interface Task {
   id: string; vulnerable_item_id: string; cve: string; title: string;
-  track: "A" | "B"; risk_score: number; priority: string;
+  track: "A" | "B" | "C"; risk_score: number; priority: string;
   ci_id: string; ci_name: string; owner: string; criticality: string;
   environment: string; sla_due: string; change_type: string; exposed: boolean;
   component: string; vulnerable_version: string; created_at: string; status?: string;
@@ -26,6 +37,8 @@ export interface CI {
   environment?: string; owner?: string; version?: string; os?: string;
   tech?: string; track?: string; repo?: string; dora_relevant?: boolean;
   engine?: string; maintenance_window?: string;
+  sys_class_name?: string; install_status?: string; business_criticality?: string;
+  cmdb_source?: string; support_group?: string; image?: string; cloud?: string;
 }
 export interface Edge { source: string; target: string; type: string; }
 

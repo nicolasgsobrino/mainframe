@@ -32,10 +32,10 @@ export default function Tasks() {
           className="bg-ink-soft border border-line rounded-lg px-3 py-2 text-sm w-72 outline-none focus:border-brand"
         />
         <div className="flex gap-1">
-          {["all", "A", "B"].map((t) => (
+          {["all", "A", "B", "C"].map((t) => (
             <button key={t} onClick={() => setTrack(t)}
               className={`btn text-xs ${track === t ? "btn-brand" : "btn-ghost"}`}>
-              {t === "all" ? "Todos" : `Track ${t}`}
+              {t === "all" ? "Todos" : `Carril ${t}`}
             </button>
           ))}
         </div>

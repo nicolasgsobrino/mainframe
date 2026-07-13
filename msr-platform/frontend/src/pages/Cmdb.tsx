@@ -1,67 +1,94 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
-import type { CI, Edge } from "../types";
-import { CI_CLASS_META } from "../ui";
+import type { CI, Edge, CmdbSummary } from "../types";
+import { CI_CLASS_META, Track } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 
+const PAGE = 50;
+
 export default function Cmdb() {
-  const [cis, setCis] = useState<CI[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+  const [summary, setSummary] = useState<CmdbSummary | null>(null);
+  const [services, setServices] = useState<CI[]>([]);
   const [svc, setSvc] = useState<string>("");
-  const [cls, setCls] = useState<string>("all");
+  const [graph, setGraph] = useState<{ nodes: CI[]; edges: Edge[] }>({ nodes: [], edges: [] });
+
+  // tabla paginada
+  const [cls, setCls] = useState("all");
+  const [track, setTrack] = useState("all");
+  const [crit, setCrit] = useState("all");
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(0);
+  const [rows, setRows] = useState<CI[]>([]);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     api.cmdb().then((r) => {
-      setCis(r.cis); setEdges(r.edges);
-      const bs = r.cis.find((c) => c.ci_class === "business_service");
-      if (bs) setSvc(bs.id);
+      setSummary(r.summary);
+      setServices(r.services);
+      if (r.services[0]) setSvc(r.services[0].id);
     });
   }, []);
 
-  const services = cis.filter((c) => c.ci_class === "business_service");
+  useEffect(() => {
+    if (svc) api.cmdbGraph(svc).then(setGraph);
+  }, [svc]);
 
-  // subgrafo del servicio seleccionado
-  const sub = useMemo(() => {
-    if (!svc) return { nodes: [], edges: [] };
-    const byId = Object.fromEntries(cis.map((c) => [c.id, c]));
-    const seen = new Set<string>([svc]);
-    let frontier = [svc];
-    for (let d = 0; d < 4 && frontier.length; d++) {
-      const nxt: string[] = [];
-      for (const id of frontier)
-        for (const e of edges) {
-          if (e.source === id && !seen.has(e.target)) { seen.add(e.target); nxt.push(e.target); }
-          if (e.target === id && !seen.has(e.source)) { seen.add(e.source); nxt.push(e.source); }
-        }
-      frontier = nxt;
-    }
-    const nodes = [...seen].map((id) => ({ ...byId[id], is_root: id === svc } as any)).filter((n) => n.id);
-    const subEdges = edges.filter((e) => seen.has(e.source) && seen.has(e.target));
-    return { nodes, edges: subEdges };
-  }, [svc, cis, edges]);
+  useEffect(() => {
+    const h = setTimeout(() => {
+      api.cmdbCis({ cls, track, crit, q, limit: PAGE, offset: page * PAGE }).then((r) => {
+        setRows(r.items);
+        setTotal(r.total);
+      });
+    }, 200);
+    return () => clearTimeout(h);
+  }, [cls, track, crit, q, page]);
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {};
-    cis.forEach((x) => (c[x.ci_class] = (c[x.ci_class] || 0) + 1));
-    return c;
-  }, [cis]);
+  useEffect(() => { setPage(0); }, [cls, track, crit, q]);
 
-  const filteredCis = cls === "all" ? cis : cis.filter((c) => c.ci_class === cls);
+  if (!summary) return <div className="p-8 text-gray-500">Cargando…</div>;
+
+  const graphNodes = graph.nodes.map((n) => ({ ...n, is_root: (n as any).is_root } as any));
 
   return (
     <div className="p-6 space-y-5 max-w-[1400px]">
       <header>
         <div className="text-xs font-bold text-brand tracking-wider">SERVICENOW · CMDB / CSDM</div>
         <h1 className="text-2xl font-extrabold mt-1">Patrimonio tecnológico e Impact Graph</h1>
-        <p className="text-sm text-gray-400 mt-1">Modelo de dependencias que traduce "servidor vulnerable" → "servicio de negocio crítico". Base del blast radius.</p>
+        <p className="text-sm text-gray-400 mt-1">
+          CMDB estandarizada (<span className="text-gray-300">{summary.source}</span>) · <b className="text-gray-200">{summary.total.toLocaleString()}</b> CIs · {summary.edges.toLocaleString()} relaciones. Traduce "servidor vulnerable" → "servicio de negocio crítico".
+        </p>
       </header>
 
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(counts).map(([k, v]) => (
-          <div key={k} className="chip border border-line" style={{ color: CI_CLASS_META[k]?.color }}>
-            {CI_CLASS_META[k]?.label || k}: <b className="ml-1">{v}</b>
+      {/* resumen por clase y carril */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="card p-4">
+          <div className="text-xs text-gray-500 mb-2">CIs por clase</div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(summary.by_class).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+              <div key={k} className="chip border border-line" style={{ color: CI_CLASS_META[k]?.color }}>
+                {CI_CLASS_META[k]?.label || k}: <b className="ml-1">{v.toLocaleString()}</b>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+        <div className="card p-4">
+          <div className="text-xs text-gray-500 mb-2">CIs por carril</div>
+          <div className="flex flex-wrap gap-2 items-center">
+            {(["A", "B", "C"] as const).map((k) => (
+              <div key={k} className="flex items-center gap-2">
+                <Track t={k} /><b className="font-mono">{(summary.by_track[k] || 0).toLocaleString()}</b>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card p-4">
+          <div className="text-xs text-gray-500 mb-2">CIs por criticidad</div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(summary.by_criticality).map(([k, v]) => (
+              <div key={k} className="chip border border-line capitalize">{k}: <b className="ml-1">{v.toLocaleString()}</b></div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="card p-4">
@@ -72,44 +99,70 @@ export default function Cmdb() {
             {services.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.criticality})</option>)}
           </select>
         </div>
-        {sub.nodes.length > 0 && <ImpactGraphView nodes={sub.nodes} edges={sub.edges} height={440} />}
-        <div className="text-xs text-gray-500 mt-2">{sub.nodes.length} CIs conectados a este servicio.</div>
+        {graphNodes.length > 0 && <ImpactGraphView nodes={graphNodes} edges={graph.edges} height={440} />}
+        <div className="text-xs text-gray-500 mt-2">{graphNodes.length} CIs conectados a este servicio (blast radius, prof. 4).</div>
       </div>
 
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-line flex items-center gap-2">
+        <div className="px-4 py-3 border-b border-line flex flex-wrap items-center gap-2">
           <div className="text-sm font-semibold">Configuration Items</div>
-          <select value={cls} onChange={(e) => setCls(e.target.value)}
-            className="ml-auto bg-ink border border-line rounded-lg px-2 py-1 text-xs outline-none">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre / ID…"
+            className="ml-auto bg-ink border border-line rounded-lg px-3 py-1 text-xs outline-none focus:border-brand w-48" />
+          <select value={cls} onChange={(e) => setCls(e.target.value)} className="bg-ink border border-line rounded-lg px-2 py-1 text-xs outline-none">
             <option value="all">Todas las clases</option>
-            {Object.keys(counts).map((k) => <option key={k} value={k}>{CI_CLASS_META[k]?.label || k}</option>)}
+            {Object.keys(summary.by_class).map((k) => <option key={k} value={k}>{CI_CLASS_META[k]?.label || k}</option>)}
+          </select>
+          <select value={track} onChange={(e) => setTrack(e.target.value)} className="bg-ink border border-line rounded-lg px-2 py-1 text-xs outline-none">
+            <option value="all">Todos los carriles</option>
+            <option value="A">Carril A</option><option value="B">Carril B</option><option value="C">Carril C</option>
+          </select>
+          <select value={crit} onChange={(e) => setCrit(e.target.value)} className="bg-ink border border-line rounded-lg px-2 py-1 text-xs outline-none">
+            <option value="all">Toda criticidad</option>
+            <option value="critical">Critical</option><option value="high">High</option>
+            <option value="medium">Medium</option><option value="low">Low</option>
           </select>
         </div>
-        <div className="max-h-[420px] overflow-y-auto">
+        <div className="max-h-[460px] overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-ink">
               <tr className="text-left text-xs text-gray-500 border-b border-line">
                 <th className="px-4 py-2 font-medium">ID</th>
                 <th className="px-2 py-2 font-medium">Nombre</th>
-                <th className="px-2 py-2 font-medium">Clase</th>
+                <th className="px-2 py-2 font-medium">Clase (sys_class_name)</th>
+                <th className="px-2 py-2 font-medium">Carril</th>
                 <th className="px-2 py-2 font-medium">Criticidad</th>
                 <th className="px-2 py-2 font-medium">Entorno</th>
-                <th className="px-2 py-2 font-medium">Owner</th>
+                <th className="px-2 py-2 font-medium">Support group</th>
               </tr>
             </thead>
             <tbody>
-              {filteredCis.slice(0, 200).map((c) => (
+              {rows.map((c) => (
                 <tr key={c.id} className="border-b border-line/40">
                   <td className="px-4 py-2 font-mono text-xs text-gray-500">{c.id}</td>
                   <td className="px-2 py-2 text-gray-200">{c.name}</td>
-                  <td className="px-2 py-2"><span className="chip" style={{ color: CI_CLASS_META[c.ci_class]?.color, background: (CI_CLASS_META[c.ci_class]?.color || "#666") + "1a" }}>{CI_CLASS_META[c.ci_class]?.label || c.ci_class}</span></td>
+                  <td className="px-2 py-2">
+                    <span className="chip" style={{ color: CI_CLASS_META[c.ci_class]?.color, background: (CI_CLASS_META[c.ci_class]?.color || "#666") + "1a" }}>
+                      {CI_CLASS_META[c.ci_class]?.label || c.ci_class}
+                    </span>
+                    <span className="ml-1 font-mono text-[10px] text-gray-600">{c.sys_class_name}</span>
+                  </td>
+                  <td className="px-2 py-2">{c.track ? <Track t={c.track} /> : <span className="text-gray-600 text-xs">—</span>}</td>
                   <td className="px-2 py-2 text-gray-400 capitalize">{c.criticality}</td>
                   <td className="px-2 py-2 text-gray-400">{c.environment}</td>
-                  <td className="px-2 py-2 text-gray-500 text-xs">{c.owner}</td>
+                  <td className="px-2 py-2 text-gray-500 text-xs">{c.support_group}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="px-4 py-2 border-t border-line flex items-center justify-between text-xs text-gray-400">
+          <span>{total.toLocaleString()} CIs · página {page + 1} de {Math.max(1, Math.ceil(total / PAGE))}</span>
+          <div className="flex gap-2">
+            <button disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}
+              className="px-2 py-1 rounded border border-line disabled:opacity-40">← Anterior</button>
+            <button disabled={(page + 1) * PAGE >= total} onClick={() => setPage((p) => p + 1)}
+              className="px-2 py-1 rounded border border-line disabled:opacity-40">Siguiente →</button>
+          </div>
         </div>
       </div>
     </div>

@@ -244,6 +244,8 @@ function PhaseArtifacts({ phaseId, d }: { phaseId: string; d: TD }) {
           <div className="text-xs text-brand font-semibold mb-1">Reachability analysis (Devin)</div>
           {task.track === "B"
             ? <span className="text-gray-300">Devin analizó el repositorio <span className="font-mono text-xs">{task.ci_name}</span>: el componente <span className="font-mono text-xs">{vi.component}</span> {task.exposed ? "ES alcanzable en runtime → mantiene prioridad alta." : "no es alcanzable directamente → candidato a excepción documentada."}</span>
+            : task.track === "C"
+            ? <span className="text-gray-300">Devin analizó la imagen/manifiestos de <span className="font-mono text-xs">{task.ci_name}</span>: <span className="font-mono text-xs">{vi.component}</span> presente en la imagen base {task.exposed ? "y expuesto vía ingress → prioridad alta; requiere rebuild de imagen." : "sin exposición directa → rebuild programado en ventana."}</span>
             : <span className="text-gray-300">Activo de infraestructura {task.exposed ? "expuesto a internet" : "interno"}; prioridad ajustada por ventana de mantenimiento y criticidad del servicio.</span>}
         </div>
       </Panel>

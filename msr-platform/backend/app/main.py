@@ -63,7 +63,25 @@ def simulate_incident(tid: str):
 
 @app.get("/api/cmdb")
 def cmdb():
-    return {"cis": STORE.cis, "edges": STORE.edges}
+    """Resumen de CMDB estandarizada + servicios (no vuelca los ~10k CIs)."""
+    services = [c for c in STORE.cis if c["ci_class"] == "business_service"]
+    return {"summary": STORE.cmdb_summary(), "services": services}
+
+
+@app.get("/api/cmdb/summary")
+def cmdb_summary():
+    return STORE.cmdb_summary()
+
+
+@app.get("/api/cmdb/cis")
+def cmdb_cis(cls: str = "all", track: str = "all", crit: str = "all",
+             q: str = "", limit: int = 100, offset: int = 0):
+    return STORE.cmdb_cis(cls=cls, track=track, crit=crit, q=q, limit=limit, offset=offset)
+
+
+@app.get("/api/cmdb/graph/{service_id}")
+def cmdb_graph(service_id: str):
+    return STORE.cmdb_graph(service_id)
 
 
 @app.get("/api/catalog")
@@ -91,14 +109,16 @@ def services():
     """Estado de integración de los servicios simulados (control plane + ejecutores)."""
     return [
         {"name": "ServiceNow Vulnerability Response", "role": "Plano de control", "status": "connected", "type": "control", "detail": "Ingesta, VI, Remediation Tasks"},
-        {"name": "ServiceNow CMDB / CSDM", "role": "Contexto", "status": "connected", "type": "control", "detail": f"{len(STORE.cis)} CIs, relaciones e Impact Graph"},
+        {"name": "ServiceNow CMDB / CSDM", "role": "Contexto", "status": "connected", "type": "control", "detail": f"{len(STORE.cis):,} CIs estandarizados (CSDM), relaciones e Impact Graph"},
         {"name": "ServiceNow Change Management", "role": "Gobierno del cambio", "status": "connected", "type": "control", "detail": "CAB, standard/normal/emergency"},
         {"name": "Devin Agent", "role": "Capa agente", "status": "active", "type": "agent", "detail": "Blast radius, MVT, tests, IaC, PR, informe"},
         {"name": "Qualys VMDR", "role": "Scanner infra", "status": "connected", "type": "source", "detail": "Fuente Track A"},
         {"name": "Tenable.io", "role": "Scanner infra", "status": "connected", "type": "source", "detail": "Fuente Track A"},
         {"name": "Snyk (SCA/SBOM)", "role": "Dependencias", "status": "connected", "type": "source", "detail": "Fuente Track B"},
-        {"name": "Ansible / BigFix / SCCM", "role": "Ejecución Track A", "status": "connected", "type": "executor", "detail": "Aplica parches infra"},
-        {"name": "GitHub Actions (CI/CD)", "role": "Ejecución Track B", "status": "connected", "type": "executor", "detail": "PR → build → test → deploy"},
+        {"name": "Wiz / Trivy (contenedores)", "role": "Scanner cloud-native", "status": "connected", "type": "source", "detail": "Fuente Track C (imágenes, IaC, K8s)"},
+        {"name": "Ansible / BigFix / SCCM", "role": "Ejecución Carril A (infra)", "status": "connected", "type": "executor", "detail": "Aplica parches infra"},
+        {"name": "GitHub Actions (CI/CD)", "role": "Ejecución Carril B (app)", "status": "connected", "type": "executor", "detail": "PR → build → test → deploy"},
+        {"name": "Argo CD + Helm + Registry", "role": "Ejecución Carril C (contenedores)", "status": "connected", "type": "executor", "detail": "Rebuild imagen → sync GitOps → rollout"},
         {"name": "Terraform / OpenTofu", "role": "IaC labs", "status": "connected", "type": "executor", "detail": "Labs efímeros (prototipo)"},
     ]
 

@@ -30,8 +30,19 @@ def _rng(task_id: str) -> random.Random:
 # ---------------------------------------------------------------------------
 # Impact Graph (blast radius)
 # ---------------------------------------------------------------------------
-def build_impact_graph(task, cis, edges):
+def _build_adjacency(edges):
+    """Índice de adyacencia bidireccional para BFS eficiente a escala (10k CIs)."""
+    adj = {}
+    for e in edges:
+        adj.setdefault(e["source"], []).append((e["target"], e))
+        adj.setdefault(e["target"], []).append((e["source"], e))
+    return adj
+
+
+def build_impact_graph(task, cis, edges, adj=None, max_nodes=60):
     ci_by_id = {c["id"]: c for c in cis}
+    if adj is None:
+        adj = _build_adjacency(edges)
     root_id = task["ci_id"]
     nodes = {}
     graph_edges = []
@@ -47,20 +58,20 @@ def build_impact_graph(task, cis, edges):
             }
 
     add(root_id)
-    # BFS over relationships in both directions (transitive impact)
+    # BFS over adjacency index in both directions (transitive impact), capped
     frontier = [root_id]
     seen = {root_id}
     depth = 0
-    while frontier and depth < 4:
+    while frontier and depth < 4 and len(nodes) < max_nodes:
         nxt = []
         for cid in frontier:
-            for e in edges:
-                if e["source"] == cid and e["target"] not in seen:
-                    add(cid); add(e["target"])
-                    graph_edges.append(e); seen.add(e["target"]); nxt.append(e["target"])
-                elif e["target"] == cid and e["source"] not in seen:
-                    add(cid); add(e["source"])
-                    graph_edges.append(e); seen.add(e["source"]); nxt.append(e["source"])
+            for neighbor, e in adj.get(cid, []):
+                if neighbor in seen:
+                    continue
+                if len(nodes) >= max_nodes:
+                    break
+                add(cid); add(neighbor)
+                graph_edges.append(e); seen.add(neighbor); nxt.append(neighbor)
         frontier = nxt
         depth += 1
 
@@ -89,7 +100,7 @@ def build_mvt(task, impact, catalog):
     layers = set(impact["affected_layers"])
     exposed = task.get("exposed")
     track = task["track"]
-    remediation_type = "dependency" if track == "B" else "patch"
+    remediation_type = {"A": "patch", "B": "dependency", "C": "dependency"}.get(track, "patch")
 
     selected, excluded = [], []
     for tc in catalog:
@@ -222,7 +233,8 @@ def _deploy_executor(task, rng):
     return {
         "A": rng.choice(["Ansible", "BigFix", "SCCM", "Azure Update Manager"]),
         "B": "CI/CD (GitHub Actions)",
-    }[task["track"]]
+        "C": "GitOps (Argo CD + Helm) · Registry",
+    }.get(task["track"], "CI/CD (GitHub Actions)")
 
 
 def _prev_version(task, vi_version=None):
@@ -264,7 +276,13 @@ def build_ring_actions(task, ring_no, assets, executor, ts_base):
             "duration_s": duration if duration is not None else rng.randint(2, 40),
         })
 
-    if task["track"] == "B":
+    if task["track"] == "C":
+        add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-image", f"Switched to branch 'fix/{task['cve'].lower()}-image'")
+        add("Devin", "Docker", f"update base image: {comp} {prev} → {fixed}", "Dockerfile + manifests actualizados")
+        add("GitHub Actions", "Docker", f"docker build --no-cache -t registry/{ci}:{fixed} .", f"Built image sha256:{rng.randint(10**11,10**12)}")
+        add("Devin", "Trivy", f"trivy image registry/{ci}:{fixed}", "0 CRITICAL / 0 HIGH · imagen firmada (cosign)")
+        add("Argo CD", "Helm", f"argocd app sync {ci} --revision {fixed} (canary {[5,10,25,35,100][min(ring_no,4)]}%)", f"Rollout progresivo a {assets} pods")
+    elif task["track"] == "B":
         add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-bump", f"Switched to branch 'fix/{task['cve'].lower()}-bump'")
         add("Devin", "CI/CD", f"bump {comp}: {prev} → {fixed}", f"1 file changed · lockfile updated")
         add("Devin", "CI/CD", f"gh pr merge --squash (ring {ring_no})", "Merged. Deploy workflow triggered.")
@@ -289,7 +307,18 @@ def build_rollback_plan(task, impact):
     fixed = _fixed_version(prev)
     ci = task["ci_name"]
     comp = task.get("component", ci)
-    if task["track"] == "B":
+    if task["track"] == "C":
+        strategy = "GitOps rollback (revisión previa + imagen firmada)"
+        steps = [
+            {"actor": "Devin", "tool": "Argo CD", "command": f"argocd app rollback {ci} <previous-revision>",
+             "desc": f"Sincroniza la revisión estable anterior (imagen {ci}:{prev})."},
+            {"actor": "Argo CD", "tool": "Helm", "command": f"kubectl rollout undo deploy/{ci}",
+             "desc": "Revierte el rollout al ReplicaSet sano; 100% del tráfico a la imagen previa."},
+            {"actor": "Devin", "tool": "post-check", "command": "health-check + smoke-test",
+             "desc": "Verifica salud de los pods tras el rollback."},
+        ]
+        snapshot_ref = f"registry/{ci}:{prev}"
+    elif task["track"] == "B":
         strategy = "artifact-redeploy (imagen previa)"
         steps = [
             {"actor": "Devin", "tool": "Helm", "command": f"helm rollback {ci} <previous-revision>",
@@ -368,7 +397,7 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
             "compensating_control": "WAF rule + network isolation",
         })
     pr_url = None
-    if task["track"] == "B":
+    if task["track"] in ("B", "C"):
         pr_url = f"https://github.com/{'bank-org'}/{task['ci_name']}/pull/{rng.randint(200,999)}"
     return {
         "executor": executor, "total_assets": total_assets, "rings": rings,

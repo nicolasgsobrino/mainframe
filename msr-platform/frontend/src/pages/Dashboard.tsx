@@ -5,7 +5,9 @@ import {
 } from "recharts";
 import { api } from "../api";
 import type { Overview, Task, LogEntry } from "../types";
-import { PHASE_META, Priority, Track, Risk } from "../ui";
+import { PHASE_META, Priority, Track, Risk, TRACK_META } from "../ui";
+
+const CRIT_COLOR: Record<string, string> = { critical: "#ef4444", high: "#f97316", medium: "#f59e0b", low: "#0ea5e9" };
 
 function Kpi({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
@@ -43,7 +45,7 @@ export default function Dashboard() {
         <div className="text-xs font-bold text-brand tracking-wider">MACHINE SPEED REMEDIATION · CENTRO DE MANDO</div>
         <h1 className="text-2xl font-extrabold mt-1">Gestión de vulnerabilidades impulsada por IA</h1>
         <p className="text-sm text-gray-400 mt-1">
-          ServiceNow gobierna el ciclo · <span className="text-brand font-semibold">Devin</span> ejecuta el trabajo técnico de cada fase (blast radius, MVT, tests, IaC, PR, evidencia).
+          ServiceNow gobierna el ciclo · <span className="text-brand font-semibold">Devin</span> ejecuta el trabajo técnico de cada fase · 3 carriles (infra · aplicación · contenedores) sobre CMDB estandarizada.
         </p>
       </header>
 
@@ -98,10 +100,10 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Priority + track */}
+        {/* Priority */}
         <div className="card p-5">
-          <div className="text-sm font-semibold mb-1">Prioridad y tracks</div>
-          <div className="text-xs text-gray-500 mb-3">Track A infra · Track B aplicación</div>
+          <div className="text-sm font-semibold mb-1">Prioridad de las tareas</div>
+          <div className="text-xs text-gray-500 mb-3">Riesgo contextual (no solo CVSS)</div>
           <div className="flex items-center gap-4">
             <ResponsiveContainer width="55%" height={180}>
               <PieChart>
@@ -119,11 +121,107 @@ export default function Dashboard() {
                   <span className="font-mono font-bold ml-auto">{p.value}</span>
                 </div>
               ))}
-              <div className="pt-2 mt-2 border-t border-line flex gap-3">
-                <span className="chip bg-indigo-500/15 text-indigo-300">A: {ov.by_track.A}</span>
-                <span className="chip bg-emerald-500/15 text-emerald-300">B: {ov.by_track.B}</span>
-              </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3 carriles + criticidad + despliegue/rollback */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* 3 carriles */}
+        <div className="card p-5 xl:col-span-2">
+          <div className="text-sm font-semibold mb-1">3 carriles de remediación</div>
+          <div className="text-xs text-gray-500 mb-4">Cada carril tiene su ejecución y su rollback · reparto de CIs desde la CMDB estandarizada</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {(["A", "B", "C"] as const).map((k) => {
+              const cis = ov.cmdb.by_track[k] || 0;
+              const cisPct = Math.round((cis / ov.cmdb.total) * 100);
+              return (
+                <div key={k} className="rounded-lg border border-line p-3">
+                  <Track t={k} />
+                  <div className="text-xs text-gray-400 mt-2 leading-snug">{TRACK_META[k].label.split("· ")[1]}</div>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="text-2xl font-extrabold">{ov.by_track[k] || 0}</span>
+                    <span className="text-xs text-gray-500">tareas</span>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-400">
+                    <span className="font-mono font-bold text-gray-200">{cis.toLocaleString()}</span> CIs ({cisPct}%)
+                  </div>
+                  <div className="text-[11px] text-gray-500 mt-1">
+                    {k === "A" ? "SCCM · BigFix · Ansible" : k === "B" ? "CI/CD (GitHub Actions)" : "Argo CD · Helm · Registry"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Despliegue y rollback */}
+        <div className="card p-5">
+          <div className="text-sm font-semibold mb-1">Despliegue & Rollback</div>
+          <div className="text-xs text-gray-500 mb-4">Ejecución por anillos con evidencia y reversión</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-ink p-3">
+              <div className="text-2xl font-extrabold text-sky-400">{ov.deployment.in_deployment}</div>
+              <div className="text-[11px] text-gray-400 mt-1">En despliegue</div>
+            </div>
+            <div className="rounded-lg bg-ink p-3">
+              <div className="text-2xl font-extrabold text-emerald-400">{ov.deployment.rings_deployed}</div>
+              <div className="text-[11px] text-gray-400 mt-1">Anillos desplegados</div>
+            </div>
+            <div className="rounded-lg bg-ink p-3">
+              <div className="text-2xl font-extrabold" style={{ color: ov.deployment.rollbacks ? "#f97316" : "#64748b" }}>{ov.deployment.rollbacks}</div>
+              <div className="text-[11px] text-gray-400 mt-1">Rollbacks ejecutados</div>
+            </div>
+            <div className="rounded-lg bg-ink p-3">
+              <div className="text-2xl font-extrabold text-brand">{ov.kpis.remediated}</div>
+              <div className="text-[11px] text-gray-400 mt-1">Remediadas</div>
+            </div>
+          </div>
+          <div className="mt-3 text-[11px] text-gray-500 leading-snug">
+            Rollback armado y probado en lab desde el inicio; disparo manual (owner) o automático por fallo de post-checks.
+          </div>
+        </div>
+      </div>
+
+      {/* Criticidad + CMDB estandarizada */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="card p-5">
+          <div className="text-sm font-semibold mb-1">Criticidad de las tareas</div>
+          <div className="text-xs text-gray-500 mb-4">Tier de negocio (CSDM)</div>
+          <div className="space-y-2">
+            {(["critical", "high", "medium", "low"] as const).map((c) => {
+              const v = ov.by_criticality[c] || 0;
+              const max = Math.max(1, ...Object.values(ov.by_criticality));
+              return (
+                <div key={c}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="capitalize text-gray-300">{c}</span>
+                    <span className="font-mono font-bold" style={{ color: CRIT_COLOR[c] }}>{v}</span>
+                  </div>
+                  <div className="h-2.5 rounded bg-ink">
+                    <div className="h-2.5 rounded" style={{ width: `${Math.max(4, (v / max) * 100)}%`, background: CRIT_COLOR[c] }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="card p-5 xl:col-span-2">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-sm font-semibold">CMDB estandarizada</div>
+            <button className="text-xs text-brand font-semibold" onClick={() => nav("/cmdb")}>Ver CMDB →</button>
+          </div>
+          <div className="text-xs text-gray-500 mb-4">
+            Fuente: <span className="text-gray-300">{ov.cmdb.source}</span> · <b className="text-gray-200">{ov.cmdb.total.toLocaleString()}</b> CIs · {ov.cmdb.edges.toLocaleString()} relaciones
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(ov.cmdb.by_class).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+              <div key={k} className="chip border border-line text-gray-300">
+                {k.replace("_", " ")}: <b className="ml-1 text-gray-100">{v.toLocaleString()}</b>
+              </div>
+            ))}
           </div>
         </div>
       </div>

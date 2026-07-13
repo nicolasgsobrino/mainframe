@@ -42,7 +42,8 @@ la herramienta se integraría con los sistemas concretos del cliente.
  (escáneres)   →      ServiceNow         →      Devin        →     herramientas cliente
  Qualys/Tenable    Vuln Response · CMDB      Blast radius, MVT,    Ansible/BigFix/SCCM (A)
  Snyk (SCA/SBOM)   Change Mgmt · Flow        tests, IaC, PR,       CI/CD GitHub (B)
-                   (decide/prioriza/audita)  informe (razona)      Terraform (labs)
+ Wiz/Trivy (cont.) (decide/prioriza/audita)  informe (razona)      Argo CD/Helm/Registry (C)
+                                                                   Terraform (labs)
                                     ↑ HITL: humano aprueba cada transición ↑
 ```
 
@@ -83,14 +84,16 @@ Requisitos: Python 3.10+ y Node 18+. `POST /api/reset` reinicia el estado de la 
   (el mismo mensaje del PPT "Machine Speed Remediation"). *Mensaje:* la IA no solo detecta más,
   **descarta ruido** y deja lo explotable de verdad.
 - **KPIs:** hallazgos abiertos, Vulnerable Items, Remediation Tasks, KEV (explotadas en real),
-  en curso, remediadas, CIs en CMDB.
-- **Tareas por fase / prioridad / track** y **feed del agente** en vivo.
+  en curso, remediadas, **CIs en CMDB (~10.000)**.
+- **Tareas por fase / prioridad**, **3 carriles** (A/B/C) con reparto de CIs, **criticidad**,
+  panel **Despliegue & Rollback** (anillos desplegados, rollbacks) y **CMDB estandarizada**
+  (fuente CSDM, CIs por clase) + **feed del agente** en vivo.
 
 ### 4.2 Remediation Tasks
 - Cola **priorizada por riesgo** = técnico (CVSS) + explotabilidad (EPSS/KEV) + negocio
   (criticidad) + exposición + SLA. **No es solo CVSS.**
 - CVEs reales de banca: Log4Shell, Spring4Shell, ActiveMQ RCE, regreSSHion, Zerologon, XZ backdoor…
-- Filtros por **Track A (infra)** / **Track B (aplicación/dependencias)**.
+- Filtros por **3 carriles**: **A · Infraestructura** / **B · Aplicaciones y dependencias** / **C · Contenedores & Cloud-native**.
 
 ### 4.3 Detalle de tarea · el corazón de la demo
 Cabecera con CVE, CVSS/EPSS, KEV, exposición, SLA, tipo de change (standard/normal/emergency) y
@@ -112,8 +115,11 @@ produce Devin + el **panel del agente** + el **botón de aprobación HITL**:
    (cadena finding → VI → Impact Graph → MVT → lab → prototipo → CR → anillos → cierre).
 
 ### 4.4 CMDB · Impact Graph
-Patrimonio bancario (132 CIs: business services, apps, BBDD, servidores, middleware, runtime) y
-**grafo de impacto por servicio de negocio**. *Mensaje:* traduce "servidor vulnerable" →
+Patrimonio bancario a escala: **~10.000 CIs** en modelo **estandarizado (ServiceNow CSDM 4.0)** —
+`sys_class_name`, `business_criticality` (tier), `support_group`, `install_status`— con business
+services, apps, BBDD, servidores, middleware, runtime, **contenedores, red, endpoints y cloud**.
+Resumen por clase / carril / criticidad, **buscador y filtros paginados**, y **grafo de impacto
+por servicio de negocio** (subgrafo calculado en servidor). *Mensaje:* traduce "servidor vulnerable" →
 "servicio crítico" y es la base para dimensionar las pruebas.
 
 ### 4.5 Catálogo de pruebas
@@ -158,7 +164,11 @@ con **HITL** en cada transición y **un playbook de Devin por fase**.
 9. **Cierre (30 s).** Vuelve al Dashboard. *"ServiceNow gobierna, Devin ejecuta, el humano aprueba.
    Días → minutos, con evidencia completa y rollback seguro."*
 
-**Tarea alternativa Track A:** elige un CVE de infra (regreSSHion / Zerologon / XZ) para mostrar
+**Tarea alternativa Carril C (contenedores):** elige un CVE cloud-native (runc / containerd / libwebp)
+para mostrar el carril de contenedores: Devin hace **rebuild de la imagen base**, escaneo Trivy, firma
+cosign y **rollout GitOps (Argo CD/Helm)**; el rollback es `argocd app rollback` + `kubectl rollout undo`.
+
+**Tarea alternativa Carril A (infra):** elige un CVE de infra (regreSSHion / Zerologon / XZ) para mostrar
 que ahí Devin es **copiloto** (genera tests, IaC y evidencia) pero **no aplica el parche** —lo hace
 SCCM/BigFix/Ansible.
 
@@ -169,7 +179,7 @@ SCCM/BigFix/Ansible.
 - **Acelerador en fases tempranas:** la velocidad de detección/priorización es donde más se gana.
 - **Contexto que ServiceNow no ve:** Devin lee código, SBOM, reachability, exposición.
 - **Propone, no decide:** HITL obligatorio → gobierno y control.
-- **Track A vs B:** infra = copiloto; aplicación/dependencias = extremo a extremo (incluye el PR).
+- **3 carriles:** A infra = copiloto (SCCM/BigFix/Ansible); B aplicación = extremo a extremo con PR (CI/CD); C contenedores/cloud = rebuild de imagen + rollout GitOps (Argo CD/Helm). Cada carril con su rollback.
 - **Audit-ready:** trazabilidad completa finding→cierre, clave para banca/DORA.
 - **Se integra con lo que ya tienen:** ServiceNow, Qualys/Tenable/Snyk, SCCM/BigFix/Ansible, CI/CD.
 
@@ -193,7 +203,7 @@ SCCM/BigFix/Ansible.
 
 ```
 backend/app/
-  seed.py     # datos mock: CMDB bancaria, catálogo CVEs, hallazgos, VIs, Remediation Tasks
+  seed.py     # datos mock: CMDB CSDM ~10k CIs (3 carriles), catálogo CVEs, hallazgos, VIs, Tasks
   engine.py   # Impact Graph (BFS sobre relaciones), MVT (reglas por capa), lab, prototipo,
               # anillos y generación del informe de auditoría
   store.py    # estado en memoria + orquestación de fases y gate HITL (approve_phase)
@@ -214,5 +224,5 @@ API principal: `GET /api/overview`, `GET /api/tasks`, `GET /api/tasks/{id}`,
 - [ ] Backend y frontend arrancados (`./scripts/dev.sh`) y `http://localhost:5173` abre.
 - [ ] `POST /api/reset` ejecutado para empezar limpio.
 - [ ] Tarea Log4Shell (`payments-api`) localizada para el recorrido principal.
-- [ ] Una tarea Track A elegida (regreSSHion/Zerologon) para el contraste infra.
+- [ ] Una tarea Carril A (regreSSHion/Zerologon) y una Carril C (runc/containerd) para el contraste.
 - [ ] Zoom del navegador al 100% para que el Impact Graph se vea completo.

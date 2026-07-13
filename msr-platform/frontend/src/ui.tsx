@@ -24,15 +24,17 @@ export function Priority({ p }: { p: string }) {
   return <span className={`chip ${PRIORITY_COLORS[p] || ""}`}>{p.toUpperCase()}</span>;
 }
 
+export const TRACK_META: Record<string, { label: string; cls: string }> = {
+  A: { label: "A · Infraestructura", cls: "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30" },
+  B: { label: "B · Aplicaciones y dependencias", cls: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" },
+  C: { label: "C · Contenedores & Cloud-native", cls: "bg-sky-500/15 text-sky-300 border border-sky-500/30" },
+};
+
 export function Track({ t }: { t: string }) {
+  const m = TRACK_META[t] || TRACK_META.A;
   return (
-    <span
-      className={`chip ${t === "A"
-        ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
-        : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"}`}
-      title={t === "A" ? "Track A · Infraestructura" : "Track B · Aplicación / dependencias"}
-    >
-      Track {t}
+    <span className={`chip ${m.cls}`} title={`Carril ${m.label}`}>
+      Carril {t}
     </span>
   );
 }
@@ -69,4 +71,8 @@ export const CI_CLASS_META: Record<string, { label: string; color: string }> = {
   server: { label: "Server", color: "#f59e0b" },
   middleware: { label: "Middleware", color: "#ec4899" },
   runtime: { label: "Runtime", color: "#14b8a6" },
+  container: { label: "Container", color: "#38bdf8" },
+  network_device: { label: "Network Device", color: "#fb7185" },
+  endpoint: { label: "Endpoint", color: "#a3a3a3" },
+  cloud_resource: { label: "Cloud Resource", color: "#818cf8" },
 };

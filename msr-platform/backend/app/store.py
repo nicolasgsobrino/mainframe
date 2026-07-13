@@ -19,18 +19,21 @@ class Store:
         self.vulnerable_items = {v["id"]: v for v in data["vulnerable_items"]}
         self.tasks = {t["id"]: t for t in data["remediation_tasks"]}
         self.catalog = data["test_catalog"]
+        # índice de adyacencia (una vez) para Impact Graph eficiente a 10k CIs
+        self.adj = engine._build_adjacency(self.edges)
+        self.ci_by_id = {c["id"]: c for c in self.cis}
         self.pipelines = {}
         self.activity = []  # feed global de actividad del agente
 
-        # Distribución inicial de fases para una demo rica
-        start_phases = [5, 5, 4, 3, 3, 2, 2, 2, 1, 1, 0, 0]
+        # Distribución inicial de fases para una demo rica (incluye un track C en despliegue)
+        start_phases = [5, 5, 4, 3, 3, 2, 2, 2, 1, 1, 0, 0, 5, 4, 2]
         for i, (tid, task) in enumerate(self.tasks.items()):
             self._init_pipeline(tid, start_phases[i % len(start_phases)])
 
     # ------------------------------------------------------------------
     def _init_pipeline(self, tid, phase_index):
         task = self.tasks[tid]
-        impact = engine.build_impact_graph(task, self.cis, self.edges)
+        impact = engine.build_impact_graph(task, self.cis, self.edges, adj=self.adj)
         mvt = engine.build_mvt(task, impact, self.catalog)
         # si la tarea ya avanzó más allá de la fase de laboratorio, el lab pasó
         lab = engine.build_lab_results(task, mvt, force_pass=phase_index > 3)
@@ -126,11 +129,21 @@ class Store:
         for p in self.pipelines.values():
             pid = engine.PHASE_IDS[p["phase_index"]]
             by_phase[pid] = by_phase.get(pid, 0) + 1
-        by_track = {"A": 0, "B": 0}
+        by_track = {"A": 0, "B": 0, "C": 0}
         for t in tasks:
-            by_track[t["track"]] += 1
+            by_track[t["track"]] = by_track.get(t["track"], 0) + 1
+        by_criticality = {}
+        for t in tasks:
+            c = t.get("criticality", "medium")
+            by_criticality[c] = by_criticality.get(c, 0) + 1
         remediated = sum(1 for t in tasks if t.get("status") == "remediated")
         kev = sum(1 for v in self.vulnerable_items.values() if v["kev"])
+        # stats de despliegue / rollback (para el panel del dashboard)
+        rings_deployed = sum(p["rings_done"] for p in self.pipelines.values())
+        rollbacks = sum(1 for p in self.pipelines.values() if p["rollback"].get("triggered"))
+        in_deployment = sum(1 for p in self.pipelines.values()
+                            if engine.PHASE_IDS[p["phase_index"]] == "deployment")
+        cmdb = self.cmdb_summary()
         return {
             "funnel": [
                 {"label": "Hallazgos totales", "value": 100000},
@@ -152,11 +165,74 @@ class Store:
             "by_priority": by_priority,
             "by_phase": by_phase,
             "by_track": by_track,
+            "by_criticality": by_criticality,
+            "tracks": seed.TRACKS,
+            "deployment": {
+                "rings_deployed": rings_deployed,
+                "rollbacks": rollbacks,
+                "in_deployment": in_deployment,
+            },
+            "cmdb": cmdb,
             "sla": {
                 "at_risk": sum(1 for t in tasks if t["priority"] in ("critical", "high")),
                 "on_track": sum(1 for t in tasks if t["priority"] in ("medium", "low")),
             },
         }
+
+    # ------------------------------------------------------------------
+    # CMDB (estandarizada, ~10k CIs) — resumen, listado paginado y subgrafo
+    # ------------------------------------------------------------------
+    def cmdb_summary(self):
+        by_class, by_track, by_crit, by_env = {}, {}, {}, {}
+        for c in self.cis:
+            by_class[c["ci_class"]] = by_class.get(c["ci_class"], 0) + 1
+            tr = c.get("track")
+            if tr:
+                by_track[tr] = by_track.get(tr, 0) + 1
+            by_crit[c.get("criticality", "medium")] = by_crit.get(c.get("criticality", "medium"), 0) + 1
+            by_env[c.get("environment", "-")] = by_env.get(c.get("environment", "-"), 0) + 1
+        return {
+            "total": len(self.cis),
+            "edges": len(self.edges),
+            "source": seed.CMDB_SOURCE,
+            "by_class": by_class,
+            "by_track": by_track,
+            "by_criticality": by_crit,
+            "by_environment": by_env,
+        }
+
+    def cmdb_cis(self, cls="all", track="all", crit="all", q="", limit=100, offset=0):
+        res = []
+        ql = q.lower().strip()
+        for c in self.cis:
+            if cls != "all" and c["ci_class"] != cls:
+                continue
+            if track != "all" and c.get("track") != track:
+                continue
+            if crit != "all" and c.get("criticality") != crit:
+                continue
+            if ql and ql not in c["name"].lower() and ql not in c["id"].lower():
+                continue
+            res.append(c)
+        return {"total": len(res), "items": res[offset:offset + limit]}
+
+    def cmdb_graph(self, service_id):
+        """Subgrafo (blast radius) de un servicio, calculado en servidor."""
+        if service_id not in self.ci_by_id:
+            return {"nodes": [], "edges": []}
+        seen = {service_id}
+        frontier = [service_id]
+        for _ in range(4):
+            nxt = []
+            for cid in frontier:
+                for neighbor, _e in self.adj.get(cid, []):
+                    if neighbor not in seen and len(seen) < 120:
+                        seen.add(neighbor)
+                        nxt.append(neighbor)
+            frontier = nxt
+        nodes = [{**self.ci_by_id[i], "is_root": i == service_id} for i in seen if i in self.ci_by_id]
+        edges = [e for e in self.edges if e["source"] in seen and e["target"] in seen]
+        return {"nodes": nodes, "edges": edges}
 
     def list_tasks(self):
         out = []
