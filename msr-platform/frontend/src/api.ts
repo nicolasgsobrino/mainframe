@@ -1,4 +1,4 @@
-import type { Overview, Task, TaskDetail, CI, Edge, TestCase, VulnerableItem, Service, CmdbSummary } from "./types";
+import type { Overview, Task, TaskDetail, CI, Edge, TestCase, VulnerableItem, Service, CmdbSummary, CmdbCiRaw } from "./types";
 
 const j = async (r: Response) => {
   if (!r.ok) throw new Error(await r.text());
@@ -26,6 +26,8 @@ export const api = {
     qs.set("offset", String(params.offset ?? 0));
     return fetch(`/api/cmdb/cis?${qs}`).then(j);
   },
+  cmdbCiRaw: (ciId: string): Promise<CmdbCiRaw> =>
+    fetch(`/api/cmdb/cis/${ciId}/raw`).then(j),
   cmdbGraph: (serviceId: string): Promise<{ nodes: CI[]; edges: Edge[] }> =>
     fetch(`/api/cmdb/graph/${serviceId}`).then(j),
   catalog: (): Promise<TestCase[]> => fetch("/api/catalog").then(j),

@@ -79,6 +79,15 @@ def cmdb_cis(cls: str = "all", track: str = "all", crit: str = "all",
     return STORE.cmdb_cis(cls=cls, track=track, crit=crit, q=q, limit=limit, offset=offset)
 
 
+@app.get("/api/cmdb/cis/{ci_id}/raw")
+def cmdb_ci_raw(ci_id: str):
+    """Registro nativo de ServiceNow (Table API) + mapeo al modelo interno."""
+    raw = STORE.cmdb_ci_raw(ci_id)
+    if raw is None:
+        raise HTTPException(status_code=404, detail="CI no encontrado")
+    return raw
+
+
 @app.get("/api/cmdb/graph/{service_id}")
 def cmdb_graph(service_id: str):
     return STORE.cmdb_graph(service_id)

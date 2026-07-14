@@ -222,6 +222,22 @@ class Store:
             res.append(c)
         return {"total": len(res), "items": res[offset:offset + limit]}
 
+    def cmdb_ci_raw(self, ci_id):
+        """Contrato de datos: el CI normalizado + su registro nativo de ServiceNow."""
+        ci = self.ci_by_id.get(ci_id)
+        if not ci:
+            return None
+        record = seed.servicenow_record(ci)
+        return {
+            "ci_id": ci_id,
+            "table": record["sys_class_name"],
+            "endpoint": f"GET /api/now/table/{record['sys_class_name']}/{record['sys_id']}?sysparm_display_value=all",
+            "source": seed.CMDB_SOURCE,
+            "servicenow_record": record,
+            "normalized": ci,
+            "field_map": seed.CMDB_FIELD_MAP,
+        }
+
     def cmdb_graph(self, service_id):
         """Subgrafo (blast radius) de un servicio, calculado en servidor."""
         if service_id not in self.ci_by_id:

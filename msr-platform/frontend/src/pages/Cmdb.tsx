@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import type { CI, Edge, CmdbSummary } from "../types";
+import type { CI, Edge, CmdbSummary, CmdbCiRaw } from "../types";
 import { CI_CLASS_META, Track } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
+import CmdbRecordModal from "../components/CmdbRecordModal";
 
 const PAGE = 50;
 
@@ -20,6 +21,7 @@ export default function Cmdb() {
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<CI[]>([]);
   const [total, setTotal] = useState(0);
+  const [raw, setRaw] = useState<CmdbCiRaw | null>(null);
 
   useEffect(() => {
     api.cmdb().then((r) => {
@@ -104,6 +106,9 @@ export default function Cmdb() {
       </div>
 
       <div className="card overflow-hidden">
+        <div className="px-4 pt-3 text-xs text-gray-500">
+          Cada CI llega desde ServiceNow vía IntegrationHub / MID Server (Table API). Pulsa <span className="text-brand font-mono">{"{ } ver JSON"}</span> para ver el <b className="text-gray-300">registro nativo</b> y su mapeo al modelo interno — el contrato de integración.
+        </div>
         <div className="px-4 py-3 border-b border-line flex flex-wrap items-center gap-2">
           <div className="text-sm font-semibold">Configuration Items</div>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre / ID…"
@@ -133,6 +138,7 @@ export default function Cmdb() {
                 <th className="px-2 py-2 font-medium">Criticidad</th>
                 <th className="px-2 py-2 font-medium">Entorno</th>
                 <th className="px-2 py-2 font-medium">Support group</th>
+                <th className="px-2 py-2 font-medium text-right">Registro CMDB</th>
               </tr>
             </thead>
             <tbody>
@@ -150,6 +156,14 @@ export default function Cmdb() {
                   <td className="px-2 py-2 text-gray-400 capitalize">{c.criticality}</td>
                   <td className="px-2 py-2 text-gray-400">{c.environment}</td>
                   <td className="px-2 py-2 text-gray-500 text-xs">{c.support_group}</td>
+                  <td className="px-2 py-2 text-right">
+                    <button
+                      onClick={() => api.cmdbCiRaw(c.id).then(setRaw)}
+                      className="px-2 py-1 rounded border border-line text-[11px] text-brand hover:bg-brand/10"
+                      title="Ver el registro tal como llega de ServiceNow (Table API) y su mapeo">
+                      {"{ }"} ver JSON
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -165,6 +179,8 @@ export default function Cmdb() {
           </div>
         </div>
       </div>
+
+      {raw && <CmdbRecordModal raw={raw} onClose={() => setRaw(null)} />}
     </div>
   );
 }

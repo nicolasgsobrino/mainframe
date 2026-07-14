@@ -54,6 +54,19 @@ export interface CI {
 }
 export interface Edge { source: string; target: string; type: string; }
 
+export interface CmdbFieldMap {
+  servicenow: string; type: string; internal: string; note: string;
+}
+export interface CmdbCiRaw {
+  ci_id: string;
+  table: string;
+  endpoint: string;
+  source: string;
+  servicenow_record: Record<string, unknown>;
+  normalized: CI;
+  field_map: CmdbFieldMap[];
+}
+
 export interface ImpactGraph {
   nodes: { id: string; name: string; ci_class: string; criticality: string; environment: string; is_root: boolean }[];
   edges: Edge[];

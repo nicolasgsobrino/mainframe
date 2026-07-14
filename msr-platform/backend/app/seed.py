@@ -7,6 +7,7 @@ registros de ServiceNow (Vulnerable Items, Remediation Tasks). Todo es ficticio 
 determinista (semilla fija) para que la demo sea reproducible.
 """
 from __future__ import annotations
+import hashlib
 import random
 from datetime import datetime, timedelta
 
@@ -191,6 +192,97 @@ def _std_fields(ci):
         else:
             ci["support_group"] = RNG.choice(SUPPORT_GROUPS)
     return ci
+
+
+# --- Contrato de ingesta: cómo llega un CI desde ServiceNow (Table API) ---
+# La plataforma consume la CMDB vía IntegrationHub / MID Server con el patrón
+# `GET /api/now/table/<sys_class_name>?sysparm_display_value=all&sysparm_fields=...`.
+# Estos helpers reproducen ese payload nativo para hacer visible el contrato.
+SN_INSTANCE = "https://bankdev.service-now.com"
+INSTALL_STATUS_CODE = {
+    "Installed": "1", "On order": "2", "In Maintenance": "3",
+    "Pending Install": "4", "Pending Repair": "5", "In Stock": "6",
+    "Retired": "7", "Stolen": "8", "Absent": "100",
+}
+# Tabla ServiceNow de la que sale cada campo de referencia
+_REF_TABLE = {
+    "assignment_group": "sys_user_group",
+    "managed_by": "sys_user",
+    "owned_by": "sys_user",
+    "location": "cmn_location",
+}
+
+# Mapeo campo nativo ServiceNow -> modelo interno de la plataforma
+CMDB_FIELD_MAP = [
+    {"servicenow": "sys_id", "type": "GUID", "internal": "id", "note": "clave primaria (32 hex); la plataforma conserva también el número funcional"},
+    {"servicenow": "sys_class_name", "type": "String", "internal": "ci_class", "note": "clase CSDM (cmdb_ci_server, cmdb_ci_appl, ...) → clase interna"},
+    {"servicenow": "name", "type": "String", "internal": "name", "note": "nombre del CI"},
+    {"servicenow": "install_status", "type": "Choice", "internal": "install_status", "note": "código numérico (1=Installed, 7=Retired)"},
+    {"servicenow": "operational_status", "type": "Choice", "internal": "—", "note": "estado operativo (1=Operational)"},
+    {"servicenow": "business_criticality", "type": "Choice", "internal": "criticality", "note": "1..4 → critical/high/medium/low para el triage"},
+    {"servicenow": "assignment_group", "type": "Reference", "internal": "support_group", "note": "sys_user_group responsable de la remediación"},
+    {"servicenow": "managed_by", "type": "Reference", "internal": "owner", "note": "sys_user propietario técnico"},
+    {"servicenow": "location", "type": "Reference", "internal": "location", "note": "cmn_location (DC / región cloud)"},
+    {"servicenow": "u_environment", "type": "String", "internal": "environment", "note": "entorno (production/pre-production/development)"},
+    {"servicenow": "version", "type": "String", "internal": "version", "note": "versión / release del CI"},
+    {"servicenow": "discovery_source", "type": "String", "internal": "cmdb_source", "note": "fuente de descubrimiento / CMDB"},
+    {"servicenow": "u_track", "type": "String", "internal": "track", "note": "dominio técnico A/B/C (atributo custom); define ejecutor y rollback"},
+    {"servicenow": "u_dora_relevant", "type": "Boolean", "internal": "dora_relevant", "note": "activo dentro del perímetro DORA"},
+]
+
+
+def _sn_sys_id(seed_str: str) -> str:
+    return hashlib.md5(seed_str.encode()).hexdigest()
+
+
+def _sn_dt(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _sn_ref(field: str, display: str) -> dict:
+    table = _REF_TABLE.get(field, "cmdb_ci")
+    sid = _sn_sys_id(f"{table}:{display}")
+    return {"display_value": display, "value": sid, "link": f"{SN_INSTANCE}/api/now/table/{table}/{sid}"}
+
+
+def _crit_code(business_criticality: str) -> str:
+    return business_criticality.split(" - ")[0] if " - " in business_criticality else "3"
+
+
+def servicenow_record(ci: dict) -> dict:
+    """Devuelve el CI en el formato nativo de la ServiceNow Table API.
+
+    Equivale a `GET /api/now/table/<sys_class_name>/<sys_id>?sysparm_display_value=all`,
+    el payload exacto que IntegrationHub / MID Server entregaría a la plataforma.
+    """
+    install_display = ci.get("install_status", "Installed")
+    biz_crit = ci.get("business_criticality", CRIT_TIER["medium"])
+    created = NOW - timedelta(days=RNG.randint(120, 900))
+    rec = {
+        "sys_id": _sn_sys_id(ci["id"]),
+        "sys_class_name": ci.get("sys_class_name", "cmdb_ci"),
+        "name": ci["name"],
+        "sys_created_on": _sn_dt(created),
+        "sys_updated_on": _sn_dt(NOW - timedelta(hours=RNG.randint(1, 72))),
+        "install_status": {"display_value": install_display, "value": INSTALL_STATUS_CODE.get(install_display, "1")},
+        "operational_status": {"display_value": "Operational", "value": "1"},
+        "business_criticality": {"display_value": biz_crit, "value": _crit_code(biz_crit)},
+        "assignment_group": _sn_ref("assignment_group", ci.get("support_group", "SG-Platform-K8s")),
+        "managed_by": _sn_ref("managed_by", ci.get("owner", "platform-team@bank.example")),
+        "location": _sn_ref("location", ci.get("location", "-")),
+        "u_environment": ci.get("environment", "production"),
+        "version": ci.get("version", "-"),
+        "discovery_source": ci.get("cmdb_source", CMDB_SOURCE),
+        "u_correlation_id": ci["id"],
+    }
+    if "track" in ci:
+        rec["u_track"] = ci["track"]
+    if "dora_relevant" in ci:
+        rec["u_dora_relevant"] = {"display_value": "true" if ci["dora_relevant"] else "false", "value": ci["dora_relevant"]}
+    for k, sn_field in (("os", "os_version"), ("tech", "u_technology"), ("repo", "u_source_repository")):
+        if ci.get(k):
+            rec[sn_field] = ci[k]
+    return rec
 
 
 def build_cmdb():

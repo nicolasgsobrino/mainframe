@@ -130,6 +130,14 @@ Resumen por clase / **dominio técnico** / criticidad, **buscador y filtros pagi
 por servicio de negocio** (subgrafo calculado en servidor). *Mensaje:* traduce "servidor vulnerable" →
 "servicio crítico" y es la base para dimensionar las pruebas.
 
+**Contrato de datos con la CMDB (botón `{ } ver JSON` en cada CI):** muestra el **registro nativo de
+ServiceNow** tal como llegaría vía IntegrationHub / MID Server —patrón `GET /api/now/table/<sys_class_name>/<sys_id>?sysparm_display_value=all`—
+con `sys_id`, `sys_class_name`, `install_status`/`business_criticality` como **código + etiqueta** y los
+campos de referencia (`assignment_group`, `managed_by`, `location`) como objetos `{ value, display_value, link }`.
+Una segunda pestaña enseña el **mapeo campo ServiceNow → modelo interno** (p. ej. `business_criticality` → triage,
+`u_track` → dominio técnico A/B/C que fija ejecutor/rollback). *Mensaje:* "No es un formato inventado: es el payload
+exacto de la Table API; conectar su CMDB real es apuntar el endpoint y aplicar este mapeo."
+
 ### 4.5 Catálogo de pruebas
 Biblioteca **versionada en Git** de pruebas por capa (OS, DB, middleware, runtime, app, externo).
 Devin selecciona de aquí el MVT según el Impact Graph. *Mensaje:* pruebas **proporcionales al
@@ -227,8 +235,9 @@ frontend/src/
 ```
 
 API principal: `GET /api/overview`, `GET /api/tasks`, `GET /api/tasks/{id}`,
-`POST /api/tasks/{id}/approve` (HITL), `GET /api/cmdb`, `GET /api/catalog`, `GET /api/services`,
-`POST /api/reset`.
+`POST /api/tasks/{id}/approve` (HITL), `GET /api/cmdb`, `GET /api/cmdb/cis`,
+`GET /api/cmdb/cis/{id}/raw` (registro nativo ServiceNow + mapeo), `GET /api/catalog`,
+`GET /api/services`, `POST /api/reset`.
 
 ---
 
