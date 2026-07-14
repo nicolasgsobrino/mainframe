@@ -8,8 +8,14 @@ determinista (semilla fija) para que la demo sea reproducible.
 """
 from __future__ import annotations
 import hashlib
+import json
+import os
 import random
 from datetime import datetime, timedelta
+
+# CMDB versionada en el repo (formato ServiceNow Table API). Fuente de verdad:
+# msr-platform/data/cmdb/  → un fichero por tabla cmdb_ci_* + cmdb_rel_ci + manifest.
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "cmdb"))
 
 RNG = random.Random(42)
 NOW = datetime(2026, 7, 6, 9, 0, 0)
@@ -283,6 +289,87 @@ def servicenow_record(ci: dict) -> dict:
         if ci.get(k):
             rec[sn_field] = ci[k]
     return rec
+
+
+REL_TYPE_MAP = {
+    "runs_on": "Runs on::Runs",
+    "hosts": "Hosted on::Hosts",
+    "depends_on": "Depends on::Used by",
+    "supports": "Depends on::Used by",
+    "connects_to": "Connects to::Connected by",
+    "stored_on": "Stored on::Stores",
+}
+
+
+def servicenow_rel(edge: dict) -> dict:
+    """Relación en formato nativo de la tabla ServiceNow `cmdb_rel_ci`."""
+    parent, child = edge["source"], edge["target"]
+    rel_type = REL_TYPE_MAP.get(edge.get("type", "depends_on"), "Depends on::Used by")
+    return {
+        "sys_id": _sn_sys_id(f"rel:{parent}:{child}:{edge.get('type')}"),
+        "parent": {"display_value": parent, "value": _sn_sys_id(parent)},
+        "child": {"display_value": child, "value": _sn_sys_id(child)},
+        "type": {"display_value": rel_type, "value": _sn_sys_id(f"type:{rel_type}")},
+    }
+
+
+# ---------------------------------------------------------------------------
+# Persistencia de la CMDB en el repo (formato ServiceNow) + carga
+# ---------------------------------------------------------------------------
+def _write_json(fname: str, payload: dict) -> None:
+    with open(os.path.join(DATA_DIR, fname), "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+
+
+def _read_json(fname: str) -> dict:
+    with open(os.path.join(DATA_DIR, fname), "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def has_cmdb_export() -> bool:
+    return os.path.exists(os.path.join(DATA_DIR, "_manifest.json"))
+
+
+def export_cmdb(cis: list, edges: list) -> dict:
+    """Escribe la CMDB en el repo: registros nativos por tabla + relaciones +
+    modelo normalizado (fuente que el backend recarga) + manifiesto."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    by_table: dict = {}
+    for c in cis:
+        rec = servicenow_record(c)
+        by_table.setdefault(rec["sys_class_name"], []).append(rec)
+    tables = []
+    for table, rows in sorted(by_table.items()):
+        _write_json(f"{table}.json", {"table": table, "records": rows})
+        tables.append({"table": table, "file": f"{table}.json", "records": len(rows)})
+    rel_rows = [servicenow_rel(e) for e in edges]
+    _write_json("cmdb_rel_ci.json", {"table": "cmdb_rel_ci", "records": rel_rows})
+    # Modelo normalizado interno (lo que el backend recarga en cada arranque).
+    _write_json("normalized_cis.json", {"records": cis})
+    _write_json("normalized_edges.json", {"records": edges})
+    manifest = {
+        "source": CMDB_SOURCE,
+        "instance": SN_INSTANCE,
+        "generated_at": _sn_dt(NOW),
+        "total_cis": len(cis),
+        "total_relationships": len(edges),
+        "tables": tables + [{"table": "cmdb_rel_ci", "file": "cmdb_rel_ci.json", "records": len(rel_rows)}],
+        "field_map": CMDB_FIELD_MAP,
+    }
+    _write_json("_manifest.json", manifest)
+    return manifest
+
+
+def load_cmdb() -> tuple:
+    cis = _read_json("normalized_cis.json")["records"]
+    edges = _read_json("normalized_edges.json")["records"]
+    return cis, edges
+
+
+def cmdb_manifest() -> dict:
+    if has_cmdb_export():
+        return _read_json("_manifest.json")
+    return {"source": CMDB_SOURCE, "tables": [], "total_cis": 0}
 
 
 def build_cmdb():
@@ -587,9 +674,13 @@ def build_records(cis, edges):
             "vulnerable_version": cve[8], "ci_id": ci["id"], "ci_name": ci["name"],
             "ci_class": ci["ci_class"], "exposed": exposed, "criticality": crit,
             "environment": env, "owner": ci.get("owner", RNG.choice(OWNERS)),
-            "risk_score": risk, "sources": RNG.sample(SCANNERS, RNG.randint(1, 3)),
-            "status": "open", "detected_at": iso(NOW - timedelta(days=RNG.randint(1, 15))),
         }
+        detected_days = RNG.randint(1, 22)
+        detected_dt = NOW - timedelta(days=detected_days)
+        vitem["risk_score"] = risk
+        vitem["sources"] = RNG.sample(SCANNERS, RNG.randint(1, 3))
+        vitem["status"] = "open"
+        vitem["detected_at"] = iso(detected_dt)
         # SLA por severidad/KEV
         if cve[4] or cve[2] >= 9:
             sla_days = 3
@@ -600,7 +691,8 @@ def build_records(cis, edges):
         vitem["sla_days"] = sla_days
         lane = assign_lane(risk, cve[4], cve[5], exposed, crit)
         vitem["lane"] = lane
-        vitem["sla_due"] = iso(NOW + timedelta(days=sla_days - RNG.randint(0, 2)))
+        # Vencimiento = detección + SLA (así hay VI dentro y fuera de plazo, como en real).
+        vitem["sla_due"] = iso(detected_dt + timedelta(days=sla_days))
         vitems.append(vitem)
 
         tid += 1
@@ -656,7 +748,13 @@ TEST_CATALOG = [
 
 
 def build_all():
-    cis, edges = build_cmdb()
+    # La CMDB es la fuente de verdad versionada en el repo (formato ServiceNow).
+    # Si el export existe se recarga; si no, se genera y se persiste al repo.
+    if has_cmdb_export():
+        cis, edges = load_cmdb()
+    else:
+        cis, edges = build_cmdb()
+        export_cmdb(cis, edges)
     findings, vitems, tasks = build_records(cis, edges)
     catalog = [dict(zip(
         ["id", "name", "layer", "applies_to", "remediation_type", "criticality", "tool", "evidence"], t))

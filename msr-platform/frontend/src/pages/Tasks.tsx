@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import type { Task } from "../types";
-import { PHASE_META, Priority, Track, Risk, LaneTag, LANE_META } from "../ui";
+import { PHASE_META, Priority, Track, Risk, LaneTag, LANE_META, SlaTag } from "../ui";
 
 const LANE_KEYS = ["all", "critical", "accelerated", "standard"] as const;
 
@@ -85,7 +85,10 @@ export default function Tasks() {
                   </div>
                 </td>
                 <td className="px-2 py-3"><Priority p={t.priority} /></td>
-                <td className="px-2 py-3 text-xs text-gray-400">{t.sla_due.slice(0, 10)}</td>
+                <td className="px-2 py-3">
+                  <SlaTag sla={t.sla} />
+                  <div className="text-[10px] text-gray-500 mt-0.5">due {t.sla_due.slice(0, 10)}</div>
+                </td>
               </tr>
             ))}
           </tbody>

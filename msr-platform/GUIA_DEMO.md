@@ -122,6 +122,27 @@ produce Devin + el **panel del agente** + el **botón de aprobación HITL**:
    excepciones trazables, **PR de remediación** (Track B) e **informe de auditoría audit-ready**
    (cadena finding → VI → Impact Graph → MVT → lab → prototipo → CR → anillos → cierre).
 
+**Indicador de SLA / due date:** en la cabecera y en la lista de tareas cada remediación muestra su
+estado de SLA — **vencido** (rojo, con los días de retraso), **en riesgo** (≤ 2 días, ámbar) o **en plazo**
+(verde). Si la tarea está fuera de plazo aparece un **banner de alerta** en el detalle. El Dashboard añade un
+KPI **"SLA vencido"** y un resumen vencido / en riesgo / en plazo.
+
+**Mapa de dependencias y afectados (Impact Graph) en la propia tarea:** el detalle de la Remediation Task
+incluye —siempre visible, sin cambiar de fase— el **grafo de impacto** con el CI raíz vulnerable, los CIs
+afectados, los servicios de negocio impactados y el nº de afectados. Es el criterio con el que Devin decide
+qué activos entran en cada anillo.
+
+**Anillos con contexto, revisión y pre-aprobación Human-Driven (Fase 6):** al abrir un anillo se ve un
+**informe pre-anillo** con:
+- **por qué Devin ha seleccionado esos activos** (rationale) y los **criterios** (blast radius, criticidad,
+  entorno, exposición, ventana);
+- la **lista de activos seleccionados** (revisable y **editable** — se pueden excluir activos, lo que invalida
+  la pre-aprobación y obliga a re-verificar);
+- los **criterios de entrada** del anillo (MVT aprobado, prototipo validado, CR autorizado, rollback probado…);
+- el estado de **verificación y pre-aprobación (auditoría Human-Driven)**: hasta que el owner no revisa y
+  **pre-aprueba** el informe, **ServiceNow bloquea el despliegue** del anillo;
+- las **acciones ejecutadas con el porqué de cada comando** (qué hace, por qué aplica y su salida) + post-checks.
+
 ### 4.4 CMDB · Impact Graph
 Patrimonio bancario a escala: **~10.000 CIs** en modelo **estandarizado (ServiceNow CSDM 4.0)** —
 `sys_class_name`, `business_criticality` (tier), `support_group`, `install_status`— con business
@@ -137,6 +158,13 @@ campos de referencia (`assignment_group`, `managed_by`, `location`) como objetos
 Una segunda pestaña enseña el **mapeo campo ServiceNow → modelo interno** (p. ej. `business_criticality` → triage,
 `u_track` → dominio técnico A/B/C que fija ejecutor/rollback). *Mensaje:* "No es un formato inventado: es el payload
 exacto de la Table API; conectar su CMDB real es apuntar el endpoint y aplicar este mapeo."
+
+**CMDB versionada en el repo (formato estándar):** la CMDB no se genera solo en memoria — está exportada al
+repositorio en `msr-platform/data/cmdb/` en **formato nativo ServiceNow**: un fichero por tabla (`cmdb_ci_server.json`,
+`cmdb_ci_appl.json`, `cmdb_ci_runtime.json`, … `cmdb_ci_service.json`) + relaciones (`cmdb_rel_ci.json`), más un
+`_manifest.json` (origen, conteos y mapa de campos) y el modelo normalizado que el backend recarga como **fuente de
+verdad**. La pantalla CMDB muestra un panel con el origen, las tablas y sus conteos (10.000 CIs · 6.702 relaciones).
+Endpoint: `GET /api/cmdb/tables`.
 
 ### 4.5 Catálogo de pruebas
 Biblioteca **versionada en Git** de pruebas por capa (OS, DB, middleware, runtime, app, externo).

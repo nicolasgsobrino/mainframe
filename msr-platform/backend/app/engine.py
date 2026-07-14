@@ -280,6 +280,102 @@ RING_DEFS = [
     (4, "Anillo 4 · Resto del alcance"),
 ]
 
+# Banda de riesgo, población objetivo y ventana por anillo — define POR QUÉ Devin
+# agrupa unos activos u otros en cada oleada.
+RING_BANDS = [
+    {"band": "Interno / no crítico", "target": "Entornos internos, dev/test y activos no críticos ya validados en prototipo.",
+     "criticality": ["low", "medium"], "environment": ["development", "pre-production"], "window": "Inmediata (sin impacto en negocio)"},
+    {"band": "Producción bajo impacto", "target": "Producción de bajo impacto: servicios de soporte, sin exposición directa a clientes.",
+     "criticality": ["low", "medium"], "environment": ["production"], "window": "Ventana estándar diurna"},
+    {"band": "Producción criticidad media", "target": "Producción de criticidad media: servicios internos de negocio.",
+     "criticality": ["medium", "high"], "environment": ["production"], "window": "Ventana de mantenimiento acordada"},
+    {"band": "Producción crítica", "target": "Producción crítica: servicios core y activos DORA con máxima vigilancia.",
+     "criticality": ["high", "critical"], "environment": ["production"], "window": "Ventana crítica con CAB y guardia"},
+    {"band": "Resto del alcance", "target": "Activos remanentes y de larga cola; cierre del despliegue.",
+     "criticality": ["low", "medium", "high", "critical"], "environment": ["production", "pre-production", "development"], "window": "Ventana planificada final"},
+]
+CANARY_PCT = [5, 10, 25, 35, 100]
+
+
+def _asset_reason(ring_no: int, ci_class: str, crit: str) -> str:
+    band = RING_BANDS[min(ring_no, len(RING_BANDS) - 1)]
+    return (
+        f"Pertenece al blast radius (clase {ci_class}, criticidad {crit}); "
+        f"encaja en la banda «{band['band']}» del anillo {ring_no} por criticidad y entorno."
+    )
+
+
+def build_ring_plan(task, impact, ring_no, label, assets_count, canary_pct,
+                    executor, exclusions=None, preapproval=None):
+    """Informe pre-anillo: por qué Devin seleccionó estos activos, criterios de
+    entrada, ventana y estado de pre-aprobación (auditoría Human-Driven)."""
+    rng = _rng(task["id"] + f"plan{ring_no}")
+    band = RING_BANDS[min(ring_no, len(RING_BANDS) - 1)]
+    excluded = set(exclusions or [])
+
+    # Activos concretos: derivados del Impact Graph (blast radius real) + hosts sintéticos.
+    candidates = [n for n in impact["nodes"] if not n.get("is_root")] or impact["nodes"]
+    assets = []
+    n_show = min(assets_count, 10)
+    for i in range(n_show):
+        if candidates:
+            base = candidates[(ring_no * 7 + i) % len(candidates)]
+            aid = f"{base['id']}-r{ring_no}-{i:02d}"
+            name = f"{base['name']}-{ring_no}{i:02d}"
+            cls = base["ci_class"]
+            crit = base.get("criticality", task["criticality"])
+            env = base.get("environment", "production")
+        else:
+            aid = f"{task['ci_id']}-r{ring_no}-{i:02d}"
+            name = f"{task['ci_name']}-{ring_no}{i:02d}"
+            cls = task.get("track") and "server" or "server"
+            crit = task["criticality"]
+            env = task["environment"]
+        assets.append({
+            "id": aid, "name": name, "ci_class": cls,
+            "criticality": crit, "environment": env,
+            "reason": _asset_reason(ring_no, cls, crit),
+            "excluded": aid in excluded,
+        })
+    selected_n = assets_count - len([a for a in assets if a["excluded"]])
+
+    entry_criteria = [
+        {"check": "MVT aprobado (HITL)", "ok": True},
+        {"check": "Prototipo validado", "ok": True},
+        {"check": "Change Request autorizado", "ok": True},
+        {"check": "Ventana disponible", "ok": True},
+        {"check": "Plan de rollback probado en lab", "ok": True},
+        {"check": "Sin conflictos de cambio abiertos", "ok": bool(rng.random() > 0.15)},
+    ]
+    rationale = (
+        f"Devin seleccionó {assets_count} activos para el {label} a partir del Impact Graph "
+        f"({impact['affected_count']} CIs en el blast radius). Criterio: {band['target']} "
+        f"Se despliega de forma progresiva (canary {canary_pct}%) empezando por menor criticidad "
+        f"para acotar el impacto y validar por telemetría antes de avanzar. Ejecutor: {executor}."
+    )
+    return {
+        "ring": ring_no,
+        "label": label,
+        "band": band["band"],
+        "target_population": band["target"],
+        "window": band["window"],
+        "canary_pct": canary_pct,
+        "assets_count": assets_count,
+        "selected_count": selected_n,
+        "selection_rationale": rationale,
+        "selection_criteria": [
+            {"factor": "Blast radius", "detail": f"Activos dependientes del CI raíz {task['ci_name']} según el Impact Graph."},
+            {"factor": "Criticidad", "detail": f"Banda del anillo: {', '.join(band['criticality'])}."},
+            {"factor": "Entorno", "detail": f"{', '.join(band['environment'])}."},
+            {"factor": "Exposición", "detail": "Prioriza activos no expuestos primero; los expuestos en anillos posteriores con más validación."},
+            {"factor": "Ventana", "detail": band["window"]},
+        ],
+        "assets": assets,
+        "entry_criteria": entry_criteria,
+        "approval": preapproval or {"required": "Human-Driven", "preapproved": False,
+                                    "approver": None, "ts": None, "note": None},
+    }
+
 
 def _deploy_executor(task, rng):
     return {
@@ -321,34 +417,56 @@ def build_ring_actions(task, ring_no, assets, executor, ts_base):
     ci = task["ci_name"]
     steps = []
 
-    def add(actor, tool, command, output, duration=None):
+    canary = CANARY_PCT[min(ring_no, 4)]
+
+    def add(actor, tool, command, output, why, duration=None):
         steps.append({
             "seq": len(steps) + 1, "actor": actor, "tool": tool,
-            "command": command, "output": output, "status": "ok",
+            "command": command, "output": output, "status": "ok", "why": why,
             "duration_s": duration if duration is not None else rng.randint(2, 40),
         })
 
     if task["track"] == "C":
-        add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-image", f"Switched to branch 'fix/{task['cve'].lower()}-image'")
-        add("Devin", "Docker", f"update base image: {comp} {prev} → {fixed}", "Dockerfile + manifests actualizados")
-        add("GitHub Actions", "Docker", f"docker build --no-cache -t registry/{ci}:{fixed} .", f"Built image sha256:{rng.randint(10**11,10**12)}")
-        add("Devin", "Trivy", f"trivy image registry/{ci}:{fixed}", "0 CRITICAL / 0 HIGH · imagen firmada (cosign)")
-        add("Argo CD", "Helm", f"argocd app sync {ci} --revision {fixed} (canary {[5,10,25,35,100][min(ring_no,4)]}%)", f"Rollout progresivo a {assets} pods")
+        add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-image", f"Switched to branch 'fix/{task['cve'].lower()}-image'",
+            "Se aísla el cambio en una rama para trazabilidad y revisión (dominio C: la remediación es reconstruir la imagen).")
+        add("Devin", "Docker", f"update base image: {comp} {prev} → {fixed}", "Dockerfile + manifests actualizados",
+            f"El fix de {task['cve']} está en la versión {fixed} de {comp}; se actualiza la imagen base, no se parchea en caliente.")
+        add("GitHub Actions", "Docker", f"docker build --no-cache -t registry/{ci}:{fixed} .", f"Built image sha256:{rng.randint(10**11,10**12)}",
+            "Build limpio y reproducible del artefacto inmutable que se promocionará por los anillos.")
+        add("Devin", "Trivy", f"trivy image registry/{ci}:{fixed}", "0 CRITICAL / 0 HIGH · imagen firmada (cosign)",
+            "Se verifica que la nueva imagen no reintroduce vulnerabilidades y se firma (cosign) antes de desplegar.")
+        add("Argo CD", "Helm", f"argocd app sync {ci} --revision {fixed} (canary {canary}%)", f"Rollout progresivo a {assets} pods",
+            f"Despliegue GitOps progresivo al {canary}% de los pods de este anillo para acotar el blast radius del cambio.")
     elif task["track"] == "B":
-        add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-bump", f"Switched to branch 'fix/{task['cve'].lower()}-bump'")
-        add("Devin", "CI/CD", f"bump {comp}: {prev} → {fixed}", f"1 file changed · lockfile updated")
-        add("Devin", "CI/CD", f"gh pr merge --squash (ring {ring_no})", "Merged. Deploy workflow triggered.")
-        add("GitHub Actions", "Docker", f"docker build -t {ci}:{fixed} .", f"Successfully tagged {ci}:{fixed}")
-        add("GitHub Actions", "Helm", f"helm upgrade {ci} --set image.tag={fixed} --set canary.weight={[5,10,25,35,100][min(ring_no,4)]}", f"Rollout deployed to {assets} pods")
+        add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-bump", f"Switched to branch 'fix/{task['cve'].lower()}-bump'",
+            "Rama dedicada para el bump de dependencia (dominio B: se remedia actualizando la librería y reconstruyendo).")
+        add("Devin", "CI/CD", f"bump {comp}: {prev} → {fixed}", f"1 file changed · lockfile updated",
+            f"Se eleva {comp} a {fixed} (versión con el fix) y se fija el lockfile para un build determinista.")
+        add("Devin", "CI/CD", f"gh pr merge --squash (ring {ring_no})", "Merged. Deploy workflow triggered.",
+            "El merge del PR dispara el pipeline de despliegue; el cambio queda auditado en la PR.")
+        add("GitHub Actions", "Docker", f"docker build -t {ci}:{fixed} .", f"Successfully tagged {ci}:{fixed}",
+            "Se construye el artefacto con la dependencia ya parcheada.")
+        add("GitHub Actions", "Helm", f"helm upgrade {ci} --set image.tag={fixed} --set canary.weight={canary}", f"Rollout deployed to {assets} pods",
+            f"Rollout canary al {canary}% para validar por telemetría antes de ampliar el alcance.")
     else:
-        add("Devin", executor, f"snapshot create {ci} --pre-patch (ring {ring_no})", f"Snapshot snap-{rng.randint(10000,99999)} created for {assets} hosts")
-        add(executor, executor, f"deploy patch {comp} {prev} → {fixed} --limit ring{ring_no}", f"{assets} hosts targeted · maintenance window OK")
-        add(executor, "OS", f"install {comp}-{fixed}", f"{assets}/{assets} hosts updated")
-        add(executor, "OS", "systemctl restart affected-services", f"services restarted on {assets} hosts")
+        add("Devin", executor, f"snapshot create {ci} --pre-patch (ring {ring_no})", f"Snapshot snap-{rng.randint(10000,99999)} created for {assets} hosts",
+            "Se toma snapshot ANTES de parchear para garantizar rollback inmediato si un post-check falla (dominio A: parcheo in-place).")
+        add(executor, executor, f"deploy patch {comp} {prev} → {fixed} --limit ring{ring_no}", f"{assets} hosts targeted · maintenance window OK",
+            f"El ejecutor ({executor}) apunta solo a los {assets} hosts de este anillo, dentro de la ventana de mantenimiento aprobada.")
+        add(executor, "OS", f"install {comp}-{fixed}", f"{assets}/{assets} hosts updated",
+            f"Instala la versión {fixed} que corrige {task['cve']} en los hosts objetivo.")
+        add(executor, "OS", "systemctl restart affected-services", f"services restarted on {assets} hosts",
+            "Reinicio controlado de los servicios afectados para que el parche tome efecto.")
 
     # Post-checks (evidencia de validación tras aplicar)
+    post_why = {
+        "version-assert": "Confirma que la versión instalada es la parcheada (no un rollback silencioso).",
+        "health-check": "Verifica que los servicios responden sanos tras el cambio.",
+        "smoke-test": "Ejecuta el camino crítico de negocio para detectar regresiones.",
+        "synthetic-probe": "Sonda sintética externa para validar disponibilidad de cara al usuario.",
+    }
     for chk in ["version-assert", "health-check", "smoke-test", "synthetic-probe"]:
-        add("Devin", "post-check", chk, f"{chk}: OK ({assets}/{assets})", rng.randint(1, 12))
+        add("Devin", "post-check", chk, f"{chk}: OK ({assets}/{assets})", post_why[chk], rng.randint(1, 12))
     return {"steps": steps, "from_version": prev, "to_version": fixed}
 
 
@@ -406,9 +524,12 @@ def build_rollback_plan(task, impact):
     }
 
 
-def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_back_rings=None):
+def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_back_rings=None,
+                     preapprovals=None, exclusions=None):
     rng = _rng(task["id"] + "deploy")
     rolled_back_rings = set(rolled_back_rings or [])
+    preapprovals = preapprovals or {}
+    exclusions = exclusions or {}
     total_assets = max(6, impact["affected_count"] * rng.randint(2, 6))
     executor = _deploy_executor(task, rng)
     rings = []
@@ -429,11 +550,14 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
         else:
             status = "pending"
         actions = build_ring_actions(task, rn, assets, executor, ts_base) if status in ("completed", "rolled_back") else None
+        plan = build_ring_plan(task, impact, rn, label, assets, CANARY_PCT[min(i, 4)], executor,
+                               exclusions=exclusions.get(rn), preapproval=preapprovals.get(rn))
         rings.append({
             "ring": rn, "label": label, "assets": assets, "status": status,
             "post_checks": ["version-assert", "health-check", "smoke-test", "synthetic-probe"] if status in ("completed", "rolled_back") else [],
             "result": {"completed": "healthy", "rolled_back": "reverted", "in_progress": "-", "pending": "-"}[status],
             "actions": actions,
+            "plan": plan,
             "health": {
                 "error_rate_pct": round(rng.uniform(0.0, 0.3), 2),
                 "p95_latency_ms": rng.randint(120, 420),

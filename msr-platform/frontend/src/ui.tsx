@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { SlaState } from "./types";
 
 export const PRIORITY_COLORS: Record<string, string> = {
   critical: "bg-red-500/15 text-red-400 border border-red-500/30",
@@ -68,6 +69,28 @@ export function Automation({ level, compact = false }: { level: string; compact?
   return (
     <span className={`chip ${m.cls}`} title={m.label}>
       {m.icon}{compact ? "" : ` ${m.label}`}
+    </span>
+  );
+}
+
+// Indicador de cumplimiento del SLA / due date.
+export function SlaTag({ sla }: { sla?: SlaState }) {
+  if (!sla || sla.days_left === null) return <span className="text-gray-500 text-xs">—</span>;
+  if (sla.overdue)
+    return (
+      <span className="chip bg-red-500/20 text-red-300 border border-red-500/50" title={`Vencido hace ${sla.days_overdue} día(s) · due ${sla.due?.slice(0, 10)}`}>
+        ⚠ SLA vencido · +{sla.days_overdue}d
+      </span>
+    );
+  if (sla.due_soon)
+    return (
+      <span className="chip bg-amber-500/15 text-amber-300 border border-amber-500/40" title={`Vence en ${sla.days_left} día(s) · due ${sla.due?.slice(0, 10)}`}>
+        ⏳ {sla.days_left}d restantes
+      </span>
+    );
+  return (
+    <span className="chip bg-emerald-500/10 text-emerald-300 border border-emerald-500/30" title={`due ${sla.due?.slice(0, 10)}`}>
+      {sla.days_left}d en plazo
     </span>
   );
 }

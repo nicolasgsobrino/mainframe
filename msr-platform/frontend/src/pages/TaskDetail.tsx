@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api";
-import type { TaskDetail as TD, FlowStep } from "../types";
-import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META } from "../ui";
+import type { TaskDetail as TD, FlowStep, Ring } from "../types";
+import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 
 const PHASE_IDS = ["detection", "prioritization", "pre_implementation", "lab_testing", "prototype", "deployment"];
@@ -43,9 +43,23 @@ export default function TaskDetail() {
     const r = await api.simulateIncident(id!);
     setD(r); setSel(r.phase_index); setBusy(false);
   };
+  const preapproveRing = async (ring: number) => {
+    setBusy(true);
+    const r = await api.preapproveRing(id!, ring);
+    setD(r); setSel(r.phase_index); setBusy(false);
+  };
+  const saveRingAssets = async (ring: number, excluded: string[]) => {
+    setBusy(true);
+    const r = await api.updateRingAssets(id!, ring, excluded);
+    setD(r); setSel(r.phase_index); setBusy(false);
+  };
 
+  const nextRing = a.deployment.rings[d.rings_done];
+  const nextRingPreapproved = !!nextRing?.plan.approval.preapproved;
   const canApprove = !done && (
-    currentPhaseId !== "lab_testing" || a.lab.verdict === "pass"
+    currentPhaseId === "deployment"
+      ? nextRingPreapproved
+      : (currentPhaseId !== "lab_testing" || a.lab.verdict === "pass")
   );
 
   return (
@@ -63,6 +77,7 @@ export default function TaskDetail() {
               <Priority p={task.priority} />
               {vi.kev && <KevTag />}
               {vi.exploit_available && <span className="chip bg-red-500/10 text-red-300 border border-red-500/20">exploit disponible</span>}
+              {!done && <SlaTag sla={d.sla} />}
               {done && <span className="chip bg-green-500/15 text-green-400">REMEDIADA</span>}
             </div>
             <h1 className="text-xl font-extrabold mt-2">{task.title}</h1>
@@ -85,6 +100,16 @@ export default function TaskDetail() {
           <Meta k="Fuentes" v={vi.sources.length + " scanners"} />
         </div>
       </div>
+
+      {d.sla?.overdue && !done && (
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm text-red-300 flex items-center gap-2">
+          <span className="text-lg">⚠</span>
+          <span>
+            <b>SLA vencido</b> — due date {d.sla.due.slice(0, 10)}, superado hace <b>{d.sla.days_overdue} día(s)</b>.
+            Esta remediación está fuera de plazo; prioriza su ejecución.
+          </span>
+        </div>
+      )}
 
       {/* Phase stepper */}
       <div className="card p-4">
@@ -146,10 +171,34 @@ export default function TaskDetail() {
         </div>
       </div>
 
+      {/* Mapa de dependencias y afectados — visible siempre en la Remediation Task */}
+      <div className="card p-5">
+        <div className="mb-3">
+          <div className="text-sm font-semibold text-gray-100">Mapa de dependencias y afectados (Impact Graph)</div>
+          <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+            Blast radius de la vulnerabilidad calculado desde la CMDB (relaciones CI→CI). Raíz: <span className="font-mono text-gray-300">{task.ci_name}</span> ·
+            {" "}{a.impact.affected_count} CIs afectados · capas: {a.impact.affected_layers.join(", ")}.
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-3 text-xs">
+          <span className="chip bg-red-500/15 text-red-300 border border-red-500/30">Raíz vulnerable: {task.ci_name}</span>
+          <span className="chip bg-ink-panel text-gray-300 border border-line">{a.impact.affected_count} CIs afectados</span>
+          {a.impact.business_services.map((s) => (
+            <span key={s} className="chip bg-purple-500/15 text-purple-300 border border-purple-500/30">svc: {s}</span>
+          ))}
+        </div>
+        <ImpactGraphView nodes={a.impact.nodes} edges={a.impact.edges} height={340} />
+        <div className="mt-2 text-[11px] text-gray-500 leading-relaxed">
+          Devin selecciona los activos a remediar a partir de este grafo: los CIs dependientes del nodo raíz son los que quedan
+          expuestos por la vulnerabilidad y determinan el alcance de los anillos de despliegue.
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Artifact panel */}
         <div className="xl:col-span-2 space-y-5">
-          <PhaseArtifacts phaseId={selPhaseId} d={d} />
+          <PhaseArtifacts phaseId={selPhaseId} d={d} busy={busy}
+            onPreapprove={preapproveRing} onSaveAssets={saveRingAssets} />
         </div>
 
         {/* Agent + HITL column */}
@@ -194,6 +243,9 @@ export default function TaskDetail() {
                 </div>
                 {!canApprove && currentPhaseId === "lab_testing" && (
                   <div className="text-xs text-red-400 mb-2">⚠ El MVT ha fallado en laboratorio. ServiceNow bloquea el avance (rollback / análisis).</div>
+                )}
+                {!canApprove && currentPhaseId === "deployment" && nextRing && (
+                  <div className="text-xs text-amber-300 mb-2">⚠ El anillo {nextRing.ring} requiere revisión y <b>pre-aprobación Human-Driven</b> de su informe pre-anillo (arriba, en Fase 6) antes de desplegar.</div>
                 )}
                 <button disabled={busy || !canApprove} onClick={approve}
                   className={`btn w-full justify-center ${canApprove ? "btn-brand" : "btn-ghost opacity-50 cursor-not-allowed"}`}>
@@ -245,7 +297,11 @@ function Meta({ k, v }: { k: string; v: string }) {
 }
 
 // -------------------- per-phase artifacts --------------------
-function PhaseArtifacts({ phaseId, d }: { phaseId: string; d: TD }) {
+function PhaseArtifacts({ phaseId, d, busy, onPreapprove, onSaveAssets }: {
+  phaseId: string; d: TD; busy: boolean;
+  onPreapprove: (ring: number) => void;
+  onSaveAssets: (ring: number, excluded: string[]) => void;
+}) {
   const { artifacts: a, task, vulnerable_item: vi } = d;
 
   if (phaseId === "detection")
@@ -369,9 +425,14 @@ function PhaseArtifacts({ phaseId, d }: { phaseId: string; d: TD }) {
         {a.deployment.pr_url && (
           <a href={a.deployment.pr_url} target="_blank" className="chip bg-emerald-500/15 text-emerald-300 mb-3 inline-flex">PR de remediación: {a.deployment.pr_url.split("/").slice(-2).join("/")}</a>
         )}
+        <div className="text-xs text-gray-500 mb-2 leading-relaxed">
+          Cada anillo lleva un <b>informe pre-anillo</b> con la selección de activos que ha hecho Devin y su justificación.
+          El owner revisa, edita la selección si procede, <b>verifica y pre-aprueba (Human-Driven)</b> antes de que se pueda desplegar.
+        </div>
         <div className="space-y-2">
           {a.deployment.rings.map((r) => (
-            <RingRow key={r.ring} r={r} />
+            <RingRow key={r.ring} r={r} busy={busy}
+              onPreapprove={onPreapprove} onSaveAssets={onSaveAssets} />
           ))}
         </div>
         {a.deployment.exceptions.length > 0 && (
@@ -436,9 +497,17 @@ function PhaseArtifacts({ phaseId, d }: { phaseId: string; d: TD }) {
   );
 }
 
-function RingRow({ r }: { r: any }) {
+function RingRow({ r, busy, onPreapprove, onSaveAssets }: {
+  r: Ring; busy: boolean;
+  onPreapprove: (ring: number) => void;
+  onSaveAssets: (ring: number, excluded: string[]) => void;
+}) {
   const [open, setOpen] = useState(false);
-  const hasActions = r.actions && r.actions.steps.length > 0;
+  const [editing, setEditing] = useState(false);
+  const [excluded, setExcluded] = useState<string[]>(
+    r.plan.assets.filter((x) => x.excluded).map((x) => x.id));
+  const hasActions = !!r.actions && r.actions.steps.length > 0;
+  const pa = r.plan.approval;
   const statusChip =
     r.status === "completed" ? "bg-green-500/15 text-green-400"
     : r.status === "rolled_back" ? "bg-amber-500/15 text-amber-300"
@@ -446,39 +515,133 @@ function RingRow({ r }: { r: any }) {
     : "bg-gray-500/15 text-gray-400";
   const icon =
     r.status === "completed" ? "✓" : r.status === "rolled_back" ? "⟲" : r.status === "in_progress" ? "▶" : "·";
+  const toggle = (idClicked: string) =>
+    setExcluded((e) => e.includes(idClicked) ? e.filter((x) => x !== idClicked) : [...e, idClicked]);
+
   return (
     <div className="bg-ink rounded-lg border border-line">
-      <button onClick={() => hasActions && setOpen(!open)}
-        className={`w-full flex items-center gap-3 px-3 py-2 text-left ${hasActions ? "cursor-pointer" : "cursor-default"}`}>
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-3 py-2 text-left cursor-pointer">
         <span className={`chip ${statusChip}`}>{icon}</span>
         <div className="flex-1">
           <div className="text-sm text-gray-200">{r.label}</div>
-          {r.health && (
+          {r.health ? (
             <div className="text-[11px] text-gray-500">
               err {r.health.error_rate_pct}% · p95 {r.health.p95_latency_ms}ms · avail {r.health.availability_pct}%
             </div>
+          ) : (
+            <div className="text-[11px] text-gray-500">{r.plan.band} · canary {r.plan.canary_pct}% · {r.plan.window}</div>
           )}
         </div>
+        {pa.preapproved
+          ? <span className="chip bg-brand/15 text-brand" title={pa.note || ""}>pre-aprobado 👤</span>
+          : r.status === "pending" || r.status === "in_progress"
+          ? <span className="chip bg-amber-500/15 text-amber-300">requiere pre-aprobación</span>
+          : null}
         <span className="text-xs text-gray-400">{r.assets} activos</span>
         {r.result !== "-" && (
           <span className={`chip ${r.status === "rolled_back" ? "bg-amber-500/10 text-amber-300" : "bg-green-500/10 text-green-400"}`}>{r.result}</span>
         )}
-        {hasActions && <span className="text-gray-500 text-xs w-4">{open ? "▾" : "▸"}</span>}
+        <span className="text-gray-500 text-xs w-4">{open ? "▾" : "▸"}</span>
       </button>
-      {open && hasActions && (
-        <div className="border-t border-line px-3 py-2 space-y-1 font-mono text-[11px]">
-          <div className="text-gray-500 mb-1">Acciones ejecutadas · {r.actions.from_version} → {r.actions.to_version}</div>
-          {r.actions.steps.map((s: any) => (
-            <div key={s.seq} className="flex items-start gap-2">
-              <span className={`chip shrink-0 ${s.actor === "Devin" ? "bg-brand/15 text-brand" : s.tool === "post-check" ? "bg-purple-500/15 text-purple-300" : "bg-sky-500/15 text-sky-300"}`}>{s.actor}</span>
-              <div className="flex-1 min-w-0">
-                <div className="text-gray-300 truncate">$ {s.command}</div>
-                <div className="text-gray-500 truncate">→ {s.output}</div>
-              </div>
-              <span className="text-green-400 shrink-0">ok</span>
-              <span className="text-gray-600 shrink-0">{s.duration_s}s</span>
+
+      {open && (
+        <div className="border-t border-line px-3 py-3 space-y-3">
+          {/* Informe pre-anillo */}
+          <div className="rounded-lg bg-ink-panel border border-line p-3">
+            <div className="text-[11px] font-bold text-brand tracking-wider mb-1">INFORME PRE-ANILLO · selección de Devin</div>
+            <div className="text-xs text-gray-400 leading-relaxed">{r.plan.selection_rationale}</div>
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-1.5">
+              {r.plan.selection_criteria.map((c, i) => (
+                <div key={i} className="text-[11px] text-gray-500">
+                  <span className="text-gray-300 font-medium">{c.factor}:</span> {c.detail}
+                </div>
+              ))}
             </div>
-          ))}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {r.plan.entry_criteria.map((c, i) => (
+                <span key={i} className={`chip text-[10px] ${c.ok ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-300 border border-red-500/30"}`}>
+                  {c.ok ? "✓" : "✗"} {c.check}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Activos seleccionados (revisables / editables) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[11px] text-gray-500">
+                Activos seleccionados ({r.plan.selected_count}/{r.plan.assets_count})
+                {r.plan.assets.length < r.plan.assets_count && <span className="text-gray-600"> · muestra de {r.plan.assets.length}</span>}
+              </div>
+              {(r.status === "pending" || r.status === "in_progress") && (
+                <button onClick={() => setEditing((v) => !v)} className="btn btn-ghost text-[11px]">
+                  {editing ? "Cancelar edición" : "✎ Editar selección"}
+                </button>
+              )}
+            </div>
+            <div className="space-y-1">
+              {r.plan.assets.map((as) => {
+                const isExcl = excluded.includes(as.id);
+                return (
+                  <div key={as.id} className={`flex items-start gap-2 text-[11px] rounded-lg px-2 py-1.5 border ${isExcl ? "border-red-500/30 bg-red-500/5 opacity-70" : "border-line bg-ink"}`}>
+                    {editing && (
+                      <input type="checkbox" checked={!isExcl} onChange={() => toggle(as.id)} className="mt-0.5" title="Incluir en el anillo" />
+                    )}
+                    <span className={`chip shrink-0 ${isExcl ? "bg-red-500/15 text-red-300" : "bg-sky-500/15 text-sky-300"}`}>{as.ci_class}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-mono text-gray-300 truncate">{as.name} <span className="text-gray-600">· {as.criticality} · {as.environment}</span></div>
+                      <div className="text-gray-500 truncate">{as.reason}</div>
+                    </div>
+                    {isExcl && <span className="chip bg-red-500/15 text-red-300 shrink-0">excluido</span>}
+                  </div>
+                );
+              })}
+            </div>
+            {editing && (
+              <button disabled={busy} onClick={() => { onSaveAssets(r.ring, excluded); setEditing(false); }}
+                className="btn btn-ghost border border-brand/40 text-brand text-[11px] mt-2">
+                Guardar selección editada ({excluded.length} excluido/s)
+              </button>
+            )}
+          </div>
+
+          {/* Revisión / pre-aprobación Human-Driven */}
+          {pa.preapproved ? (
+            <div className="rounded-lg border border-brand/30 bg-brand/5 px-3 py-2 text-[11px] text-gray-300">
+              <span className="text-brand font-semibold">✓ Informe verificado y pre-aprobado (Human-Driven)</span>
+              {pa.approver && <> · por <span className="font-mono">{pa.approver}</span></>}
+              {pa.ts && <> · {pa.ts.slice(0, 16).replace("T", " ")}</>}
+              {pa.note && <div className="text-gray-500 mt-0.5">{pa.note}</div>}
+            </div>
+          ) : (r.status === "pending" || r.status === "in_progress") ? (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-center gap-3">
+              <div className="text-[11px] text-amber-200 flex-1">
+                Auditoría Human-Driven requerida: revisa el informe y los activos, edítalos si procede y verifica antes de desplegar.
+              </div>
+              <button disabled={busy} onClick={() => onPreapprove(r.ring)}
+                className="btn btn-brand text-[11px]">✓ Verificar y pre-aprobar</button>
+            </div>
+          ) : null}
+
+          {/* Acciones ejecutadas con el por qué de cada comando */}
+          {hasActions && r.actions && (
+            <div className="border-t border-line pt-2 space-y-1.5 font-mono text-[11px]">
+              <div className="text-gray-500 mb-1">Acciones ejecutadas · {r.actions.from_version} → {r.actions.to_version}</div>
+              {r.actions.steps.map((s) => (
+                <div key={s.seq} className="flex items-start gap-2">
+                  <span className={`chip shrink-0 ${s.actor === "Devin" ? "bg-brand/15 text-brand" : s.tool === "post-check" ? "bg-purple-500/15 text-purple-300" : "bg-sky-500/15 text-sky-300"}`}>{s.actor}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-gray-300 truncate">$ {s.command}</div>
+                    <div className="text-gray-500 truncate">→ {s.output}</div>
+                    {s.why && <div className="text-gray-600 italic whitespace-normal mt-0.5">↳ {s.why}</div>}
+                  </div>
+                  <span className="text-green-400 shrink-0">ok</span>
+                  <span className="text-gray-600 shrink-0">{s.duration_s}s</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

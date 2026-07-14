@@ -1,10 +1,28 @@
 """Estado en memoria de la plataforma + orquestación de fases (plano de control)."""
 from __future__ import annotations
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from . import seed, engine
 from .seed import NOW, iso
+
+
+def sla_state(sla_due: str) -> dict:
+    """Estado de cumplimiento del SLA de una tarea respecto a la fecha actual."""
+    try:
+        due = datetime.strptime(sla_due, "%Y-%m-%dT%H:%M:%SZ")
+    except (ValueError, TypeError):
+        return {"due": sla_due, "days_left": None, "overdue": False, "days_overdue": 0}
+    delta = due - NOW
+    days_left = delta.days
+    overdue = due < NOW
+    return {
+        "due": sla_due,
+        "days_left": days_left,
+        "overdue": overdue,
+        "days_overdue": max(0, -days_left),
+        "due_soon": (not overdue) and days_left <= 2,
+    }
 
 
 class Store:
@@ -42,7 +60,17 @@ class Store:
         rings_done = 0
         if phase_index >= 5:
             rings_done = random.Random(hash(tid) & 0xFFFF).randint(1, 3)
-        deploy = engine.build_deployment(task, impact, rings_done)
+        # Los anillos ya desplegados se consideran pre-aprobados por el owner (histórico).
+        ring_preapprovals = {}
+        ring_exclusions = {}
+        for i in range(rings_done):
+            rn = engine.RING_DEFS[i][0]
+            ring_preapprovals[rn] = {
+                "required": "Human-Driven", "preapproved": True,
+                "approver": task.get("owner", "owner@bank.example"),
+                "ts": iso(NOW), "note": "Pre-aprobación histórica del despliegue."}
+        deploy = engine.build_deployment(task, impact, rings_done,
+                                         preapprovals=ring_preapprovals, exclusions=ring_exclusions)
         audit = engine.build_audit(task, impact, mvt, lab, proto, deploy)
 
         # estado por fase
@@ -63,6 +91,8 @@ class Store:
             "task_id": tid, "phase_index": phase_index,
             "statuses": statuses, "rings_done": rings_done,
             "rolled_back_rings": [],
+            "ring_preapprovals": ring_preapprovals,
+            "ring_exclusions": ring_exclusions,
             "rollback": {"status": "armed", "triggered": False},
             "artifacts": {"impact": impact, "mvt": mvt, "lab": lab,
                           "prototype": proto, "deployment": deploy, "audit": audit},
@@ -179,11 +209,23 @@ class Store:
                 "in_deployment": in_deployment,
             },
             "cmdb": cmdb,
-            "sla": {
-                "at_risk": sum(1 for t in tasks if t["priority"] in ("critical", "high")),
-                "on_track": sum(1 for t in tasks if t["priority"] in ("medium", "low")),
-            },
+            "sla": self._sla_overview(tasks),
         }
+
+    def _sla_overview(self, tasks):
+        active = [t for t in tasks if t.get("status") != "remediated"]
+        states = [sla_state(t.get("sla_due", "")) for t in active]
+        overdue = sum(1 for s in states if s["overdue"])
+        due_soon = sum(1 for s in states if s.get("due_soon"))
+        return {
+            "overdue": overdue,
+            "due_soon": due_soon,
+            "on_track": max(0, len(active) - overdue - due_soon),
+            "at_risk": sum(1 for t in tasks if t["priority"] in ("critical", "high")),
+        }
+
+    def cmdb_tables(self):
+        return seed.cmdb_manifest()
 
     # ------------------------------------------------------------------
     # CMDB (estandarizada, ~10k CIs) — resumen, listado paginado y subgrafo
@@ -267,6 +309,7 @@ class Store:
                 "phase_index": p["phase_index"],
                 "phase_status": p["statuses"][engine.PHASE_IDS[p["phase_index"]]],
                 "affected_count": p["artifacts"]["impact"]["affected_count"],
+                "sla": sla_state(t.get("sla_due", "")),
             })
         return sorted(out, key=lambda x: -x["risk_score"])
 
@@ -292,6 +335,7 @@ class Store:
             "artifacts": p["artifacts"],
             "logs": p["logs"],
             "rings_done": p["rings_done"],
+            "sla": sla_state(t.get("sla_due", "")),
         }
 
     # ------------------------------------------------------------------
@@ -306,9 +350,15 @@ class Store:
         pid = engine.PHASE_IDS[idx]
         t = self.tasks[tid]
 
-        # Fase de despliegue: aprobar avanza un anillo
+        # Fase de despliegue: aprobar avanza un anillo (requiere pre-aprobación del anillo)
         if pid == "deployment":
             if p["rings_done"] < len(engine.RING_DEFS):
+                next_ring = engine.RING_DEFS[p["rings_done"]][0]
+                pa = p.get("ring_preapprovals", {}).get(next_ring)
+                if not (pa and pa.get("preapproved")):
+                    self._log(tid, {"actor": "ServiceNow", "phase": pid,
+                                    "msg": f"Despliegue del anillo {next_ring} bloqueado: requiere revisión y pre-aprobación Human-Driven del informe pre-anillo."})
+                    return self.task_detail(tid)
                 p["rings_done"] += 1
                 deploy = self._rebuild_deploy(tid)
                 ring = deploy["rings"][p["rings_done"] - 1]
@@ -343,6 +393,40 @@ class Store:
         return self.task_detail(tid)
 
     # ------------------------------------------------------------------
+    def preapprove_ring(self, tid, ring_no, approver=None, note=None):
+        """Revisión y pre-aprobación Human-Driven del informe pre-anillo."""
+        if tid not in self.pipelines:
+            return None
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        approver = approver or t.get("owner", "owner@bank.example")
+        p.setdefault("ring_preapprovals", {})[ring_no] = {
+            "required": "Human-Driven", "preapproved": True,
+            "approver": approver, "ts": iso(NOW),
+            "note": note or "Informe pre-anillo revisado y verificado.",
+        }
+        excl = p.get("ring_exclusions", {}).get(ring_no) or []
+        self._log(tid, {"actor": "Owner (HITL · Human-Driven)", "phase": "deployment",
+                        "msg": f"[Auditoría] Informe pre-anillo del anillo {ring_no} verificado y PRE-APROBADO por {approver}"
+                               + (f" · {len(excl)} activo(s) excluido(s) de la selección." if excl else ".")})
+        self._rebuild_deploy(tid)
+        return self.task_detail(tid)
+
+    def update_ring_assets(self, tid, ring_no, excluded_ids):
+        """Edición de la selección de activos de un anillo antes de aprobar."""
+        if tid not in self.pipelines:
+            return None
+        p = self.pipelines[tid]
+        p.setdefault("ring_exclusions", {})[ring_no] = list(excluded_ids or [])
+        # Editar la selección invalida la pre-aprobación previa (debe re-verificarse).
+        if ring_no in p.get("ring_preapprovals", {}):
+            p["ring_preapprovals"].pop(ring_no, None)
+        self._log(tid, {"actor": "Owner (HITL)", "phase": "deployment",
+                        "msg": f"Selección de activos del anillo {ring_no} editada: {len(excluded_ids or [])} excluido(s). Requiere re-verificación."})
+        self._rebuild_deploy(tid)
+        return self.task_detail(tid)
+
+    # ------------------------------------------------------------------
     def _rebuild_deploy(self, tid):
         """Reconstruye el despliegue preservando estado de rollback y auditoría."""
         p = self.pipelines[tid]
@@ -350,7 +434,8 @@ class Store:
         a = p["artifacts"]
         deploy = engine.build_deployment(
             t, a["impact"], p["rings_done"],
-            rollback=p["rollback"], rolled_back_rings=p["rolled_back_rings"])
+            rollback=p["rollback"], rolled_back_rings=p["rolled_back_rings"],
+            preapprovals=p.get("ring_preapprovals"), exclusions=p.get("ring_exclusions"))
         a["deployment"] = deploy
         a["audit"] = engine.build_audit(t, a["impact"], a["mvt"], a["lab"], a["prototype"], deploy)
         return deploy

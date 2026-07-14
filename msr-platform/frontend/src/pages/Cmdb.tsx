@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import type { CI, Edge, CmdbSummary, CmdbCiRaw } from "../types";
+import type { CI, Edge, CmdbSummary, CmdbCiRaw, CmdbTables } from "../types";
 import { CI_CLASS_META, Track } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 import CmdbRecordModal from "../components/CmdbRecordModal";
@@ -22,6 +22,7 @@ export default function Cmdb() {
   const [rows, setRows] = useState<CI[]>([]);
   const [total, setTotal] = useState(0);
   const [raw, setRaw] = useState<CmdbCiRaw | null>(null);
+  const [tables, setTables] = useState<CmdbTables | null>(null);
 
   useEffect(() => {
     api.cmdb().then((r) => {
@@ -29,6 +30,7 @@ export default function Cmdb() {
       setServices(r.services);
       if (r.services[0]) setSvc(r.services[0].id);
     });
+    api.cmdbTables().then(setTables);
   }, []);
 
   useEffect(() => {
@@ -60,6 +62,31 @@ export default function Cmdb() {
           CMDB estandarizada (<span className="text-gray-300">{summary.source}</span>) · <b className="text-gray-200">{summary.total.toLocaleString()}</b> CIs · {summary.edges.toLocaleString()} relaciones. Traduce "servidor vulnerable" → "servicio de negocio crítico".
         </p>
       </header>
+
+      {/* CMDB versionada en el repo (formato ServiceNow Table API) */}
+      {tables && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <div>
+              <div className="text-sm font-semibold text-gray-100">CMDB versionada en el repositorio</div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                Origen: <span className="text-gray-300">{tables.source}</span> · export en formato nativo ServiceNow (una tabla por <span className="font-mono">cmdb_ci_*</span> + relaciones <span className="font-mono">cmdb_rel_ci</span>) en <span className="font-mono text-gray-300">msr-platform/data/cmdb/</span>. El backend la carga como fuente de verdad.
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-extrabold text-brand">{tables.total_cis.toLocaleString()}</div>
+              <div className="text-[11px] text-gray-500">CIs · {tables.total_relationships?.toLocaleString()} relaciones</div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {tables.tables.map((t) => (
+              <span key={t.table} className="chip border border-line bg-ink text-gray-300 font-mono text-[11px]" title={t.file}>
+                {t.table} · {t.records.toLocaleString()}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* resumen por clase y carril */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

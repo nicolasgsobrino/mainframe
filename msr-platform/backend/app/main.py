@@ -2,6 +2,7 @@
 from __future__ import annotations
 import os
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -40,6 +41,32 @@ def task_detail(tid: str):
 @app.post("/api/tasks/{tid}/approve")
 def approve(tid: str):
     d = STORE.approve_phase(tid)
+    if not d:
+        raise HTTPException(404, "task not found")
+    return d
+
+
+class RingPreapproveBody(BaseModel):
+    approver: str | None = None
+    note: str | None = None
+
+
+class RingAssetsBody(BaseModel):
+    excluded: list[str] = []
+
+
+@app.post("/api/tasks/{tid}/rings/{ring_no}/preapprove")
+def preapprove_ring(tid: str, ring_no: int, body: RingPreapproveBody | None = None):
+    body = body or RingPreapproveBody()
+    d = STORE.preapprove_ring(tid, ring_no, approver=body.approver, note=body.note)
+    if not d:
+        raise HTTPException(404, "task not found")
+    return d
+
+
+@app.post("/api/tasks/{tid}/rings/{ring_no}/assets")
+def update_ring_assets(tid: str, ring_no: int, body: RingAssetsBody):
+    d = STORE.update_ring_assets(tid, ring_no, body.excluded)
     if not d:
         raise HTTPException(404, "task not found")
     return d
@@ -86,6 +113,12 @@ def cmdb_ci_raw(ci_id: str):
     if raw is None:
         raise HTTPException(status_code=404, detail="CI no encontrado")
     return raw
+
+
+@app.get("/api/cmdb/tables")
+def cmdb_tables():
+    """Manifiesto de la CMDB versionada en el repo (tablas ServiceNow + conteos)."""
+    return STORE.cmdb_tables()
 
 
 @app.get("/api/cmdb/graph/{service_id}")

@@ -31,7 +31,17 @@ export interface Overview {
   lanes: Record<string, LaneMeta>;
   deployment: { rings_deployed: number; rollbacks: number; in_deployment: number };
   cmdb: CmdbSummary;
-  sla: { at_risk: number; on_track: number };
+  sla: { at_risk: number; on_track: number; overdue: number; due_soon: number };
+}
+
+export interface SlaState {
+  due: string; days_left: number | null; overdue: boolean;
+  days_overdue: number; due_soon?: boolean;
+}
+export interface CmdbTables {
+  source: string; instance?: string; generated_at?: string;
+  total_cis: number; total_relationships?: number;
+  tables: { table: string; file?: string; records: number }[];
 }
 
 export interface Task {
@@ -41,7 +51,7 @@ export interface Task {
   environment: string; sla_due: string; change_type: string; exposed: boolean;
   component: string; vulnerable_version: string; created_at: string; status?: string;
   phase: string; phase_label: string; phase_index: number; phase_status: string;
-  affected_count: number;
+  affected_count: number; sla?: SlaState;
 }
 
 export interface CI {
@@ -95,11 +105,29 @@ export interface Prototype {
 }
 export interface RingAction {
   seq: number; actor: string; tool: string; command: string;
-  output: string; status: string; duration_s: number;
+  output: string; status: string; duration_s: number; why?: string;
+}
+export interface RingAsset {
+  id: string; name: string; ci_class: string; criticality: string;
+  environment: string; reason: string; excluded: boolean;
+}
+export interface RingApproval {
+  required: string; preapproved: boolean;
+  approver: string | null; ts: string | null; note: string | null;
+}
+export interface RingPlan {
+  ring: number; label: string; band: string; target_population: string;
+  window: string; canary_pct: number; assets_count: number; selected_count: number;
+  selection_rationale: string;
+  selection_criteria: { factor: string; detail: string }[];
+  assets: RingAsset[];
+  entry_criteria: { check: string; ok: boolean }[];
+  approval: RingApproval;
 }
 export interface Ring {
   ring: number; label: string; assets: number; status: string; post_checks: string[]; result: string;
   actions: { steps: RingAction[]; from_version: string; to_version: string } | null;
+  plan: RingPlan;
   health: { error_rate_pct: number; p95_latency_ms: number; availability_pct: number } | null;
 }
 export interface RollbackPlan {
@@ -135,6 +163,6 @@ export interface TaskDetail {
   phases: { id: string; label: string; index: number; status: string; automation: Automation }[];
   lane: Lane; lane_meta: LaneMeta; lane_flow: LaneFlow;
   artifacts: { impact: ImpactGraph; mvt: Mvt; lab: LabResults; prototype: Prototype; deployment: Deployment; audit: Audit };
-  logs: LogEntry[]; rings_done: number;
+  logs: LogEntry[]; rings_done: number; sla?: SlaState;
 }
 export interface Service { name: string; role: string; status: string; type: string; detail: string; }

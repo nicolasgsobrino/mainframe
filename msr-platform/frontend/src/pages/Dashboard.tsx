@@ -57,8 +57,19 @@ export default function Dashboard() {
         <Kpi label="KEV (explotadas)" value={ov.kpis.kev_count} accent="#ef4444" />
         <Kpi label="En curso" value={ov.kpis.in_flight} accent="#0ea5e9" />
         <Kpi label="Remediadas" value={ov.kpis.remediated} accent="#22c55e" />
-        <Kpi label="CIs en CMDB" value={ov.kpis.cis} />
+        <Kpi label="SLA vencido" value={ov.sla.overdue} accent={ov.sla.overdue > 0 ? "#ef4444" : "#22c55e"} />
       </div>
+      {(ov.sla.overdue > 0 || ov.sla.due_soon > 0) && (
+        <div className="flex flex-wrap gap-2 text-xs">
+          {ov.sla.overdue > 0 && (
+            <span className="chip bg-red-500/15 text-red-300 border border-red-500/40">⚠ {ov.sla.overdue} tarea(s) fuera de SLA (due date superado)</span>
+          )}
+          {ov.sla.due_soon > 0 && (
+            <span className="chip bg-amber-500/15 text-amber-300 border border-amber-500/40">⏳ {ov.sla.due_soon} en riesgo (vence ≤ 2 días)</span>
+          )}
+          <span className="chip bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">{ov.sla.on_track} en plazo</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Funnel */}
