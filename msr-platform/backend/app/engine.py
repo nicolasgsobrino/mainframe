@@ -23,6 +23,58 @@ PHASES = [
 PHASE_IDS = [p[0] for p in PHASES]
 
 
+# ---------------------------------------------------------------------------
+# Carriles operativos (lanes) — flujo TO-BE y nivel de automatización
+# ---------------------------------------------------------------------------
+# Front común a los 3 carriles (antes del split por velocidad/riesgo).
+SHARED_FLOW = [
+    {"name": "Discovery & synchronization", "detail": "CMDB, inventario, fuentes de vulnerabilidad; detección de activos huérfanos.",
+     "automation": "agentable", "mode": "Auto", "sla": "< 1 h"},
+    {"name": "Triage y asignación de carril", "detail": "La Oficina de Riesgo y Exposición correlaciona KEV/EPSS, criticidad y exposición; traza la línea por activo y entidad.",
+     "automation": "ai_assisted", "mode": "Auto", "sla": "< 30 min"},
+]
+# Flujo específico por carril (pasos, automatización y SLA), alineado con el modelo operativo.
+LANE_FLOWS = {
+    "critical": [
+        {"name": "Emergency change pre-aprobado", "detail": "Pre-checks mínimos automatizados.", "automation": "agentable", "mode": "Auto", "sla": "< 30 min"},
+        {"name": "Ejecución inmediata", "detail": "Fuera de ventana.", "automation": "agentable", "mode": "Auto", "sla": "< 1 h"},
+        {"name": "Validación reforzada", "detail": "Batería ampliada de post-checks.", "automation": "ai_assisted", "mode": "Auto", "sla": "15-30 min"},
+        {"name": "Escalado directo + RCA", "detail": "Cierre express con evidencia.", "automation": "ai_assisted", "mode": "Auto", "sla": "15-30 min"},
+        {"name": "Resolución conjunta Cyber-IT", "detail": "Cierre basado en evidencia (vulns no resolubles por el flujo estándar).", "automation": "human", "mode": "Manual", "sla": "2-4 h"},
+    ],
+    "accelerated": [
+        {"name": "Change estándar pre-aprobado", "detail": "Pre-checks y rollbacks automatizados.", "automation": "agentable", "mode": "Auto", "sla": "2-4 h"},
+        {"name": "Primera ventana disponible", "detail": "Canary / rolling.", "automation": "agentable", "mode": "Auto", "sla": "0-24 h"},
+        {"name": "Validación automática", "detail": "Por telemetría.", "automation": "ai_assisted", "mode": "Auto", "sla": "1-2 h"},
+        {"name": "Retry / Rollback en la misma ventana", "detail": "Cierre con evidencia.", "automation": "agentable", "mode": "Auto", "sla": "2-4 h"},
+    ],
+    "standard": [
+        {"name": "Ordinary change", "detail": "Mensual / trimestral.", "automation": "ai_assisted", "mode": "Semiauto", "sla": "1-3 días"},
+        {"name": "Pre-validación completa", "detail": "Dependencias y rollback.", "automation": "human", "mode": "Manual", "sla": "1 día"},
+        {"name": "Ejecución en ventana planificada", "detail": "Ventana de mantenimiento.", "automation": "human", "mode": "Manual", "sla": "Ventana"},
+        {"name": "Validación funcional", "detail": "Pruebas funcionales.", "automation": "ai_assisted", "mode": "Semiauto", "sla": "1 día"},
+        {"name": "Rollback closed-loop", "detail": "Cierre del bucle de rollback.", "automation": "human", "mode": "Manual", "sla": "1-2 h"},
+        {"name": "Reporting y riesgo residual", "detail": "Informe y riesgo residual.", "automation": "human", "mode": "Manual", "sla": "< 30 min"},
+    ],
+}
+# Nivel de automatización de cada una de las 6 fases del pipeline según el carril.
+PHASE_AUTOMATION = {
+    "critical":    ["agentable", "agentable", "agentable", "agentable", "ai_assisted", "ai_assisted"],
+    "accelerated": ["agentable", "agentable", "agentable", "agentable", "ai_assisted", "ai_assisted"],
+    "standard":    ["agentable", "ai_assisted", "ai_assisted", "ai_assisted", "human", "human"],
+}
+
+
+def lane_flow(lane):
+    steps = LANE_FLOWS.get(lane, LANE_FLOWS["standard"])
+    return {"shared": SHARED_FLOW, "steps": steps}
+
+
+def phase_automation(lane, phase_index):
+    levels = PHASE_AUTOMATION.get(lane, PHASE_AUTOMATION["standard"])
+    return levels[phase_index] if 0 <= phase_index < len(levels) else "ai_assisted"
+
+
 def _rng(task_id: str) -> random.Random:
     return random.Random(hash(task_id) & 0xFFFFFFFF)
 

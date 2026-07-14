@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api";
-import type { TaskDetail as TD } from "../types";
-import { Priority, Track, Risk, KevTag, PHASE_META } from "../ui";
+import type { TaskDetail as TD, FlowStep } from "../types";
+import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 
 const PHASE_IDS = ["detection", "prioritization", "pre_implementation", "lab_testing", "prototype", "deployment"];
@@ -58,6 +58,7 @@ export default function TaskDetail() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-sm text-gray-300">{task.cve}</span>
+              <LaneTag lane={d.lane} sla={d.lane_meta.sla} />
               <Track t={task.track} />
               <Priority p={task.priority} />
               {vi.kev && <KevTag />}
@@ -105,6 +106,7 @@ export default function TaskDetail() {
                     {st === "approved" ? "✓" : i + 1}
                   </div>
                   <span className="text-[11px] font-medium" style={{ color: sel === i ? color : "#94a3b8" }}>{p.label}</span>
+                  <span className="text-[13px] leading-none" title={AUTOMATION_META[p.automation]?.label}>{AUTOMATION_META[p.automation]?.icon}</span>
                 </button>
                 {i < d.phases.length - 1 && (
                   <div className="flex-1 h-0.5 mx-1 mb-4" style={{ background: st === "approved" ? "#22c55e" : "#2b313d" }} />
@@ -112,6 +114,35 @@ export default function TaskDetail() {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Carril operativo (velocidad/riesgo) — flujo TO-BE + automatización */}
+      <div className="card p-4" style={{ borderLeft: `3px solid ${LANE_META[d.lane].dot}` }}>
+        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+          <div className="text-sm font-semibold flex items-center gap-2">
+            Carril operativo · <LaneTag lane={d.lane} />
+            <span className="text-xs font-normal text-gray-400">{d.lane_meta.sla}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {(["agentable", "ai_assisted", "human"] as const).map((k) => (
+              <span key={k} className="text-[11px] text-gray-500 flex items-center gap-1">
+                {AUTOMATION_META[k].icon}{AUTOMATION_META[k].label}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="text-xs text-gray-500 mb-3">
+          Asignado por el triage (CMDB como risk engine) · {d.lane_meta.automation}
+        </div>
+        <div className="flex flex-wrap items-stretch gap-2">
+          {d.lane_flow.shared.map((s, i) => (
+            <FlowCard key={`sh${i}`} s={s} shared />
+          ))}
+          <div className="flex items-center text-gray-600 px-1">→</div>
+          {d.lane_flow.steps.map((s, i) => (
+            <FlowCard key={`st${i}`} s={s} />
+          ))}
         </div>
       </div>
 
@@ -186,6 +217,20 @@ export default function TaskDetail() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function FlowCard({ s, shared }: { s: FlowStep; shared?: boolean }) {
+  return (
+    <div className={`rounded-lg border p-2 min-w-[130px] max-w-[160px] ${shared ? "border-line bg-ink/60" : "border-line bg-ink"}`}>
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <span className="text-[13px] leading-none" title={AUTOMATION_META[s.automation]?.label}>{AUTOMATION_META[s.automation]?.icon}</span>
+        <span className="text-[10px] text-gray-500 font-mono">{s.sla}</span>
+      </div>
+      <div className="text-[11px] font-semibold text-gray-200 leading-tight">{s.name}</div>
+      <div className="text-[10px] text-gray-500 mt-0.5 leading-snug">{s.detail}</div>
+      <div className="text-[10px] text-gray-600 mt-1">{s.mode}</div>
     </div>
   );
 }

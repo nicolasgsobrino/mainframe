@@ -132,6 +132,10 @@ class Store:
         by_track = {"A": 0, "B": 0, "C": 0}
         for t in tasks:
             by_track[t["track"]] = by_track.get(t["track"], 0) + 1
+        by_lane = {"critical": 0, "accelerated": 0, "standard": 0}
+        for t in tasks:
+            ln = t.get("lane", "standard")
+            by_lane[ln] = by_lane.get(ln, 0) + 1
         by_criticality = {}
         for t in tasks:
             c = t.get("criticality", "medium")
@@ -165,8 +169,10 @@ class Store:
             "by_priority": by_priority,
             "by_phase": by_phase,
             "by_track": by_track,
+            "by_lane": by_lane,
             "by_criticality": by_criticality,
             "tracks": seed.TRACKS,
+            "lanes": seed.LANE_META,
             "deployment": {
                 "rings_deployed": rings_deployed,
                 "rollbacks": rollbacks,
@@ -254,13 +260,19 @@ class Store:
         t = self.tasks[tid]
         p = self.pipelines[tid]
         vi = self.vulnerable_items[t["vulnerable_item_id"]]
+        lane = t.get("lane", "standard")
         phases = []
         for j, (pid, label) in enumerate(engine.PHASES):
-            phases.append({"id": pid, "label": label, "index": j, "status": p["statuses"][pid]})
+            phases.append({"id": pid, "label": label, "index": j,
+                           "status": p["statuses"][pid],
+                           "automation": engine.phase_automation(lane, j)})
         return {
             "task": t, "vulnerable_item": vi,
             "phase_index": p["phase_index"],
             "phases": phases,
+            "lane": lane,
+            "lane_meta": seed.LANE_META.get(lane, seed.LANE_META["standard"]),
+            "lane_flow": engine.lane_flow(lane),
             "artifacts": p["artifacts"],
             "logs": p["logs"],
             "rings_done": p["rings_done"],

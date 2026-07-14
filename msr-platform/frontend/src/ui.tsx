@@ -24,17 +24,50 @@ export function Priority({ p }: { p: string }) {
   return <span className={`chip ${PRIORITY_COLORS[p] || ""}`}>{p.toUpperCase()}</span>;
 }
 
-export const TRACK_META: Record<string, { label: string; cls: string }> = {
-  A: { label: "A · Infraestructura", cls: "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30" },
-  B: { label: "B · Aplicaciones y dependencias", cls: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" },
-  C: { label: "C · Contenedores & Cloud-native", cls: "bg-sky-500/15 text-sky-300 border border-sky-500/30" },
+// Dimensión técnica (secundaria) — determina el ejecutor y la mecánica de rollback.
+export const TRACK_META: Record<string, { label: string; cls: string; exec: string }> = {
+  A: { label: "A · Infraestructura", cls: "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30", exec: "SCCM · BigFix · Ansible" },
+  B: { label: "B · Aplicaciones y dependencias", cls: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30", exec: "CI/CD (GitHub Actions)" },
+  C: { label: "C · Contenedores & Cloud-native", cls: "bg-sky-500/15 text-sky-300 border border-sky-500/30", exec: "Argo CD · Helm · Registry" },
 };
 
 export function Track({ t }: { t: string }) {
   const m = TRACK_META[t] || TRACK_META.A;
   return (
-    <span className={`chip ${m.cls}`} title={`Carril ${m.label}`}>
-      Carril {t}
+    <span className={`chip ${m.cls}`} title={`Dominio técnico ${m.label} · ${m.exec}`}>
+      Dominio {t}
+    </span>
+  );
+}
+
+// Carril operativo (principal) — velocidad/riesgo. Colores del modelo: rojo/naranja/verde.
+export const LANE_META: Record<string, { label: string; cls: string; dot: string }> = {
+  critical: { label: "Crítico", cls: "bg-red-500/15 text-red-300 border border-red-500/40", dot: "#ef4444" },
+  accelerated: { label: "Acelerado", cls: "bg-orange-500/15 text-orange-300 border border-orange-500/40", dot: "#f97316" },
+  standard: { label: "Estándar", cls: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40", dot: "#22c55e" },
+};
+
+export function LaneTag({ lane, sla }: { lane: string; sla?: string }) {
+  const m = LANE_META[lane] || LANE_META.standard;
+  return (
+    <span className={`chip ${m.cls}`} title={sla ? `Carril ${m.label} · ${sla}` : `Carril ${m.label}`}>
+      Carril {m.label}
+    </span>
+  );
+}
+
+// Nivel de automatización (leyenda del modelo): agentable / AI-assisted / human.
+export const AUTOMATION_META: Record<string, { label: string; icon: string; cls: string }> = {
+  agentable: { label: "Fully agentable", icon: "🤖", cls: "bg-brand/15 text-brand border border-brand/30" },
+  ai_assisted: { label: "AI-assisted", icon: "🤝", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
+  human: { label: "Human driven", icon: "👤", cls: "bg-slate-500/15 text-slate-300 border border-slate-500/30" },
+};
+
+export function Automation({ level, compact = false }: { level: string; compact?: boolean }) {
+  const m = AUTOMATION_META[level] || AUTOMATION_META.ai_assisted;
+  return (
+    <span className={`chip ${m.cls}`} title={m.label}>
+      {m.icon}{compact ? "" : ` ${m.label}`}
     </span>
   );
 }

@@ -9,14 +9,26 @@ export interface CmdbSummary {
   by_criticality: Record<string, number>;
   by_environment: Record<string, number>;
 }
+export type Lane = "critical" | "accelerated" | "standard";
+export interface LaneMeta {
+  label: string; sla: string; color: string; automation: string; flow: string;
+}
+export type Automation = "agentable" | "ai_assisted" | "human";
+export interface FlowStep {
+  name: string; detail: string; automation: Automation; mode: string; sla: string;
+}
+export interface LaneFlow { shared: FlowStep[]; steps: FlowStep[]; }
+
 export interface Overview {
   funnel: { label: string; value: number }[];
   kpis: Kpis;
   by_priority: Record<string, number>;
   by_phase: Record<string, number>;
   by_track: Record<string, number>;
+  by_lane: Record<string, number>;
   by_criticality: Record<string, number>;
   tracks: Record<string, string>;
+  lanes: Record<string, LaneMeta>;
   deployment: { rings_deployed: number; rollbacks: number; in_deployment: number };
   cmdb: CmdbSummary;
   sla: { at_risk: number; on_track: number };
@@ -24,7 +36,7 @@ export interface Overview {
 
 export interface Task {
   id: string; vulnerable_item_id: string; cve: string; title: string;
-  track: "A" | "B" | "C"; risk_score: number; priority: string;
+  track: "A" | "B" | "C"; lane: Lane; risk_score: number; priority: string;
   ci_id: string; ci_name: string; owner: string; criticality: string;
   environment: string; sla_due: string; change_type: string; exposed: boolean;
   component: string; vulnerable_version: string; created_at: string; status?: string;
@@ -107,7 +119,8 @@ export interface VulnerableItem {
 }
 export interface TaskDetail {
   task: Task; vulnerable_item: VulnerableItem; phase_index: number;
-  phases: { id: string; label: string; index: number; status: string }[];
+  phases: { id: string; label: string; index: number; status: string; automation: Automation }[];
+  lane: Lane; lane_meta: LaneMeta; lane_flow: LaneFlow;
   artifacts: { impact: ImpactGraph; mvt: Mvt; lab: LabResults; prototype: Prototype; deployment: Deployment; audit: Audit };
   logs: LogEntry[]; rings_done: number;
 }

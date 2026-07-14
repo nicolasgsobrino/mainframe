@@ -85,15 +85,23 @@ Requisitos: Python 3.10+ y Node 18+. `POST /api/reset` reinicia el estado de la 
   **descarta ruido** y deja lo explotable de verdad.
 - **KPIs:** hallazgos abiertos, Vulnerable Items, Remediation Tasks, KEV (explotadas en real),
   en curso, remediadas, **CIs en CMDB (~10.000)**.
-- **Tareas por fase / prioridad**, **3 carriles** (A/B/C) con reparto de CIs, **criticidad**,
-  panel **Despliegue & Rollback** (anillos desplegados, rollbacks) y **CMDB estandarizada**
+- **Tareas por fase / prioridad**, panel de **3 carriles operativos** (**Crítico · Acelerado · Estándar**)
+  con conteo de tareas, SLA y nivel de automatización, y —como bloque secundario— la **dimensión
+  técnica A/B/C** (define ejecutor y rollback) con su reparto de CIs sobre la CMDB.
+- Panel **Despliegue & Rollback** (anillos desplegados, rollbacks) y **CMDB estandarizada**
   (fuente CSDM, CIs por clase) + **feed del agente** en vivo.
+
+> **Dos dimensiones, no confundir:** el **carril operativo** (Crítico/Acelerado/Estándar) marca
+> *velocidad, riesgo, SLA y nivel de automatización*; el **dominio técnico** (A/B/C) marca *qué
+> ejecutor y qué rollback* se usan. El triage —con la CMDB como *risk engine*— asigna el carril
+> correlacionando KEV/EPSS, exposición, criticidad del CI/servicio, SLA y ventana operativa.
 
 ### 4.2 Remediation Tasks
 - Cola **priorizada por riesgo** = técnico (CVSS) + explotabilidad (EPSS/KEV) + negocio
   (criticidad) + exposición + SLA. **No es solo CVSS.**
 - CVEs reales de banca: Log4Shell, Spring4Shell, ActiveMQ RCE, regreSSHion, Zerologon, XZ backdoor…
-- Filtros por **3 carriles**: **A · Infraestructura** / **B · Aplicaciones y dependencias** / **C · Contenedores & Cloud-native**.
+- Filtro principal por **carril operativo**: **Crítico** (>24 h, fuera de ventana) / **Acelerado**
+  (7-14 días) / **Estándar** (mensual/trimestral), y columna aparte de **dominio técnico** (A/B/C).
 
 ### 4.3 Detalle de tarea · el corazón de la demo
 Cabecera con CVE, CVSS/EPSS, KEV, exposición, SLA, tipo de change (standard/normal/emergency) y
@@ -118,7 +126,7 @@ produce Devin + el **panel del agente** + el **botón de aprobación HITL**:
 Patrimonio bancario a escala: **~10.000 CIs** en modelo **estandarizado (ServiceNow CSDM 4.0)** —
 `sys_class_name`, `business_criticality` (tier), `support_group`, `install_status`— con business
 services, apps, BBDD, servidores, middleware, runtime, **contenedores, red, endpoints y cloud**.
-Resumen por clase / carril / criticidad, **buscador y filtros paginados**, y **grafo de impacto
+Resumen por clase / **dominio técnico** / criticidad, **buscador y filtros paginados**, y **grafo de impacto
 por servicio de negocio** (subgrafo calculado en servidor). *Mensaje:* traduce "servidor vulnerable" →
 "servicio crítico" y es la base para dimensionar las pruebas.
 
@@ -164,13 +172,16 @@ con **HITL** en cada transición y **un playbook de Devin por fase**.
 9. **Cierre (30 s).** Vuelve al Dashboard. *"ServiceNow gobierna, Devin ejecuta, el humano aprueba.
    Días → minutos, con evidencia completa y rollback seguro."*
 
-**Tarea alternativa Carril C (contenedores):** elige un CVE cloud-native (runc / containerd / libwebp)
-para mostrar el carril de contenedores: Devin hace **rebuild de la imagen base**, escaneo Trivy, firma
-cosign y **rollout GitOps (Argo CD/Helm)**; el rollback es `argocd app rollback` + `kubectl rollout undo`.
+**Carril operativo (lo que decides mostrar por urgencia):** abre una tarea **Crítica** para ver el flujo
+express (emergency change pre-aprobado → ejecución inmediata fuera de ventana → validación reforzada →
+RCA → cierre Cyber-IT), casi 100% agentable; contrástalo con una **Estándar** (ordinary change →
+pre-validación completa → ventana planificada → rollback closed-loop → reporting), semiauto/manual.
+Cada paso del flujo lleva su chip **Fully agentable / AI-assisted / Human driven**.
 
-**Tarea alternativa Carril A (infra):** elige un CVE de infra (regreSSHion / Zerologon / XZ) para mostrar
-que ahí Devin es **copiloto** (genera tests, IaC y evidencia) pero **no aplica el parche** —lo hace
-SCCM/BigFix/Ansible.
+**Dominio técnico (lo que cambia el ejecutor/rollback):** en cualquier carril, el dominio del CI decide
+cómo se ejecuta — **A · Infraestructura** (SCCM/BigFix/Ansible; snapshot/downgrade), **B · Aplicaciones y
+dependencias** (CI/CD + PR; artifact redeploy), **C · Contenedores & Cloud-native** (rebuild de imagen +
+Trivy/cosign + rollout GitOps Argo CD/Helm; `argocd app rollback` + `kubectl rollout undo`).
 
 ---
 
@@ -179,7 +190,8 @@ SCCM/BigFix/Ansible.
 - **Acelerador en fases tempranas:** la velocidad de detección/priorización es donde más se gana.
 - **Contexto que ServiceNow no ve:** Devin lee código, SBOM, reachability, exposición.
 - **Propone, no decide:** HITL obligatorio → gobierno y control.
-- **3 carriles:** A infra = copiloto (SCCM/BigFix/Ansible); B aplicación = extremo a extremo con PR (CI/CD); C contenedores/cloud = rebuild de imagen + rollout GitOps (Argo CD/Helm). Cada carril con su rollback.
+- **3 carriles operativos** (Crítico/Acelerado/Estándar) = velocidad, riesgo, SLA y automatización; el triage los asigna con la CMDB como *risk engine*.
+- **Dominio técnico A/B/C** = atributo secundario del CI que elige ejecutor y rollback: A infra (SCCM/BigFix/Ansible), B aplicación con PR (CI/CD), C contenedores/cloud (rebuild + rollout GitOps Argo CD/Helm).
 - **Audit-ready:** trazabilidad completa finding→cierre, clave para banca/DORA.
 - **Se integra con lo que ya tienen:** ServiceNow, Qualys/Tenable/Snyk, SCCM/BigFix/Ansible, CI/CD.
 
@@ -203,9 +215,10 @@ SCCM/BigFix/Ansible.
 
 ```
 backend/app/
-  seed.py     # datos mock: CMDB CSDM ~10k CIs (3 carriles), catálogo CVEs, hallazgos, VIs, Tasks
-  engine.py   # Impact Graph (BFS sobre relaciones), MVT (reglas por capa), lab, prototipo,
-              # anillos y generación del informe de auditoría
+  seed.py     # CMDB CSDM ~10k CIs, triage/asignación de carril (LANES) + dominio técnico A/B/C,
+              # catálogo CVEs, hallazgos, VIs, Tasks
+  engine.py   # flujo por carril (SHARED_FLOW + LANE_FLOWS) y automatización por fase; Impact Graph
+              # (BFS), MVT (reglas por capa), lab, prototipo, anillos e informe de auditoría
   store.py    # estado en memoria + orquestación de fases y gate HITL (approve_phase)
   main.py     # API FastAPI (/api/*) y servido de la SPA
 frontend/src/
@@ -224,5 +237,6 @@ API principal: `GET /api/overview`, `GET /api/tasks`, `GET /api/tasks/{id}`,
 - [ ] Backend y frontend arrancados (`./scripts/dev.sh`) y `http://localhost:5173` abre.
 - [ ] `POST /api/reset` ejecutado para empezar limpio.
 - [ ] Tarea Log4Shell (`payments-api`) localizada para el recorrido principal.
-- [ ] Una tarea Carril A (regreSSHion/Zerologon) y una Carril C (runc/containerd) para el contraste.
+- [ ] Una tarea Crítica y una Estándar localizadas para contrastar carril/automatización.
+- [ ] Una tarea de dominio A (regreSSHion/Zerologon) y una de dominio C (runc/containerd) para el contraste de ejecutor/rollback.
 - [ ] Zoom del navegador al 100% para que el Impact Graph se vea completo.

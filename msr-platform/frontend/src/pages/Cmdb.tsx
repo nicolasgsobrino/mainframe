@@ -72,7 +72,7 @@ export default function Cmdb() {
           </div>
         </div>
         <div className="card p-4">
-          <div className="text-xs text-gray-500 mb-2">CIs por carril</div>
+          <div className="text-xs text-gray-500 mb-2">CIs por dominio técnico</div>
           <div className="flex flex-wrap gap-2 items-center">
             {(["A", "B", "C"] as const).map((k) => (
               <div key={k} className="flex items-center gap-2">
@@ -113,8 +113,8 @@ export default function Cmdb() {
             {Object.keys(summary.by_class).map((k) => <option key={k} value={k}>{CI_CLASS_META[k]?.label || k}</option>)}
           </select>
           <select value={track} onChange={(e) => setTrack(e.target.value)} className="bg-ink border border-line rounded-lg px-2 py-1 text-xs outline-none">
-            <option value="all">Todos los carriles</option>
-            <option value="A">Carril A</option><option value="B">Carril B</option><option value="C">Carril C</option>
+            <option value="all">Todos los dominios</option>
+            <option value="A">Dominio A</option><option value="B">Dominio B</option><option value="C">Dominio C</option>
           </select>
           <select value={crit} onChange={(e) => setCrit(e.target.value)} className="bg-ink border border-line rounded-lg px-2 py-1 text-xs outline-none">
             <option value="all">Toda criticidad</option>
@@ -129,7 +129,7 @@ export default function Cmdb() {
                 <th className="px-4 py-2 font-medium">ID</th>
                 <th className="px-2 py-2 font-medium">Nombre</th>
                 <th className="px-2 py-2 font-medium">Clase (sys_class_name)</th>
-                <th className="px-2 py-2 font-medium">Carril</th>
+                <th className="px-2 py-2 font-medium">Dominio</th>
                 <th className="px-2 py-2 font-medium">Criticidad</th>
                 <th className="px-2 py-2 font-medium">Entorno</th>
                 <th className="px-2 py-2 font-medium">Support group</th>

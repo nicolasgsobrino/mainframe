@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { api } from "../api";
 import type { Overview, Task, LogEntry } from "../types";
-import { PHASE_META, Priority, Track, Risk, TRACK_META } from "../ui";
+import { PHASE_META, Priority, Track, Risk, TRACK_META, LANE_META, LaneTag } from "../ui";
 
 const CRIT_COLOR: Record<string, string> = { critical: "#ef4444", high: "#f97316", medium: "#f59e0b", low: "#0ea5e9" };
 
@@ -45,7 +45,7 @@ export default function Dashboard() {
         <div className="text-xs font-bold text-brand tracking-wider">MACHINE SPEED REMEDIATION · CENTRO DE MANDO</div>
         <h1 className="text-2xl font-extrabold mt-1">Gestión de vulnerabilidades impulsada por IA</h1>
         <p className="text-sm text-gray-400 mt-1">
-          ServiceNow gobierna el ciclo · <span className="text-brand font-semibold">Devin</span> ejecuta el trabajo técnico de cada fase · 3 carriles (infra · aplicación · contenedores) sobre CMDB estandarizada.
+          ServiceNow gobierna el ciclo · <span className="text-brand font-semibold">Devin</span> ejecuta el trabajo técnico · 3 carriles operativos (Crítico · Acelerado · Estándar) sobre CMDB estandarizada.
         </p>
       </header>
 
@@ -126,33 +126,51 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 3 carriles + criticidad + despliegue/rollback */}
+      {/* 3 carriles operativos + despliegue/rollback */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* 3 carriles */}
+        {/* 3 carriles operativos (velocidad/riesgo) */}
         <div className="card p-5 xl:col-span-2">
-          <div className="text-sm font-semibold mb-1">3 carriles de remediación</div>
-          <div className="text-xs text-gray-500 mb-4">Cada carril tiene su ejecución y su rollback · reparto de CIs desde la CMDB estandarizada</div>
+          <div className="text-sm font-semibold mb-1">3 carriles operativos (velocidad / riesgo)</div>
+          <div className="text-xs text-gray-500 mb-4">El triage con IA asigna cada vulnerabilidad a un carril según KEV/EPSS, exposición y criticidad · cada carril tiene su SLA y su nivel de automatización</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {(["A", "B", "C"] as const).map((k) => {
-              const cis = ov.cmdb.by_track[k] || 0;
-              const cisPct = Math.round((cis / ov.cmdb.total) * 100);
+            {(["critical", "accelerated", "standard"] as const).map((k) => {
+              const meta = ov.lanes[k];
+              const total = ov.kpis.remediation_tasks || 1;
+              const n = ov.by_lane[k] || 0;
               return (
-                <div key={k} className="rounded-lg border border-line p-3">
-                  <Track t={k} />
-                  <div className="text-xs text-gray-400 mt-2 leading-snug">{TRACK_META[k].label.split("· ")[1]}</div>
+                <div key={k} className="rounded-lg border p-3" style={{ borderColor: LANE_META[k].dot + "55" }}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: LANE_META[k].dot }} />
+                    <LaneTag lane={k} />
+                  </div>
                   <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-2xl font-extrabold">{ov.by_track[k] || 0}</span>
-                    <span className="text-xs text-gray-500">tareas</span>
+                    <span className="text-2xl font-extrabold" style={{ color: LANE_META[k].dot }}>{n}</span>
+                    <span className="text-xs text-gray-500">tareas ({Math.round((n / total) * 100)}%)</span>
                   </div>
-                  <div className="mt-2 text-xs text-gray-400">
-                    <span className="font-mono font-bold text-gray-200">{cis.toLocaleString()}</span> CIs ({cisPct}%)
-                  </div>
-                  <div className="text-[11px] text-gray-500 mt-1">
-                    {k === "A" ? "SCCM · BigFix · Ansible" : k === "B" ? "CI/CD (GitHub Actions)" : "Argo CD · Helm · Registry"}
-                  </div>
+                  <div className="text-[11px] text-gray-400 mt-2 leading-snug">{meta.sla}</div>
+                  <div className="text-[11px] text-gray-500 mt-1 leading-snug">{meta.automation}</div>
                 </div>
               );
             })}
+          </div>
+          {/* Dimensión técnica secundaria (ejecutor / rollback) */}
+          <div className="mt-4 pt-3 border-t border-line">
+            <div className="text-[11px] text-gray-500 mb-2">Dimensión técnica (define el ejecutor y el rollback) · reparto de CIs sobre la CMDB</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {(["A", "B", "C"] as const).map((k) => {
+                const cis = ov.cmdb.by_track[k] || 0;
+                const cisPct = Math.round((cis / ov.cmdb.total) * 100);
+                return (
+                  <div key={k} className="rounded-lg bg-ink p-2.5">
+                    <Track t={k} />
+                    <div className="text-[11px] text-gray-400 mt-1.5">
+                      <span className="font-mono font-bold text-gray-200">{cis.toLocaleString()}</span> CIs ({cisPct}%)
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-0.5">{TRACK_META[k].exec}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -239,7 +257,7 @@ export default function Dashboard() {
                 <th className="px-4 py-2 font-medium">Riesgo</th>
                 <th className="px-2 py-2 font-medium">CVE</th>
                 <th className="px-2 py-2 font-medium">Activo</th>
-                <th className="px-2 py-2 font-medium">Track</th>
+                <th className="px-2 py-2 font-medium">Carril</th>
                 <th className="px-2 py-2 font-medium">Fase</th>
                 <th className="px-2 py-2 font-medium">Prioridad</th>
               </tr>
@@ -250,7 +268,7 @@ export default function Dashboard() {
                   <td className="px-4 py-2.5"><Risk score={t.risk_score} /></td>
                   <td className="px-2 py-2.5 font-mono text-xs text-gray-300">{t.cve}</td>
                   <td className="px-2 py-2.5 text-gray-300">{t.ci_name}</td>
-                  <td className="px-2 py-2.5"><Track t={t.track} /></td>
+                  <td className="px-2 py-2.5"><LaneTag lane={t.lane} /></td>
                   <td className="px-2 py-2.5">
                     <span className="chip" style={{ background: PHASE_META[t.phase].color + "22", color: PHASE_META[t.phase].color }}>
                       {t.phase_label}

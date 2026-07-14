@@ -45,6 +45,52 @@ TRACKS = {
     "C": "Contenedores & Cloud-native",
 }
 
+# --- 3 CARRILES operativos (lanes) — velocidad/riesgo ---
+# El carril es el criterio PRINCIPAL de gobierno (lo asigna el triage con IA sobre
+# la CMDB como risk engine). La dimensión técnica (track A/B/C) es secundaria y
+# solo determina el ejecutor y la mecánica de rollback.
+LANES = {
+    "critical": "Crítico",
+    "accelerated": "Acelerado",
+    "standard": "Estándar",
+}
+LANE_META = {
+    "critical": {
+        "label": "Crítico",
+        "sla": "Fuera de ventana · resolución < 24 h",
+        "color": "red",
+        "automation": "Casi 100% agentable (Devin ejecuta; humano supervisa)",
+        "flow": "emergency change pre-aprobado → ejecución inmediata → validación reforzada → RCA → cierre Cyber-IT",
+    },
+    "accelerated": {
+        "label": "Acelerado",
+        "sla": "7-14 días · primera ventana disponible",
+        "color": "amber",
+        "automation": "Mayormente automático (canary/rolling + telemetría)",
+        "flow": "change pre-aprobado → primera ventana (canary) → validación por telemetría → retry/rollback",
+    },
+    "standard": {
+        "label": "Estándar",
+        "sla": "Mensual / trimestral · ventana planificada",
+        "color": "green",
+        "automation": "Semiauto / manual (validación humana)",
+        "flow": "ordinary change → pre-validación completa → ventana planificada → validación funcional → rollback closed-loop → reporting",
+    },
+}
+
+
+def assign_lane(risk_score, kev, exploit_available, exposed, criticality):
+    """Triage: asigna el carril operativo (velocidad/riesgo) desde el contexto.
+
+    La CMDB actúa como 'risk engine'; correlaciona KEV/EPSS, criticidad y
+    exposición para trazar la línea entre crítico / acelerado / estándar.
+    """
+    if (kev and (exposed or criticality == "critical")) or risk_score >= 82:
+        return "critical"
+    if exploit_available or risk_score >= 55:
+        return "accelerated"
+    return "standard"
+
 # Aplicaciones (código propio / COTS)
 APPLICATIONS = [
     ("APP-1001", "payments-api", "Java", "BSVC-0001", "B"),
@@ -460,6 +506,8 @@ def build_records(cis, edges):
         else:
             sla_days = 30
         vitem["sla_days"] = sla_days
+        lane = assign_lane(risk, cve[4], cve[5], exposed, crit)
+        vitem["lane"] = lane
         vitem["sla_due"] = iso(NOW + timedelta(days=sla_days - RNG.randint(0, 2)))
         vitems.append(vitem)
 
@@ -467,7 +515,7 @@ def build_records(cis, edges):
         change_type = "emergency" if risk >= 80 else ("normal" if risk >= 50 else "standard")
         tasks.append({
             "id": f"RTASK{tid}", "vulnerable_item_id": vitem["id"], "cve": cve[0], "title": cve[1],
-            "track": track, "risk_score": risk, "priority": _priority_label(risk),
+            "track": track, "lane": lane, "risk_score": risk, "priority": _priority_label(risk),
             "ci_id": ci["id"], "ci_name": ci["name"], "owner": vitem["owner"],
             "criticality": crit, "environment": env, "sla_due": vitem["sla_due"],
             "change_type": change_type, "exposed": exposed, "component": cve[7],
