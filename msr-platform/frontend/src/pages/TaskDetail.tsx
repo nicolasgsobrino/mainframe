@@ -4,6 +4,7 @@ import { api } from "../api";
 import type { TaskDetail as TD, FlowStep, Ring } from "../types";
 import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
+import { useView } from "../view";
 
 const PHASE_IDS = ["detection", "prioritization", "pre_implementation", "lab_testing", "prototype", "deployment"];
 
@@ -14,6 +15,8 @@ function Verdict({ v }: { v: string }) {
 
 export default function TaskDetail() {
   const { id } = useParams();
+  const { role } = useView();
+  const isTech = role === "tech";
   const [d, setD] = useState<TD | null>(null);
   const [sel, setSel] = useState<number>(0);
   const [busy, setBusy] = useState(false);
@@ -111,6 +114,26 @@ export default function TaskDetail() {
         </div>
       )}
 
+      {/* Resumen ejecutivo — vista Gestor */}
+      {!isTech && (
+        <div className="card p-5">
+          <div className="text-sm font-semibold text-gray-100 mb-1">Resumen ejecutivo</div>
+          <div className="text-xs text-gray-500 mb-3">
+            Vista de gestión — riesgo, plazo, impacto de negocio y estado. Cambia a <b>Técnico</b> (barra lateral) para el detalle operativo.
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Meta k="Carril / SLA" v={`${d.lane_meta.label} · ${d.lane_meta.sla}`} />
+            <Meta k="Riesgo" v={`${task.risk_score}/100 · ${task.priority}`} />
+            <Meta k="Fase actual" v={PHASE_META[currentPhaseId].label} />
+            <Meta k="Anillos desplegados" v={`${d.rings_done}/${a.deployment.rings.length}`} />
+            <Meta k="CIs impactados" v={String(a.impact.affected_count)} />
+            <Meta k="Servicios de negocio" v={a.impact.business_services.length ? a.impact.business_services.join(", ") : "—"} />
+            <Meta k="Due date" v={task.sla_due.slice(0, 10)} />
+            <Meta k="Rollback" v={a.deployment.rollback.triggered ? "Ejecutado" : "Armado"} />
+          </div>
+        </div>
+      )}
+
       {/* Phase stepper */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
@@ -143,6 +166,7 @@ export default function TaskDetail() {
       </div>
 
       {/* Carril operativo (velocidad/riesgo) — flujo TO-BE + automatización */}
+      {isTech && (
       <div className="card p-4" style={{ borderLeft: `3px solid ${LANE_META[d.lane].dot}` }}>
         <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
           <div className="text-sm font-semibold flex items-center gap-2">
@@ -170,6 +194,7 @@ export default function TaskDetail() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Mapa de dependencias y afectados — visible siempre en la Remediation Task */}
       <div className="card p-5">
@@ -197,7 +222,7 @@ export default function TaskDetail() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Artifact panel */}
         <div className="xl:col-span-2 space-y-5">
-          <PhaseArtifacts phaseId={selPhaseId} d={d} busy={busy}
+          <PhaseArtifacts phaseId={selPhaseId} d={d} busy={busy} isTech={isTech}
             onPreapprove={preapproveRing} onSaveAssets={saveRingAssets} />
         </div>
 
@@ -297,8 +322,8 @@ function Meta({ k, v }: { k: string; v: string }) {
 }
 
 // -------------------- per-phase artifacts --------------------
-function PhaseArtifacts({ phaseId, d, busy, onPreapprove, onSaveAssets }: {
-  phaseId: string; d: TD; busy: boolean;
+function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }: {
+  phaseId: string; d: TD; busy: boolean; isTech: boolean;
   onPreapprove: (ring: number) => void;
   onSaveAssets: (ring: number, excluded: string[]) => void;
 }) {
@@ -431,7 +456,7 @@ function PhaseArtifacts({ phaseId, d, busy, onPreapprove, onSaveAssets }: {
         </div>
         <div className="space-y-2">
           {a.deployment.rings.map((r) => (
-            <RingRow key={r.ring} r={r} busy={busy}
+            <RingRow key={r.ring} r={r} busy={busy} isTech={isTech}
               onPreapprove={onPreapprove} onSaveAssets={onSaveAssets} />
           ))}
         </div>
@@ -473,7 +498,7 @@ function PhaseArtifacts({ phaseId, d, busy, onPreapprove, onSaveAssets }: {
               <span className="chip bg-amber-500/15 text-amber-300 shrink-0">{i + 1}</span>
               <span className={`chip shrink-0 ${s.actor === "Devin" ? "bg-brand/15 text-brand" : "bg-sky-500/15 text-sky-300"}`}>{s.actor}</span>
               <div className="flex-1">
-                <code className="text-gray-200">{s.command}</code>
+                {isTech && <code className="text-gray-200">{s.command}</code>}
                 <div className="text-gray-500 mt-0.5">{s.desc}</div>
               </div>
             </div>
@@ -497,8 +522,8 @@ function PhaseArtifacts({ phaseId, d, busy, onPreapprove, onSaveAssets }: {
   );
 }
 
-function RingRow({ r, busy, onPreapprove, onSaveAssets }: {
-  r: Ring; busy: boolean;
+function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
+  r: Ring; busy: boolean; isTech: boolean;
   onPreapprove: (ring: number) => void;
   onSaveAssets: (ring: number, excluded: string[]) => void;
 }) {
@@ -538,7 +563,7 @@ function RingRow({ r, busy, onPreapprove, onSaveAssets }: {
           : r.status === "pending" || r.status === "in_progress"
           ? <span className="chip bg-amber-500/15 text-amber-300">requiere pre-aprobación</span>
           : null}
-        <span className="text-xs text-gray-400">{r.assets} activos</span>
+        <span className="text-xs text-gray-400">{r.plan.assets_count} CIs impactados</span>
         {r.result !== "-" && (
           <span className={`chip ${r.status === "rolled_back" ? "bg-amber-500/10 text-amber-300" : "bg-green-500/10 text-green-400"}`}>{r.result}</span>
         )}
@@ -567,19 +592,31 @@ function RingRow({ r, busy, onPreapprove, onSaveAssets }: {
             </div>
           </div>
 
-          {/* Activos seleccionados (revisables / editables) */}
+          {/* Subgrafo del anillo: SOLO los CIs impactados de este anillo + sus dependencias */}
+          {r.plan.graph.nodes.length > 0 && (
+            <div className="rounded-lg bg-ink-panel border border-line p-2">
+              <div className="text-[11px] text-gray-500 mb-1">
+                CIs impactados de este anillo y sus dependencias (subgrafo del Impact Graph)
+              </div>
+              <ImpactGraphView nodes={r.plan.graph.nodes} edges={r.plan.graph.edges} height={200} />
+            </div>
+          )}
+
+          {/* CIs impactados del anillo (revisables / editables) */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <div className="text-[11px] text-gray-500">
-                Activos seleccionados ({r.plan.selected_count}/{r.plan.assets_count})
-                {r.plan.assets.length < r.plan.assets_count && <span className="text-gray-600"> · muestra de {r.plan.assets.length}</span>}
+                CIs impactados en el anillo ({r.plan.selected_count}/{r.plan.assets_count})
               </div>
-              {(r.status === "pending" || r.status === "in_progress") && (
+              {isTech && (r.status === "pending" || r.status === "in_progress") && (
                 <button onClick={() => setEditing((v) => !v)} className="btn btn-ghost text-[11px]">
                   {editing ? "Cancelar edición" : "✎ Editar selección"}
                 </button>
               )}
             </div>
+            {r.plan.assets.length === 0 && (
+              <div className="text-[11px] text-gray-600">Sin CIs impactados en la banda de este anillo.</div>
+            )}
             <div className="space-y-1">
               {r.plan.assets.map((as) => {
                 const isExcl = excluded.includes(as.id);
@@ -590,7 +627,10 @@ function RingRow({ r, busy, onPreapprove, onSaveAssets }: {
                     )}
                     <span className={`chip shrink-0 ${isExcl ? "bg-red-500/15 text-red-300" : "bg-sky-500/15 text-sky-300"}`}>{as.ci_class}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="font-mono text-gray-300 truncate">{as.name} <span className="text-gray-600">· {as.criticality} · {as.environment}</span></div>
+                      <div className="font-mono text-gray-300 truncate">
+                        {as.name} {as.is_root && <span className="chip bg-red-500/15 text-red-300">raíz</span>}
+                        <span className="text-gray-600"> · {as.criticality} · {as.environment}</span>
+                      </div>
                       <div className="text-gray-500 truncate">{as.reason}</div>
                     </div>
                     {isExcl && <span className="chip bg-red-500/15 text-red-300 shrink-0">excluido</span>}
@@ -605,6 +645,26 @@ function RingRow({ r, busy, onPreapprove, onSaveAssets }: {
               </button>
             )}
           </div>
+
+          {/* Dependencias de los CIs impactados del anillo */}
+          {r.plan.dependencies.length > 0 && (
+            <div>
+              <div className="text-[11px] text-gray-500 mb-1">
+                Dependencias afectadas ({r.plan.dependencies.length}) — CIs vinculados a los impactados
+              </div>
+              <div className="space-y-1">
+                {r.plan.dependencies.map((dep) => (
+                  <div key={dep.id} className="flex items-start gap-2 text-[11px] rounded-lg px-2 py-1.5 border border-line bg-ink">
+                    <span className="chip shrink-0 bg-purple-500/15 text-purple-300">{dep.ci_class}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-mono text-gray-300 truncate">{dep.name} <span className="text-gray-600">· {dep.criticality}</span></div>
+                      <div className="text-gray-500 truncate">{dep.relation} · vinculado a {dep.of}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Revisión / pre-aprobación Human-Driven */}
           {pa.preapproved ? (
@@ -625,7 +685,7 @@ function RingRow({ r, busy, onPreapprove, onSaveAssets }: {
           ) : null}
 
           {/* Acciones ejecutadas con el por qué de cada comando */}
-          {hasActions && r.actions && (
+          {isTech && hasActions && r.actions && (
             <div className="border-t border-line pt-2 space-y-1.5 font-mono text-[11px]">
               <div className="text-gray-500 mb-1">Acciones ejecutadas · {r.actions.from_version} → {r.actions.to_version}</div>
               {r.actions.steps.map((s) => (

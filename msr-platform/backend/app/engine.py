@@ -300,43 +300,75 @@ CANARY_PCT = [5, 10, 25, 35, 100]
 def _asset_reason(ring_no: int, ci_class: str, crit: str) -> str:
     band = RING_BANDS[min(ring_no, len(RING_BANDS) - 1)]
     return (
-        f"Pertenece al blast radius (clase {ci_class}, criticidad {crit}); "
+        f"CI impactado (clase {ci_class}, criticidad {crit}) dentro del blast radius; "
         f"encaja en la banda «{band['band']}» del anillo {ring_no} por criticidad y entorno."
     )
 
 
-def build_ring_plan(task, impact, ring_no, label, assets_count, canary_pct,
-                    executor, exclusions=None, preapproval=None):
-    """Informe pre-anillo: por qué Devin seleccionó estos activos, criterios de
-    entrada, ventana y estado de pre-aprobación (auditoría Human-Driven)."""
+def _ring_for_node(node) -> int:
+    """Asigna un CI impactado al primer anillo cuya banda encaja por criticidad y
+    entorno; si no encaja en ninguno, cae en el anillo final (resto del alcance)."""
+    crit = node.get("criticality", "medium")
+    env = node.get("environment", "production")
+    for i in range(len(RING_BANDS) - 1):
+        band = RING_BANDS[i]
+        if crit in band["criticality"] and env in band["environment"]:
+            return i
+    return len(RING_BANDS) - 1
+
+
+def assign_impact_to_rings(impact):
+    """Reparte los CIs impactados (nodos del Impact Graph) entre los anillos según
+    la banda de riesgo. Cada CI impactado pertenece a un único anillo."""
+    assignment = {rn: [] for rn, _ in RING_DEFS}
+    for n in impact["nodes"]:
+        assignment[RING_DEFS[_ring_for_node(n)][0]].append(n)
+    return assignment
+
+
+def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nodes,
+                    exclusions=None, preapproval=None):
+    """Informe pre-anillo: SOLO los CIs impactados de este anillo y sus dependencias
+    (subgrafo del Impact Graph), criterios de entrada, ventana y estado de
+    pre-aprobación (auditoría Human-Driven)."""
     rng = _rng(task["id"] + f"plan{ring_no}")
     band = RING_BANDS[min(ring_no, len(RING_BANDS) - 1)]
     excluded = set(exclusions or [])
+    node_by_id = {n["id"]: n for n in impact["nodes"]}
+    ring_ids = {n["id"] for n in ring_nodes}
 
-    # Activos concretos: derivados del Impact Graph (blast radius real) + hosts sintéticos.
-    candidates = [n for n in impact["nodes"] if not n.get("is_root")] or impact["nodes"]
+    # Activos = CIs impactados reales asignados a este anillo (del blast radius).
     assets = []
-    n_show = min(assets_count, 10)
-    for i in range(n_show):
-        if candidates:
-            base = candidates[(ring_no * 7 + i) % len(candidates)]
-            aid = f"{base['id']}-r{ring_no}-{i:02d}"
-            name = f"{base['name']}-{ring_no}{i:02d}"
-            cls = base["ci_class"]
-            crit = base.get("criticality", task["criticality"])
-            env = base.get("environment", "production")
-        else:
-            aid = f"{task['ci_id']}-r{ring_no}-{i:02d}"
-            name = f"{task['ci_name']}-{ring_no}{i:02d}"
-            cls = task.get("track") and "server" or "server"
-            crit = task["criticality"]
-            env = task["environment"]
+    for n in ring_nodes:
         assets.append({
-            "id": aid, "name": name, "ci_class": cls,
-            "criticality": crit, "environment": env,
-            "reason": _asset_reason(ring_no, cls, crit),
-            "excluded": aid in excluded,
+            "id": n["id"], "name": n["name"], "ci_class": n["ci_class"],
+            "criticality": n.get("criticality", "medium"),
+            "environment": n.get("environment", "-"),
+            "is_root": bool(n.get("is_root")),
+            "reason": _asset_reason(ring_no, n["ci_class"], n.get("criticality", "medium")),
+            "excluded": n["id"] in excluded,
         })
+
+    # Dependencias = vecinos (de los CIs impactados) según relaciones del Impact Graph.
+    deps = {}
+    for e in impact["edges"]:
+        s, t = e["source"], e["target"]
+        for a, b in ((s, t), (t, s)):
+            if a in ring_ids and b in node_by_id and b not in ring_ids and b not in deps:
+                nb = node_by_id[b]
+                deps[b] = {
+                    "id": b, "name": nb["name"], "ci_class": nb["ci_class"],
+                    "criticality": nb.get("criticality", "medium"),
+                    "relation": e["type"], "of": node_by_id[a]["name"],
+                }
+    dependencies = list(deps.values())
+
+    # Subgrafo del anillo: CIs impactados + sus dependencias directas.
+    graph_ids = ring_ids | set(deps.keys())
+    graph_nodes = [dict(node_by_id[i]) for i in graph_ids if i in node_by_id]
+    graph_edges = [e for e in impact["edges"] if e["source"] in graph_ids and e["target"] in graph_ids]
+
+    assets_count = len(assets)
     selected_n = assets_count - len([a for a in assets if a["excluded"]])
 
     entry_criteria = [
@@ -347,12 +379,18 @@ def build_ring_plan(task, impact, ring_no, label, assets_count, canary_pct,
         {"check": "Plan de rollback probado en lab", "ok": True},
         {"check": "Sin conflictos de cambio abiertos", "ok": bool(rng.random() > 0.15)},
     ]
-    rationale = (
-        f"Devin seleccionó {assets_count} activos para el {label} a partir del Impact Graph "
-        f"({impact['affected_count']} CIs en el blast radius). Criterio: {band['target']} "
-        f"Se despliega de forma progresiva (canary {canary_pct}%) empezando por menor criticidad "
-        f"para acotar el impacto y validar por telemetría antes de avanzar. Ejecutor: {executor}."
-    )
+    if assets_count:
+        rationale = (
+            f"Devin asignó a este anillo los {assets_count} CIs impactados del blast radius "
+            f"que encajan en la banda «{band['band']}» (criticidad {', '.join(band['criticality'])}, "
+            f"entorno {', '.join(band['environment'])}), con {len(dependencies)} dependencias directas. "
+            f"Se despliega canary {canary_pct}% y se valida por telemetría antes de avanzar. Ejecutor: {executor}."
+        )
+    else:
+        rationale = (
+            f"Ningún CI impactado del blast radius encaja en la banda «{band['band']}» del {label}; "
+            f"este anillo queda sin alcance para esta vulnerabilidad."
+        )
     return {
         "ring": ring_no,
         "label": label,
@@ -364,13 +402,15 @@ def build_ring_plan(task, impact, ring_no, label, assets_count, canary_pct,
         "selected_count": selected_n,
         "selection_rationale": rationale,
         "selection_criteria": [
-            {"factor": "Blast radius", "detail": f"Activos dependientes del CI raíz {task['ci_name']} según el Impact Graph."},
+            {"factor": "Blast radius", "detail": f"CIs dependientes del CI raíz {task['ci_name']} según el Impact Graph."},
             {"factor": "Criticidad", "detail": f"Banda del anillo: {', '.join(band['criticality'])}."},
             {"factor": "Entorno", "detail": f"{', '.join(band['environment'])}."},
             {"factor": "Exposición", "detail": "Prioriza activos no expuestos primero; los expuestos en anillos posteriores con más validación."},
             {"factor": "Ventana", "detail": band["window"]},
         ],
         "assets": assets,
+        "dependencies": dependencies,
+        "graph": {"nodes": graph_nodes, "edges": graph_edges},
         "entry_criteria": entry_criteria,
         "approval": preapproval or {"required": "Human-Driven", "preapproved": False,
                                     "approver": None, "ts": None, "note": None},
@@ -530,17 +570,14 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
     rolled_back_rings = set(rolled_back_rings or [])
     preapprovals = preapprovals or {}
     exclusions = exclusions or {}
-    total_assets = max(6, impact["affected_count"] * rng.randint(2, 6))
+    assignment = assign_impact_to_rings(impact)
+    total_assets = impact["affected_count"]
     executor = _deploy_executor(task, rng)
     rings = []
-    remaining = total_assets
     ts_base = 0
     for i, (rn, label) in enumerate(RING_DEFS):
-        share = [0.05, 0.10, 0.25, 0.35, 0.25][i]
-        assets = max(1, round(total_assets * share))
-        if i == len(RING_DEFS) - 1:
-            assets = max(1, remaining)
-        remaining -= assets
+        ring_nodes = assignment.get(rn, [])
+        assets = len(ring_nodes)
         if rn in rolled_back_rings:
             status = "rolled_back"
         elif i < progress_rings:
@@ -549,8 +586,8 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
             status = "in_progress"
         else:
             status = "pending"
-        actions = build_ring_actions(task, rn, assets, executor, ts_base) if status in ("completed", "rolled_back") else None
-        plan = build_ring_plan(task, impact, rn, label, assets, CANARY_PCT[min(i, 4)], executor,
+        actions = build_ring_actions(task, rn, max(1, assets), executor, ts_base) if status in ("completed", "rolled_back") else None
+        plan = build_ring_plan(task, impact, rn, label, CANARY_PCT[min(i, 4)], executor, ring_nodes,
                                exclusions=exclusions.get(rn), preapproval=preapprovals.get(rn))
         rings.append({
             "ring": rn, "label": label, "assets": assets, "status": status,

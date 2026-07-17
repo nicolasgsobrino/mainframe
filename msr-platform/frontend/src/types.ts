@@ -109,7 +109,11 @@ export interface RingAction {
 }
 export interface RingAsset {
   id: string; name: string; ci_class: string; criticality: string;
-  environment: string; reason: string; excluded: boolean;
+  environment: string; reason: string; excluded: boolean; is_root?: boolean;
+}
+export interface RingDependency {
+  id: string; name: string; ci_class: string; criticality: string;
+  relation: string; of: string;
 }
 export interface RingApproval {
   required: string; preapproved: boolean;
@@ -121,6 +125,8 @@ export interface RingPlan {
   selection_rationale: string;
   selection_criteria: { factor: string; detail: string }[];
   assets: RingAsset[];
+  dependencies: RingDependency[];
+  graph: { nodes: ImpactGraph["nodes"]; edges: Edge[] };
   entry_criteria: { check: string; ok: boolean }[];
   approval: RingApproval;
 }

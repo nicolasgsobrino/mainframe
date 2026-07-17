@@ -5,6 +5,7 @@ import TaskDetail from "./pages/TaskDetail";
 import Cmdb from "./pages/Cmdb";
 import Catalog from "./pages/Catalog";
 import Integrations from "./pages/Integrations";
+import { ViewProvider, RoleToggle, useView, ROLE_META } from "./view";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
@@ -42,16 +43,27 @@ function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="px-5 py-4 border-t border-line text-[11px] text-gray-600 leading-relaxed">
-        Demo · datos sintéticos<br />
-        ServiceNow (control) + Devin (agente)
+      <div className="px-5 py-4 border-t border-line space-y-2">
+        <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Perspectiva</div>
+        <RoleToggle />
+        <RoleHint />
+        <div className="text-[11px] text-gray-600 leading-relaxed pt-1">
+          Demo · datos sintéticos<br />
+          ServiceNow (control) + Devin (agente)
+        </div>
       </div>
     </aside>
   );
 }
 
+function RoleHint() {
+  const { role } = useView();
+  return <div className="text-[11px] text-gray-500 leading-relaxed">{ROLE_META[role].hint}</div>;
+}
+
 export default function App() {
   return (
+    <ViewProvider>
     <BrowserRouter>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
@@ -68,5 +80,6 @@ export default function App() {
         </main>
       </div>
     </BrowserRouter>
+    </ViewProvider>
   );
 }

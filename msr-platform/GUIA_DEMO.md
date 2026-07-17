@@ -132,11 +132,23 @@ incluye —siempre visible, sin cambiar de fase— el **grafo de impacto** con e
 afectados, los servicios de negocio impactados y el nº de afectados. Es el criterio con el que Devin decide
 qué activos entran en cada anillo.
 
+**Dos perspectivas: Gestor y Técnico (barra lateral, "Perspectiva"):** un mismo modelo con dos lecturas.
+- **Gestor** → front sencillo: un **Resumen ejecutivo** (carril/SLA, riesgo, fase, anillos desplegados, CIs
+  impactados, servicios de negocio, due date, estado de rollback), el Impact Graph y el estado de los anillos.
+  Se ocultan los comandos y el detalle operativo para una lectura de negocio.
+- **Técnico** → todo el detalle operativo: flujo del carril paso a paso, comandos ejecutados con su "por qué",
+  edición de la selección de activos y los subgrafos por anillo.
+La perspectiva se recuerda entre pantallas. *Mensaje:* misma verdad, dos audiencias — el manager ve impacto y
+plazo; el ejecutor ve el detalle técnico.
+
 **Anillos con contexto, revisión y pre-aprobación Human-Driven (Fase 6):** al abrir un anillo se ve un
 **informe pre-anillo** con:
 - **por qué Devin ha seleccionado esos activos** (rationale) y los **criterios** (blast radius, criticidad,
   entorno, exposición, ventana);
-- la **lista de activos seleccionados** (revisable y **editable** — se pueden excluir activos, lo que invalida
+- **solo los CIs impactados de ese anillo y sus dependencias** — cada anillo muestra un **subgrafo del Impact
+  Graph** con los CIs impactados asignados a su banda de riesgo (por criticidad/entorno) más los CIs vinculados
+  (dependencias), en vez de un listado genérico;
+- la **lista de CIs impactados** (revisable y **editable** en vista Técnico — se pueden excluir, lo que invalida
   la pre-aprobación y obliga a re-verificar);
 - los **criterios de entrada** del anillo (MVT aprobado, prototipo validado, CR autorizado, rollback probado…);
 - el estado de **verificación y pre-aprobación (auditoría Human-Driven)**: hasta que el owner no revisa y
