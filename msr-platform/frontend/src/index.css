@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root { color-scheme: dark; }
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: #0b0d11;
+  color: #e6e9ef;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #2b313d; border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@layer components {
+  .card { @apply bg-ink-soft border border-line rounded-xl; }
+  .chip { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium; }
+  .btn { @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition; }
+  .btn-brand { @apply bg-brand text-black hover:bg-lime-400; }
+  .btn-ghost { @apply border border-line text-gray-300 hover:bg-ink-panel; }
+}
+
+.react-flow__attribution { display: none; }

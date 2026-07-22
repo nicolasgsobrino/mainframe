@@ -1,0 +1,122 @@
+{
+  "table": "cmdb_ci_netgear",
+  "records": [
+    {
+      "sys_id": "66bb5a8ede6af046c1c18515a856cddb",
+      "sys_class_name": "cmdb_ci_netgear",
+      "name": "Palo Alto PA-5450 #40003",
+      "sys_created_on": "2024-07-28 09:00:00",
+      "sys_updated_on": "2026-07-04 19:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Retail",
+        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
+      },
+      "managed_by": {
+        "display_value": "network-team@bank.example",
+        "value": "d6e4a0a93e45cfb36ee32185dc5c084e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d6e4a0a93e45cfb36ee32185dc5c084e"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "11.1",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "NET-40003",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "630fa04a4951249da3e2d755e3e0edf0",
+      "sys_class_name": "cmdb_ci_netgear",
+      "name": "Cisco Catalyst 9300 #40030",
+      "sys_created_on": "2024-01-26 09:00:00",
+      "sys_updated_on": "2026-07-05 04:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "network-team@bank.example",
+        "value": "d6e4a0a93e45cfb36ee32185dc5c084e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d6e4a0a93e45cfb36ee32185dc5c084e"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "7.4",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "NET-40030",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "10e8dabf2f067aa18845b724f46c65e9",
+      "sys_class_name": "cmdb_ci_netgear",
+      "name": "Palo Alto PA-5450 #40034",
+      "sys_created_on": "2026-02-22 09:00:00",
+      "sys_updated_on": "2026-07-04 23:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "network-team@bank.example",
+        "value": "d6e4a0a93e45cfb36ee32185dc5c084e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d6e4a0a93e45cfb36ee32185dc5c084e"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "16.1",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "NET-40034",
+      "u_track": "A"
+    }
+  ]
+}

@@ -1,0 +1,356 @@
+{
+  "table": "cmdb_ci_computer",
+  "records": [
+    {
+      "sys_id": "49a208a08e3e6b6450968cfaae0450ee",
+      "sys_class_name": "cmdb_ci_computer",
+      "name": "WKS-BCN-40012",
+      "sys_created_on": "2024-06-11 09:00:00",
+      "sys_updated_on": "2026-07-05 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "endpoint-team@bank.example",
+        "value": "933178f740d0bf42807c22f21993eccc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/933178f740d0bf42807c22f21993eccc"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "Windows 11 23H2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "EP-40012",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "288f10f93708fe1fee382af6fda58082",
+      "sys_class_name": "cmdb_ci_computer",
+      "name": "WKS-BCN-40016",
+      "sys_created_on": "2025-04-26 09:00:00",
+      "sys_updated_on": "2026-07-04 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Retail",
+        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
+      },
+      "managed_by": {
+        "display_value": "endpoint-team@bank.example",
+        "value": "933178f740d0bf42807c22f21993eccc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/933178f740d0bf42807c22f21993eccc"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "Windows 10 22H2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "EP-40016",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "75fac0ba748daf22d45b1be3ae74e939",
+      "sys_class_name": "cmdb_ci_computer",
+      "name": "WKS-VAL-40029",
+      "sys_created_on": "2025-12-21 09:00:00",
+      "sys_updated_on": "2026-07-05 14:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Endpoint",
+        "value": "f522b576bbfd6e7ca8b8d1718494d063",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/f522b576bbfd6e7ca8b8d1718494d063"
+      },
+      "managed_by": {
+        "display_value": "endpoint-team@bank.example",
+        "value": "933178f740d0bf42807c22f21993eccc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/933178f740d0bf42807c22f21993eccc"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "Windows 11 23H2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "EP-40029",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "b5162a497ff72444cffa6206f4b895a0",
+      "sys_class_name": "cmdb_ci_computer",
+      "name": "WKS-BCN-40031",
+      "sys_created_on": "2024-04-15 09:00:00",
+      "sys_updated_on": "2026-07-04 06:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Retail",
+        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
+      },
+      "managed_by": {
+        "display_value": "endpoint-team@bank.example",
+        "value": "933178f740d0bf42807c22f21993eccc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/933178f740d0bf42807c22f21993eccc"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "Windows 10 22H2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "EP-40031",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "7151ce736f2ce7aaa7350fa4a042dfa2",
+      "sys_class_name": "cmdb_ci_computer",
+      "name": "WKS-VAL-40070",
+      "sys_created_on": "2024-05-20 09:00:00",
+      "sys_updated_on": "2026-07-06 06:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "9777d39e155b6f661855d8d7a1147bc3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9777d39e155b6f661855d8d7a1147bc3"
+      },
+      "managed_by": {
+        "display_value": "endpoint-team@bank.example",
+        "value": "933178f740d0bf42807c22f21993eccc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/933178f740d0bf42807c22f21993eccc"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "macOS 14",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "EP-40070",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "351fd6ff55ed55af7f38b448504ae60b",
+      "sys_class_name": "cmdb_ci_computer",
+      "name": "WKS-VAL-40076",
+      "sys_created_on": "2025-07-13 09:00:00",
+      "sys_updated_on": "2026-07-04 14:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Payments",
+        "value": "1431adb121142b03d20752aaf90458b1",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1431adb121142b03d20752aaf90458b1"
+      },
+      "managed_by": {
+        "display_value": "endpoint-team@bank.example",
+        "value": "933178f740d0bf42807c22f21993eccc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/933178f740d0bf42807c22f21993eccc"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "Windows 10 22H2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "EP-40076",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "e00a497f70d26aeae95167fbc23345e0",
+      "sys_class_name": "cmdb_ci_computer",
+      "name": "WKS-MAD-40083",
+      "sys_created_on": "2025-03-07 09:00:00",
+      "sys_updated_on": "2026-07-05 02:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Platform-K8s",
+        "value": "25e27d30f7aa79018c689ff9a959a9b9",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/25e27d30f7aa79018c689ff9a959a9b9"
+      },
+      "managed_by": {
+        "display_value": "endpoint-team@bank.example",
+        "value": "933178f740d0bf42807c22f21993eccc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/933178f740d0bf42807c22f21993eccc"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "Windows 11 23H2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "EP-40083",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "6dd557509c9fd9a08452d59d13f9e60d",
+      "sys_class_name": "cmdb_ci_computer",
+      "name": "WKS-BCN-40087",
+      "sys_created_on": "2025-10-30 09:00:00",
+      "sys_updated_on": "2026-07-04 03:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "endpoint-team@bank.example",
+        "value": "933178f740d0bf42807c22f21993eccc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/933178f740d0bf42807c22f21993eccc"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "Windows 10 22H2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "EP-40087",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "2aaab0b017f62542ca544232cd627fc0",
+      "sys_class_name": "cmdb_ci_computer",
+      "name": "WKS-MAD-40089",
+      "sys_created_on": "2024-02-04 09:00:00",
+      "sys_updated_on": "2026-07-06 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "endpoint-team@bank.example",
+        "value": "933178f740d0bf42807c22f21993eccc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/933178f740d0bf42807c22f21993eccc"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Windows 10 22H2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "EP-40089",
+      "u_track": "A"
+    }
+  ]
+}

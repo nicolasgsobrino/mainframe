@@ -1,0 +1,2165 @@
+{
+  "table": "cmdb_ci_server",
+  "records": [
+    {
+      "sys_id": "ed2e6f500bf59b71fab92feae29e73ef",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "payments-api-app-02",
+      "sys_created_on": "2024-05-14 09:00:00",
+      "sys_updated_on": "2026-07-05 13:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "pre-production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3000",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "4ade0f4798fef759b2deeff37a1240e8",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "payments-api-app-04",
+      "sys_created_on": "2025-01-07 09:00:00",
+      "sys_updated_on": "2026-07-03 19:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3003",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "fcaa4228633d7144ad6bbc225ec8b32a",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "payments-batch-node-07",
+      "sys_created_on": "2025-08-25 09:00:00",
+      "sys_updated_on": "2026-07-03 15:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3006",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "02202cccf5b52f65f72d7ae403e988d5",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "retail-web-frontend-web-01",
+      "sys_created_on": "2024-10-05 09:00:00",
+      "sys_updated_on": "2026-07-04 22:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "pre-production",
+      "version": "Ubuntu 22.04",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3009",
+      "u_track": "A",
+      "os_version": "Ubuntu 22.04"
+    },
+    {
+      "sys_id": "5573993e4adcee8f98f0524c1de3e0ab",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "retail-bff-app-02",
+      "sys_created_on": "2025-10-07 09:00:00",
+      "sys_updated_on": "2026-07-03 23:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "Ubuntu 22.04",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3012",
+      "u_track": "A",
+      "os_version": "Ubuntu 22.04"
+    },
+    {
+      "sys_id": "67188157130acf4324a6ee0e406930f1",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "mobile-gateway-web-04",
+      "sys_created_on": "2025-02-15 09:00:00",
+      "sys_updated_on": "2026-07-03 22:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3015",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "ed319e2c20cf17fd73c7106b5a46c0f9",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "cards-auth-service-web-05",
+      "sys_created_on": "2025-07-12 09:00:00",
+      "sys_updated_on": "2026-07-04 04:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "pre-production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3018",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "352b4804fe61b06366f1884ec76d3ade",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "cards-auth-service-app-06",
+      "sys_created_on": "2024-03-16 09:00:00",
+      "sys_updated_on": "2026-07-04 08:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3021",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "33ed86c81cf784caa715ab9cb737b431",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "fraud-scoring-ml-app-05",
+      "sys_created_on": "2024-07-12 09:00:00",
+      "sys_updated_on": "2026-07-04 14:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3024",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "4e181af563599a6d4b4787f5da1f3aa5",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "fraud-scoring-ml-node-07",
+      "sys_created_on": "2024-11-26 09:00:00",
+      "sys_updated_on": "2026-07-06 07:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "pre-production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3027",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "5fc8bcda40fa541ffc642d6ecb54da61",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "ledger-core-node-03",
+      "sys_created_on": "2025-06-10 09:00:00",
+      "sys_updated_on": "2026-07-04 13:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "pre-production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3030",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "9d4175080d8e592d98ea5ed6a872631d",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "ledger-core-node-08",
+      "sys_created_on": "2025-04-06 09:00:00",
+      "sys_updated_on": "2026-07-03 12:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3033",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "fb53f875f5d4ba0ca40254a9258d21a7",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "crm-portal-web-03",
+      "sys_created_on": "2024-06-14 09:00:00",
+      "sys_updated_on": "2026-07-06 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3036",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "83903b7134699792b24a2144f17e63fc",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "crm-portal-node-02",
+      "sys_created_on": "2024-12-19 09:00:00",
+      "sys_updated_on": "2026-07-05 20:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3039",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "7dab584d93d1279c90c88fbdad9dd48a",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "regulatory-reporter-app-06",
+      "sys_created_on": "2026-02-07 09:00:00",
+      "sys_updated_on": "2026-07-06 03:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Ubuntu 22.04",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3042",
+      "u_track": "A",
+      "os_version": "Ubuntu 22.04"
+    },
+    {
+      "sys_id": "a94ee7469a75623cad20883c7ba70cab",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "dwh-etl-app-09",
+      "sys_created_on": "2025-10-10 09:00:00",
+      "sys_updated_on": "2026-07-05 01:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3045",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "d2951ce65f9cac7748138c8b34205e3e",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "corp-portal-cms-node-04",
+      "sys_created_on": "2025-12-18 09:00:00",
+      "sys_updated_on": "2026-07-04 08:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3048",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "118d69ed602be35dd61989ab95e91073",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "db-oracle-09",
+      "sys_created_on": "2025-07-14 09:00:00",
+      "sys_updated_on": "2026-07-03 21:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3051",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "90f8c1004574b4d9da99daab06ea25fc",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "db-oracle-02",
+      "sys_created_on": "2024-11-23 09:00:00",
+      "sys_updated_on": "2026-07-05 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3052",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "1aea47ca6423a57c5a02baf7b948a076",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "db-mssql-04",
+      "sys_created_on": "2024-11-17 09:00:00",
+      "sys_updated_on": "2026-07-04 20:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3053",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "11b83b2dba55c2f321ea84917f30f18c",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "db-postgres-06",
+      "sys_created_on": "2025-09-28 09:00:00",
+      "sys_updated_on": "2026-07-05 23:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3054",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "714ba5d5b59ac020dae2055286c04b7c",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "db-postgres-09",
+      "sys_created_on": "2024-07-15 09:00:00",
+      "sys_updated_on": "2026-07-04 18:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3055",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "6ef8fb55bdd74fe131511bfcb8c330ac",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "db-mssql-04",
+      "sys_created_on": "2024-04-01 09:00:00",
+      "sys_updated_on": "2026-07-05 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3056",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "840ef2d536d517fb63835956a6a3cd4c",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "db-oracle-02",
+      "sys_created_on": "2025-08-17 09:00:00",
+      "sys_updated_on": "2026-07-04 07:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-3057",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "ae52e953e1aac38bc867baf19d8815a6",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40001",
+      "sys_created_on": "2025-07-09 09:00:00",
+      "sys_updated_on": "2026-07-04 08:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Ubuntu 22.04",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40001",
+      "u_track": "A",
+      "os_version": "Ubuntu 22.04"
+    },
+    {
+      "sys_id": "c7a58f898b2126b81a3aa98a3c053444",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40004",
+      "sys_created_on": "2024-03-22 09:00:00",
+      "sys_updated_on": "2026-07-04 19:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40004",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "b462c5f9e2056d95df063e6b1a8a29ec",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40008",
+      "sys_created_on": "2024-06-26 09:00:00",
+      "sys_updated_on": "2026-07-03 17:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40008",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "1befd58d6351515ed95f1a7a62441830",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40011",
+      "sys_created_on": "2025-07-27 09:00:00",
+      "sys_updated_on": "2026-07-05 08:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40011",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "3ee8fef8592956ae1fbaf71ace8d31b4",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40017",
+      "sys_created_on": "2026-02-02 09:00:00",
+      "sys_updated_on": "2026-07-04 10:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40017",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "b0275c7b582027c83282e8e9fa04e52b",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40021",
+      "sys_created_on": "2025-09-10 09:00:00",
+      "sys_updated_on": "2026-07-05 07:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40021",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "4f330d4b0273e4d203fd0e847ed0382a",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40023",
+      "sys_created_on": "2025-02-27 09:00:00",
+      "sys_updated_on": "2026-07-03 13:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40023",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "f9d4bb6346e49910039a618aea39e8ba",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40032",
+      "sys_created_on": "2024-08-15 09:00:00",
+      "sys_updated_on": "2026-07-04 10:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40032",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "9ecb92dfd058eb891491a479b577153e",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40035",
+      "sys_created_on": "2024-09-05 09:00:00",
+      "sys_updated_on": "2026-07-05 17:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "Ubuntu 22.04",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40035",
+      "u_track": "A",
+      "os_version": "Ubuntu 22.04"
+    },
+    {
+      "sys_id": "9b95cca2dac45c5b073379b0d635fc36",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40037",
+      "sys_created_on": "2024-04-19 09:00:00",
+      "sys_updated_on": "2026-07-04 23:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40037",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "5c51ec0794777f3bb8696fd78359f0df",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40040",
+      "sys_created_on": "2025-11-18 09:00:00",
+      "sys_updated_on": "2026-07-05 03:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40040",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "ff6704b620366251782a930b075495f1",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40041",
+      "sys_created_on": "2024-11-11 09:00:00",
+      "sys_updated_on": "2026-07-06 05:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40041",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "8509a702cc06cc3394a357c2a1442ad2",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40043",
+      "sys_created_on": "2025-04-07 09:00:00",
+      "sys_updated_on": "2026-07-05 04:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40043",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "e93dad6ef02b6e89720e894ff5232794",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40046",
+      "sys_created_on": "2024-03-21 09:00:00",
+      "sys_updated_on": "2026-07-04 18:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40046",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "47497161d2f38b47475945418108d37b",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40049",
+      "sys_created_on": "2026-01-21 09:00:00",
+      "sys_updated_on": "2026-07-06 04:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40049",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "f5100e3861821cea79388726ade5ec9a",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40051",
+      "sys_created_on": "2025-11-10 09:00:00",
+      "sys_updated_on": "2026-07-05 20:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40051",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "7946ca2b779b2ced3bd7fe57008b8191",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40054",
+      "sys_created_on": "2024-11-29 09:00:00",
+      "sys_updated_on": "2026-07-04 09:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "development",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40054",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "fe8bc835eca0760bc434e6c065065232",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40057",
+      "sys_created_on": "2025-01-08 09:00:00",
+      "sys_updated_on": "2026-07-05 20:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40057",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "a7e099c29f46aa53788c6b0b2e5e5f50",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40060",
+      "sys_created_on": "2024-04-01 09:00:00",
+      "sys_updated_on": "2026-07-04 09:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "pre-production",
+      "version": "Ubuntu 22.04",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40060",
+      "u_track": "A",
+      "os_version": "Ubuntu 22.04"
+    },
+    {
+      "sys_id": "df5ca14886aecbf635d76778fdaa9e8e",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40063",
+      "sys_created_on": "2025-03-02 09:00:00",
+      "sys_updated_on": "2026-07-05 20:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "pre-production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40063",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "1afb4dad4e08436e68f8326a9d71e039",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40065",
+      "sys_created_on": "2024-08-28 09:00:00",
+      "sys_updated_on": "2026-07-04 11:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "RHEL 9.2",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40065",
+      "u_track": "A",
+      "os_version": "RHEL 9.2"
+    },
+    {
+      "sys_id": "0fa77a26c2d360f1578410bdddceeeb7",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40071",
+      "sys_created_on": "2026-01-16 09:00:00",
+      "sys_updated_on": "2026-07-04 14:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40071",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "dcdbabcd3d30cf81582788a50f4571b5",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40072",
+      "sys_created_on": "2025-07-02 09:00:00",
+      "sys_updated_on": "2026-07-05 16:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Ubuntu 22.04",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40072",
+      "u_track": "A",
+      "os_version": "Ubuntu 22.04"
+    },
+    {
+      "sys_id": "84397cf147cacbd72ebec18822208cc8",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40075",
+      "sys_created_on": "2025-08-08 09:00:00",
+      "sys_updated_on": "2026-07-05 05:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40075",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "30121877e26ae7072059d7ba378cdfc6",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40080",
+      "sys_created_on": "2025-06-25 09:00:00",
+      "sys_updated_on": "2026-07-05 10:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40080",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "4d09f0d68fff0a76e06cc6b03a2a44aa",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40084",
+      "sys_created_on": "2024-07-14 09:00:00",
+      "sys_updated_on": "2026-07-04 15:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40084",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    },
+    {
+      "sys_id": "b06e4fac5dbceba0db7c618c329fe4e5",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40085",
+      "sys_created_on": "2026-02-20 09:00:00",
+      "sys_updated_on": "2026-07-05 10:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "Windows Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40085",
+      "u_track": "A",
+      "os_version": "Windows Server 2019"
+    },
+    {
+      "sys_id": "56125c2417a3cb99f9f43127c916898f",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40091",
+      "sys_created_on": "2025-03-03 09:00:00",
+      "sys_updated_on": "2026-07-03 15:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40091",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "ba605e79e080aae93fca8f6e89f53c39",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-linux-40092",
+      "sys_created_on": "2024-07-09 09:00:00",
+      "sys_updated_on": "2026-07-05 19:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "infra-linux@bank.example",
+        "value": "d81728470344a57275130ca624fc91c4",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/d81728470344a57275130ca624fc91c4"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "development",
+      "version": "RHEL 8.8",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40092",
+      "u_track": "A",
+      "os_version": "RHEL 8.8"
+    },
+    {
+      "sys_id": "e4ce2e5a7cd6f86e5c767ee3e2d94121",
+      "sys_class_name": "cmdb_ci_server",
+      "name": "srv-windows-40093",
+      "sys_created_on": "2024-12-01 09:00:00",
+      "sys_updated_on": "2026-07-03 16:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "infra-windows@bank.example",
+        "value": "3fed03b1055e4b0bc200d03d292c1a1a",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/3fed03b1055e4b0bc200d03d292c1a1a"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "pre-production",
+      "version": "Windows Server 2022",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "SRV-40093",
+      "u_track": "A",
+      "os_version": "Windows Server 2022"
+    }
+  ]
+}

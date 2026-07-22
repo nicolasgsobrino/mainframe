@@ -1,0 +1,694 @@
+{
+  "records": [
+    {
+      "source": "APP-1001",
+      "target": "BSVC-0001",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3000",
+      "target": "APP-1001",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3001",
+      "target": "SRV-3000",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3002",
+      "target": "SRV-3000",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-3003",
+      "target": "APP-1001",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3004",
+      "target": "SRV-3003",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3005",
+      "target": "SRV-3003",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1002",
+      "target": "BSVC-0001",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3006",
+      "target": "APP-1002",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3007",
+      "target": "SRV-3006",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3008",
+      "target": "SRV-3006",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1003",
+      "target": "BSVC-0002",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3009",
+      "target": "APP-1003",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3010",
+      "target": "SRV-3009",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3011",
+      "target": "SRV-3009",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1004",
+      "target": "BSVC-0002",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3012",
+      "target": "APP-1004",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3013",
+      "target": "SRV-3012",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3014",
+      "target": "SRV-3012",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1005",
+      "target": "BSVC-0003",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3015",
+      "target": "APP-1005",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3016",
+      "target": "SRV-3015",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3017",
+      "target": "SRV-3015",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1006",
+      "target": "BSVC-0004",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3018",
+      "target": "APP-1006",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3019",
+      "target": "SRV-3018",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3020",
+      "target": "SRV-3018",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-3021",
+      "target": "APP-1006",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3022",
+      "target": "SRV-3021",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3023",
+      "target": "SRV-3021",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1007",
+      "target": "BSVC-0005",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3024",
+      "target": "APP-1007",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3025",
+      "target": "SRV-3024",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3026",
+      "target": "SRV-3024",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-3027",
+      "target": "APP-1007",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3028",
+      "target": "SRV-3027",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3029",
+      "target": "SRV-3027",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1008",
+      "target": "BSVC-0006",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3030",
+      "target": "APP-1008",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3031",
+      "target": "SRV-3030",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3032",
+      "target": "SRV-3030",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-3033",
+      "target": "APP-1008",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3034",
+      "target": "SRV-3033",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3035",
+      "target": "SRV-3033",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1009",
+      "target": "BSVC-0007",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3036",
+      "target": "APP-1009",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3037",
+      "target": "SRV-3036",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3038",
+      "target": "SRV-3036",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-3039",
+      "target": "APP-1009",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3040",
+      "target": "SRV-3039",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3041",
+      "target": "SRV-3039",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1010",
+      "target": "BSVC-0008",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3042",
+      "target": "APP-1010",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3043",
+      "target": "SRV-3042",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3044",
+      "target": "SRV-3042",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1011",
+      "target": "BSVC-0009",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3045",
+      "target": "APP-1011",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3046",
+      "target": "SRV-3045",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3047",
+      "target": "SRV-3045",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-1012",
+      "target": "BSVC-0010",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-3048",
+      "target": "APP-1012",
+      "type": "runs"
+    },
+    {
+      "source": "MW-3049",
+      "target": "SRV-3048",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-3050",
+      "target": "SRV-3048",
+      "type": "installed_on"
+    },
+    {
+      "source": "DB-2001",
+      "target": "SRV-3051",
+      "type": "hosted_on"
+    },
+    {
+      "source": "DB-2001",
+      "target": "BSVC-0001",
+      "type": "supports"
+    },
+    {
+      "source": "DB-2002",
+      "target": "SRV-3052",
+      "type": "hosted_on"
+    },
+    {
+      "source": "DB-2002",
+      "target": "BSVC-0006",
+      "type": "supports"
+    },
+    {
+      "source": "DB-2003",
+      "target": "SRV-3053",
+      "type": "hosted_on"
+    },
+    {
+      "source": "DB-2003",
+      "target": "BSVC-0004",
+      "type": "supports"
+    },
+    {
+      "source": "DB-2004",
+      "target": "SRV-3054",
+      "type": "hosted_on"
+    },
+    {
+      "source": "DB-2004",
+      "target": "BSVC-0002",
+      "type": "supports"
+    },
+    {
+      "source": "DB-2005",
+      "target": "SRV-3055",
+      "type": "hosted_on"
+    },
+    {
+      "source": "DB-2005",
+      "target": "BSVC-0005",
+      "type": "supports"
+    },
+    {
+      "source": "DB-2006",
+      "target": "SRV-3056",
+      "type": "hosted_on"
+    },
+    {
+      "source": "DB-2006",
+      "target": "BSVC-0007",
+      "type": "supports"
+    },
+    {
+      "source": "DB-2007",
+      "target": "SRV-3057",
+      "type": "hosted_on"
+    },
+    {
+      "source": "DB-2007",
+      "target": "BSVC-0008",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-40001",
+      "target": "APP-1008",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40002",
+      "target": "SRV-40001",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-40004",
+      "target": "APP-1012",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40005",
+      "target": "SRV-40004",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-40006",
+      "target": "SRV-40004",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-40008",
+      "target": "APP-1009",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40009",
+      "target": "SRV-40008",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-40010",
+      "target": "BSVC-0008",
+      "type": "supports"
+    },
+    {
+      "source": "CNT-40013",
+      "target": "APP-1009",
+      "type": "runs"
+    },
+    {
+      "source": "APP-40014",
+      "target": "BSVC-0003",
+      "type": "supports"
+    },
+    {
+      "source": "APP-40015",
+      "target": "BSVC-0007",
+      "type": "supports"
+    },
+    {
+      "source": "RT-40018",
+      "target": "SRV-40017",
+      "type": "installed_on"
+    },
+    {
+      "source": "CNT-40019",
+      "target": "APP-1008",
+      "type": "runs"
+    },
+    {
+      "source": "SRV-40021",
+      "target": "APP-1005",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40022",
+      "target": "SRV-40021",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-40023",
+      "target": "APP-1007",
+      "type": "runs"
+    },
+    {
+      "source": "RT-40024",
+      "target": "SRV-40023",
+      "type": "installed_on"
+    },
+    {
+      "source": "CNT-40026",
+      "target": "APP-1006",
+      "type": "runs"
+    },
+    {
+      "source": "CNT-40027",
+      "target": "APP-40015",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40033",
+      "target": "SRV-40032",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-40036",
+      "target": "SRV-40035",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-40037",
+      "target": "APP-1006",
+      "type": "runs"
+    },
+    {
+      "source": "RT-40038",
+      "target": "SRV-40037",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-40039",
+      "target": "BSVC-0001",
+      "type": "supports"
+    },
+    {
+      "source": "MW-40042",
+      "target": "SRV-40041",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-40043",
+      "target": "APP-1011",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40044",
+      "target": "SRV-40043",
+      "type": "installed_on"
+    },
+    {
+      "source": "CNT-40045",
+      "target": "APP-1011",
+      "type": "runs"
+    },
+    {
+      "source": "SRV-40046",
+      "target": "APP-1002",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40047",
+      "target": "SRV-40046",
+      "type": "installed_on"
+    },
+    {
+      "source": "CLD-40048",
+      "target": "APP-1008",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-40049",
+      "target": "APP-40015",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40050",
+      "target": "SRV-40049",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-40052",
+      "target": "SRV-40051",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-40054",
+      "target": "APP-1010",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40055",
+      "target": "SRV-40054",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-40056",
+      "target": "SRV-40054",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-40057",
+      "target": "APP-40014",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40058",
+      "target": "SRV-40057",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-40059",
+      "target": "SRV-40057",
+      "type": "installed_on"
+    },
+    {
+      "source": "SRV-40060",
+      "target": "APP-1012",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40061",
+      "target": "SRV-40060",
+      "type": "installed_on"
+    },
+    {
+      "source": "APP-40062",
+      "target": "BSVC-0004",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-40065",
+      "target": "APP-40010",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40066",
+      "target": "SRV-40065",
+      "type": "installed_on"
+    },
+    {
+      "source": "RT-40067",
+      "target": "SRV-40065",
+      "type": "installed_on"
+    },
+    {
+      "source": "CNT-40068",
+      "target": "APP-1002",
+      "type": "runs"
+    },
+    {
+      "source": "CLD-40069",
+      "target": "APP-40039",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-40071",
+      "target": "APP-1010",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40073",
+      "target": "SRV-40072",
+      "type": "installed_on"
+    },
+    {
+      "source": "CNT-40074",
+      "target": "APP-1012",
+      "type": "runs"
+    },
+    {
+      "source": "SRV-40075",
+      "target": "APP-1012",
+      "type": "runs"
+    },
+    {
+      "source": "RT-40081",
+      "target": "SRV-40080",
+      "type": "installed_on"
+    },
+    {
+      "source": "CNT-40082",
+      "target": "APP-1008",
+      "type": "runs"
+    },
+    {
+      "source": "SRV-40084",
+      "target": "APP-40014",
+      "type": "runs"
+    },
+    {
+      "source": "SRV-40085",
+      "target": "APP-1007",
+      "type": "runs"
+    },
+    {
+      "source": "MW-40086",
+      "target": "SRV-40085",
+      "type": "installed_on"
+    },
+    {
+      "source": "CNT-40088",
+      "target": "APP-1001",
+      "type": "runs"
+    },
+    {
+      "source": "APP-40090",
+      "target": "BSVC-0010",
+      "type": "supports"
+    },
+    {
+      "source": "SRV-40091",
+      "target": "APP-1003",
+      "type": "runs"
+    },
+    {
+      "source": "SRV-40092",
+      "target": "APP-40014",
+      "type": "runs"
+    }
+  ]
+}

@@ -1,0 +1,473 @@
+{
+  "table": "cmdb_ci_docker_container",
+  "records": [
+    {
+      "sys_id": "1339bfc38ec8aac5c8f2ae837f23370e",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/eclipse-temurin-40013",
+      "sys_created_on": "2024-04-13 09:00:00",
+      "sys_updated_on": "2026-07-05 15:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "EKS eu-west-1",
+        "value": "ce23c4ba5608ad596e446ad3179a1167",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/ce23c4ba5608ad596e446ad3179a1167"
+      },
+      "u_environment": "production",
+      "version": "eclipse-temurin:17-jre",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40013",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "a2405f65023e689c0355a3a6c350719c",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/nginx-40019",
+      "sys_created_on": "2025-12-06 09:00:00",
+      "sys_updated_on": "2026-07-04 19:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AKS West Europe",
+        "value": "5285de72a7baea25268fbad5fb5040a8",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5285de72a7baea25268fbad5fb5040a8"
+      },
+      "u_environment": "production",
+      "version": "nginx:1.25",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40019",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "ee66022567a2da53f50c1f192a990487",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/python-40026",
+      "sys_created_on": "2024-10-31 09:00:00",
+      "sys_updated_on": "2026-07-04 19:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "OpenShift DC-Madrid",
+        "value": "04a99af46f7196cd37dcf128be98db31",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/04a99af46f7196cd37dcf128be98db31"
+      },
+      "u_environment": "production",
+      "version": "python:3.11-slim",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40026",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "599bf865e338c63e39a84ab896cdedf6",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/eclipse-temurin-40027",
+      "sys_created_on": "2024-02-03 09:00:00",
+      "sys_updated_on": "2026-07-04 13:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Payments",
+        "value": "1431adb121142b03d20752aaf90458b1",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1431adb121142b03d20752aaf90458b1"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AKS West Europe",
+        "value": "5285de72a7baea25268fbad5fb5040a8",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5285de72a7baea25268fbad5fb5040a8"
+      },
+      "u_environment": "pre-production",
+      "version": "eclipse-temurin:17-jre",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40027",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "07adf851d5a717f87f0c97a37f34f376",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/openjdk-40045",
+      "sys_created_on": "2024-05-27 09:00:00",
+      "sys_updated_on": "2026-07-03 21:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Platform-K8s",
+        "value": "25e27d30f7aa79018c689ff9a959a9b9",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/25e27d30f7aa79018c689ff9a959a9b9"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "OpenShift DC-Madrid",
+        "value": "04a99af46f7196cd37dcf128be98db31",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/04a99af46f7196cd37dcf128be98db31"
+      },
+      "u_environment": "production",
+      "version": "openjdk:11-jre",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40045",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "b96ccc6f8192a56980a5fe9cce94b6ee",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/openjdk-40053",
+      "sys_created_on": "2025-10-21 09:00:00",
+      "sys_updated_on": "2026-07-04 07:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "9777d39e155b6f661855d8d7a1147bc3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9777d39e155b6f661855d8d7a1147bc3"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "EKS eu-west-1",
+        "value": "ce23c4ba5608ad596e446ad3179a1167",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/ce23c4ba5608ad596e446ad3179a1167"
+      },
+      "u_environment": "pre-production",
+      "version": "openjdk:11-jre",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40053",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "efd8d3143bc90b1e6a6bbe6cb3157eab",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/postgres-40064",
+      "sys_created_on": "2024-04-05 09:00:00",
+      "sys_updated_on": "2026-07-04 09:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "EKS eu-west-1",
+        "value": "ce23c4ba5608ad596e446ad3179a1167",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/ce23c4ba5608ad596e446ad3179a1167"
+      },
+      "u_environment": "production",
+      "version": "postgres:15",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40064",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "5f8dde2ac6f0f603ec1e5241f1795a83",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/redis-40068",
+      "sys_created_on": "2025-11-03 09:00:00",
+      "sys_updated_on": "2026-07-03 22:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Platform-K8s",
+        "value": "25e27d30f7aa79018c689ff9a959a9b9",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/25e27d30f7aa79018c689ff9a959a9b9"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "EKS eu-west-1",
+        "value": "ce23c4ba5608ad596e446ad3179a1167",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/ce23c4ba5608ad596e446ad3179a1167"
+      },
+      "u_environment": "development",
+      "version": "redis:7",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40068",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "f9f86ca401fb7af6b7026874992f73d4",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/redis-40074",
+      "sys_created_on": "2025-12-28 09:00:00",
+      "sys_updated_on": "2026-07-03 10:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "OpenShift DC-Madrid",
+        "value": "04a99af46f7196cd37dcf128be98db31",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/04a99af46f7196cd37dcf128be98db31"
+      },
+      "u_environment": "development",
+      "version": "redis:7",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40074",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "4ceaa16e9b9f56a4733868ea3d60ff3b",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/eclipse-temurin-40079",
+      "sys_created_on": "2025-10-26 09:00:00",
+      "sys_updated_on": "2026-07-03 11:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AKS West Europe",
+        "value": "5285de72a7baea25268fbad5fb5040a8",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5285de72a7baea25268fbad5fb5040a8"
+      },
+      "u_environment": "pre-production",
+      "version": "eclipse-temurin:17-jre",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40079",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "6618e29e5a2582f9c87ba4a81729ef4e",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/postgres-40082",
+      "sys_created_on": "2025-10-25 09:00:00",
+      "sys_updated_on": "2026-07-06 07:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Payments",
+        "value": "1431adb121142b03d20752aaf90458b1",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1431adb121142b03d20752aaf90458b1"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AKS West Europe",
+        "value": "5285de72a7baea25268fbad5fb5040a8",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5285de72a7baea25268fbad5fb5040a8"
+      },
+      "u_environment": "production",
+      "version": "postgres:15",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40082",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "0da254ca394ab6b1a088f9c648c6ba3f",
+      "sys_class_name": "cmdb_ci_docker_container",
+      "name": "pod/nginx-40088",
+      "sys_created_on": "2024-09-16 09:00:00",
+      "sys_updated_on": "2026-07-05 18:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AKS West Europe",
+        "value": "5285de72a7baea25268fbad5fb5040a8",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5285de72a7baea25268fbad5fb5040a8"
+      },
+      "u_environment": "production",
+      "version": "nginx:1.25",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CNT-40088",
+      "u_track": "C"
+    }
+  ]
+}

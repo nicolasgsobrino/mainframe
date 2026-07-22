@@ -1,0 +1,317 @@
+{
+  "table": "cmdb_ci_cloud_resource",
+  "records": [
+    {
+      "sys_id": "a83bd0b2f8d1402ba470a11e3a571314",
+      "sys_class_name": "cmdb_ci_cloud_resource",
+      "name": "AKS Node Pool · azure-40007",
+      "sys_created_on": "2024-08-06 09:00:00",
+      "sys_updated_on": "2026-07-06 02:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Platform-K8s",
+        "value": "25e27d30f7aa79018c689ff9a959a9b9",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/25e27d30f7aa79018c689ff9a959a9b9"
+      },
+      "managed_by": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "c178fe664cf951ce0c02a15cad808fdc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/c178fe664cf951ce0c02a15cad808fdc"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "AKS Node Pool",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CLD-40007",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "f8d00716f34a8a7e44384705073237b2",
+      "sys_class_name": "cmdb_ci_cloud_resource",
+      "name": "S3 Bucket Policy · aws-40020",
+      "sys_created_on": "2025-04-08 09:00:00",
+      "sys_updated_on": "2026-07-04 03:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Endpoint",
+        "value": "f522b576bbfd6e7ca8b8d1718494d063",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/f522b576bbfd6e7ca8b8d1718494d063"
+      },
+      "managed_by": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "c178fe664cf951ce0c02a15cad808fdc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/c178fe664cf951ce0c02a15cad808fdc"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "S3 Bucket Policy",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CLD-40020",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "be8dcbfb5ec051855145c641038a28ed",
+      "sys_class_name": "cmdb_ci_cloud_resource",
+      "name": "Azure App Service · azure-40025",
+      "sys_created_on": "2025-09-21 09:00:00",
+      "sys_updated_on": "2026-07-05 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "c178fe664cf951ce0c02a15cad808fdc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/c178fe664cf951ce0c02a15cad808fdc"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "Azure App Service",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CLD-40025",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "19a23211aaabd9afd6a62f1271c21f69",
+      "sys_class_name": "cmdb_ci_cloud_resource",
+      "name": "AKS Node Pool · azure-40028",
+      "sys_created_on": "2025-11-11 09:00:00",
+      "sys_updated_on": "2026-07-03 21:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "c178fe664cf951ce0c02a15cad808fdc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/c178fe664cf951ce0c02a15cad808fdc"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "AKS Node Pool",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CLD-40028",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "cb068d1bbdb90d0ec3412a274aee8a4f",
+      "sys_class_name": "cmdb_ci_cloud_resource",
+      "name": "API Gateway · aws-40048",
+      "sys_created_on": "2025-11-09 09:00:00",
+      "sys_updated_on": "2026-07-05 15:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "c178fe664cf951ce0c02a15cad808fdc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/c178fe664cf951ce0c02a15cad808fdc"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "API Gateway",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CLD-40048",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "4285298eadae26aedafe7904d9fc147f",
+      "sys_class_name": "cmdb_ci_cloud_resource",
+      "name": "Azure Function · azure-40069",
+      "sys_created_on": "2025-12-05 09:00:00",
+      "sys_updated_on": "2026-07-05 05:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "c178fe664cf951ce0c02a15cad808fdc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/c178fe664cf951ce0c02a15cad808fdc"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "Azure Function",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CLD-40069",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "c15adeb0be7f393b2289dbf6aacfbc2e",
+      "sys_class_name": "cmdb_ci_cloud_resource",
+      "name": "RDS Instance · aws-40077",
+      "sys_created_on": "2025-10-08 09:00:00",
+      "sys_updated_on": "2026-07-06 08:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "c178fe664cf951ce0c02a15cad808fdc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/c178fe664cf951ce0c02a15cad808fdc"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "RDS Instance",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CLD-40077",
+      "u_track": "C"
+    },
+    {
+      "sys_id": "978b8ef4ac1850c3f546ee0d4a91654c",
+      "sys_class_name": "cmdb_ci_cloud_resource",
+      "name": "AKS Node Pool · azure-40078",
+      "sys_created_on": "2025-05-29 09:00:00",
+      "sys_updated_on": "2026-07-05 14:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "9777d39e155b6f661855d8d7a1147bc3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9777d39e155b6f661855d8d7a1147bc3"
+      },
+      "managed_by": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "c178fe664cf951ce0c02a15cad808fdc",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/c178fe664cf951ce0c02a15cad808fdc"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "AKS Node Pool",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "CLD-40078",
+      "u_track": "C"
+    }
+  ]
+}

@@ -1,0 +1,278 @@
+{
+  "table": "cmdb_ci_database",
+  "records": [
+    {
+      "sys_id": "926623e43b0d402d68a6e5120f6a8e48",
+      "sys_class_name": "cmdb_ci_database",
+      "name": "Oracle 19c",
+      "sys_created_on": "2024-05-24 09:00:00",
+      "sys_updated_on": "2026-07-05 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Oracle 19c",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "DB-2001",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "2faa5691e58cfa453896ea759701f060",
+      "sys_class_name": "cmdb_ci_database",
+      "name": "Oracle 19c",
+      "sys_created_on": "2024-04-25 09:00:00",
+      "sys_updated_on": "2026-07-06 07:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Oracle 19c",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "DB-2002",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "84ccc6626c9e0cac4a8c899b797975e3",
+      "sys_class_name": "cmdb_ci_database",
+      "name": "SQL Server 2019",
+      "sys_created_on": "2024-04-14 09:00:00",
+      "sys_updated_on": "2026-07-03 11:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "SQL Server 2019",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "DB-2003",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "7c5db992fc03f4397f7cbb980d2f7f53",
+      "sys_class_name": "cmdb_ci_database",
+      "name": "PostgreSQL 14",
+      "sys_created_on": "2024-12-11 09:00:00",
+      "sys_updated_on": "2026-07-04 12:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "PostgreSQL 14",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "DB-2004",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "c3444082a1c090602941614f8f1a9d9d",
+      "sys_class_name": "cmdb_ci_database",
+      "name": "PostgreSQL 13",
+      "sys_created_on": "2024-05-23 09:00:00",
+      "sys_updated_on": "2026-07-04 02:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "PostgreSQL 13",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "DB-2005",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "5bdc14622f1b4afad0cecda7fed01f74",
+      "sys_class_name": "cmdb_ci_database",
+      "name": "SQL Server 2017",
+      "sys_created_on": "2024-11-26 09:00:00",
+      "sys_updated_on": "2026-07-04 18:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "SQL Server 2017",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "DB-2006",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "f3e1030b8941c28b344bee3ee3cdb636",
+      "sys_class_name": "cmdb_ci_database",
+      "name": "Oracle 12c",
+      "sys_created_on": "2024-10-30 09:00:00",
+      "sys_updated_on": "2026-07-05 19:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "dba-team@bank.example",
+        "value": "5bcd7bff3e82715e261aa352168b6419",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5bcd7bff3e82715e261aa352168b6419"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Oracle 12c",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "DB-2007",
+      "u_track": "A"
+    }
+  ]
+}
