@@ -5,8 +5,8 @@
       "sys_id": "e7330c2c1b4ba629195cd26e9f6cc178",
       "sys_class_name": "cmdb_ci_service",
       "name": "Payments Core",
-      "sys_created_on": "2025-06-25 09:00:00",
-      "sys_updated_on": "2026-07-03 13:00:00",
+      "sys_created_on": "2025-06-08 09:00:00",
+      "sys_updated_on": "2026-07-03 10:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -20,9 +20,9 @@
         "value": "1"
       },
       "assignment_group": {
-        "display_value": "SG-DBA",
-        "value": "562a67569229420deb4cba3cd8034d22",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+        "display_value": "SG-Retail",
+        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",
@@ -47,8 +47,8 @@
       "sys_id": "6d98f51cfab38b954fa2729b8c7f1216",
       "sys_class_name": "cmdb_ci_service",
       "name": "Retail Banking Web",
-      "sys_created_on": "2025-04-21 09:00:00",
-      "sys_updated_on": "2026-07-04 07:00:00",
+      "sys_created_on": "2025-10-25 09:00:00",
+      "sys_updated_on": "2026-07-04 20:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -62,9 +62,9 @@
         "value": "1"
       },
       "assignment_group": {
-        "display_value": "SG-Payments",
-        "value": "1431adb121142b03d20752aaf90458b1",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1431adb121142b03d20752aaf90458b1"
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",
@@ -89,8 +89,8 @@
       "sys_id": "d85a6379f2e964cd7b11842a000fe6d2",
       "sys_class_name": "cmdb_ci_service",
       "name": "Mobile Banking App",
-      "sys_created_on": "2025-06-27 09:00:00",
-      "sys_updated_on": "2026-07-04 07:00:00",
+      "sys_created_on": "2024-12-15 09:00:00",
+      "sys_updated_on": "2026-07-03 18:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -104,9 +104,9 @@
         "value": "1"
       },
       "assignment_group": {
-        "display_value": "SG-Network",
-        "value": "1ccc176421730573bbd8d84ae15959d0",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1ccc176421730573bbd8d84ae15959d0"
+        "display_value": "SG-Retail",
+        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",
@@ -131,8 +131,8 @@
       "sys_id": "49b315bbf4e1525271cd07498fda62ea",
       "sys_class_name": "cmdb_ci_service",
       "name": "Cards & Authorization",
-      "sys_created_on": "2024-12-27 09:00:00",
-      "sys_updated_on": "2026-07-04 05:00:00",
+      "sys_created_on": "2025-11-04 09:00:00",
+      "sys_updated_on": "2026-07-06 05:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -146,9 +146,9 @@
         "value": "1"
       },
       "assignment_group": {
-        "display_value": "SG-Retail",
-        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",
@@ -173,8 +173,8 @@
       "sys_id": "5ec37a30aeba55becdbf7cc4c2c38d47",
       "sys_class_name": "cmdb_ci_service",
       "name": "Fraud Detection",
-      "sys_created_on": "2024-12-11 09:00:00",
-      "sys_updated_on": "2026-07-05 08:00:00",
+      "sys_created_on": "2024-06-01 09:00:00",
+      "sys_updated_on": "2026-07-05 02:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -188,9 +188,9 @@
         "value": "2"
       },
       "assignment_group": {
-        "display_value": "SG-Payments",
-        "value": "1431adb121142b03d20752aaf90458b1",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1431adb121142b03d20752aaf90458b1"
+        "display_value": "SG-Network",
+        "value": "1ccc176421730573bbd8d84ae15959d0",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1ccc176421730573bbd8d84ae15959d0"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",
@@ -215,8 +215,8 @@
       "sys_id": "7a47760a0c4b9173166867a4bff90e0d",
       "sys_class_name": "cmdb_ci_service",
       "name": "Core Ledger",
-      "sys_created_on": "2025-11-28 09:00:00",
-      "sys_updated_on": "2026-07-05 05:00:00",
+      "sys_created_on": "2024-03-12 09:00:00",
+      "sys_updated_on": "2026-07-05 12:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -230,9 +230,9 @@
         "value": "1"
       },
       "assignment_group": {
-        "display_value": "SG-Cloud-FinOps",
-        "value": "9777d39e155b6f661855d8d7a1147bc3",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9777d39e155b6f661855d8d7a1147bc3"
+        "display_value": "SG-Network",
+        "value": "1ccc176421730573bbd8d84ae15959d0",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1ccc176421730573bbd8d84ae15959d0"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",
@@ -257,8 +257,8 @@
       "sys_id": "6e72a5cf52883563fce7ac50936dd07a",
       "sys_class_name": "cmdb_ci_service",
       "name": "Customer CRM",
-      "sys_created_on": "2024-01-24 09:00:00",
-      "sys_updated_on": "2026-07-04 05:00:00",
+      "sys_created_on": "2025-04-24 09:00:00",
+      "sys_updated_on": "2026-07-03 10:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -272,9 +272,9 @@
         "value": "3"
       },
       "assignment_group": {
-        "display_value": "SG-Network",
-        "value": "1ccc176421730573bbd8d84ae15959d0",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1ccc176421730573bbd8d84ae15959d0"
+        "display_value": "SG-Endpoint",
+        "value": "f522b576bbfd6e7ca8b8d1718494d063",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/f522b576bbfd6e7ca8b8d1718494d063"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",
@@ -299,8 +299,8 @@
       "sys_id": "5eed39e5b1db2e618ac12cc02323f8ca",
       "sys_class_name": "cmdb_ci_service",
       "name": "Regulatory Reporting",
-      "sys_created_on": "2024-02-01 09:00:00",
-      "sys_updated_on": "2026-07-05 10:00:00",
+      "sys_created_on": "2026-02-22 09:00:00",
+      "sys_updated_on": "2026-07-03 10:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -314,9 +314,9 @@
         "value": "2"
       },
       "assignment_group": {
-        "display_value": "SG-Retail",
-        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",
@@ -341,8 +341,8 @@
       "sys_id": "62f3054dca4905952d9fab88064cc2da",
       "sys_class_name": "cmdb_ci_service",
       "name": "Internal Data Warehouse",
-      "sys_created_on": "2024-04-01 09:00:00",
-      "sys_updated_on": "2026-07-03 14:00:00",
+      "sys_created_on": "2025-01-15 09:00:00",
+      "sys_updated_on": "2026-07-05 21:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -356,9 +356,9 @@
         "value": "3"
       },
       "assignment_group": {
-        "display_value": "SG-Infra-Windows",
-        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",
@@ -383,8 +383,8 @@
       "sys_id": "d29f5438e64c7e69dd601c2fd2593d56",
       "sys_class_name": "cmdb_ci_service",
       "name": "Corporate Portal",
-      "sys_created_on": "2025-01-26 09:00:00",
-      "sys_updated_on": "2026-07-05 01:00:00",
+      "sys_created_on": "2025-07-21 09:00:00",
+      "sys_updated_on": "2026-07-05 18:00:00",
       "install_status": {
         "display_value": "Installed",
         "value": "1"
@@ -398,9 +398,9 @@
         "value": "4"
       },
       "assignment_group": {
-        "display_value": "SG-Infra-Linux",
-        "value": "1c69abe3c86e9c35be47471e14d26ffe",
-        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+        "display_value": "SG-Network",
+        "value": "1ccc176421730573bbd8d84ae15959d0",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1ccc176421730573bbd8d84ae15959d0"
       },
       "managed_by": {
         "display_value": "service-owner@bank.example",

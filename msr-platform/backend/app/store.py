@@ -43,8 +43,8 @@ class Store:
         self.pipelines = {}
         self.activity = []  # feed global de actividad del agente
 
-        # Distribución inicial de fases para una demo rica (incluye un track C en despliegue)
-        start_phases = [5, 5, 4, 3, 3, 2, 2, 2, 1, 1, 0, 0, 5, 4, 2]
+        # Distribución inicial de fases para una demo rica (varias en despliegue)
+        start_phases = [5, 2, 5, 3, 4]
         for i, (tid, task) in enumerate(self.tasks.items()):
             self._init_pipeline(tid, start_phases[i % len(start_phases)])
 

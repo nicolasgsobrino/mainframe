@@ -2,28 +2,28 @@
   "source": "ServiceNow CMDB (CSDM 4.0)",
   "instance": "https://bankdev.service-now.com",
   "generated_at": "2026-07-06 09:00:00",
-  "total_cis": 10000,
-  "total_relationships": 6702,
+  "total_cis": 180,
+  "total_relationships": 138,
   "tables": [
     {
       "table": "cmdb_ci_app_server",
       "file": "cmdb_ci_app_server.json",
-      "records": 1486
+      "records": 32
     },
     {
       "table": "cmdb_ci_appl",
       "file": "cmdb_ci_appl.json",
-      "records": 629
+      "records": 18
     },
     {
       "table": "cmdb_ci_cloud_resource",
       "file": "cmdb_ci_cloud_resource.json",
-      "records": 714
+      "records": 8
     },
     {
       "table": "cmdb_ci_computer",
       "file": "cmdb_ci_computer.json",
-      "records": 887
+      "records": 9
     },
     {
       "table": "cmdb_ci_database",
@@ -33,22 +33,22 @@
     {
       "table": "cmdb_ci_docker_container",
       "file": "cmdb_ci_docker_container.json",
-      "records": 1419
+      "records": 12
     },
     {
       "table": "cmdb_ci_netgear",
       "file": "cmdb_ci_netgear.json",
-      "records": 390
+      "records": 3
     },
     {
       "table": "cmdb_ci_runtime",
       "file": "cmdb_ci_runtime.json",
-      "records": 1499
+      "records": 27
     },
     {
       "table": "cmdb_ci_server",
       "file": "cmdb_ci_server.json",
-      "records": 2959
+      "records": 54
     },
     {
       "table": "cmdb_ci_service",
@@ -58,7 +58,7 @@
     {
       "table": "cmdb_rel_ci",
       "file": "cmdb_rel_ci.json",
-      "records": 6702
+      "records": 138
     }
   ],
   "field_map": [

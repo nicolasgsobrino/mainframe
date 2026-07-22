@@ -7,6 +7,7 @@ PR, informe de auditoría). La ejecución técnica se delega a herramientas exte
 (SCCM/BigFix/Ansible/CI-CD) que aquí se simulan.
 """
 from __future__ import annotations
+import math
 import random
 from datetime import datetime, timedelta
 
@@ -91,7 +92,7 @@ def _build_adjacency(edges):
     return adj
 
 
-def build_impact_graph(task, cis, edges, adj=None, max_nodes=60):
+def build_impact_graph(task, cis, edges, adj=None, max_nodes=10):
     ci_by_id = {c["id"]: c for c in cis}
     if adj is None:
         adj = _build_adjacency(edges)
@@ -114,7 +115,7 @@ def build_impact_graph(task, cis, edges, adj=None, max_nodes=60):
     frontier = [root_id]
     seen = {root_id}
     depth = 0
-    while frontier and depth < 4 and len(nodes) < max_nodes:
+    while frontier and depth < 3 and len(nodes) < max_nodes:
         nxt = []
         for cid in frontier:
             for neighbor, e in adj.get(cid, []):
@@ -270,82 +271,109 @@ def build_prototype(task, impact):
 
 
 # ---------------------------------------------------------------------------
-# Deployment (fase 6) — rings + audit
+# Deployment (fase 6) — anillos por ENTORNO (realidad del cliente) + audit
 # ---------------------------------------------------------------------------
+# Los anillos ya NO se definen por criticidad, sino por la realidad del cliente:
+# el mismo alcance de CIs impactados progresa por entornos. En Laboratorio y
+# Pre-productivo se levanta una RÉPLICA de la infraestructura impactada y se
+# ejecuta toda la batería de pruebas; en Canary y Producción el despliegue es
+# progresivo (subconjunto → controlado → total) sobre los activos reales.
 RING_DEFS = [
-    (0, "Anillo 0 · Interno / no crítico"),
-    (1, "Anillo 1 · Producción bajo impacto"),
-    (2, "Anillo 2 · Producción criticidad media"),
-    (3, "Anillo 3 · Producción crítica"),
-    (4, "Anillo 4 · Resto del alcance"),
+    (1, "Anillo 1 · Laboratorio"),
+    (2, "Anillo 2 · Canary"),
+    (3, "Anillo 3 · Pre-productivo"),
+    (4, "Anillo 4 · Productivo controlado"),
+    (5, "Anillo 5 · Productivo total"),
 ]
 
-# Banda de riesgo, población objetivo y ventana por anillo — define POR QUÉ Devin
-# agrupa unos activos u otros en cada oleada.
-RING_BANDS = [
-    {"band": "Interno / no crítico", "target": "Entornos internos, dev/test y activos no críticos ya validados en prototipo.",
-     "criticality": ["low", "medium"], "environment": ["development", "pre-production"], "window": "Inmediata (sin impacto en negocio)"},
-    {"band": "Producción bajo impacto", "target": "Producción de bajo impacto: servicios de soporte, sin exposición directa a clientes.",
-     "criticality": ["low", "medium"], "environment": ["production"], "window": "Ventana estándar diurna"},
-    {"band": "Producción criticidad media", "target": "Producción de criticidad media: servicios internos de negocio.",
-     "criticality": ["medium", "high"], "environment": ["production"], "window": "Ventana de mantenimiento acordada"},
-    {"band": "Producción crítica", "target": "Producción crítica: servicios core y activos DORA con máxima vigilancia.",
-     "criticality": ["high", "critical"], "environment": ["production"], "window": "Ventana crítica con CAB y guardia"},
-    {"band": "Resto del alcance", "target": "Activos remanentes y de larga cola; cierre del despliegue.",
-     "criticality": ["low", "medium", "high", "critical"], "environment": ["production", "pre-production", "development"], "window": "Ventana planificada final"},
-]
-CANARY_PCT = [5, 10, 25, 35, 100]
+# Definición de cada etapa: entorno, si es réplica o activos reales, alcance
+# (porcentaje del blast radius), si ejecuta pruebas, y ventana.
+RING_STAGES = {
+    1: {"key": "lab", "env": "Laboratorio", "kind": "replica", "pct": 100, "tests": True, "prod": False,
+        "scope": "all", "window": "Inmediata · entorno aislado sin impacto en negocio",
+        "purpose": "Réplica efímera (IaC) de toda la infraestructura impactada; se aplica el fix y se ejecuta la batería completa de pruebas."},
+    2: {"key": "canary", "env": "Canary", "kind": "real", "pct": 10, "tests": False, "prod": True,
+        "scope": "canary", "window": "Ventana estándar · vigilancia reforzada",
+        "purpose": "Despliegue a un subconjunto mínimo de activos reales para observar el comportamiento con tráfico real."},
+    3: {"key": "preprod", "env": "Pre-productivo", "kind": "replica", "pct": 100, "tests": True, "prod": False,
+        "scope": "all", "window": "Ventana de pre-producción",
+        "purpose": "Despliegue en pre-producción; pruebas funcionales y de integración con datos representativos."},
+    4: {"key": "prod_controlled", "env": "Productivo controlado", "kind": "real", "pct": 50, "tests": False, "prod": True,
+        "scope": "half", "window": "Ventana de mantenimiento acordada",
+        "purpose": "Despliegue controlado a una parte de producción, vigilando la telemetría antes de generalizar."},
+    5: {"key": "prod_full", "env": "Productivo total", "kind": "real", "pct": 100, "tests": False, "prod": True,
+        "scope": "all_real", "window": "Ventana planificada final",
+        "purpose": "Despliegue al 100% del alcance productivo; verificación y cierre del despliegue."},
+}
+CANARY_PCT = [100, 10, 100, 50, 100]
+
+# Orden de despliegue por dependencia: de la infraestructura (dependencia) hacia
+# el servicio de negocio (dependiente). A igualdad, de menor a mayor criticidad.
+CLASS_ORDER = {
+    "network_device": 0, "cloud_resource": 1, "server": 2, "database": 3,
+    "runtime": 4, "middleware": 4, "container": 5, "application": 6, "business_service": 7,
+}
+CRIT_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 
 
-def _asset_reason(ring_no: int, ci_class: str, crit: str) -> str:
-    band = RING_BANDS[min(ring_no, len(RING_BANDS) - 1)]
-    return (
-        f"CI impactado (clase {ci_class}, criticidad {crit}) dentro del blast radius; "
-        f"encaja en la banda «{band['band']}» del anillo {ring_no} por criticidad y entorno."
-    )
+def order_by_dependency(impact):
+    """Ordena los CIs impactados de dependencia a dependiente (infra → app →
+    servicio de negocio); a igualdad, de menor a mayor criticidad (canary seguro)."""
+    nodes = list(impact["nodes"])
+    nodes.sort(key=lambda n: (CLASS_ORDER.get(n["ci_class"], 5),
+                              CRIT_ORDER.get(n.get("criticality", "medium"), 1),
+                              n["id"]))
+    return nodes
 
 
-def _ring_for_node(node) -> int:
-    """Asigna un CI impactado al primer anillo cuya banda encaja por criticidad y
-    entorno; si no encaja en ninguno, cae en el anillo final (resto del alcance)."""
-    crit = node.get("criticality", "medium")
-    env = node.get("environment", "production")
-    for i in range(len(RING_BANDS) - 1):
-        band = RING_BANDS[i]
-        if crit in band["criticality"] and env in band["environment"]:
-            return i
-    return len(RING_BANDS) - 1
+def _scope_nodes(ordered, scope):
+    n = len(ordered)
+    if scope == "canary":
+        return ordered[:max(1, math.ceil(n * 0.10))]
+    if scope == "half":
+        return ordered[:max(1, math.ceil(n * 0.50))]
+    return list(ordered)  # "all" (réplica) / "all_real"
 
 
 def assign_impact_to_rings(impact):
-    """Reparte los CIs impactados (nodos del Impact Graph) entre los anillos según
-    la banda de riesgo. Cada CI impactado pertenece a un único anillo."""
-    assignment = {rn: [] for rn, _ in RING_DEFS}
-    for n in impact["nodes"]:
-        assignment[RING_DEFS[_ring_for_node(n)][0]].append(n)
-    return assignment
+    """Cada anillo recibe su alcance de CIs impactados (ordenados por dependencia).
+    Lab/Pre-productivo = réplica del 100%; Canary/Prod = despliegue progresivo real."""
+    ordered = order_by_dependency(impact)
+    return {rn: _scope_nodes(ordered, RING_STAGES[rn]["scope"]) for rn, _ in RING_DEFS}
+
+
+def _asset_reason(stage: dict, ci_class: str, crit: str, is_root: bool) -> str:
+    what = "réplica del activo" if stage["kind"] == "replica" else "activo real"
+    if is_root:
+        return (f"CI raíz de la vulnerabilidad ({ci_class}, {crit}); {what} en «{stage['env']}». "
+                f"Se despliega en primer lugar por ser origen del blast radius.")
+    return (f"CI impactado ({ci_class}, {crit}) dentro del blast radius; {what} en «{stage['env']}» "
+            f"(orden por dependencia: infraestructura → aplicación → servicio).")
 
 
 def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nodes,
                     exclusions=None, preapproval=None):
-    """Informe pre-anillo: SOLO los CIs impactados de este anillo y sus dependencias
-    (subgrafo del Impact Graph), criterios de entrada, ventana y estado de
-    pre-aprobación (auditoría Human-Driven)."""
+    """Informe pre-anillo por ETAPA/entorno: los CIs impactados de esta etapa
+    (réplica o reales), sus dependencias (subgrafo del Impact Graph), criterios de
+    entrada, ventana y estado de pre-aprobación (auditoría Human-Driven)."""
     rng = _rng(task["id"] + f"plan{ring_no}")
-    band = RING_BANDS[min(ring_no, len(RING_BANDS) - 1)]
+    stage = RING_STAGES[ring_no]
+    is_replica = stage["kind"] == "replica"
     excluded = set(exclusions or [])
     node_by_id = {n["id"]: n for n in impact["nodes"]}
     ring_ids = {n["id"] for n in ring_nodes}
 
-    # Activos = CIs impactados reales asignados a este anillo (del blast radius).
+    # Activos de este anillo, ordenados por dependencia (infra → servicio).
     assets = []
     for n in ring_nodes:
+        is_root = bool(n.get("is_root"))
+        display = f"réplica · {n['name']}" if is_replica else n["name"]
         assets.append({
-            "id": n["id"], "name": n["name"], "ci_class": n["ci_class"],
+            "id": n["id"], "name": display, "ci_class": n["ci_class"],
             "criticality": n.get("criticality", "medium"),
-            "environment": n.get("environment", "-"),
-            "is_root": bool(n.get("is_root")),
-            "reason": _asset_reason(ring_no, n["ci_class"], n.get("criticality", "medium")),
+            "environment": stage["env"],
+            "is_root": is_root,
+            "reason": _asset_reason(stage, n["ci_class"], n.get("criticality", "medium"), is_root),
             "excluded": n["id"] in excluded,
         })
 
@@ -374,39 +402,48 @@ def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nod
     entry_criteria = [
         {"check": "MVT aprobado (HITL)", "ok": True},
         {"check": "Prototipo validado", "ok": True},
-        {"check": "Change Request autorizado", "ok": True},
+        {"check": "Change Request autorizado (ITSM)", "ok": True},
         {"check": "Ventana disponible", "ok": True},
         {"check": "Plan de rollback probado en lab", "ok": True},
         {"check": "Sin conflictos de cambio abiertos", "ok": bool(rng.random() > 0.15)},
     ]
-    if assets_count:
-        rationale = (
-            f"Devin asignó a este anillo los {assets_count} CIs impactados del blast radius "
-            f"que encajan en la banda «{band['band']}» (criticidad {', '.join(band['criticality'])}, "
-            f"entorno {', '.join(band['environment'])}), con {len(dependencies)} dependencias directas. "
-            f"Se despliega canary {canary_pct}% y se valida por telemetría antes de avanzar. Ejecutor: {executor}."
-        )
+    if is_replica:
+        scope_txt = (f"réplica del 100% del alcance ({assets_count} CIs) donde se aplica el fix "
+                     f"y se ejecuta toda la batería de pruebas")
+    elif stage["scope"] == "canary":
+        scope_txt = f"subconjunto canary del {stage['pct']}% ({assets_count} CIs reales) para observar tráfico real"
+    elif stage["scope"] == "half":
+        scope_txt = f"despliegue controlado al {stage['pct']}% de producción ({assets_count} CIs reales)"
     else:
-        rationale = (
-            f"Ningún CI impactado del blast radius encaja en la banda «{band['band']}» del {label}; "
-            f"este anillo queda sin alcance para esta vulnerabilidad."
-        )
+        scope_txt = f"despliegue al 100% del alcance productivo ({assets_count} CIs reales)"
+
+    rationale = (
+        f"{stage['purpose']} En esta etapa el alcance es un {scope_txt}, ordenados por dependencia "
+        f"(infraestructura → aplicación → servicio de negocio) con {len(dependencies)} dependencias directas. "
+        f"Ejecutor: {executor}."
+    )
     return {
         "ring": ring_no,
         "label": label,
-        "band": band["band"],
-        "target_population": band["target"],
-        "window": band["window"],
+        "band": stage["env"],
+        "environment": stage["env"],
+        "kind": stage["kind"],
+        "is_replica": is_replica,
+        "runs_tests": stage["tests"],
+        "pct": stage["pct"],
+        "purpose": stage["purpose"],
+        "target_population": stage["purpose"],
+        "window": stage["window"],
         "canary_pct": canary_pct,
         "assets_count": assets_count,
         "selected_count": selected_n,
         "selection_rationale": rationale,
         "selection_criteria": [
-            {"factor": "Blast radius", "detail": f"CIs dependientes del CI raíz {task['ci_name']} según el Impact Graph."},
-            {"factor": "Criticidad", "detail": f"Banda del anillo: {', '.join(band['criticality'])}."},
-            {"factor": "Entorno", "detail": f"{', '.join(band['environment'])}."},
-            {"factor": "Exposición", "detail": "Prioriza activos no expuestos primero; los expuestos en anillos posteriores con más validación."},
-            {"factor": "Ventana", "detail": band["window"]},
+            {"factor": "Entorno", "detail": f"{stage['env']} — {'réplica de la infraestructura impactada' if is_replica else 'activos reales'}."},
+            {"factor": "Alcance", "detail": scope_txt + "."},
+            {"factor": "Orden", "detail": "Los activos se despliegan por dependencia: primero infraestructura, después aplicación y servicio."},
+            {"factor": "Pruebas", "detail": "Batería completa de MVT en este entorno." if stage["tests"] else "Validación por telemetría/post-checks (entorno productivo)."},
+            {"factor": "Ventana", "detail": stage["window"]},
         ],
         "assets": assets,
         "dependencies": dependencies,
@@ -451,13 +488,14 @@ def build_ring_actions(task, ring_no, assets, executor, ts_base):
     acciones se ejecutaron realmente (no solo que 'se aprobó').
     """
     rng = _rng(task["id"] + f"actions{ring_no}")
+    stage = RING_STAGES.get(ring_no, RING_STAGES[5])
     prev = _prev_version(task)
     fixed = _fixed_version(prev)
     comp = task.get("component", task["ci_name"])
     ci = task["ci_name"]
     steps = []
 
-    canary = CANARY_PCT[min(ring_no, 4)]
+    canary = stage["pct"]
 
     def add(actor, tool, command, output, why, duration=None):
         steps.append({
@@ -465,6 +503,14 @@ def build_ring_actions(task, ring_no, assets, executor, ts_base):
             "command": command, "output": output, "status": "ok", "why": why,
             "duration_s": duration if duration is not None else rng.randint(2, 40),
         })
+
+    # Prólogo por entorno: en Lab/Pre-productivo Devin levanta una RÉPLICA (IaC).
+    if stage["kind"] == "replica":
+        prov = "Terraform + Ansible"
+        add("Devin", prov, f"terraform apply -target=replica.{stage['key']} ({assets} CIs)",
+            f"Réplica de {assets} CIs aprovisionada en «{stage['env']}»",
+            f"Se levanta una réplica efímera (IaC) de toda la infraestructura impactada para aplicar y probar el fix "
+            f"sin tocar producción (etapa «{stage['env']}»).")
 
     if task["track"] == "C":
         add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-image", f"Switched to branch 'fix/{task['cve'].lower()}-image'",
@@ -507,6 +553,18 @@ def build_ring_actions(task, ring_no, assets, executor, ts_base):
     }
     for chk in ["version-assert", "health-check", "smoke-test", "synthetic-probe"]:
         add("Devin", "post-check", chk, f"{chk}: OK ({assets}/{assets})", post_why[chk], rng.randint(1, 12))
+
+    # En Lab/Pre-productivo se ejecuta toda la batería de pruebas sobre la réplica.
+    if stage["tests"]:
+        n_tests = rng.randint(8, 14)
+        add("Devin", "CI/CD", f"run test-suite --env {stage['key']} (MVT completo)",
+            f"{n_tests}/{n_tests} pruebas PASS · regresión OK",
+            f"En «{stage['env']}» se ejecuta la batería completa de pruebas (funcionales, integración y de "
+            f"parche) sobre la réplica antes de promocionar; si algo falla, el despliegue no avanza.")
+        if stage["key"] == "lab":
+            add("Devin", "Terraform", "terraform destroy -target=replica.lab",
+                "Réplica de laboratorio destruida (entorno efímero)",
+                "El laboratorio es efímero: tras validar se destruye para no dejar coste ni deriva de configuración.")
     return {"steps": steps, "from_version": prev, "to_version": fixed}
 
 
@@ -564,6 +622,97 @@ def build_rollback_plan(task, impact):
     }
 
 
+CHANGE_TYPE_META = {
+    "standard": {
+        "label": "Cambio estándar", "itsm_state": "Implement (pre-aprobado)", "requires_human": False,
+        "risk": "Bajo", "approval": "Pre-aprobado por modelo de cambio (sin CAB)",
+        "detail": "Cambio recurrente, conocido y documentado con procedimiento y riesgo previamente aprobados. Sus fases de autorización están pre-aprobadas por el modelo, por lo que no requiere evaluación individual del CAB. Aplica a lab/desarrollo/pre-producción y actuaciones de bajo riesgo con procedimiento conocido.",
+    },
+    "normal": {
+        "label": "Cambio normal", "itsm_state": "Assess → Authorize", "requires_human": True,
+        "risk": "Medio", "approval": "Evaluación y autorización específica (CAB)",
+        "detail": "Requiere evaluación y autorización específica antes de ejecutarse; tipología habitual para parcheados que afectan a producción o servicios críticos sin modelo estándar. Recorre todo el proceso: assess, authorize, schedule, authorize implementation, implement y review & close.",
+    },
+    "emergency": {
+        "label": "Cambio de emergencia", "itsm_state": "Emergency authorize", "requires_human": True,
+        "risk": "Alto", "approval": "Aprobación express (E-CAB) / regularización posterior",
+        "detail": "Intervención urgente ante vulnerabilidad crítica, explotación activa o riesgo inminente; objetivo de remediación en las primeras 24 h. Evaluación, aprobación e implementación aceleradas (E-CAB o mecanismo alternativo); si la urgencia lo impide, autorización excepcional y regularización posterior con revisión obligatoria.",
+    },
+}
+
+# Fases de la transacción de cambio (ITSM) — "Change Transaction Phases by Change Type".
+# Cada tipología recorre un subconjunto distinto; las fases de aprobación son gates.
+CHANGE_PHASE_CATALOG = [
+    ("new", "Ticket Completion (New)", False),
+    ("assess", "Assess", False),
+    ("authorize", "Authorize", True),
+    ("schedule", "Schedule", False),
+    ("authorize_impl", "Authorize Implementation", True),
+    ("implement", "Implement", False),
+    ("review_close", "Review & Close", False),
+]
+CHANGE_PHASES_BY_TYPE = {
+    # Normal: proceso completo con dos gates de aprobación (Authorize + Authorize Impl.).
+    "normal": {"new", "assess", "authorize", "schedule", "authorize_impl", "implement", "review_close"},
+    # Estándar pre-autorizado: sin Assess/Authorize/Authorize Impl. (el modelo ya está aprobado).
+    "standard": {"new", "schedule", "implement", "review_close"},
+    # Emergencia: acelerado; Assess + Authorize (express) y directo a Implement (sin 2º gate).
+    "emergency": {"new", "assess", "authorize", "schedule", "implement", "review_close"},
+}
+
+
+def build_itsm_change(task, impact, rng):
+    """Registro de cambio en la herramienta ITSM (ServiceNow Change Management)
+    asociado a la remediación. Modela las «Change Transaction Phases by Change
+    Type»: cada tipología recorre un subconjunto de fases con distintos gates de
+    aprobación (fiel al proceso de gestión de cambios del cliente)."""
+    ct = task.get("change_type", "normal")
+    meta = CHANGE_TYPE_META.get(ct, CHANGE_TYPE_META["normal"])
+    chg = f"CHG{rng.randint(100000, 999999)}"
+    included = CHANGE_PHASES_BY_TYPE.get(ct, CHANGE_PHASES_BY_TYPE["normal"])
+    phases = [{
+        "key": key, "label": label, "approval": is_approval,
+        "included": key in included,
+    } for key, label, is_approval in CHANGE_PHASE_CATALOG]
+
+    # Impacto/riesgo del cambio (criterios de assessment del proceso ITSM).
+    bsvc = impact.get("business_services", [])
+    crit = task.get("criticality", "medium")
+    impact_level = "Alto" if (crit in ("high", "critical") or bsvc) else ("Medio" if crit == "medium" else "Bajo")
+    four_eyes = ct != "standard" and (impact_level == "Alto")  # 4-ojos en cambios de mayor impacto
+    gxp = bool(bsvc) and crit in ("high", "critical")
+
+    ctasks = [
+        {"name": "Assessment (CTASK)", "role": "Técnico L2 — revisa que el cambio está listo para aprobar/implementar",
+         "auto": ct == "standard"},
+        {"name": "Implementation (CTASK)", "role": f"Ejecutor {_deploy_executor(task, rng)} — aplica el parche según procedimiento", "auto": False},
+        {"name": "Review (CTASK)", "role": "Segundo técnico distinto al ejecutor (principio 4-ojos) — confirma el resultado", "auto": False},
+    ]
+    return {
+        "system": "ServiceNow ITSM · Change Management",
+        "number": chg,
+        "type": ct,
+        "type_label": meta["label"],
+        "state": meta["itsm_state"],
+        "risk": meta["risk"],
+        "approval": meta["approval"],
+        "requires_human": meta["requires_human"],
+        "detail": meta["detail"],
+        "short_description": f"Remediación {task['cve']} en {task['ci_name']} ({task.get('component', '-')})",
+        "assignment_group": "CAB / Change Management",
+        "phases": phases,
+        "ctasks": ctasks,
+        "four_eyes": four_eyes,
+        "gxp": gxp,
+        "impact_level": impact_level,
+        "affected_cis": impact.get("affected_count", 0),
+        "affected_services": bsvc,
+        "environment": task.get("environment", "production"),
+        "patch": f"{task.get('component', '-')} → {_fixed_version(_prev_version(task))}",
+        "vulnerability": task["cve"],
+    }
+
+
 def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_back_rings=None,
                      preapprovals=None, exclusions=None):
     rng = _rng(task["id"] + "deploy")
@@ -615,7 +764,8 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
     return {
         "executor": executor, "total_assets": total_assets, "rings": rings,
         "exceptions": exceptions, "pr_url": pr_url,
-        "strategy": "risk-based progressive rings",
+        "strategy": "promoción por entornos (Lab → Canary → Pre-prod → Prod controlado → Prod total)",
+        "itsm": build_itsm_change(task, impact, rng),
         "rollback_plan": build_rollback_plan(task, impact),
         "rollback": rollback or {"status": "armed", "triggered": False},
     }

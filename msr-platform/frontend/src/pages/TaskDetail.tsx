@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api";
-import type { TaskDetail as TD, FlowStep, Ring } from "../types";
+import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment } from "../types";
 import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 import { useView } from "../view";
@@ -446,7 +446,13 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
   const rb = a.deployment.rollback;
   return (
     <>
-      <Panel title="Fase 6 · Despliegue por anillos" sub={`Estrategia ${a.deployment.strategy} · ejecutor: ${a.deployment.executor} · ${a.deployment.total_assets} activos`}>
+      {a.deployment.itsm && <ItsmChangePanel itsm={a.deployment.itsm} />}
+
+      <ImplementationControlPanel dep={a.deployment} ringsDone={d.rings_done} busy={busy}
+        onPreapprove={onPreapprove} />
+
+      {isTech && (
+      <Panel title="Fase 6 · Despliegue por anillos (detalle técnico)" sub={`${a.deployment.strategy} · ejecutor: ${a.deployment.executor} · ${a.deployment.total_assets} activos`}>
         {a.deployment.pr_url && (
           <a href={a.deployment.pr_url} target="_blank" className="chip bg-emerald-500/15 text-emerald-300 mb-3 inline-flex">PR de remediación: {a.deployment.pr_url.split("/").slice(-2).join("/")}</a>
         )}
@@ -471,6 +477,7 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
           </div>
         )}
       </Panel>
+      )}
 
       <Panel title="Gestión de Rollback" sub={`Plan armado desde el inicio y probado en lab · estrategia: ${a.deployment.rollback_plan.strategy}`}>
         {rb.triggered && (
@@ -555,7 +562,10 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
               err {r.health.error_rate_pct}% · p95 {r.health.p95_latency_ms}ms · avail {r.health.availability_pct}%
             </div>
           ) : (
-            <div className="text-[11px] text-gray-500">{r.plan.band} · canary {r.plan.canary_pct}% · {r.plan.window}</div>
+            <div className="text-[11px] text-gray-500">
+              {r.plan.is_replica ? "réplica de infra" : `real ${r.plan.pct}%`}
+              {r.plan.runs_tests ? " · pruebas ✓" : ""} · {r.plan.window}
+            </div>
           )}
         </div>
         {pa.preapproved
@@ -705,6 +715,152 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
         </div>
       )}
     </div>
+  );
+}
+
+// -------------------- ITSM Change Management (governance) --------------------
+const CHANGE_STYLE: Record<string, { label: string; cls: string; dot: string }> = {
+  standard: { label: "Cambio estándar", cls: "bg-green-500/15 text-green-300 border-green-500/30", dot: "#22c55e" },
+  normal: { label: "Cambio normal", cls: "bg-sky-500/15 text-sky-300 border-sky-500/30", dot: "#38bdf8" },
+  emergency: { label: "Cambio de emergencia", cls: "bg-red-500/15 text-red-300 border-red-500/30", dot: "#ef4444" },
+};
+
+function ItsmChangePanel({ itsm }: { itsm: ItsmChange }) {
+  const st = CHANGE_STYLE[itsm.type] || CHANGE_STYLE.normal;
+  return (
+    <Panel title="Gestión de Cambios (ITSM · ServiceNow Change Management)"
+      sub="Todo parcheado queda respaldado por un cambio registrado en la herramienta ITSM del cliente: trazabilidad, autorización y evidencias.">
+      <div className="flex items-center gap-2 flex-wrap mb-3">
+        <span className={`chip border ${st.cls}`}>{itsm.type_label}</span>
+        <span className="chip bg-ink text-gray-300 border border-line font-mono">{itsm.number}</span>
+        <span className="chip bg-ink text-gray-400 border border-line">Estado: {itsm.state}</span>
+        <span className="chip bg-ink text-gray-400 border border-line">Riesgo: {itsm.risk}</span>
+        <span className="chip bg-ink text-gray-400 border border-line">Impacto: {itsm.impact_level}</span>
+        {itsm.four_eyes && <span className="chip bg-purple-500/15 text-purple-300 border border-purple-500/30" title="Implementación revisada por un segundo técnico">principio 4 ojos 👀</span>}
+        {itsm.gxp && <span className="chip bg-amber-500/15 text-amber-300 border border-amber-500/30">GxP relevante</span>}
+      </div>
+
+      {/* Change Transaction Phases by Change Type */}
+      <div className="text-[11px] text-gray-500 mb-1">Fases de la transacción de cambio · {itsm.type_label}</div>
+      <div className="flex items-stretch gap-1 flex-wrap mb-3">
+        {itsm.phases.map((p, i) => (
+          <div key={p.key} className="flex items-center">
+            <div className={`rounded-md border px-2.5 py-1.5 min-w-[92px] ${p.included ? "border-line bg-ink" : "border-dashed border-line/50 bg-transparent opacity-40"}`}
+              style={p.included ? { borderLeft: `3px solid ${st.dot}` } : {}}>
+              <div className="text-[10px] font-semibold text-gray-200 leading-tight">{p.label}</div>
+              {p.approval
+                ? <div className={`text-[9px] mt-0.5 ${p.included ? "text-amber-300" : "text-gray-600"}`}>● aprobación</div>
+                : <div className="text-[9px] mt-0.5 text-gray-600">{p.included ? "fase" : "no aplica"}</div>}
+            </div>
+            {i < itsm.phases.length - 1 && <span className="text-gray-700 px-0.5">›</span>}
+          </div>
+        ))}
+      </div>
+      <div className="text-[11px] text-gray-500 leading-relaxed mb-3">{itsm.detail}</div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+        <Meta k="Aprobación" v={itsm.approval} />
+        <Meta k="Entorno" v={itsm.environment} />
+        <Meta k="Parche" v={itsm.patch} />
+        <Meta k="CIs afectados" v={String(itsm.affected_cis)} />
+      </div>
+
+      {/* Change Tasks (CTASK) — mínimo 3: Assessment / Implementation / Review */}
+      <div className="text-[11px] text-gray-500 mb-1">Change Tasks (CTASK)</div>
+      <div className="space-y-1">
+        {itsm.ctasks.map((c, i) => (
+          <div key={i} className="flex items-start gap-2 text-[11px] rounded-lg px-2 py-1.5 border border-line bg-ink">
+            <span className="chip bg-sky-500/15 text-sky-300 shrink-0">{i + 1}</span>
+            <div className="flex-1 min-w-0">
+              <span className="text-gray-200 font-medium">{c.name}</span>
+              <span className="text-gray-500"> — {c.role}</span>
+            </div>
+            {c.auto && <span className="chip bg-green-500/10 text-green-400 shrink-0">automatizable</span>}
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+// -------------------- Panel de control de implementación (alto nivel) --------------------
+const ENV_ICON: Record<string, string> = {
+  lab: "🧪", canary: "🐤", preprod: "🔧", prod_controlled: "🎯", prod_full: "🌐",
+};
+function ringEnvKey(idx: number): string {
+  return ["lab", "canary", "preprod", "prod_controlled", "prod_full"][idx] || "prod_full";
+}
+
+function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
+  dep: Deployment; ringsDone: number; busy: boolean; onPreapprove: (ring: number) => void;
+}) {
+  const next = dep.rings[ringsDone];
+  return (
+    <Panel title="Panel de control de implementación"
+      sub="Promoción por entornos según la realidad del cliente: Laboratorio → Canary → Pre-productivo → Productivo controlado → Productivo total. En Lab y Pre-productivo se levanta una réplica de la infraestructura y se ejecutan todas las pruebas.">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        {dep.rings.map((r, i) => {
+          const stCol =
+            r.status === "completed" ? "#22c55e"
+            : r.status === "rolled_back" ? "#f59e0b"
+            : r.status === "in_progress" ? "#38bdf8" : "#3f4756";
+          const stLabel =
+            r.status === "completed" ? "Desplegado"
+            : r.status === "rolled_back" ? "Revertido"
+            : r.status === "in_progress" ? "En curso" : "Pendiente";
+          const envKey = ringEnvKey(i);
+          return (
+            <div key={r.ring} className="rounded-lg border p-3 bg-ink" style={{ borderTop: `3px solid ${stCol}` }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-lg">{ENV_ICON[envKey]}</span>
+                <span className="text-xs font-semibold text-gray-100 leading-tight">{r.plan.environment || r.label}</span>
+              </div>
+              <div className="text-[10px] font-medium mb-2" style={{ color: stCol }}>{stLabel}</div>
+              <div className="space-y-1 text-[10px] text-gray-400">
+                <div className="flex items-center gap-1">
+                  <span className="chip bg-ink-panel border border-line text-gray-300">{r.plan.assets_count} CIs</span>
+                  <span className={`chip ${r.plan.is_replica ? "bg-teal-500/15 text-teal-300" : "bg-sky-500/15 text-sky-300"}`}>
+                    {r.plan.is_replica ? "réplica" : `real ${r.plan.pct}%`}
+                  </span>
+                </div>
+                <div>{r.plan.runs_tests
+                  ? <span className="text-green-400">✓ pruebas en entorno</span>
+                  : <span className="text-gray-500">validación por telemetría</span>}</div>
+                {r.status === "completed" && r.health && (
+                  <div className="text-gray-500">salud: {r.health.availability_pct}% avail · err {r.health.error_rate_pct}%</div>
+                )}
+                <div>{r.plan.approval.preapproved
+                  ? <span className="text-brand">👤 pre-aprobado</span>
+                  : (r.status === "pending" || r.status === "in_progress")
+                  ? <span className="text-amber-300">requiere aprobación</span>
+                  : <span className="text-gray-600">—</span>}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Progreso + acción de aprobación de alto nivel (sin scripts) */}
+      <div className="mt-3 flex items-center gap-3 flex-wrap">
+        <div className="text-xs text-gray-400">Progreso: <b className="text-gray-200">{ringsDone}/{dep.rings.length}</b> entornos desplegados</div>
+        <div className="flex-1 h-2 rounded bg-ink min-w-[120px]">
+          <div className="h-2 rounded bg-brand" style={{ width: `${(ringsDone / dep.rings.length) * 100}%` }} />
+        </div>
+        {dep.rollback.triggered
+          ? <span className="chip bg-amber-500/15 text-amber-300">rollback ejecutado (anillo {dep.rollback.ring})</span>
+          : <span className="chip bg-green-500/10 text-green-400">rollback armado</span>}
+      </div>
+      {next && !next.plan.approval.preapproved && (
+        <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-center gap-3 flex-wrap">
+          <div className="text-[11px] text-amber-200 flex-1">
+            Siguiente entorno: <b>{next.plan.environment || next.label}</b>. Revisa el informe y verifica la selección de activos antes de promover (auditoría Human-Driven).
+          </div>
+          <button disabled={busy} onClick={() => onPreapprove(next.ring)} className="btn btn-brand text-[11px]">
+            ✓ Verificar y pre-aprobar {next.plan.environment}
+          </button>
+        </div>
+      )}
+    </Panel>
   );
 }
 

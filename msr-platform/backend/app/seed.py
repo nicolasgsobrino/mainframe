@@ -386,7 +386,7 @@ def build_cmdb():
     # Servers host apps / dbs / middleware
     server_idx = 3000
     for app_id, app_name, tech, bsvc, track in APPLICATIONS:
-        n_servers = RNG.choice([2, 2, 3, 4])
+        n_servers = RNG.choice([1, 1, 2])
         os_name, os_family = RNG.choice(OS_TYPES)
         owner = RNG.choice(OWNERS)
         cis.append({
@@ -441,10 +441,11 @@ def build_cmdb():
         edges.append({"source": db_id, "target": bsvc, "type": "supports"})
 
     # -----------------------------------------------------------------
-    # Escalado a ~10.000 CIs con patrimonio sintético (granja de servidores,
-    # contenedores, red, endpoints y recursos cloud) manteniendo el modelo CSDM.
+    # CMDB reducida y manejable para la demo (patrimonio sintético: granja de
+    # servidores, contenedores, red, endpoints y recursos cloud) manteniendo el
+    # modelo CSDM. Blast radius pequeño y lista de vulnerabilidades acotada.
     # -----------------------------------------------------------------
-    cis, edges = _scale_estate(cis, edges, target=10000)
+    cis, edges = _scale_estate(cis, edges, target=180)
 
     # Normalización final: todos los CIs con campos estandarizados (CSDM).
     for c in cis:
@@ -633,24 +634,15 @@ def build_records(cis, edges):
     def ci_of_class(cls):
         return [c for c in cis if c["ci_class"] == cls]
 
-    # Definimos escenarios de demo concretos y potentes
+    # Conjunto reducido de escenarios de demo (4-5 vulnerabilidades pequeñas,
+    # blast radius acotado ≤ 10 CIs). Cada uno cubre un dominio técnico distinto.
     scenarios = [
-        # (cve_index, ci_id preferido o None, exposed, phase, ring_progress)
-        (0, "APP-1001", True),   # Log4Shell en payments-api (Track B, crítico)
-        (1, "APP-1005", True),   # Spring4Shell en mobile-gateway
-        (5, None, False),        # XZ backdoor en server (Track A)
-        (14, None, True),        # regreSSHion OpenSSH (Track A)
-        (9, None, False),        # PrintNightmare (Track A Windows)
-        (19, "APP-1010", False), # ActiveMQ RCE regulatory-reporter (Track B)
-        (2, "APP-1006", True),   # SnakeYAML cards-auth (Track B)
-        (4, None, True),         # HTTP/2 Rapid Reset nginx (Track A)
-        (7, "APP-1003", True),   # Text4Shell retail-web (Track B)
-        (23, None, False),       # Zerologon (Track A)
-        (6, "APP-1001", True),   # Struts payments (Track B)
-        (12, None, False),       # OpenSSL (Track A, baja)
-        (10, "APP-1004", False), # runc Container Escape en retail-bff (Track C)
-        (24, "APP-1007", True),  # containerd Host File Access en fraud-scoring-ml (Track C)
-        (3, "APP-1011", False),  # libwebp en dwh-etl (Track C)
+        # (cve_index, ci_id preferido o None, exposed)
+        (0, "APP-1001", True),   # Log4Shell en payments-api (dominio B, crítico)
+        (14, None, True),        # regreSSHion OpenSSH (dominio A, infra)
+        (10, "APP-1004", False), # runc Container Escape en retail-bff (dominio C)
+        (1, "APP-1005", True),   # Spring4Shell en mobile-gateway (dominio B)
+        (4, None, True),         # HTTP/2 Rapid Reset nginx (dominio A)
     ]
 
     vitems = []
@@ -696,7 +688,14 @@ def build_records(cis, edges):
         vitems.append(vitem)
 
         tid += 1
-        change_type = "emergency" if risk >= 80 else ("normal" if risk >= 50 else "standard")
+        # Tipo de cambio ITSM: emergency (riesgo crítico/exposición + KEV),
+        # standard (bajo riesgo, no expuesto → pre-aprobado para lab), normal (resto).
+        if risk >= 85:
+            change_type = "emergency"
+        elif not exposed and risk < 60:
+            change_type = "standard"
+        else:
+            change_type = "normal"
         tasks.append({
             "id": f"RTASK{tid}", "vulnerable_item_id": vitem["id"], "cve": cve[0], "title": cve[1],
             "track": track, "lane": lane, "risk_score": risk, "priority": _priority_label(risk),

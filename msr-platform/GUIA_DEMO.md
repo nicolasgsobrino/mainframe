@@ -84,7 +84,7 @@ Requisitos: Python 3.10+ y Node 18+. `POST /api/reset` reinicia el estado de la 
   (el mismo mensaje del PPT "Machine Speed Remediation"). *Mensaje:* la IA no solo detecta más,
   **descarta ruido** y deja lo explotable de verdad.
 - **KPIs:** hallazgos abiertos, Vulnerable Items, Remediation Tasks, KEV (explotadas en real),
-  en curso, remediadas, **CIs en CMDB (~10.000)**.
+  en curso, remediadas, **CIs en CMDB (~180 en la demo simplificada)**.
 - **Tareas por fase / prioridad**, panel de **3 carriles operativos** (**Crítico · Acelerado · Estándar**)
   con conteo de tareas, SLA y nivel de automatización, y —como bloque secundario— la **dimensión
   técnica A/B/C** (define ejecutor y rollback) con su reparto de CIs sobre la CMDB.
@@ -118,9 +118,12 @@ produce Devin + el **panel del agente** + el **botón de aprobación HITL**:
    agregado pass/fail. Si falla, ServiceNow **bloquea** el avance.
 5. **Validación en prototipo** — **lab efímero con IaC** (Terraform/Ansible) derivado del Impact
    Graph, métricas (error rate, p95) y teardown controlado.
-6. **Despliegue por anillos + informe** — oleadas por riesgo (Anillo 0→4), post-checks por anillo,
-   excepciones trazables, **PR de remediación** (Track B) e **informe de auditoría audit-ready**
-   (cadena finding → VI → Impact Graph → MVT → lab → prototipo → CR → anillos → cierre).
+6. **Despliegue por anillos (promoción por entornos) + informe** — 5 anillos según la **realidad del
+   cliente** (no la criticidad): **1 Laboratorio → 2 Canary → 3 Pre-productivo → 4 Productivo controlado
+   → 5 Productivo total**. En **Lab** y **Pre-productivo** Devin levanta una **réplica de la infraestructura
+   impactada** (Terraform/Ansible) y ejecuta **toda la batería de pruebas**; en **Canary** se despliega a un
+   **10%** de activos reales, en **Prod controlado** a un **50%** y en **Prod total** al **100%**. Post-checks
+   por anillo, excepciones trazables, **PR de remediación** (Track B) e **informe de auditoría audit-ready**.
 
 **Indicador de SLA / due date:** en la cabecera y en la lista de tareas cada remediación muestra su
 estado de SLA — **vencido** (rojo, con los días de retraso), **en riesgo** (≤ 2 días, ámbar) o **en plazo**
@@ -141,7 +144,27 @@ qué activos entran en cada anillo.
 La perspectiva se recuerda entre pantallas. *Mensaje:* misma verdad, dos audiencias — el manager ve impacto y
 plazo; el ejecutor ve el detalle técnico.
 
-**Anillos con contexto, revisión y pre-aprobación Human-Driven (Fase 6):** al abrir un anillo se ve un
+**Panel de control de implementación (alto nivel, vista Gestor):** dentro de la propia vulnerabilidad, un
+panel visual muestra los **5 entornos** como tarjetas (Laboratorio 🧪 · Canary 🐤 · Pre-productivo 🔧 ·
+Productivo controlado 🎯 · Productivo total 🌐) con estado, nº de CIs, si es **réplica** o **activos reales**,
+si ejecuta **pruebas**, la salud tras el despliegue y el estado de aprobación — **sin un solo comando ni
+script**. Desde aquí el gestor puede **verificar y pre-aprobar** el siguiente entorno. La barra de progreso
+resume cuántos entornos van desplegados y el estado del rollback.
+
+**Gestión de Cambios (ITSM · ServiceNow Change Management):** todo parcheado queda respaldado por un **cambio
+registrado** en la herramienta ITSM del cliente (trazabilidad, autorización y evidencias). La plataforma modela
+las **«Change Transaction Phases by Change Type»**: cada tipología recorre un subconjunto de fases con distintos
+gates de aprobación —fiel al proceso de gestión de cambios del cliente:
+- **Cambio estándar** (pre-aprobado por modelo, sin CAB): `New → Schedule → Implement → Review & Close`.
+  Bajo riesgo, recurrente y documentado; típico de lab/desarrollo/pre-producción.
+- **Cambio normal** (proceso completo, 2 gates): `New → Assess → Authorize → Schedule → Authorize
+  Implementation → Implement → Review & Close`. Requiere evaluación y autorización del CAB antes de producción.
+- **Cambio de emergencia** (acelerado, objetivo < 24 h): `New → Assess → Authorize (express E-CAB) → Schedule →
+  Implement → Review & Close`; si la urgencia lo impide, autorización excepcional y **regularización posterior**.
+Cada cambio muestra el nº `CHG…`, riesgo/impacto, las **Change Tasks (CTASK)** mínimas (Assessment /
+Implementation / Review), el **principio 4-ojos** y el marcado **GxP** cuando aplica.
+
+**Anillos con contexto, revisión y pre-aprobación Human-Driven (Fase 6 · detalle Técnico):** al abrir un anillo se ve un
 **informe pre-anillo** con:
 - **por qué Devin ha seleccionado esos activos** (rationale) y los **criterios** (blast radius, criticidad,
   entorno, exposición, ventana);
@@ -156,7 +179,8 @@ plazo; el ejecutor ve el detalle técnico.
 - las **acciones ejecutadas con el porqué de cada comando** (qué hace, por qué aplica y su salida) + post-checks.
 
 ### 4.4 CMDB · Impact Graph
-Patrimonio bancario a escala: **~10.000 CIs** en modelo **estandarizado (ServiceNow CSDM 4.0)** —
+Patrimonio bancario en modelo **estandarizado (ServiceNow CSDM 4.0)** — en la demo simplificada **~180 CIs**
+con **blast radius acotado (≤ 10 CIs por vulnerabilidad)** —
 `sys_class_name`, `business_criticality` (tier), `support_group`, `install_status`— con business
 services, apps, BBDD, servidores, middleware, runtime, **contenedores, red, endpoints y cloud**.
 Resumen por clase / **dominio técnico** / criticidad, **buscador y filtros paginados**, y **grafo de impacto
@@ -175,7 +199,7 @@ exacto de la Table API; conectar su CMDB real es apuntar el endpoint y aplicar e
 repositorio en `msr-platform/data/cmdb/` en **formato nativo ServiceNow**: un fichero por tabla (`cmdb_ci_server.json`,
 `cmdb_ci_appl.json`, `cmdb_ci_runtime.json`, … `cmdb_ci_service.json`) + relaciones (`cmdb_rel_ci.json`), más un
 `_manifest.json` (origen, conteos y mapa de campos) y el modelo normalizado que el backend recarga como **fuente de
-verdad**. La pantalla CMDB muestra un panel con el origen, las tablas y sus conteos (10.000 CIs · 6.702 relaciones).
+verdad**. La pantalla CMDB muestra un panel con el origen, las tablas y sus conteos (~180 CIs en la demo simplificada).
 Endpoint: `GET /api/cmdb/tables`.
 
 ### 4.5 Catálogo de pruebas
@@ -203,21 +227,27 @@ con **HITL** en cada transición y **un playbook de Devin por fase**.
 5. **HITL (30 s).** *"Devin propone; el owner aprueba."* Pulsa **Aprobar fase y avanzar**: se ve al
    agente trabajar la siguiente fase en el panel.
 6. **Fases 4-5 (1 min).** Resultados de lab (parche + app) y **lab efímero con IaC** + métricas.
-7. **Fase 6 · Despliegue + auditoría (2 min).** Anillos 0→4, pulsa **Aprobar y desplegar anillo**
-   (avanza un anillo cada vez). **Despliega un anillo (Anillo 0) y haz clic en la fila del anillo
-   para desplegar las acciones ejecutadas**: comandos concretos por actor (Devin, ejecutor,
-   post-checks), salida y duración, más las métricas de salud (error rate / p95 / disponibilidad).
-   *"No solo se aprueba: se ve exactamente qué acción se ejecutó y su evidencia."* Enseña el
-   **PR de remediación**, las **excepciones** y el **informe audit-ready**. *"Toda la cadena queda
-   trazada para DORA."*
-8. **Rollback (1 min).** En el panel de **Gestión de Rollback** enseña que el plan está **armado y
+7. **Gestión de Cambios ITSM (1 min · en vista Gestor).** Enseña el panel **Gestión de Cambios**: el
+   `CHG…`, la tipología (estándar / normal / emergencia) y las **fases de la transacción de cambio**
+   que recorre esa tipología (las de aprobación resaltadas, las que no aplican en gris). *"Cada
+   parcheado es un cambio registrado en el ITSM del cliente; según el tipo recorre unas fases u otras
+   —el estándar va pre-aprobado, el normal pasa por el CAB, la emergencia va acelerada con
+   regularización posterior."* Señala las **CTASK** (Assessment / Implementation / Review) y el **4-ojos**.
+8. **Fase 6 · Panel de control de implementación (2 min).** En **Gestor**, el **panel de control** muestra
+   los 5 entornos (Laboratorio → Canary → Pre-productivo → Productivo controlado → Productivo total) con
+   estado, CIs, réplica/real y pruebas — **sin scripts**. *"En Lab y Pre-productivo levantamos una réplica
+   de la infra y probamos todo; Canary al 10%, controlado al 50%, total al 100%."* Pulsa **Verificar y
+   pre-aprobar** el siguiente entorno y **Aprobar y desplegar anillo**. Cambia a **Técnico** para ver, al
+   abrir un anillo, las **acciones ejecutadas** por actor (comandos, salida, duración, el "por qué" de cada
+   comando) y las métricas de salud. Enseña el **PR de remediación** y el **informe audit-ready**.
+9. **Rollback (1 min).** En el panel de **Gestión de Rollback** enseña que el plan está **armado y
    probado en lab desde el inicio** (estrategia, RTO, versión estable, pasos). Luego pulsa
    **"⚠ Simular incidente → rollback automático"**: aparece la anomalía (error rate 4.7% > SLO),
    el rollback se dispara solo, ejecuta sus pasos y **restaura la versión estable**; el anillo queda
    marcado como *revertido* y el Vulnerable Item vuelve a abrirse para re-análisis. También existe
    **"⟲ Rollback manual"** para el owner. *"El rollback no es un plan en un PDF: es ejecutable,
    automático ante fallo de post-checks y trazado."*
-9. **Cierre (30 s).** Vuelve al Dashboard. *"ServiceNow gobierna, Devin ejecuta, el humano aprueba.
+10. **Cierre (30 s).** Vuelve al Dashboard. *"ServiceNow gobierna, Devin ejecuta, el humano aprueba.
    Días → minutos, con evidencia completa y rollback seguro."*
 
 **Carril operativo (lo que decides mostrar por urgencia):** abre una tarea **Crítica** para ver el flujo

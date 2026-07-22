@@ -121,6 +121,8 @@ export interface RingApproval {
 }
 export interface RingPlan {
   ring: number; label: string; band: string; target_population: string;
+  environment?: string; kind?: string; is_replica?: boolean; runs_tests?: boolean;
+  pct?: number; purpose?: string;
   window: string; canary_pct: number; assets_count: number; selected_count: number;
   selection_rationale: string;
   selection_criteria: { factor: string; detail: string }[];
@@ -145,10 +147,21 @@ export interface RollbackState {
   status: string; triggered: boolean; trigger_type?: string; reason?: string;
   ring?: number; ts?: string; restored_version?: string; verdict?: string;
 }
+export interface ItsmPhase { key: string; label: string; approval: boolean; included: boolean; }
+export interface ItsmCtask { name: string; role: string; auto: boolean; }
+export interface ItsmChange {
+  system: string; number: string; type: string; type_label: string;
+  state: string; risk: string; approval: string; requires_human: boolean;
+  detail: string; short_description: string; assignment_group: string;
+  phases: ItsmPhase[]; ctasks: ItsmCtask[];
+  four_eyes: boolean; gxp: boolean; impact_level: string;
+  affected_cis: number; affected_services: string[];
+  environment: string; patch: string; vulnerability: string;
+}
 export interface Deployment {
   executor: string; total_assets: number; rings: Ring[];
   exceptions: { asset: string; reason: string; owner: string; expires: string; compensating_control: string }[];
-  pr_url: string | null; strategy: string;
+  pr_url: string | null; strategy: string; itsm?: ItsmChange;
   rollback_plan: RollbackPlan; rollback: RollbackState;
 }
 export interface Audit {
