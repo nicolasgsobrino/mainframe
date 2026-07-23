@@ -1,0 +1,788 @@
+<h1>Casos de prueba - CardDemo (Mainframe Credit Card Management)</h1>
+<p>Este documento recoge los casos de prueba de la aplicación CardDemo, derivados de las reglas de validación y la lógica de negocio de los programas COBOL/CICS. Los casos están organizados por módulo funcional. Credenciales de ejemplo: <strong>ADMIN001/PASSWORD</strong> (admin) y <strong>USER0001/PASSWORD</strong> (usuario).</p>
+<h2>Inicio de sesión</h2>
+<p><strong>Transacción:</strong> CC00 &#160;|&#160; <strong>Programa:</strong> app/cbl/COSGN00C.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-SGN-01</td>
+<td>CC00</td>
+<td>app/cbl/COSGN00C.cbl</td>
+<td>Login de administrador correcto</td>
+<td>Aplicación arrancada en la pantalla de signon (CC00); usuario ADMIN001 existe en USRSEC con tipo A.</td>
+<td>1. Introducir User ID. 2. Introducir Password. 3. Pulsar Enter.</td>
+<td>User ID=ADMIN001; Password=PASSWORD</td>
+<td>Acceso concedido; se muestra el Menú de Administrador (transacción CA00 / COADM01C).</td>
+</tr>
+<tr>
+<td>TC-SGN-02</td>
+<td>CC00</td>
+<td>app/cbl/COSGN00C.cbl</td>
+<td>Login de usuario regular correcto</td>
+<td>Aplicación en pantalla de signon (CC00); usuario USER0001 existe en USRSEC con tipo U.</td>
+<td>1. Introducir User ID. 2. Introducir Password. 3. Pulsar Enter.</td>
+<td>User ID=USER0001; Password=PASSWORD</td>
+<td>Acceso concedido; se muestra el Menú Principal (transacción CM00 / COMEN01C).</td>
+</tr>
+<tr>
+<td>TC-SGN-03</td>
+<td>CC00</td>
+<td>app/cbl/COSGN00C.cbl</td>
+<td>Password incorrecto</td>
+<td>Usuario ADMIN001 existe en USRSEC.</td>
+<td>1. Introducir User ID válido. 2. Introducir un password erróneo. 3. Pulsar Enter.</td>
+<td>User ID=ADMIN001; Password=WRONGPWD</td>
+<td>Se rechaza el acceso y se muestra el mensaje &quot;Wrong Password. Try again ...&quot;.</td>
+</tr>
+<tr>
+<td>TC-SGN-04</td>
+<td>CC00</td>
+<td>app/cbl/COSGN00C.cbl</td>
+<td>Usuario inexistente</td>
+<td>El User ID indicado no existe en el fichero USRSEC.</td>
+<td>1. Introducir un User ID inexistente. 2. Introducir cualquier password. 3. Pulsar Enter.</td>
+<td>User ID=NOEXISTE; Password=PASSWORD</td>
+<td>Se rechaza el acceso y se muestra el mensaje &quot;User not found. Try again ...&quot;.</td>
+</tr>
+<tr>
+<td>TC-SGN-05</td>
+<td>CC00</td>
+<td>app/cbl/COSGN00C.cbl</td>
+<td>Salir de la pantalla de signon con F3</td>
+<td>Aplicación en pantalla de signon (CC00).</td>
+<td>1. Pulsar la tecla F3.</td>
+<td>N/A</td>
+<td>Se finaliza la sesión y se muestra la pantalla de despedida (Thank you for using CardDemo).</td>
+</tr>
+</tbody></table>
+<h2>Ver cuenta</h2>
+<p><strong>Transacción:</strong> CAVW &#160;|&#160; <strong>Programa:</strong> app/cbl/COACTVWC.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-ACTVW-01</td>
+<td>CAVW</td>
+<td>app/cbl/COACTVWC.cbl</td>
+<td>Consulta de cuenta válida</td>
+<td>Sesión iniciada; existe una cuenta con Account ID de 11 dígitos en los ficheros CARDXREF y ACCTDATA con cliente asociado.</td>
+<td>1. Acceder a Ver Cuenta (CAVW). 2. Introducir el Account ID. 3. Pulsar Enter.</td>
+<td>Account ID=00000000011 (existente)</td>
+<td>Se muestran los datos de la cuenta y del cliente asociado sin mensajes de error.</td>
+</tr>
+<tr>
+<td>TC-ACTVW-02</td>
+<td>CAVW</td>
+<td>app/cbl/COACTVWC.cbl</td>
+<td>Account ID vacío</td>
+<td>Sesión iniciada; pantalla Ver Cuenta (CAVW).</td>
+<td>1. Dejar el campo Account ID vacío. 2. Pulsar Enter.</td>
+<td>Account ID=(vacío)</td>
+<td>Se muestra el mensaje &quot;Account number not provided&quot;.</td>
+</tr>
+<tr>
+<td>TC-ACTVW-03</td>
+<td>CAVW</td>
+<td>app/cbl/COACTVWC.cbl</td>
+<td>Account ID no numérico o a ceros</td>
+<td>Sesión iniciada; pantalla Ver Cuenta (CAVW).</td>
+<td>1. Introducir un Account ID no numérico o todo a ceros. 2. Pulsar Enter.</td>
+<td>Account ID=0000000000A / 00000000000</td>
+<td>Se muestra el mensaje &quot;Account number must be a non zero 11 digit number&quot;.</td>
+</tr>
+<tr>
+<td>TC-ACTVW-04</td>
+<td>CAVW</td>
+<td>app/cbl/COACTVWC.cbl</td>
+<td>Cuenta no encontrada en el cross reference</td>
+<td>El Account ID no existe en el fichero CARDXREF.</td>
+<td>1. Introducir un Account ID válido en formato pero inexistente en xref. 2. Pulsar Enter.</td>
+<td>Account ID=99999999999</td>
+<td>Se muestra el mensaje &quot;Did not find this account in account card xref file&quot;.</td>
+</tr>
+<tr>
+<td>TC-ACTVW-05</td>
+<td>CAVW</td>
+<td>app/cbl/COACTVWC.cbl</td>
+<td>Cuenta no encontrada en el account master</td>
+<td>El Account ID existe en xref pero no en el fichero ACCTDATA (account master).</td>
+<td>1. Introducir el Account ID. 2. Pulsar Enter.</td>
+<td>Account ID=(existe en xref, no en master)</td>
+<td>Se muestra el mensaje &quot;Did not find this account in account master file&quot;.</td>
+</tr>
+<tr>
+<td>TC-ACTVW-06</td>
+<td>CAVW</td>
+<td>app/cbl/COACTVWC.cbl</td>
+<td>Cliente asociado no encontrado</td>
+<td>La cuenta existe pero el cliente asociado no está en el customer master (CUSTDATA).</td>
+<td>1. Introducir el Account ID. 2. Pulsar Enter.</td>
+<td>Account ID=(cuenta sin cliente en master)</td>
+<td>Se muestra el mensaje &quot;Did not find associated customer in master file&quot;.</td>
+</tr>
+</tbody></table>
+<h2>Lista de tarjetas</h2>
+<p><strong>Transacción:</strong> CCLI &#160;|&#160; <strong>Programa:</strong> app/cbl/COCRDLIC.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-CRDLI-01</td>
+<td>CCLI</td>
+<td>app/cbl/COCRDLIC.cbl</td>
+<td>Listado inicial de tarjetas</td>
+<td>Sesión iniciada; existen tarjetas en el fichero CARDDATA.</td>
+<td>1. Acceder a Lista de Tarjetas (CCLI). 2. Pulsar Enter sin filtros.</td>
+<td>Sin filtros</td>
+<td>Se muestra la primera página del listado de tarjetas.</td>
+</tr>
+<tr>
+<td>TC-CRDLI-02</td>
+<td>CCLI</td>
+<td>app/cbl/COCRDLIC.cbl</td>
+<td>Filtro de cuenta no numérico</td>
+<td>Pantalla Lista de Tarjetas (CCLI).</td>
+<td>1. Introducir un filtro de cuenta no numérico. 2. Pulsar Enter.</td>
+<td>Account Filter=ABCDEFGHIJK</td>
+<td>Se muestra el mensaje &quot;ACCOUNT FILTER,IF SUPPLIED MUST BE A 11 DIGIT NUMBER&quot;.</td>
+</tr>
+<tr>
+<td>TC-CRDLI-03</td>
+<td>CCLI</td>
+<td>app/cbl/COCRDLIC.cbl</td>
+<td>Filtro de tarjeta no numérico</td>
+<td>Pantalla Lista de Tarjetas (CCLI).</td>
+<td>1. Introducir un filtro de Card ID no numérico. 2. Pulsar Enter.</td>
+<td>Card Filter=123456789012345X</td>
+<td>Se muestra el mensaje &quot;CARD ID FILTER,IF SUPPLIED MUST BE A 16 DIGIT NUMBER&quot;.</td>
+</tr>
+<tr>
+<td>TC-CRDLI-04</td>
+<td>CCLI</td>
+<td>app/cbl/COCRDLIC.cbl</td>
+<td>Paginación adelante/atrás (F7/F8)</td>
+<td>Existen más tarjetas de las que caben en una página.</td>
+<td>1. Mostrar el listado. 2. Pulsar F8 para avanzar. 3. Pulsar F7 para retroceder.</td>
+<td>F7=página anterior; F8=página siguiente</td>
+<td>El listado navega correctamente entre páginas hacia delante (F8) y hacia atrás (F7).</td>
+</tr>
+<tr>
+<td>TC-CRDLI-05</td>
+<td>CCLI</td>
+<td>app/cbl/COCRDLIC.cbl</td>
+<td>Seleccionar tarjeta para ver detalle</td>
+<td>Listado de tarjetas mostrado.</td>
+<td>1. Marcar una tarjeta con la opción de ver (S). 2. Pulsar Enter.</td>
+<td>Selección=&#x27;S&#x27; en una fila</td>
+<td>Se transfiere el control a la vista de tarjeta (transacción CCDL / COCRDSLC).</td>
+</tr>
+<tr>
+<td>TC-CRDLI-06</td>
+<td>CCLI</td>
+<td>app/cbl/COCRDLIC.cbl</td>
+<td>Seleccionar tarjeta para actualizar</td>
+<td>Listado de tarjetas mostrado.</td>
+<td>1. Marcar una tarjeta con la opción de actualizar (U). 2. Pulsar Enter.</td>
+<td>Selección=&#x27;U&#x27; en una fila</td>
+<td>Se transfiere el control a la actualización de tarjeta (transacción CCUP / COCRDUPC).</td>
+</tr>
+</tbody></table>
+<h2>Actualizar tarjeta</h2>
+<p><strong>Transacción:</strong> CCUP &#160;|&#160; <strong>Programa:</strong> app/cbl/COCRDUPC.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-CRDUP-01</td>
+<td>CCUP</td>
+<td>app/cbl/COCRDUPC.cbl</td>
+<td>Nombre de tarjeta vacío</td>
+<td>Sesión iniciada; tarjeta cargada en la pantalla de actualización (CCUP).</td>
+<td>1. Borrar el campo Card Name. 2. Pulsar Enter para validar.</td>
+<td>Card Name=(vacío)</td>
+<td>Se muestra el mensaje &quot;Card name not provided&quot;.</td>
+</tr>
+<tr>
+<td>TC-CRDUP-02</td>
+<td>CCUP</td>
+<td>app/cbl/COCRDUPC.cbl</td>
+<td>Nombre de tarjeta con números</td>
+<td>Tarjeta cargada en la pantalla de actualización (CCUP).</td>
+<td>1. Introducir un nombre con dígitos. 2. Pulsar Enter.</td>
+<td>Card Name=JOHN123</td>
+<td>Se muestra el mensaje &quot;Card name can only contain alphabets and spaces&quot;.</td>
+</tr>
+<tr>
+<td>TC-CRDUP-03</td>
+<td>CCUP</td>
+<td>app/cbl/COCRDUPC.cbl</td>
+<td>Estado de tarjeta inválido</td>
+<td>Tarjeta cargada en la pantalla de actualización (CCUP).</td>
+<td>1. Introducir un valor de estado distinto de Y/N. 2. Pulsar Enter.</td>
+<td>Card Active Status=X</td>
+<td>Se rechaza el estado inválido y se muestra el mensaje de validación de estado de tarjeta.</td>
+</tr>
+<tr>
+<td>TC-CRDUP-04</td>
+<td>CCUP</td>
+<td>app/cbl/COCRDUPC.cbl</td>
+<td>Mes de caducidad inválido</td>
+<td>Tarjeta cargada en la pantalla de actualización (CCUP).</td>
+<td>1. Introducir un mes de caducidad fuera de rango. 2. Pulsar Enter.</td>
+<td>Expiry Month=13</td>
+<td>Se rechaza el mes inválido y se muestra el mensaje de validación de mes de caducidad.</td>
+</tr>
+<tr>
+<td>TC-CRDUP-05</td>
+<td>CCUP</td>
+<td>app/cbl/COCRDUPC.cbl</td>
+<td>Año de caducidad inválido</td>
+<td>Tarjeta cargada en la pantalla de actualización (CCUP).</td>
+<td>1. Introducir un año de caducidad no válido. 2. Pulsar Enter.</td>
+<td>Expiry Year=00AB</td>
+<td>Se rechaza el año inválido y se muestra el mensaje de validación de año de caducidad.</td>
+</tr>
+<tr>
+<td>TC-CRDUP-06</td>
+<td>CCUP</td>
+<td>app/cbl/COCRDUPC.cbl</td>
+<td>Guardar sin cambios</td>
+<td>Tarjeta cargada; no se modifica ningún campo.</td>
+<td>1. Sin modificar datos, pulsar F5 para confirmar la actualización.</td>
+<td>Sin cambios respecto a los valores leídos</td>
+<td>Se muestra el mensaje &quot;No change detected with respect to values fetched.&quot;.</td>
+</tr>
+<tr>
+<td>TC-CRDUP-07</td>
+<td>CCUP</td>
+<td>app/cbl/COCRDUPC.cbl</td>
+<td>Conflicto de concurrencia</td>
+<td>Otro proceso/usuario modificó el registro de la tarjeta tras haber sido leído.</td>
+<td>1. Modificar un campo. 2. Pulsar F5 para confirmar.</td>
+<td>Registro alterado por otro usuario</td>
+<td>Se muestra el mensaje &quot;Record changed by some one else. Please review&quot;.</td>
+</tr>
+<tr>
+<td>TC-CRDUP-08</td>
+<td>CCUP</td>
+<td>app/cbl/COCRDUPC.cbl</td>
+<td>Guardado correcto de cambios</td>
+<td>Tarjeta cargada; datos modificados válidos y sin conflicto de concurrencia.</td>
+<td>1. Modificar campos válidos. 2. Pulsar F5. 3. Confirmar.</td>
+<td>Card Name=JOHN DOE; Status=Y; Expiry válido</td>
+<td>Se persisten los cambios y se muestra el mensaje &quot;Changes committed to database&quot;.</td>
+</tr>
+</tbody></table>
+<h2>Añadir transacción</h2>
+<p><strong>Transacción:</strong> CT02 &#160;|&#160; <strong>Programa:</strong> app/cbl/COTRN02C.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-TRN02-01</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Sin Account ID ni Card Number</td>
+<td>Sesión iniciada; pantalla Añadir Transacción (CT02).</td>
+<td>1. Dejar Account ID y Card Number vacíos. 2. Pulsar Enter.</td>
+<td>Account ID=(vacío); Card Number=(vacío)</td>
+<td>Se rechaza el alta y se solicita informar Account ID o Card Number.</td>
+</tr>
+<tr>
+<td>TC-TRN02-02</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Account ID no numérico</td>
+<td>Pantalla Añadir Transacción (CT02).</td>
+<td>1. Introducir un Account ID no numérico. 2. Pulsar Enter.</td>
+<td>Account ID=1234ABC8901</td>
+<td>Se muestra el mensaje de validación indicando que Account ID debe ser numérico.</td>
+</tr>
+<tr>
+<td>TC-TRN02-03</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Card Number no numérico</td>
+<td>Pantalla Añadir Transacción (CT02).</td>
+<td>1. Introducir un Card Number no numérico. 2. Pulsar Enter.</td>
+<td>Card Number=1234ABCD90123456</td>
+<td>Se muestra el mensaje de validación indicando que Card Number debe ser numérico.</td>
+</tr>
+<tr>
+<td>TC-TRN02-04</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Tipo de transacción (Type CD) vacío</td>
+<td>Pantalla Añadir Transacción (CT02) con cuenta/tarjeta válidas.</td>
+<td>1. Dejar el campo Type CD vacío. 2. Pulsar Enter.</td>
+<td>Type CD=(vacío)</td>
+<td>Se rechaza el alta y se solicita informar el Type CD.</td>
+</tr>
+<tr>
+<td>TC-TRN02-05</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Importe con formato inválido</td>
+<td>Pantalla Añadir Transacción (CT02).</td>
+<td>1. Introducir un importe con formato incorrecto. 2. Pulsar Enter.</td>
+<td>Amount=100</td>
+<td>Se muestra el mensaje &quot;Amount should be in format -99999999.99&quot;.</td>
+</tr>
+<tr>
+<td>TC-TRN02-06</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Fecha de origen inválida</td>
+<td>Pantalla Añadir Transacción (CT02).</td>
+<td>1. Introducir una fecha de origen no válida. 2. Pulsar Enter.</td>
+<td>Orig Date=2024-13-40</td>
+<td>Se rechaza la fecha y se muestra el mensaje de validación de fecha de origen.</td>
+</tr>
+<tr>
+<td>TC-TRN02-07</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Merchant ID no numérico</td>
+<td>Pantalla Añadir Transacción (CT02).</td>
+<td>1. Introducir un Merchant ID no numérico. 2. Pulsar Enter.</td>
+<td>Merchant ID=12345ABC</td>
+<td>Se muestra el mensaje de validación indicando que Merchant ID debe ser numérico.</td>
+</tr>
+<tr>
+<td>TC-TRN02-08</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Confirmación vacía</td>
+<td>Todos los campos válidos; se solicita confirmación de alta.</td>
+<td>1. Dejar el campo de confirmación vacío. 2. Pulsar Enter.</td>
+<td>Confirm=(vacío)</td>
+<td>Se solicita confirmar la operación (Y/N) sin dar de alta la transacción.</td>
+</tr>
+<tr>
+<td>TC-TRN02-09</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Confirmación inválida</td>
+<td>Todos los campos válidos; se solicita confirmación de alta.</td>
+<td>1. Introducir un valor de confirmación distinto de Y/N. 2. Pulsar Enter.</td>
+<td>Confirm=X</td>
+<td>Se muestra un mensaje solicitando una confirmación válida (Y/N).</td>
+</tr>
+<tr>
+<td>TC-TRN02-10</td>
+<td>CT02</td>
+<td>app/cbl/COTRN02C.cbl</td>
+<td>Alta correcta de transacción</td>
+<td>Cuenta/tarjeta válidas y todos los campos correctos.</td>
+<td>1. Cumplimentar todos los campos válidos. 2. Confirmar con Y. 3. Pulsar Enter.</td>
+<td>Account ID válido; Type CD válido; Amount=-00000100.00; Confirm=Y</td>
+<td>La transacción se da de alta correctamente en el fichero de transacciones.</td>
+</tr>
+</tbody></table>
+<h2>Pago de factura</h2>
+<p><strong>Transacción:</strong> CB00 &#160;|&#160; <strong>Programa:</strong> app/cbl/COBIL00C.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-BIL-01</td>
+<td>CB00</td>
+<td>app/cbl/COBIL00C.cbl</td>
+<td>Cuenta con saldo pendiente</td>
+<td>Sesión iniciada; cuenta con saldo mayor que cero.</td>
+<td>1. Acceder a Pago de Factura (CB00). 2. Introducir el Account ID. 3. Pulsar Enter.</td>
+<td>Account ID=(cuenta con saldo)</td>
+<td>Se muestra el saldo actual con el texto &quot;Your current balance is:&quot;.</td>
+</tr>
+<tr>
+<td>TC-BIL-02</td>
+<td>CB00</td>
+<td>app/cbl/COBIL00C.cbl</td>
+<td>Cuenta sin saldo</td>
+<td>Sesión iniciada; cuenta con saldo cero.</td>
+<td>1. Acceder a Pago de Factura (CB00). 2. Introducir el Account ID. 3. Pulsar Enter.</td>
+<td>Account ID=(cuenta con saldo 0)</td>
+<td>Se muestra el mensaje &quot;You have nothing to pay...&quot;.</td>
+</tr>
+<tr>
+<td>TC-BIL-03</td>
+<td>CB00</td>
+<td>app/cbl/COBIL00C.cbl</td>
+<td>Confirmar el pago (Y)</td>
+<td>Cuenta con saldo pendiente mostrado.</td>
+<td>1. Introducir Y en la confirmación. 2. Pulsar Enter.</td>
+<td>Confirm=Y</td>
+<td>Se realiza el pago y se muestra &quot;Payment successful. Your Transaction ID is ...&quot;.</td>
+</tr>
+<tr>
+<td>TC-BIL-04</td>
+<td>CB00</td>
+<td>app/cbl/COBIL00C.cbl</td>
+<td>Rechazar el pago (N)</td>
+<td>Cuenta con saldo pendiente mostrado.</td>
+<td>1. Introducir N en la confirmación. 2. Pulsar Enter.</td>
+<td>Confirm=N</td>
+<td>No se realiza ningún pago; no se genera transacción y el saldo permanece igual.</td>
+</tr>
+<tr>
+<td>TC-BIL-05</td>
+<td>CB00</td>
+<td>app/cbl/COBIL00C.cbl</td>
+<td>Limpiar pantalla con F4</td>
+<td>Pantalla de Pago de Factura (CB00) con datos introducidos.</td>
+<td>1. Pulsar la tecla F4.</td>
+<td>N/A</td>
+<td>Se limpian los campos de la pantalla.</td>
+</tr>
+</tbody></table>
+<h2>Informes</h2>
+<p><strong>Transacción:</strong> CR00 &#160;|&#160; <strong>Programa:</strong> app/cbl/CORPT00C.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-RPT-01</td>
+<td>CR00</td>
+<td>app/cbl/CORPT00C.cbl</td>
+<td>Informe mensual</td>
+<td>Sesión iniciada; pantalla de Informes (CR00).</td>
+<td>1. Seleccionar el tipo de informe Mensual. 2. Pulsar Enter para enviar el job.</td>
+<td>Report Type=Monthly</td>
+<td>Se acepta la solicitud y se envía el job de informe mensual.</td>
+</tr>
+<tr>
+<td>TC-RPT-02</td>
+<td>CR00</td>
+<td>app/cbl/CORPT00C.cbl</td>
+<td>Informe anual</td>
+<td>Sesión iniciada; pantalla de Informes (CR00).</td>
+<td>1. Seleccionar el tipo de informe Anual. 2. Pulsar Enter.</td>
+<td>Report Type=Yearly</td>
+<td>Se acepta la solicitud y se envía el job de informe anual.</td>
+</tr>
+<tr>
+<td>TC-RPT-03</td>
+<td>CR00</td>
+<td>app/cbl/CORPT00C.cbl</td>
+<td>Rango personalizado incompleto</td>
+<td>Pantalla de Informes (CR00); tipo Custom seleccionado.</td>
+<td>1. Seleccionar rango personalizado. 2. Dejar fechas incompletas. 3. Pulsar Enter.</td>
+<td>Report Type=Custom; Start/End Date incompletos</td>
+<td>Se muestran los mensajes de campo de fecha faltante para el rango personalizado.</td>
+</tr>
+<tr>
+<td>TC-RPT-04</td>
+<td>CR00</td>
+<td>app/cbl/CORPT00C.cbl</td>
+<td>Sin tipo de informe seleccionado</td>
+<td>Pantalla de Informes (CR00) sin seleccionar tipo.</td>
+<td>1. No seleccionar ningún tipo. 2. Pulsar Enter.</td>
+<td>Report Type=(ninguno)</td>
+<td>Se muestra el mensaje &quot;Select a report type to print report...&quot;.</td>
+</tr>
+</tbody></table>
+<h2>Gestión de usuarios</h2>
+<p><strong>Transacción:</strong> CU01/CU02 &#160;|&#160; <strong>Programa:</strong> app/cbl/COUSR01C.cbl, app/cbl/COUSR02C.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-USR-01</td>
+<td>CU01/CU02</td>
+<td>app/cbl/COUSR01C.cbl, app/cbl/COUSR02C.cbl</td>
+<td>Campos obligatorios vacíos al añadir usuario</td>
+<td>Sesión de administrador; pantalla Añadir Usuario (CU01).</td>
+<td>1. Dejar campos obligatorios vacíos. 2. Pulsar Enter.</td>
+<td>First Name / Last Name / User ID / Password / User Type vacíos</td>
+<td>Se muestran los mensajes de validación para cada campo obligatorio faltante.</td>
+</tr>
+<tr>
+<td>TC-USR-02</td>
+<td>CU01/CU02</td>
+<td>app/cbl/COUSR01C.cbl, app/cbl/COUSR02C.cbl</td>
+<td>Usuario duplicado</td>
+<td>Sesión de administrador; pantalla Añadir Usuario (CU01); el User ID ya existe.</td>
+<td>1. Cumplimentar los campos con un User ID existente. 2. Pulsar Enter.</td>
+<td>User ID=ADMIN001 (existente)</td>
+<td>Se muestra el mensaje &quot;User ID already exist...&quot;.</td>
+</tr>
+<tr>
+<td>TC-USR-03</td>
+<td>CU01/CU02</td>
+<td>app/cbl/COUSR01C.cbl, app/cbl/COUSR02C.cbl</td>
+<td>Alta correcta de usuario</td>
+<td>Sesión de administrador; pantalla Añadir Usuario (CU01); User ID nuevo.</td>
+<td>1. Cumplimentar todos los campos válidos. 2. Pulsar Enter.</td>
+<td>First Name, Last Name, User ID nuevo, Password, User Type válidos</td>
+<td>El usuario se da de alta correctamente en el fichero USRSEC.</td>
+</tr>
+<tr>
+<td>TC-USR-04</td>
+<td>CU01/CU02</td>
+<td>app/cbl/COUSR01C.cbl, app/cbl/COUSR02C.cbl</td>
+<td>Actualizar usuario sin cambios</td>
+<td>Sesión de administrador; pantalla Actualizar Usuario (CU02) con usuario cargado.</td>
+<td>1. No modificar ningún campo. 2. Pulsar Enter para actualizar.</td>
+<td>Sin cambios respecto a los valores leídos</td>
+<td>Se muestra el mensaje &quot;Please modify to update ...&quot;.</td>
+</tr>
+</tbody></table>
+<h2>Control de acceso por rol</h2>
+<p><strong>Transacción:</strong> CM00 &#160;|&#160; <strong>Programa:</strong> app/cbl/COMEN01C.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-MENU-01</td>
+<td>CM00</td>
+<td>app/cbl/COMEN01C.cbl</td>
+<td>Opción de menú inválida</td>
+<td>Sesión iniciada; Menú Principal (CM00) mostrado.</td>
+<td>1. Introducir un número de opción fuera de rango. 2. Pulsar Enter.</td>
+<td>Option=99</td>
+<td>Se muestra el mensaje &quot;Please enter a valid option number...&quot;.</td>
+</tr>
+<tr>
+<td>TC-MENU-02</td>
+<td>CM00</td>
+<td>app/cbl/COMEN01C.cbl</td>
+<td>Opción de administrador desde usuario regular</td>
+<td>Sesión iniciada con un usuario regular (tipo U).</td>
+<td>1. Introducir el número de una opción reservada a administrador. 2. Pulsar Enter.</td>
+<td>Option=(opción Admin Only)</td>
+<td>Se muestra el mensaje &quot;No access - Admin Only option...&quot;.</td>
+</tr>
+<tr>
+<td>TC-MENU-03</td>
+<td>CM00</td>
+<td>app/cbl/COMEN01C.cbl</td>
+<td>Opción 11 con módulo opcional no instalado</td>
+<td>Sesión iniciada; el módulo asociado a la opción 11 no está instalado.</td>
+<td>1. Introducir la opción 11. 2. Pulsar Enter.</td>
+<td>Option=11</td>
+<td>Se rechaza la opción por no estar disponible el módulo opcional correspondiente.</td>
+</tr>
+</tbody></table>
+<h2>Batch de posteo (POSTTRAN)</h2>
+<p><strong>Transacción:</strong> POSTTRAN &#160;|&#160; <strong>Programa:</strong> app/cbl/CBTRN02C.cbl</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-BATCH-01</td>
+<td>POSTTRAN</td>
+<td>app/cbl/CBTRN02C.cbl</td>
+<td>Transacción válida posteada</td>
+<td>Fichero DALYTRAN con una transacción cuya tarjeta y cuenta existen y no supera límite ni caducidad.</td>
+<td>1. Ejecutar el job POSTTRAN.</td>
+<td>Transacción válida (card/account existentes, dentro de límite y vigencia)</td>
+<td>La transacción se postea correctamente (WS-VALIDATION-FAIL-REASON = 0).</td>
+</tr>
+<tr>
+<td>TC-BATCH-02</td>
+<td>POSTTRAN</td>
+<td>app/cbl/CBTRN02C.cbl</td>
+<td>Tarjeta inexistente (reason 100)</td>
+<td>DALYTRAN con una transacción cuyo Card Number no existe en CARDXREF.</td>
+<td>1. Ejecutar el job POSTTRAN.</td>
+<td>Card Number inexistente</td>
+<td>La transacción se rechaza con reason 100 (&quot;INVALID CARD NUMBER FOUND&quot;).</td>
+</tr>
+<tr>
+<td>TC-BATCH-03</td>
+<td>POSTTRAN</td>
+<td>app/cbl/CBTRN02C.cbl</td>
+<td>Cuenta inexistente (reason 101)</td>
+<td>La tarjeta existe en xref pero la cuenta no existe en ACCTDATA.</td>
+<td>1. Ejecutar el job POSTTRAN.</td>
+<td>Cuenta inexistente en account master</td>
+<td>La transacción se rechaza con reason 101 (&quot;ACCOUNT RECORD NOT FOUND&quot;).</td>
+</tr>
+<tr>
+<td>TC-BATCH-04</td>
+<td>POSTTRAN</td>
+<td>app/cbl/CBTRN02C.cbl</td>
+<td>Transacción sobre el límite (reason 102)</td>
+<td>El importe hace que el saldo supere el límite de crédito de la cuenta.</td>
+<td>1. Ejecutar el job POSTTRAN.</td>
+<td>Importe que excede ACCT-CREDIT-LIMIT</td>
+<td>La transacción se rechaza con reason 102 (&quot;OVERLIMIT TRANSACTION&quot;).</td>
+</tr>
+<tr>
+<td>TC-BATCH-05</td>
+<td>POSTTRAN</td>
+<td>app/cbl/CBTRN02C.cbl</td>
+<td>Cuenta caducada (reason 103)</td>
+<td>La fecha de origen de la transacción es posterior a la fecha de caducidad de la cuenta.</td>
+<td>1. Ejecutar el job POSTTRAN.</td>
+<td>Orig date posterior a ACCT-EXPIRAION-DATE</td>
+<td>La transacción se rechaza con reason 103 (&quot;TRANSACTION RECEIVED AFTER ACCT EXPIRATION&quot;).</td>
+</tr>
+</tbody></table>
+<h2>Módulo opcional - Tipos de transacción DB2</h2>
+<p><strong>Transacción:</strong> CTLI/CTTU &#160;|&#160; <strong>Programa:</strong> app/app-transaction-type-db2/</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-TT-01</td>
+<td>CTLI/CTTU</td>
+<td>app/app-transaction-type-db2/</td>
+<td>Añadir un tipo de transacción</td>
+<td>Módulo DB2 de tipos de transacción instalado; sesión de administrador; pantalla CTTU.</td>
+<td>1. Introducir los datos de un nuevo tipo de transacción. 2. Confirmar el alta.</td>
+<td>Type Code y descripción nuevos</td>
+<td>El tipo de transacción se inserta correctamente en la tabla DB2.</td>
+</tr>
+<tr>
+<td>TC-TT-02</td>
+<td>CTLI/CTTU</td>
+<td>app/app-transaction-type-db2/</td>
+<td>Borrar un tipo con registros hijos</td>
+<td>Existe un tipo de transacción con categorías/registros hijos que lo referencian.</td>
+<td>1. Seleccionar el tipo en CTLI. 2. Solicitar su borrado.</td>
+<td>Tipo con hijos dependientes</td>
+<td>El borrado falla por integridad referencial (SQLCODE -532) y se informa al usuario.</td>
+</tr>
+<tr>
+<td>TC-TT-03</td>
+<td>CTLI/CTTU</td>
+<td>app/app-transaction-type-db2/</td>
+<td>Paginación con cursor DB2</td>
+<td>Existen más tipos de transacción de los que caben en una página.</td>
+<td>1. Mostrar el listado (CTLI). 2. Navegar entre páginas (F7/F8).</td>
+<td>F7=página anterior; F8=página siguiente</td>
+<td>El listado navega entre páginas usando el cursor DB2 sin errores.</td>
+</tr>
+</tbody></table>
+<h2>Módulo opcional - Autorizaciones pendientes</h2>
+<p><strong>Transacción:</strong> CPVS/CP00 &#160;|&#160; <strong>Programa:</strong> app/app-authorization-ims-db2-mq/</p>
+<table><thead><tr>
+<th>Test ID</th>
+<th>Transacción</th>
+<th>Programa</th>
+<th>Descripción</th>
+<th>Precondiciones</th>
+<th>Pasos</th>
+<th>Datos de entrada</th>
+<th>Resultado esperado</th>
+</tr></thead><tbody>
+<tr>
+<td>TC-AUTH-01</td>
+<td>CPVS/CP00</td>
+<td>app/app-authorization-ims-db2-mq/</td>
+<td>Account ID vacío o no numérico</td>
+<td>Módulo IMS-DB2-MQ instalado; pantalla Resumen de Autorizaciones Pendientes (CPVS).</td>
+<td>1. Dejar Account ID vacío o introducir un valor no numérico. 2. Pulsar Enter.</td>
+<td>Account ID=(vacío) / Account ID=1234ABC8901</td>
+<td>Se muestra el mensaje de validación de Account ID (obligatorio y numérico).</td>
+</tr>
+<tr>
+<td>TC-AUTH-02</td>
+<td>CPVS/CP00</td>
+<td>app/app-authorization-ims-db2-mq/</td>
+<td>Selección inválida en el resumen</td>
+<td>Resumen de autorizaciones pendientes mostrado (CPVS).</td>
+<td>1. Marcar una fila con un carácter de selección no válido. 2. Pulsar Enter.</td>
+<td>Selección inválida</td>
+<td>Se muestra un mensaje indicando que la selección no es válida.</td>
+</tr>
+<tr>
+<td>TC-AUTH-03</td>
+<td>CPVS/CP00</td>
+<td>app/app-authorization-ims-db2-mq/</td>
+<td>Autorización sobre el límite</td>
+<td>Se procesa (CP00) una solicitud de autorización cuyo importe supera el límite disponible.</td>
+<td>1. Enviar la solicitud de autorización vía MQ. 2. Procesarla con CP00.</td>
+<td>Importe que excede el límite disponible</td>
+<td>La autorización se declina con response code &#x27;05&#x27; y reason &#x27;4100&#x27;.</td>
+</tr>
+<tr>
+<td>TC-AUTH-04</td>
+<td>CPVS/CP00</td>
+<td>app/app-authorization-ims-db2-mq/</td>
+<td>Tarjeta marcada como fraudulenta</td>
+<td>Se procesa (CP00) una solicitud sobre una tarjeta marcada como fraude (CARD-FRAUD).</td>
+<td>1. Enviar la solicitud de autorización vía MQ. 2. Procesarla con CP00.</td>
+<td>Tarjeta con indicador de fraude</td>
+<td>La autorización se declina con reason &#x27;5100&#x27; (tarjeta fraudulenta).</td>
+</tr>
+</tbody></table>
