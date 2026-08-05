@@ -124,6 +124,17 @@ run "the_enabled_configuration_plans_every_resource" {
     error_message = "El tag del patch group debe ser `PatchGroup`, sin espacio."
   }
 
+  # Patch Manager reconoce `PatchGroup` igual que `Patch Group`: el baseline
+  # personalizado sigue asociado al mismo valor que lleva la instancia.
+  assert {
+    condition = (
+      aws_ssm_patch_group.lab[0].patch_group == var.patch_group &&
+      aws_launch_template.lab[0].tag_specifications[0].tags["PatchGroup"] == var.patch_group
+    )
+    error_message = "El tag de la instancia y el patch group registrado deben coincidir."
+  }
+
+
   # 10 recursos: los 18 anteriores menos los ocho recursos IAM propios, que la
   # cuenta no permite crear (DenyIAMUser).
   assert {

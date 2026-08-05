@@ -165,7 +165,6 @@ resource "aws_autoscaling_group" "lab" {
         var.candidate_advisory_id != "",
         var.candidate_releasever != "",
         var.expected_fixed_kernel != "",
-        var.operator_role_arn != "",
       ])
       error_message = "Faltan valores obligatorios para una ejecución real."
     }

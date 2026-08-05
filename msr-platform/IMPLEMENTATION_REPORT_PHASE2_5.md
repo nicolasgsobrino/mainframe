@@ -149,10 +149,12 @@ Terraform (`.tf`, `.yaml`, `.tftpl`, `.example`) y `backend/app/seed.py` y falla
 si reaparece la clave con espacio; los informes históricos conservan la
 explicación del incidente y no son código funcional.
 
-Consecuencia funcional: Patch Manager asocia baselines por el tag `Patch Group`,
-así que la asociación automática por tag no se aplicará. El runbook invoca
-`AWS-RunPatchBaseline` sobre la instancia y el baseline sigue declarado y
-disponible para asociarlo explícitamente.
+Patch Manager reconoce `Patch Group` y `PatchGroup` como claves equivalentes, así
+que la asociación con el baseline se mantiene: `aws_ssm_patch_group.lab` registra
+el valor `msr-poc-linux` y una instancia etiquetada con
+`PatchGroup = msr-poc-linux` resuelve el baseline personalizado al ejecutar
+`AWS-RunPatchBaseline`. (La primera redacción de este informe afirmaba lo
+contrario; se corrige en `IMPLEMENTATION_REPORT_PHASE2_5_1.md`.)
 
 ## 7. Scripts sin APIs AWS
 

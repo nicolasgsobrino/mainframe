@@ -118,6 +118,12 @@ con `sort -V`, nunca lexicográficamente). Un repositorio inaccesible devuelve
 `PATCH_REPOSITORY_UNREACHABLE` y no se confunde con `ADVISORY_NOT_APPLICABLE`. Los tres
 valores salen de la IaC: la UI sólo los muestra.
 
+La instancia lleva el tag `PatchGroup = msr-poc-linux` (Patch Manager reconoce `Patch Group`
+y `PatchGroup` como claves equivalentes; se usa la variante sin espacio porque EC2 no admite
+espacios en las claves expuestas por IMDS), de modo que `AWS-RunPatchBaseline` resuelve el
+baseline personalizado registrado para ese patch group y no el predeterminado del sistema
+operativo.
+
 La infraestructura (VPC/subnet existentes, Launch Template, ASG, patch baseline y los dos
 runbooks Automation; **diez recursos**, sin IAM: la instancia reutiliza el instance profile
 corporativo existente como data source de sólo lectura) está en [`infra/terraform/`](infra/terraform/README.md) con

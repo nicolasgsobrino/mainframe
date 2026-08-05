@@ -27,11 +27,12 @@ resource "aws_ssm_patch_baseline" "lab" {
   tags = merge(local.common_tags, { Name = "msr-poc-al2023-baseline" })
 }
 
-# Asociación entre el baseline y el patch group. La instancia lleva el tag
-# `PatchGroup` (sin espacio): EC2 rechaza claves con espacio cuando el Launch
-# Template expone los tags por IMDS, así que la resolución automática por tag de
-# Patch Manager no se aplica y el baseline queda disponible para asociarlo de
-# forma explícita.
+# Asociación entre el baseline y el patch group. Patch Manager reconoce las dos
+# claves equivalentes `Patch Group` y `PatchGroup`; la instancia usa la variante
+# sin espacio porque EC2 rechaza los espacios en las claves de tag cuando el
+# Launch Template las expone por IMDS (`instance_metadata_tags = "enabled"`).
+# Una instancia con `PatchGroup = msr-poc-linux` resuelve este baseline al
+# ejecutar `AWS-RunPatchBaseline`, no el predeterminado del sistema operativo.
 resource "aws_ssm_patch_group" "lab" {
   count = local.enabled
 

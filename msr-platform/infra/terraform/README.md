@@ -99,6 +99,15 @@ su propia release, precheck, postcheck y reset consultan siempre
 y comparan el kernel con `expected_fixed_kernel`
 (`6.1.176-220.358.amzn2023.x86_64`) mediante `sort -V`.
 
+## Patch group
+
+Patch Manager reconoce dos claves equivalentes, `Patch Group` y `PatchGroup`. La
+instancia usa la variante **sin espacio** porque el Launch Template expone los
+tags por IMDS (`instance_metadata_tags = "enabled"`) y EC2 rechaza las claves con
+espacio al lanzar. `aws_ssm_patch_group.lab` registra el valor `msr-poc-linux`
+contra el baseline personalizado, de modo que `AWS-RunPatchBaseline` selecciona
+ese baseline y no el predeterminado del sistema operativo.
+
 ## Limitaciones conocidas
 
 - Patch Manager no ofrece una API para comprobar que un advisory existe: si
@@ -108,12 +117,6 @@ y comparan el kernel con `expected_fixed_kernel`
 - `ec2:DescribeInstances` y las APIs `ssm:Describe*` no admiten permisos a nivel
   de recurso ni condiciones por tag: esas acciones de lectura quedan con
   `Resource: *`. Las acciones mutativas sí están restringidas por tag.
-- La instancia lleva el tag `PatchGroup` (sin espacio): con
-  `instance_metadata_tags = "enabled"` EC2 rechaza `Patch Group` como clave de tag
-  al lanzar. Patch Manager asocia baselines por el tag `Patch Group`, así que la
-  asociación automática del baseline no se aplicará por tag; el runbook invoca
-  `AWS-RunPatchBaseline` sobre la instancia y el baseline sigue declarado y
-  disponible para asociarlo explícitamente.
 - El contenido de los runbooks no puede validarse sin AWS; se comprueba de forma
   estática (render de la plantilla + parseo YAML + contrato de parámetros) en la
   suite de tests del backend.

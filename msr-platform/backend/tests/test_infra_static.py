@@ -145,6 +145,7 @@ def test_the_existing_instance_profile_is_mandatory_in_real_mode():
 
 
 def test_the_patch_group_tag_key_has_no_space():
+    """EC2 rechaza los espacios en las claves de tag expuestas por IMDS."""
     locals_tf = code("locals.tf")
 
     assert '"PatchGroup" = var.patch_group' in locals_tf
@@ -153,7 +154,43 @@ def test_the_patch_group_tag_key_has_no_space():
                and ".terraform" not in p.parts]
     sources += [pathlib.Path(__file__).resolve().parents[1] / "app" / "seed.py"]
     for path in sources:
-        assert "Patch Group" not in path.read_text(encoding="utf-8"), path.name
+        content = path.read_text(encoding="utf-8")
+        # Sólo la clave funcional: la documentación sí puede nombrar la variante
+        # con espacio, que Patch Manager reconoce como equivalente.
+        assert '"Patch Group"' not in content, path.name
+        assert not re.search(r"^\s*Patch Group\s*[:=]", content, re.M), path.name
+
+
+def test_the_baseline_stays_associated_with_the_patch_group():
+    """Patch Manager acepta `Patch Group` y `PatchGroup` indistintamente."""
+    patching = code("patching.tf")
+    block = patching.split('resource "aws_ssm_patch_group" "lab"')[1]
+
+    assert "patch_group = var.patch_group" in block
+    assert "baseline_id = aws_ssm_patch_baseline.lab[0].id" in block
+    assert re.search(r'variable "patch_group".*?default\s*=\s*"msr-poc-linux"',
+                     code("variables.tf"), re.S)
+    # El tag de la instancia y el patch group registrado son el mismo valor.
+    assert '"PatchGroup" = var.patch_group' in code("locals.tf")
+
+
+@pytest.mark.parametrize("path", [
+    INFRA / "patching.tf",
+    INFRA / "README.md",
+    INFRA / "locals.tf",
+    INFRA.parents[1] / "README.md",
+    INFRA.parents[1] / "IMPLEMENTATION_REPORT_PHASE2_5.md",
+    INFRA.parents[1] / "IMPLEMENTATION_REPORT_PHASE2_5_1.md",
+])
+def test_no_document_claims_that_patchgroup_breaks_the_association(path):
+    """`PatchGroup` es una clave equivalente: el baseline sigue asociado."""
+    content = path.read_text(encoding="utf-8").lower()
+
+    for claim in ("automática por tag no se aplica",
+                  "resolución automática por tag de patch manager no",
+                  "patchgroup desactiva",
+                  "no asocia el baseline"):
+        assert claim not in content, (path.name, claim)
 
 
 def test_both_documents_are_automation_documents():

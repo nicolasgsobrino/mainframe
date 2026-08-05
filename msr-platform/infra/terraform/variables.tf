@@ -27,12 +27,6 @@ variable "subnet_id" {
   default     = "subnet-0bb97e6254e4f83e9"
 }
 
-variable "operator_role_arn" {
-  description = "Rol humano/operador que podrá asumir el rol de aplicación."
-  type        = string
-  default     = "arn:aws:iam::133789123239:role/AWS_133789123239_Admin"
-}
-
 variable "lab_id" {
   description = "Identificador lógico del laboratorio (tag msr-lab-id)."
   type        = string
