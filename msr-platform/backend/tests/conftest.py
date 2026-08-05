@@ -27,7 +27,10 @@ def settings(tmp_path) -> Settings:
         restore_provider="mock",
         dry_run=True,
         jobs_db_path=str(tmp_path / "jobs.db"),
-        mock_job_duration_seconds=1,
+        # Larga a propósito: los tests que necesitan un job terminado usan un
+        # reloj congelado o ajustan la duración. Con 1 s, un runner lento podía
+        # completar el job entre dos aserciones (carrera con el reloj de pared).
+        mock_job_duration_seconds=600,
         mock_restore_duration_seconds=0,
     )
 

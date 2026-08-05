@@ -157,6 +157,52 @@ Ejecuciones repetidas de concurrencia:
 No se instaló `pytest-repeat`: las repeticiones se hicieron con un bucle de shell comprobando
 el código de salida de cada pasada.
 
+## 7.bis Fallo observado en GitHub Actions y corrección
+
+Los resultados locales de arriba estaban en verde, pero la primera ejecución **real** del CI
+sobre el commit `ba57fc2` no lo estuvo:
+
+| Ejecución | Job | Resultado |
+|-----------|-----|-----------|
+| `pull_request` run [30990085743](https://github.com/nicolasgsobrino/mainframe/actions/runs/30990085743) | backend / frontend | verdes |
+| `push` run [30990085742](https://github.com/nicolasgsobrino/mainframe/actions/runs/30990085742) | frontend | verde |
+| `push` run [30990085742](https://github.com/nicolasgsobrino/mainframe/actions/runs/30990085742) | backend job `92253886900` | **fallo, exit code 1** |
+
+Traceback del CI:
+
+```text
+FAILED tests/test_api.py::test_idempotency_key_replays_instead_of_conflicting
+    assert replay.json()["active_job"]["id"] == first.json()["active_job"]["id"]
+E   TypeError: 'NoneType' object is not subscriptable
+1 failed, 153 passed in 6.60s
+```
+
+**Causa raíz** (no es un fallo transitorio del runner ni un defecto del código de producción,
+sino una dependencia del reloj de pared en los tests): la *fixture* `client` de
+`tests/test_api.py` fijaba `MSR_MOCK_JOB_DURATION_SECONDS=1`. El provider mock termina el job
+cuando han pasado esos segundos, y `task_detail` devuelve `active_job = null` para un job ya
+terminal. Si el runner tarda más de 1 s entre el primer `POST /approve` y su repetición con la
+misma `Idempotency-Key`, el replay —correcto: sigue devolviendo `202` y el mismo job— llega
+cuando el job ya ha terminado y `active_job` es `null`. La misma carrera afectaba a los demás
+tests de `test_api.py` y a los que usan la *fixture* `settings` con duración 1 s.
+
+Reproducción determinista en local (mismo entorno: Ubuntu, Python 3.10, dependencias de
+`requirements*.txt`, `MSR_PATCH_PROVIDER=mock`, `MSR_DRY_RUN=true`), insertando la lentitud del
+runner entre las dos peticiones:
+
+```text
+MSR_MOCK_JOB_DURATION_SECONDS=1 + sleep 1.2 s  ->  replay 202, active_job: None   (fallo del CI)
+MSR_MOCK_JOB_DURATION_SECONDS=600 + sleep 3 s  ->  replay 202, mismo job id       (corregido)
+```
+
+**Corrección**: la duración del job mock pasa a 600 s en `tests/conftest.py` y en la *fixture*
+`client` de `tests/test_api.py`. Los tests que necesitan un job terminado no dependen de ese
+valor: usan un reloj congelado (`FrozenClock`) o fijan su propia duración. No se ha eliminado
+ni marcado como *skip* ningún test, no se han añadido reintentos y no se ha relajado ninguna
+aserción ni la concurrencia: sólo se elimina la dependencia del reloj de pared.
+
+Resultados reales del CI tras la corrección: ver la sección 11.
+
 ## 8. Archivos
 
 Creados:
@@ -175,6 +221,8 @@ Modificados:
 - `msr-platform/backend/app/reconciler.py`
 - `msr-platform/frontend/src/types.ts`
 - `msr-platform/README.md`
+- `msr-platform/backend/tests/conftest.py` y `msr-platform/backend/tests/test_api.py` (duración
+  del job mock: se elimina la dependencia del reloj de pared que hizo fallar el CI)
 
 ## 9. Riesgos y limitaciones
 
@@ -197,3 +245,11 @@ Modificados:
 - `MSR_DRY_RUN=true`, `MSR_PATCH_PROVIDER=mock` y `MSR_RESTORE_PROVIDER=mock` siguen siendo
   los valores por defecto, también en CI.
 - No se han añadido credenciales, `.env` reales, bases SQLite generadas ni recursos AWS.
+
+## 11. Resultados reales del CI (tras la corrección)
+
+Pendiente de completar con los IDs de las ejecuciones de la corrección (se rellena en cuanto
+GitHub Actions termina): `push / backend`, `push / frontend`, `pull_request / backend`,
+`pull_request / frontend`.
+
+PR consolidada: <https://github.com/nicolasgsobrino/mainframe/pull/6>.

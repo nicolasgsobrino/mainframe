@@ -12,7 +12,10 @@ def client(monkeypatch, tmp_path):
     monkeypatch.setenv("MSR_JOBS_DB_PATH", str(tmp_path / "api.db"))
     monkeypatch.setenv("MSR_PATCH_PROVIDER", "mock")
     monkeypatch.setenv("MSR_RESTORE_PROVIDER", "mock")
-    monkeypatch.setenv("MSR_MOCK_JOB_DURATION_SECONDS", "1")
+    # Duración larga a propósito: estos tests comprueban el contrato HTTP con el
+    # job todavía activo. Con 1 s, un runner lento lo completaba entre dos
+    # peticiones y `active_job` llegaba a `null` (carrera con el reloj de pared).
+    monkeypatch.setenv("MSR_MOCK_JOB_DURATION_SECONDS", "600")
     from app import config
 
     config.get_settings.cache_clear()
