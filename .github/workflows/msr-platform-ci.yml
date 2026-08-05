@@ -57,6 +57,26 @@ jobs:
       - name: compileall
         run: python -m compileall app tests
 
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: msr-platform/infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+      # Sin backend, sin credenciales y sin `plan`/`apply`: la validación es
+      # estática y no contacta con ninguna cuenta AWS.
+      - name: terraform init
+        run: terraform init -backend=false -input=false
+      - name: terraform validate
+        run: terraform validate
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

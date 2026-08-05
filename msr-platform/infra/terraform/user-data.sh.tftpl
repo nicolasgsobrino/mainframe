@@ -1,0 +1,47 @@
+#!/bin/bash
+# Bootstrap del laboratorio MSR. Deliberadamente NO actualiza el sistema:
+# la instancia debe quedar vulnerable al advisory candidato para poder
+# ejecutar la PoC de parcheo.
+set -euxo pipefail
+
+exec > >(tee -a /var/log/msr-bootstrap.log) 2>&1
+
+mkdir -p /var/lib/msr-poc
+
+# 1) Confirmar la versión de Amazon Linux (no se instala nada si no coincide).
+. /etc/os-release
+if [ "$${ID}" != "amzn" ] || [ "$${VERSION_ID%%.*}" != "2023" ]; then
+  echo "MSR_BOOTSTRAP_UNSUPPORTED_OS id=$${ID} version=$${VERSION_ID}"
+  exit 1
+fi
+
+# 2) Servicio HTTP mínimo para el health check (sin actualizar el resto).
+dnf install -y --setopt=install_weak_deps=False httpd
+
+install -d -m 0755 /var/www/html
+printf 'MSR_POC_HEALTHY' > /var/www/html/health
+chmod 0644 /var/www/html/health
+
+systemctl enable --now httpd
+
+# 3) Diagnóstico reproducible del estado inicial (sin secretos).
+AMI_ID="$(curl -sf -H "X-aws-ec2-metadata-token: $(curl -sf -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')" http://169.254.169.254/latest/meta-data/ami-id || echo unknown)"
+
+cat > /var/lib/msr-poc/baseline.json <<JSON
+{
+  "ami_id": "$${AMI_ID}",
+  "expected_ami_id": "${source_ami_id}",
+  "kernel_running": "$(uname -r)",
+  "kernel_installed": "$(rpm -q --last kernel | head -n1 | awk '{print $1}')",
+  "amazon_linux_release": "$${PRETTY_NAME}",
+  "candidate_advisory_id": "${candidate_advisory_id}",
+  "candidate_package_family": "${candidate_package_family}",
+  "logical_lab_id": "${lab_id}",
+  "bootstrap_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSON
+chmod 0644 /var/lib/msr-poc/baseline.json
+
+# 4) Readiness: el runbook de reset espera a este fichero.
+date -u +%Y-%m-%dT%H:%M:%SZ > /var/lib/msr-poc/bootstrap-complete
+chmod 0644 /var/lib/msr-poc/bootstrap-complete

@@ -4,6 +4,7 @@ import { ApiError, api, releaseIdempotencyKey } from "../api";
 import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob } from "../types";
 import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
+import LabPanel from "../components/LabPanel";
 import { useView } from "../view";
 
 const PHASE_IDS = ["detection", "prioritization", "pre_implementation", "lab_testing", "prototype", "deployment"];
@@ -168,6 +169,19 @@ export default function TaskDetail() {
           <Meta k="Fuentes" v={vi.sources.length + " scanners"} />
         </div>
       </div>
+
+      {/* Laboratorio EC2 real: sólo en la tarea de la PoC de parcheo. */}
+      {task.logical_lab_id && (
+        <LabPanel
+          labId={task.logical_lab_id}
+          onPatch={approve}
+          patchBlockedReason={canApprove ? null
+            : (done ? "La tarea ya está remediada."
+              : jobRunning ? "Hay un job activo sobre el laboratorio."
+                : "La fase actual no permite todavía ejecutar el parcheo.")}
+          locked={locked}
+        />
+      )}
 
       {d.sla?.overdue && !done && (
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm text-red-300 flex items-center gap-2">

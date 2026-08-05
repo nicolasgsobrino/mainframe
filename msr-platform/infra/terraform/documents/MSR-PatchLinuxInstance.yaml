@@ -1,0 +1,392 @@
+# Runbook de Automation de la PoC MSR.
+#
+# Este fichero se procesa con `templatefile()`: los marcadores de plantilla los fija
+# Terraform (advisory, patch group, tags del laboratorio) y NUNCA el frontend.
+# Los únicos parámetros de entrada son InstanceId, AutomationAssumeRole y
+# CorrelationId: no se acepta nombre de paquete, comando, advisory, documento
+# ni URL desde el exterior.
+schemaVersion: '0.3'
+description: >-
+  MSR PoC: aplica el advisory ${candidate_advisory_id} sobre la instancia del
+  laboratorio ${lab_id} mediante AWS-RunPatchBaseline, con precheck y postcheck
+  de solo lectura y verificación de salud.
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  InstanceId:
+    type: AWS::EC2::Instance::Id
+    description: Instancia del laboratorio sobre la que se aplica el parche.
+  AutomationAssumeRole:
+    type: String
+    description: Rol que asume Systems Manager para ejecutar el runbook.
+    default: '${automation_role_arn}'
+    allowedPattern: '^arn:aws:iam::[0-9]{12}:role/[\w+=,.@/-]+$'
+  CorrelationId:
+    type: String
+    description: Identificador de correlación del job de la plataforma.
+    default: 'manual'
+    allowedPattern: '^[\w.:-]{1,64}$'
+outputs:
+  - Report.Advisory
+  - Report.PreviousKernel
+  - Report.CurrentKernel
+  - Report.RebootPerformed
+  - Report.PatchStatus
+  - Report.HealthStatus
+  - Report.InstanceId
+  - Report.CorrelationId
+mainSteps:
+  # 1-3) La instancia existe, está en la cuenta/región esperadas y en running.
+  - name: AssertInstanceIsRunning
+    action: aws:assertAwsResourceProperty
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ InstanceId }}'
+      PropertySelector: '$.Reservations[0].Instances[0].State.Name'
+      DesiredValues:
+        - running
+
+  - name: DescribeInstance
+    action: aws:executeAwsApi
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ InstanceId }}'
+    outputs:
+      - Name: OwnerId
+        Selector: '$.Reservations[0].OwnerId'
+        Type: String
+      - Name: AvailabilityZone
+        Selector: '$.Reservations[0].Instances[0].Placement.AvailabilityZone'
+        Type: String
+      - Name: ImageId
+        Selector: '$.Reservations[0].Instances[0].ImageId'
+        Type: String
+      - Name: Tags
+        Selector: '$.Reservations[0].Instances[0].Tags'
+        Type: MapList
+
+  # 4) Tags obligatorios del laboratorio + cuenta y región.
+  - name: ValidateAccountRegionAndTags
+    action: aws:executeScript
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        owner_id: '{{ DescribeInstance.OwnerId }}'
+        availability_zone: '{{ DescribeInstance.AvailabilityZone }}'
+        tags: '{{ DescribeInstance.Tags }}'
+      Script: |
+        EXPECTED_ACCOUNT = "${aws_account_id}"
+        EXPECTED_REGION = "${aws_region}"
+        REQUIRED_TAGS = ${required_tags_json}
+
+        def handler(events, context):
+            if events["owner_id"] != EXPECTED_ACCOUNT:
+                raise Exception("TARGET_ACCOUNT_NOT_ALLOWED")
+            region = events["availability_zone"][:-1]
+            if region != EXPECTED_REGION:
+                raise Exception("TARGET_REGION_NOT_ALLOWED")
+            tags = {t["Key"]: t["Value"] for t in events["tags"] or []}
+            missing = [k for k, v in REQUIRED_TAGS.items() if tags.get(k) != v]
+            if missing:
+                raise Exception("TARGET_TAGS_INVALID:" + ",".join(sorted(missing)))
+            return {"account_id": events["owner_id"], "region": region}
+    outputs:
+      - Name: AccountId
+        Selector: '$.Payload.account_id'
+        Type: String
+      - Name: Region
+        Selector: '$.Payload.region'
+        Type: String
+
+  # 5) La instancia aparece como managed node de Systems Manager.
+  - name: WaitForManagedNode
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 600
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Service: ssm
+      Api: DescribeInstanceInformation
+      Filters:
+        - Key: InstanceIds
+          Values:
+            - '{{ InstanceId }}'
+      PropertySelector: '$.InstanceInformationList[0].PingStatus'
+      DesiredValues:
+        - Online
+
+  # 6) Precheck de SOLO LECTURA (comandos fijos, sin datos del frontend).
+  - name: Precheck
+    action: aws:runCommand
+    timeoutSeconds: 600
+    onFailure: 'step:FailPrecheck'
+    inputs:
+      DocumentName: AWS-RunShellScript
+      InstanceIds:
+        - '{{ InstanceId }}'
+      Parameters:
+        commands:
+          - set -uo pipefail
+          - echo "MSR_OS=$(. /etc/os-release && echo $${PRETTY_NAME})"
+          - echo "MSR_KERNEL_RUNNING=$(uname -r)"
+          - echo "MSR_KERNEL_INSTALLED=$(rpm -q --last kernel | head -n1 | awk '{print $1}')"
+          - echo "MSR_ADVISORY=${candidate_advisory_id}"
+          - 'if dnf updateinfo list --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
+          - echo "MSR_HTTPD=$(systemctl is-active httpd || true)"
+          - echo "MSR_HEALTH=$(curl -sf --max-time 5 http://127.0.0.1/health || echo UNREACHABLE)"
+          - exit 0
+    outputs:
+      - Name: Output
+        Selector: '$.Output'
+        Type: String
+
+  - name: ParsePrecheck
+    action: aws:executeScript
+    onFailure: 'step:FailPrecheck'
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        output: '{{ Precheck.Output }}'
+      Script: |
+        def parse(text):
+            values = {}
+            for line in (text or "").splitlines():
+                if line.startswith("MSR_") and "=" in line:
+                    key, _, value = line.partition("=")
+                    values[key.strip()] = value.strip()
+            return values
+
+        def handler(events, context):
+            values = parse(events["output"])
+            return {
+                "applicable": values.get("MSR_ADVISORY_APPLICABLE", "false"),
+                "kernel_running": values.get("MSR_KERNEL_RUNNING", "unknown"),
+                "kernel_installed": values.get("MSR_KERNEL_INSTALLED", "unknown"),
+                "health": values.get("MSR_HEALTH", "UNREACHABLE"),
+                "httpd": values.get("MSR_HTTPD", "unknown"),
+            }
+    outputs:
+      - Name: Applicable
+        Selector: '$.Payload.applicable'
+        Type: String
+      - Name: PreviousKernel
+        Selector: '$.Payload.kernel_running'
+        Type: String
+      - Name: PreviousKernelInstalled
+        Selector: '$.Payload.kernel_installed'
+        Type: String
+      - Name: PreHealth
+        Selector: '$.Payload.health'
+        Type: String
+
+  # 7) Si el advisory no aplica: fallo funcional, sin parchear.
+  - name: BranchOnApplicability
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: InstallPatchBaseline
+          Variable: '{{ ParsePrecheck.Applicable }}'
+          StringEquals: 'true'
+      Default: FailAdvisoryNotApplicable
+
+  # 8) Instalación mediante el documento Command AWS-RunPatchBaseline, que sólo
+  #    puede invocarse desde un runbook Automation como éste.
+  - name: InstallPatchBaseline
+    action: aws:runCommand
+    timeoutSeconds: 3600
+    onFailure: 'step:FailPatch'
+    inputs:
+      DocumentName: AWS-RunPatchBaseline
+      InstanceIds:
+        - '{{ InstanceId }}'
+      Parameters:
+        Operation:
+          - Install
+        RebootOption:
+          - RebootIfNeeded
+      CloudWatchOutputConfig:
+        CloudWatchOutputEnabled: true
+    outputs:
+      - Name: Output
+        Selector: '$.Output'
+        Type: String
+
+  # 9-10) Tras el posible reinicio: running y managed node otra vez.
+  - name: WaitForInstanceRunningAfterPatch
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    onFailure: 'step:FailPostcheck'
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ InstanceId }}'
+      PropertySelector: '$.Reservations[0].Instances[0].State.Name'
+      DesiredValues:
+        - running
+
+  - name: WaitForManagedNodeAfterPatch
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    onFailure: 'step:FailPostcheck'
+    inputs:
+      Service: ssm
+      Api: DescribeInstanceInformation
+      Filters:
+        - Key: InstanceIds
+          Values:
+            - '{{ InstanceId }}'
+      PropertySelector: '$.InstanceInformationList[0].PingStatus'
+      DesiredValues:
+        - Online
+
+  # 11) Postcheck: advisory ya no aplicable, kernel nuevo y servicio sano.
+  - name: Postcheck
+    action: aws:runCommand
+    timeoutSeconds: 900
+    onFailure: 'step:FailPostcheck'
+    inputs:
+      DocumentName: AWS-RunShellScript
+      InstanceIds:
+        - '{{ InstanceId }}'
+      Parameters:
+        commands:
+          - set -uo pipefail
+          - echo "MSR_KERNEL_RUNNING=$(uname -r)"
+          - echo "MSR_KERNEL_INSTALLED=$(rpm -q --last kernel | head -n1 | awk '{print $1}')"
+          - 'if dnf updateinfo list --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
+          - echo "MSR_HTTPD=$(systemctl is-active httpd || true)"
+          - echo "MSR_HEALTH=$(curl -sf --max-time 5 http://127.0.0.1/health || echo UNREACHABLE)"
+          - exit 0
+    outputs:
+      - Name: Output
+        Selector: '$.Output'
+        Type: String
+
+  # 12) Outputs estructurados del runbook.
+  - name: Report
+    action: aws:executeScript
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        instance_id: '{{ InstanceId }}'
+        correlation_id: '{{ CorrelationId }}'
+        previous_kernel: '{{ ParsePrecheck.PreviousKernel }}'
+        previous_installed: '{{ ParsePrecheck.PreviousKernelInstalled }}'
+        postcheck: '{{ Postcheck.Output }}'
+      Script: |
+        ADVISORY = "${candidate_advisory_id}"
+
+        def parse(text):
+            values = {}
+            for line in (text or "").splitlines():
+                if line.startswith("MSR_") and "=" in line:
+                    key, _, value = line.partition("=")
+                    values[key.strip()] = value.strip()
+            return values
+
+        def handler(events, context):
+            after = parse(events["postcheck"])
+            current_kernel = after.get("MSR_KERNEL_RUNNING", "unknown")
+            still_applicable = after.get("MSR_ADVISORY_APPLICABLE", "true") == "true"
+            health = after.get("MSR_HEALTH", "UNREACHABLE")
+            healthy = health == "MSR_POC_HEALTHY" and after.get("MSR_HTTPD") == "active"
+            if still_applicable:
+                raise Exception("PATCH_NOT_EFFECTIVE:" + ADVISORY)
+            if not healthy:
+                raise Exception("HEALTH_CHECK_FAILED")
+            return {
+                "Advisory": ADVISORY,
+                "PreviousKernel": events["previous_kernel"],
+                "CurrentKernel": current_kernel,
+                "RebootPerformed": str(events["previous_kernel"] != current_kernel).lower(),
+                "PatchStatus": "PATCHED",
+                "HealthStatus": "HEALTHY",
+                "InstanceId": events["instance_id"],
+                "CorrelationId": events["correlation_id"],
+            }
+    outputs:
+      - Name: Advisory
+        Selector: '$.Payload.Advisory'
+        Type: String
+      - Name: PreviousKernel
+        Selector: '$.Payload.PreviousKernel'
+        Type: String
+      - Name: CurrentKernel
+        Selector: '$.Payload.CurrentKernel'
+        Type: String
+      - Name: RebootPerformed
+        Selector: '$.Payload.RebootPerformed'
+        Type: String
+      - Name: PatchStatus
+        Selector: '$.Payload.PatchStatus'
+        Type: String
+      - Name: HealthStatus
+        Selector: '$.Payload.HealthStatus'
+        Type: String
+      - Name: InstanceId
+        Selector: '$.Payload.InstanceId'
+        Type: String
+      - Name: CorrelationId
+        Selector: '$.Payload.CorrelationId'
+        Type: String
+
+  # --- Terminaciones funcionales explícitas ---------------------------------
+  - name: FailAdvisoryNotApplicable
+    action: aws:executeScript
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      Script: |
+        def handler(events, context):
+            raise Exception("ADVISORY_NOT_APPLICABLE:${candidate_advisory_id}")
+
+  - name: FailTargetInvalid
+    action: aws:executeScript
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      Script: |
+        def handler(events, context):
+            raise Exception("TARGET_NOT_ALLOWED")
+
+  - name: FailPrecheck
+    action: aws:executeScript
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      Script: |
+        def handler(events, context):
+            raise Exception("PRECHECK_FAILED")
+
+  - name: FailPatch
+    action: aws:executeScript
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      Script: |
+        def handler(events, context):
+            raise Exception("PATCH_EXECUTION_FAILED")
+
+  - name: FailPostcheck
+    action: aws:executeScript
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      Script: |
+        def handler(events, context):
+            raise Exception("POSTCHECK_FAILED")

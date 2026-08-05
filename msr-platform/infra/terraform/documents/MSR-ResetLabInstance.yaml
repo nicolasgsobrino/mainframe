@@ -1,0 +1,302 @@
+# Runbook de reset del laboratorio MSR.
+#
+# Procesado con `templatefile()`: los tags obligatorios, la cuenta, la región y
+# la AMI base los fija Terraform. El reset NO es un rollback: recrea
+# deliberadamente la instancia vulnerable para poder repetir la PoC.
+schemaVersion: '0.3'
+description: >-
+  MSR PoC: termina la instancia etiquetada del laboratorio ${lab_id} y la
+  recrea desde el Launch Template, dejándola de nuevo vulnerable a
+  ${candidate_advisory_id}.
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  CurrentInstanceId:
+    type: AWS::EC2::Instance::Id
+    description: Instancia actual del laboratorio que se va a reemplazar.
+  LaunchTemplateId:
+    type: String
+    description: Launch Template desde el que se recrea la instancia.
+    default: '${launch_template_id}'
+    allowedPattern: '^lt-[0-9a-f]{8,32}$'
+  LaunchTemplateVersion:
+    type: String
+    description: Versión fija del Launch Template (nunca $Latest sin control).
+    default: '${launch_template_version}'
+    allowedPattern: '^[0-9]+$'
+  AutomationAssumeRole:
+    type: String
+    description: Rol que asume Systems Manager para ejecutar el runbook.
+    default: '${automation_role_arn}'
+    allowedPattern: '^arn:aws:iam::[0-9]{12}:role/[\w+=,.@/-]+$'
+  CorrelationId:
+    type: String
+    description: Identificador de correlación del job de la plataforma.
+    default: 'manual'
+    allowedPattern: '^[\w.:-]{1,64}$'
+outputs:
+  - Report.OldInstanceId
+  - Report.NewInstanceId
+  - Report.LogicalLabId
+  - Report.VulnerableState
+  - Report.HealthState
+  - Report.CorrelationId
+mainSteps:
+  # 1-3) Identidad y tags de la instancia actual (incluido msr-resettable=true).
+  - name: DescribeCurrentInstance
+    action: aws:executeAwsApi
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ CurrentInstanceId }}'
+    outputs:
+      - Name: OwnerId
+        Selector: '$.Reservations[0].OwnerId'
+        Type: String
+      - Name: AvailabilityZone
+        Selector: '$.Reservations[0].Instances[0].Placement.AvailabilityZone'
+        Type: String
+      - Name: State
+        Selector: '$.Reservations[0].Instances[0].State.Name'
+        Type: String
+      - Name: ImageId
+        Selector: '$.Reservations[0].Instances[0].ImageId'
+        Type: String
+      - Name: Tags
+        Selector: '$.Reservations[0].Instances[0].Tags'
+        Type: MapList
+
+  - name: ValidateResettableTarget
+    action: aws:executeScript
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        owner_id: '{{ DescribeCurrentInstance.OwnerId }}'
+        availability_zone: '{{ DescribeCurrentInstance.AvailabilityZone }}'
+        state: '{{ DescribeCurrentInstance.State }}'
+        image_id: '{{ DescribeCurrentInstance.ImageId }}'
+        tags: '{{ DescribeCurrentInstance.Tags }}'
+      Script: |
+        EXPECTED_ACCOUNT = "${aws_account_id}"
+        EXPECTED_REGION = "${aws_region}"
+        REQUIRED_TAGS = ${required_tags_json}
+
+        def handler(events, context):
+            # Ninguna instancia se termina si le falta un solo tag obligatorio.
+            tags = {t["Key"]: t["Value"] for t in events["tags"] or []}
+            missing = [k for k, v in REQUIRED_TAGS.items() if tags.get(k) != v]
+            if missing:
+                raise Exception("RESET_TARGET_TAGS_INVALID:" + ",".join(sorted(missing)))
+            if tags.get("msr-resettable") != "true":
+                raise Exception("RESET_TARGET_NOT_RESETTABLE")
+            if events["owner_id"] != EXPECTED_ACCOUNT:
+                raise Exception("TARGET_ACCOUNT_NOT_ALLOWED")
+            if events["availability_zone"][:-1] != EXPECTED_REGION:
+                raise Exception("TARGET_REGION_NOT_ALLOWED")
+            return {
+                "recorded_state": events["state"],
+                "recorded_image_id": events["image_id"],
+            }
+    outputs:
+      - Name: RecordedState
+        Selector: '$.Payload.recorded_state'
+        Type: String
+      - Name: RecordedImageId
+        Selector: '$.Payload.recorded_image_id'
+        Type: String
+
+  # 4) Terminación de ESA instancia y sólo de ésa.
+  - name: TerminateCurrentInstance
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: ec2
+      Api: TerminateInstances
+      InstanceIds:
+        - '{{ CurrentInstanceId }}'
+
+  - name: WaitForTermination
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 900
+    onFailure: Abort
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ CurrentInstanceId }}'
+      PropertySelector: '$.Reservations[0].Instances[0].State.Name'
+      DesiredValues:
+        - terminated
+
+  # 5-6) Nueva instancia desde el Launch Template, con los tags obligatorios.
+  - name: LaunchReplacement
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: ec2
+      Api: RunInstances
+      MinCount: 1
+      MaxCount: 1
+      LaunchTemplate:
+        LaunchTemplateId: '{{ LaunchTemplateId }}'
+        Version: '{{ LaunchTemplateVersion }}'
+      TagSpecifications:
+        - ResourceType: instance
+          Tags: ${instance_tags_json}
+        - ResourceType: volume
+          Tags: ${instance_tags_json}
+    outputs:
+      - Name: NewInstanceId
+        Selector: '$.Instances[0].InstanceId'
+        Type: String
+
+  # 7-8) La nueva instancia arranca y se registra en Systems Manager.
+  - name: WaitForNewInstanceRunning
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 900
+    onFailure: Abort
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ LaunchReplacement.NewInstanceId }}'
+      PropertySelector: '$.Reservations[0].Instances[0].State.Name'
+      DesiredValues:
+        - running
+
+  - name: WaitForNewManagedNode
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    onFailure: Abort
+    inputs:
+      Service: ssm
+      Api: DescribeInstanceInformation
+      Filters:
+        - Key: InstanceIds
+          Values:
+            - '{{ LaunchReplacement.NewInstanceId }}'
+      PropertySelector: '$.InstanceInformationList[0].PingStatus'
+      DesiredValues:
+        - Online
+
+  # 9-10) Readiness: bootstrap terminado, AMI base, advisory aplicable y salud.
+  - name: VerifyReadiness
+    action: aws:runCommand
+    timeoutSeconds: 1200
+    onFailure: Abort
+    inputs:
+      DocumentName: AWS-RunShellScript
+      InstanceIds:
+        - '{{ LaunchReplacement.NewInstanceId }}'
+      Parameters:
+        commands:
+          - set -uo pipefail
+          - for i in $(seq 1 60); do [ -f /var/lib/msr-poc/bootstrap-complete ] && break; sleep 10; done
+          - 'if [ -f /var/lib/msr-poc/bootstrap-complete ]; then echo "MSR_BOOTSTRAP=complete"; else echo "MSR_BOOTSTRAP=missing"; fi'
+          - "TOKEN=$(curl -sf -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')"
+          - 'echo "MSR_AMI=$(curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/ami-id || echo unknown)"'
+          - echo "MSR_KERNEL_RUNNING=$(uname -r)"
+          - 'if dnf updateinfo list --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
+          - echo "MSR_HTTPD=$(systemctl is-active httpd || true)"
+          - echo "MSR_HEALTH=$(curl -sf --max-time 5 http://127.0.0.1/health || echo UNREACHABLE)"
+          - exit 0
+    outputs:
+      - Name: Output
+        Selector: '$.Output'
+        Type: String
+
+  - name: VerifyNewInstanceTags
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ LaunchReplacement.NewInstanceId }}'
+    outputs:
+      - Name: Tags
+        Selector: '$.Reservations[0].Instances[0].Tags'
+        Type: MapList
+
+  # 11) Salida estructurada del reset.
+  - name: Report
+    action: aws:executeScript
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        old_instance_id: '{{ CurrentInstanceId }}'
+        new_instance_id: '{{ LaunchReplacement.NewInstanceId }}'
+        correlation_id: '{{ CorrelationId }}'
+        readiness: '{{ VerifyReadiness.Output }}'
+        tags: '{{ VerifyNewInstanceTags.Tags }}'
+      Script: |
+        EXPECTED_AMI = "${source_ami_id}"
+        REQUIRED_TAGS = ${required_tags_json}
+        LOGICAL_LAB_ID = "${lab_id}"
+
+        def parse(text):
+            values = {}
+            for line in (text or "").splitlines():
+                if line.startswith("MSR_") and "=" in line:
+                    key, _, value = line.partition("=")
+                    values[key.strip()] = value.strip()
+            return values
+
+        def handler(events, context):
+            values = parse(events["readiness"])
+            tags = {t["Key"]: t["Value"] for t in events["tags"] or []}
+            missing = [k for k, v in REQUIRED_TAGS.items() if tags.get(k) != v]
+            if missing:
+                raise Exception("RESET_TAGS_MISSING:" + ",".join(sorted(missing)))
+            if values.get("MSR_BOOTSTRAP") != "complete":
+                raise Exception("RESET_BOOTSTRAP_INCOMPLETE")
+            if values.get("MSR_AMI") not in (EXPECTED_AMI, "unknown"):
+                raise Exception("RESET_AMI_MISMATCH:" + values.get("MSR_AMI", ""))
+            if values.get("MSR_ADVISORY_APPLICABLE") != "true":
+                raise Exception("RESET_TARGET_NOT_VULNERABLE")
+            healthy = (values.get("MSR_HEALTH") == "MSR_POC_HEALTHY"
+                       and values.get("MSR_HTTPD") == "active")
+            if not healthy:
+                raise Exception("RESET_HEALTH_CHECK_FAILED")
+            return {
+                "OldInstanceId": events["old_instance_id"],
+                "NewInstanceId": events["new_instance_id"],
+                "LogicalLabId": LOGICAL_LAB_ID,
+                "VulnerableState": "VULNERABLE",
+                "HealthState": "HEALTHY",
+                "CorrelationId": events["correlation_id"],
+            }
+    outputs:
+      - Name: OldInstanceId
+        Selector: '$.Payload.OldInstanceId'
+        Type: String
+      - Name: NewInstanceId
+        Selector: '$.Payload.NewInstanceId'
+        Type: String
+      - Name: LogicalLabId
+        Selector: '$.Payload.LogicalLabId'
+        Type: String
+      - Name: VulnerableState
+        Selector: '$.Payload.VulnerableState'
+        Type: String
+      - Name: HealthState
+        Selector: '$.Payload.HealthState'
+        Type: String
+      - Name: CorrelationId
+        Selector: '$.Payload.CorrelationId'
+        Type: String
+
+  - name: FailTargetInvalid
+    action: aws:executeScript
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      Script: |
+        def handler(events, context):
+            raise Exception("RESET_TARGET_NOT_ALLOWED")

@@ -52,6 +52,8 @@ export interface Task {
   component: string; vulnerable_version: string; created_at: string; status?: string;
   phase: string; phase_label: string; phase_index: number; phase_status: string;
   affected_count: number; sla?: SlaState;
+  /** Sólo en la tarea del laboratorio EC2 reutilizable de la PoC. */
+  logical_lab_id?: string; lab_target?: boolean; advisory_id?: string;
 }
 
 export type JobState =
@@ -97,6 +99,45 @@ export interface ExecutionConfig {
     consecutive_failures?: number;
   };
 }
+/** Laboratorio EC2 reutilizable: el Instance ID se resuelve por tags, nunca se fija. */
+export interface LabTarget {
+  logical_lab_id: string; current_instance_id: string | null;
+  account_id: string | null; region: string | null; vulnerable_ami_id: string | null;
+  launch_template_id: string | null; launch_template_version: string | null;
+  expected_vulnerable_package: string | null; expected_vulnerable_version: string | null;
+  required_tags: Record<string, string>; last_reset_job_id: string | null;
+  updated_at: string;
+}
+export interface LabInstance {
+  instance_id: string; logical_lab_id: string; account_id: string | null;
+  region: string | null; state: string; image_id: string | null;
+  ssm_managed: boolean; ping_status: string | null;
+  tags: Record<string, string>; source: string;
+}
+export interface LabResolutionError {
+  code: string; message: string; candidates: string[];
+}
+export type LabVulnerableState = "vulnerable_expected" | "patched";
+export interface LabSnapshot {
+  lab: LabTarget | null; instance: LabInstance | null;
+  resolution_error: LabResolutionError | null;
+  task_id: string; advisory_id: string; package_family: string; environment: string;
+  required_tags: Record<string, string>;
+  execution_mode: ExecutionMode; dry_run: boolean;
+  patch_provider: ProviderName; restore_provider: ProviderName;
+  active_job: PatchJob | null;
+  vulnerable_state: LabVulnerableState; advisory_confirmed: boolean;
+  last_patch_job_id: string | null; last_reset_job_id: string | null;
+}
+export interface LabCheck { check: string; ok: boolean; detail: string; code?: string }
+export interface LabValidation {
+  logical_lab_id: string; read_only: true; allowed: boolean; checks: LabCheck[];
+  instance: LabInstance | null; task_id: string; advisory_id: string; note: string;
+  vulnerable_state: LabVulnerableState; advisory_confirmed: boolean;
+  last_patch_job_id: string | null; last_reset_job_id: string | null;
+}
+export interface LabResetResponse { job: PatchJob; lab: LabTarget }
+
 /** Sobre de error uniforme del backend. */
 export interface ApiErrorBody {
   error: { code: string; message: string; correlation_id: string };

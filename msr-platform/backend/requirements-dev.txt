@@ -2,3 +2,5 @@
 pytest==8.3.4
 httpx==0.28.1
 ruff==0.8.6
+# Sólo en tests: parseo estático de los runbooks Automation (infra/terraform).
+PyYAML==6.0.2

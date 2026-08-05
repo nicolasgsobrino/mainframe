@@ -90,12 +90,30 @@ SQLite se usa con una **conexión por operación** (WAL, `busy_timeout` de 5 s y
 `BEGIN IMMEDIATE`), de modo que requests, polling del frontend y reconciliador pueden actuar
 en paralelo sin compartir una conexión entre hilos.
 
+### Laboratorio EC2 reseteable
+
+La PoC trabaja sobre una **única** instancia de laboratorio identificada por su
+identificador lógico (`MSR_LAB_LOGICAL_ID`, tag `msr-lab-id`), no por Instance ID: cada
+`reset_lab` termina la instancia y crea otra desde el Launch Template, así que el Instance
+ID se resuelve en cada operación por tags (`DescribeInstances`) y debe haber **exactamente
+una** instancia activa (`LAB_TARGET_NOT_FOUND` / `LAB_TARGET_AMBIGUOUS` en caso contrario).
+
+`reset_lab` **no es un rollback**: no deshace un despliegue fallido, sino que recrea la
+instancia vulnerable para repetir la PoC. No incrementa `rings_done`, conserva el historial
+de jobs y actualiza `LabTarget.current_instance_id` al completarse.
+
+La infraestructura (VPC/subnet existentes, Launch Template, IAM, patch baseline y los dos
+runbooks Automation) está en [`infra/terraform/`](infra/terraform/README.md) con
+`enable_real_resources = false` por defecto: con ese valor no se crea ningún recurso.
+
 Detalle completo de arquitectura, esquema SQLite, máquina de estados y variables:
 [`IMPLEMENTATION_REPORT_PHASE1.md`](IMPLEMENTATION_REPORT_PHASE1.md), las correcciones de
 la revisión técnica en
 [`IMPLEMENTATION_REPORT_PHASE1_1.md`](IMPLEMENTATION_REPORT_PHASE1_1.md) y el hardening de
 concurrencia y credenciales en
-[`IMPLEMENTATION_REPORT_PHASE1_2.md`](IMPLEMENTATION_REPORT_PHASE1_2.md).
+[`IMPLEMENTATION_REPORT_PHASE1_2.md`](IMPLEMENTATION_REPORT_PHASE1_2.md). La
+infraestructura, los runbooks y la integración del laboratorio, en
+[`IMPLEMENTATION_REPORT_PHASE2.md`](IMPLEMENTATION_REPORT_PHASE2.md).
 
 ## Tests, lint y build
 
@@ -110,6 +128,11 @@ npm ci                 # requiere Node >= 22.12 (ver .nvmrc)
 npm run lint           # oxlint
 npx tsc -b             # type checking
 npm run build          # build de producción
+
+cd ../infra/terraform  # validación estática: sin backend, sin credenciales
+terraform fmt -check -recursive
+terraform init -backend=false
+terraform validate     # nunca `plan` ni `apply` desde CI
 ```
 
 Las mismas comprobaciones se ejecutan en CI para cualquier cambio en `msr-platform/**`
@@ -166,6 +189,13 @@ uvicorn app.main:app --port 8080
 | GET | `/api/lab-targets` | Laboratorios reutilizables registrados (`LabTarget`) |
 | GET | `/api/lab-targets/{logical_lab_id}` | Detalle de un laboratorio |
 | POST | `/api/lab-targets` | Registra o actualiza el laboratorio de la PoC |
+| GET | `/api/labs/{logical_lab_id}` | Estado del laboratorio: instancia resuelta por tags, AMI, advisory, SSM y vulnerable/parcheado |
+| POST | `/api/labs/{logical_lab_id}/validate` | Validación de **sólo lectura** (no inicia ninguna Automation) |
+| POST | `/api/labs/{logical_lab_id}/reset` | `202` + job `reset_lab`: recrea la instancia vulnerable |
+| GET | `/api/labs/{logical_lab_id}/jobs` | Historial completo de jobs del laboratorio |
+
+Los endpoints `/api/labs/*` no aceptan Instance IDs, comandos, documentos, advisories ni
+parámetros del cliente: sólo el identificador lógico de la ruta.
 
 `POST /api/tasks/{id}/approve` acepta la cabecera `Idempotency-Key`: repetir la misma clave
 devuelve el job original en lugar de lanzar otro. En la fase de despliegue responde `202`
@@ -189,12 +219,16 @@ backend/app/
   policy.py     # allowlists, validación de objetivos y sanitización
   runbooks.py   # contrato explícito de SSM Documents por operación
   lab.py        # LabTarget: laboratorio vulnerable reutilizable (reset_lab)
+  labs.py       # resolución del Instance ID actual por tags (AWS y mock)
   reconciler.py # reconciliador periódico de jobs activos (no ejecuta parches)
   providers/    # contrato + mock_patch / mock_restore / aws_ssm_automation
 backend/tests/  # pytest (contratos, estados, persistencia, API, AWS con Stubber)
 frontend/src/
   pages/      # Dashboard, Tasks, TaskDetail, Cmdb, Catalog, Integrations
-  components/ # ImpactGraphView (React Flow)
+  components/ # ImpactGraphView (React Flow), LabPanel (laboratorio EC2)
+infra/terraform/
+  *.tf          # red, IAM, Launch Template, instancia, patch baseline, documentos
+  documents/    # runbooks Automation MSR-PatchLinuxInstance y MSR-ResetLabInstance
 ```
 
 > Demo con fines de presentación. Los datos son sintéticos y las integraciones están
