@@ -124,6 +124,12 @@ espacios en las claves expuestas por IMDS), de modo que `AWS-RunPatchBaseline` r
 baseline personalizado registrado para ese patch group y no el predeterminado del sistema
 operativo.
 
+El ASG puede mantener su proceso `Launch` suspendido durante una recuperación controlada
+(`asg_launch_suspended = true`, `suspended_processes = ["Launch"]`); el valor por defecto es
+`false` y sólo se vuelve a él con un plan revisado, cuando Launch Template, instance profile
+y etiquetas estén corregidos. La suspensión es estado deseado explícito, no drift ocultado
+con `ignore_changes`.
+
 La infraestructura (VPC/subnet existentes, Launch Template, ASG, patch baseline y los dos
 runbooks Automation; **diez recursos**, sin IAM: la instancia reutiliza el instance profile
 corporativo existente como data source de sólo lectura) está en [`infra/terraform/`](infra/terraform/README.md) con

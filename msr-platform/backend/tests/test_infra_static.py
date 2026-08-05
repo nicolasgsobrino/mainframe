@@ -338,6 +338,29 @@ def test_the_lab_instance_is_managed_by_an_autoscaling_group_of_fixed_capacity()
     assert "instance_market_options" not in ec2
 
 
+def test_the_launch_process_suspension_is_explicit_and_off_by_default():
+    """La contención es estado deseado, no drift oculto."""
+    variables = code("variables.tf")
+    block = code("ec2.tf").split('resource "aws_autoscaling_group" "lab"')[1]
+
+    assert re.search(r'variable "asg_launch_suspended"\s*{[^}]*type\s*=\s*bool[^}]*'
+                     r"default\s*=\s*false", variables, re.S)
+    assert ('suspended_processes = var.asg_launch_suspended ? ["Launch"] : []'
+            in block)
+    # `Launch` es el único proceso que la variable puede suspender.
+    for process in ("Terminate", "HealthCheck", "ReplaceUnhealthy", "AZRebalance",
+                    "AlarmNotification", "ScheduledActions", "AddToLoadBalancer",
+                    "InstanceRefresh"):
+        assert process not in block
+
+
+def test_the_autoscaling_group_hides_no_drift():
+    block = code("ec2.tf").split('resource "aws_autoscaling_group" "lab"')[1]
+
+    assert "ignore_changes" not in block
+    assert "create_before_destroy" not in block
+
+
 def test_no_terraform_file_declares_a_standalone_lab_instance():
     for path in INFRA.glob("*.tf"):
         assert 'resource "aws_instance"' not in path.read_text(encoding="utf-8")

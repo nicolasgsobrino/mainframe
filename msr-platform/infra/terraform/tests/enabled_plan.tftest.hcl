@@ -100,6 +100,12 @@ run "the_enabled_configuration_plans_every_resource" {
     error_message = "El ASG del laboratorio es de capacidad fija 1/1/1."
   }
 
+  # Operación normal: el grupo debe poder lanzar la instancia.
+  assert {
+    condition     = length(aws_autoscaling_group.lab[0].suspended_processes) == 0
+    error_message = "Con asg_launch_suspended = false no puede suspenderse ningún proceso."
+  }
+
   assert {
     condition     = length(aws_launch_template.lab) == 1 && length(aws_ssm_document.patch) == 1
     error_message = "Launch Template y runbooks deben planificarse."
@@ -133,7 +139,6 @@ run "the_enabled_configuration_plans_every_resource" {
     )
     error_message = "El tag de la instancia y el patch group registrado deben coincidir."
   }
-
 
   # 10 recursos: los 18 anteriores menos los ocho recursos IAM propios, que la
   # cuenta no permite crear (DenyIAMUser).
@@ -181,6 +186,30 @@ run "the_enabled_plan_requires_the_existing_instance_profile" {
   }
 
   expect_failures = [aws_launch_template.lab, check.instance_profile]
+}
+
+# Recuperación controlada: el grupo conserva `Launch` suspendido mientras se
+# corrigen Launch Template, instance profile y etiquetas.
+run "the_recovery_mode_keeps_launch_suspended" {
+  command = plan
+
+  variables {
+    asg_launch_suspended = true
+  }
+
+  assert {
+    condition     = aws_autoscaling_group.lab[0].suspended_processes == toset(["Launch"])
+    error_message = "La recuperación sólo puede suspender el proceso Launch."
+  }
+
+  assert {
+    condition = (
+      aws_autoscaling_group.lab[0].min_size == 1 &&
+      aws_autoscaling_group.lab[0].max_size == 1 &&
+      aws_autoscaling_group.lab[0].desired_capacity == 1
+    )
+    error_message = "La contención no altera la capacidad fija del laboratorio."
+  }
 }
 
 # Reproduce el escenario del plan fallido: el precondition del ASG detiene el

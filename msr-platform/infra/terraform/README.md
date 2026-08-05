@@ -108,6 +108,26 @@ espacio al lanzar. `aws_ssm_patch_group.lab` registra el valor `msr-poc-linux`
 contra el baseline personalizado, de modo que `AWS-RunPatchBaseline` selecciona
 ese baseline y no el predeterminado del sistema operativo.
 
+## Suspensión del proceso `Launch`
+
+`suspended_processes` del ASG es estado deseado explícito, controlado por
+`asg_launch_suspended` (nunca se oculta con `ignore_changes`, para que el drift
+aparezca en el plan):
+
+```hcl
+# Operación normal
+asg_launch_suspended = false   # suspended_processes = []
+
+# Recuperación/contención temporal
+asg_launch_suspended = true    # suspended_processes = ["Launch"]
+```
+
+El valor por defecto es `false`, de modo que una instalación nueva crea la
+instancia con normalidad. Sólo `Launch` puede suspenderse: la variable no admite
+ningún otro proceso de Auto Scaling. Durante una recuperación se pone a `true` y
+**se vuelve a `false` únicamente mediante un plan revisado**, cuando el Launch
+Template, el instance profile y las etiquetas ya estén corregidos.
+
 ## Limitaciones conocidas
 
 - Patch Manager no ofrece una API para comprobar que un advisory existe: si

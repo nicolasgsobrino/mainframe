@@ -144,6 +144,12 @@ variable "asg_health_check_grace_period_seconds" {
   }
 }
 
+variable "asg_launch_suspended" {
+  type        = bool
+  description = "Mantiene suspendido el proceso Launch del ASG durante una recuperación controlada."
+  default     = false
+}
+
 variable "existing_instance_profile_name" {
   type        = string
   description = "Instance profile corporativo existente utilizado por la EC2."

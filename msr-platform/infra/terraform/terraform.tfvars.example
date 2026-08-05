@@ -8,6 +8,14 @@ aws_region     = "eu-north-1"
 vpc_id         = "vpc-023864c0ca3c82eab"
 subnet_id      = "subnet-0bb97e6254e4f83e9"
 
+# Proceso Launch del ASG. Operación normal: el grupo lanza la instancia.
+#   asg_launch_suspended = false
+# Recuperación/contención temporal (el grupo no lanza nada):
+#   asg_launch_suspended = true
+# Volver a false sólo con un plan revisado, cuando el Launch Template, el
+# instance profile y las etiquetas ya estén corregidos.
+asg_launch_suspended = false
+
 # Instance profile corporativo preexistente: la cuenta deniega la creación de
 # roles y políticas propios, así que Terraform sólo lo lee.
 existing_instance_profile_name      = "EC2SSMAgentProfileL0"

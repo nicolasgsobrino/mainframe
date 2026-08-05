@@ -124,6 +124,11 @@ resource "aws_autoscaling_group" "lab" {
   # El reset debe poder sustituir la instancia: sin protección de scale-in.
   protect_from_scale_in = false
 
+  # Estado deseado explícito, nunca oculto con `ignore_changes`: durante una
+  # recuperación controlada el grupo no debe lanzar instancias hasta que el
+  # Launch Template, el instance profile y las etiquetas estén corregidos.
+  suspended_processes = var.asg_launch_suspended ? ["Launch"] : []
+
   launch_template {
     id = aws_launch_template.lab[0].id
     # Versión fija y explícita: nunca $Latest ni $Default.
