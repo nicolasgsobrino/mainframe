@@ -289,3 +289,5 @@ fail-closed completa.
 
 - PR de integración: <https://github.com/nicolasgsobrino/mainframe/pull/6> (base `main`, sin merge)
 - Rama: `devin/1785917443-msr-aws-phase1-1`
+- Commits de la fase 2: `944d5f5` (backend: resolución por tags, endpoints `/api/labs`,
+  contrato de reset) y `b584547` (Terraform, runbooks, frontend, CI e informe)
