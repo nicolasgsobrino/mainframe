@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS lab_targets (
     vulnerable_ami_id           TEXT,
     launch_template_id          TEXT,
     launch_template_version     TEXT,
+    autoscaling_group_name      TEXT,
     expected_vulnerable_package TEXT,
     expected_vulnerable_version TEXT,
     required_tags               TEXT NOT NULL DEFAULT '{}',
@@ -151,6 +152,14 @@ class JobRepository:
             self._shared = self._connect()
         with self.connection() as conn:
             conn.executescript(SCHEMA)
+            self._apply_migrations(conn)
+
+    @staticmethod
+    def _apply_migrations(conn: sqlite3.Connection) -> None:
+        """Columnas añadidas después de la creación original del esquema."""
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(lab_targets)")}
+        if "autoscaling_group_name" not in columns:
+            conn.execute("ALTER TABLE lab_targets ADD COLUMN autoscaling_group_name TEXT")
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(
@@ -422,10 +431,11 @@ class JobRepository:
         conn.execute(
             """INSERT INTO lab_targets (logical_lab_id, current_instance_id, account_id, region,
                                         vulnerable_ami_id, launch_template_id,
-                                        launch_template_version, expected_vulnerable_package,
+                                        launch_template_version, autoscaling_group_name,
+                                        expected_vulnerable_package,
                                         expected_vulnerable_version, required_tags,
                                         last_reset_job_id, updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                ON CONFLICT(logical_lab_id) DO UPDATE SET
                    current_instance_id = excluded.current_instance_id,
                    account_id = excluded.account_id,
@@ -433,6 +443,7 @@ class JobRepository:
                    vulnerable_ami_id = excluded.vulnerable_ami_id,
                    launch_template_id = excluded.launch_template_id,
                    launch_template_version = excluded.launch_template_version,
+                   autoscaling_group_name = excluded.autoscaling_group_name,
                    expected_vulnerable_package = excluded.expected_vulnerable_package,
                    expected_vulnerable_version = excluded.expected_vulnerable_version,
                    required_tags = excluded.required_tags,
@@ -440,7 +451,7 @@ class JobRepository:
                    updated_at = excluded.updated_at""",
             (lab.logical_lab_id, lab.current_instance_id, lab.account_id, lab.region,
              lab.vulnerable_ami_id, lab.launch_template_id, lab.launch_template_version,
-             lab.expected_vulnerable_package, lab.expected_vulnerable_version,
+             lab.autoscaling_group_name, lab.expected_vulnerable_package, lab.expected_vulnerable_version,
              json.dumps(lab.required_tags or {}, ensure_ascii=False), lab.last_reset_job_id,
              _iso(lab.updated_at)))
 
@@ -454,6 +465,7 @@ class JobRepository:
             vulnerable_ami_id=row["vulnerable_ami_id"],
             launch_template_id=row["launch_template_id"],
             launch_template_version=row["launch_template_version"],
+            autoscaling_group_name=row["autoscaling_group_name"],
             expected_vulnerable_package=row["expected_vulnerable_package"],
             expected_vulnerable_version=row["expected_vulnerable_version"],
             required_tags=json.loads(row["required_tags"] or "{}"),

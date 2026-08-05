@@ -15,6 +15,9 @@ locals {
     automation_role_arn     = try(aws_iam_role.automation[0].arn, "arn:aws:iam::${var.aws_account_id}:role/${local.name_prefix}-automation-role")
     launch_template_id      = try(aws_launch_template.lab[0].id, "lt-00000000")
     launch_template_version = try(tostring(aws_launch_template.lab[0].latest_version), "1")
+    # Nombre determinista del ASG (mismo valor que aws_autoscaling_group.lab):
+    # el runbook lo valida y no acepta ningún otro grupo.
+    autoscaling_group_name = local.autoscaling_group_name
   }
 
   patch_document_content = templatefile("${path.module}/documents/MSR-PatchLinuxInstance.yaml",

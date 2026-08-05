@@ -28,6 +28,7 @@ NEW_INSTANCE = "i-0fedcba9876543210"
 EXECUTION_ID = "11111111-2222-3333-4444-555555555555"
 ASSUME_ROLE = "arn:aws:iam::123456789012:role/MSR-AutomationRole"
 LAUNCH_TEMPLATE = "lt-0123456789abcdef0"
+ASG_NAME = "msr-poc-linux-patching-01-asg"
 CLIENT_TOKEN = str(uuid.uuid5(uuid.NAMESPACE_URL, "msr-platform/key-reset"))
 
 
@@ -45,6 +46,7 @@ def clients():
 def reset_settings(aws_real_settings):
     aws_real_settings.lab_launch_template_id = LAUNCH_TEMPLATE
     aws_real_settings.lab_launch_template_version = "3"
+    aws_real_settings.lab_autoscaling_group_name = ASG_NAME
     return aws_real_settings
 
 
@@ -89,8 +91,7 @@ def test_reset_sends_exactly_the_declared_parameters(reset_settings, clients):
         "start_automation_execution", {"AutomationExecutionId": EXECUTION_ID},
         {"DocumentName": DEFAULT_RESET_RUNBOOK,
          "Parameters": {"CurrentInstanceId": [INSTANCE],
-                        "LaunchTemplateId": [LAUNCH_TEMPLATE],
-                        "LaunchTemplateVersion": ["3"],
+                        "AutoScalingGroupName": [ASG_NAME],
                         "CorrelationId": ["corr-reset"],
                         "AutomationAssumeRole": [ASSUME_ROLE]},
          "Mode": "Auto", "ClientToken": CLIENT_TOKEN,
@@ -106,9 +107,9 @@ def test_reset_sends_exactly_the_declared_parameters(reset_settings, clients):
     ssm_stub.assert_no_pending_responses()
 
 
-def test_reset_requires_a_fixed_launch_template_version(reset_settings, clients):
+def test_reset_requires_the_configured_autoscaling_group(reset_settings, clients):
     ssm, ec2, ssm_stub, _ec2_stub = clients
-    reset_settings.lab_launch_template_version = ""
+    reset_settings.lab_autoscaling_group_name = ""
     provider = AwsSsmAutomationRestoreProvider(reset_settings, ssm_client=ssm, ec2_client=ec2)
 
     with pytest.raises(ProviderError) as excinfo:
@@ -155,11 +156,12 @@ def test_reset_poll_ignores_an_output_that_is_not_an_instance_id(reset_settings,
 
 @pytest.mark.parametrize("forbidden", ["Commands", "Command", "Script", "SourceInfo",
                                        "Parameters", "DocumentName", "Operation",
-                                       "InstallOverrideList", "LogicalLabId"])
+                                       "InstallOverrideList", "LogicalLabId",
+                                       "LaunchTemplateId", "LaunchTemplateVersion"])
 def test_reset_contract_forbids_free_form_parameters(forbidden):
     contract = contract_for(OPERATION_RESET_LAB)
-    params = {"CurrentInstanceId": [INSTANCE], "LaunchTemplateId": [LAUNCH_TEMPLATE],
-              "LaunchTemplateVersion": ["3"], forbidden: ["x"]}
+    params = {"CurrentInstanceId": [INSTANCE], "AutoScalingGroupName": [ASG_NAME],
+              forbidden: ["x"]}
 
     with pytest.raises(RunbookContractError) as excinfo:
         validate_parameters(contract, params)
@@ -167,10 +169,35 @@ def test_reset_contract_forbids_free_form_parameters(forbidden):
     assert excinfo.value.code in ("PARAMETER_FORBIDDEN", "PARAMETER_NOT_DECLARED")
 
 
-def test_reset_contract_requires_the_launch_template():
+def test_reset_contract_requires_the_autoscaling_group():
     contract = contract_for(OPERATION_RESET_LAB)
 
     with pytest.raises(RunbookContractError) as excinfo:
         validate_parameters(contract, {"CurrentInstanceId": [INSTANCE]})
 
     assert excinfo.value.code == "PARAMETER_REQUIRED_MISSING"
+
+
+def test_reset_takes_the_autoscaling_group_from_configuration_only(reset_settings, clients):
+    """El ASG sale de la configuración: un valor del cliente nunca puede colarse."""
+    ssm, ec2, ssm_stub, ec2_stub = clients
+    stub_common(ssm_stub, ec2_stub)
+    ssm_stub.add_response(
+        "start_automation_execution", {"AutomationExecutionId": EXECUTION_ID},
+        {"DocumentName": DEFAULT_RESET_RUNBOOK,
+         "Parameters": {"CurrentInstanceId": [INSTANCE],
+                        "AutoScalingGroupName": [ASG_NAME],
+                        "CorrelationId": ["corr-reset"],
+                        "AutomationAssumeRole": [ASSUME_ROLE]},
+         "Mode": "Auto", "ClientToken": CLIENT_TOKEN,
+         "Tags": [{"Key": "msr:correlation-id", "Value": "corr-reset"},
+                  {"Key": "msr:task-id", "Value": "RTASK900900"},
+                  {"Key": "msr:managed-by", "Value": "msr-platform"}]})
+    provider = AwsSsmAutomationRestoreProvider(reset_settings, ssm_client=ssm, ec2_client=ec2)
+
+    request = reset_request()
+    # Aunque el snapshot de la tarea traiga un ASG ajeno, no se propaga.
+    request.task_snapshot["autoscaling_group_name"] = "asg-de-otro-equipo"
+    provider.start(request, "key-reset")
+
+    ssm_stub.assert_no_pending_responses()

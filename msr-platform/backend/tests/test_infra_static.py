@@ -15,6 +15,14 @@ INFRA = pathlib.Path(__file__).resolve().parents[2] / "infra" / "terraform"
 DOCUMENTS = INFRA / "documents"
 
 
+def policy_document(name: str) -> str:
+    """Cuerpo exacto de un `aws_iam_policy_document` (sin arrastrar los siguientes)."""
+    pattern = rf'^data "aws_iam_policy_document" "{re.escape(name)}" \{{(.*?)^\}}'
+    match = re.search(pattern, code("iam.tf"), re.S | re.M)
+    assert match, f"no existe el policy document '{name}'"
+    return match.group(1)
+
+
 def read(name: str) -> str:
     return (INFRA / name).read_text(encoding="utf-8")
 
@@ -22,6 +30,13 @@ def read(name: str) -> str:
 def code(name: str) -> str:
     """Fichero sin comentarios: las aserciones miran el codigo, no la prosa."""
     return "\n".join(line for line in read(name).splitlines()
+                     if not line.lstrip().startswith("#"))
+
+
+def document_source(name: str) -> str:
+    """Runbook sin comentarios: las aserciones miran el YAML, no la prosa."""
+    raw = (DOCUMENTS / name).read_text(encoding="utf-8")
+    return "\n".join(line for line in raw.splitlines()
                      if not line.lstrip().startswith("#"))
 
 
@@ -163,40 +178,101 @@ def test_patch_runbook_prechecks_before_patching_and_can_abort():
     doc = document("MSR-PatchLinuxInstance.yaml")
     names = [step["name"] for step in doc["mainSteps"]]
 
-    assert names.index("Precheck") < names.index("InstallPatchBaseline")
+    assert names.index("SendPrecheckCommand") < names.index("InstallPatchBaseline")
     assert names.index("BranchOnApplicability") < names.index("InstallPatchBaseline")
     assert "FailAdvisoryNotApplicable" in names
-    assert names.index("Postcheck") > names.index("InstallPatchBaseline")
+    assert names.index("SendPostcheckCommand") > names.index("InstallPatchBaseline")
     assert doc["outputs"] == [
         "Report.Advisory", "Report.PreviousKernel", "Report.CurrentKernel",
-        "Report.RebootPerformed", "Report.PatchStatus", "Report.HealthStatus",
-        "Report.InstanceId", "Report.CorrelationId"]
+        "Report.LatestInstalledKernel", "Report.RebootPerformed", "Report.PatchStatus",
+        "Report.HealthStatus", "Report.InstanceId", "Report.CorrelationId"]
 
 
-def test_reset_runbook_validates_tags_before_terminating():
+# --- fase 2.1: un solo aws:runCommand y verificación estricta ---------------
+
+def test_patch_runbook_has_at_most_one_run_command_action_without_outputs():
+    """Automation sólo permite consumir el output de una acción `aws:runCommand`."""
+    doc = document("MSR-PatchLinuxInstance.yaml")
+    run_commands = [s for s in doc["mainSteps"] if s["action"] == "aws:runCommand"]
+
+    assert len(run_commands) == 1
+    assert run_commands[0]["name"] == "InstallPatchBaseline"
+    assert "outputs" not in run_commands[0]
+    assert "CloudWatchOutputConfig" not in run_commands[0]["inputs"]
+
+
+def test_patch_prechecks_use_send_command_and_get_command_invocation():
+    steps = {s["name"]: s for s in document("MSR-PatchLinuxInstance.yaml")["mainSteps"]}
+
+    for send, wait, get in (("SendPrecheckCommand", "WaitForPrecheckCommand",
+                             "GetPrecheckOutput"),
+                            ("SendPostcheckCommand", "WaitForPostcheckCommand",
+                             "GetPostcheckOutput")):
+        assert steps[send]["inputs"]["Api"] == "SendCommand"
+        assert steps[send]["inputs"]["DocumentName"] == "AWS-RunShellScript"
+        assert steps[wait]["inputs"]["Api"] == "GetCommandInvocation"
+        assert steps[get]["inputs"]["Api"] == "GetCommandInvocation"
+        assert steps[get]["outputs"][0]["Name"] == "StandardOutputContent"
+
+
+def test_patch_runbook_queries_the_advisory_and_verifies_the_running_kernel():
+    raw = document_source("MSR-PatchLinuxInstance.yaml")
+
+    assert "dnf updateinfo list --available --advisory ${candidate_advisory_id}" in raw
+    # El kernel debe cambiar y quedarse en la última versión instalada.
+    for error in ("ADVISORY_STILL_APPLICABLE", "KERNEL_NOT_UPDATED",
+                  "KERNEL_NOT_RUNNING_LATEST", "POST_PATCH_HEALTH_FAILED"):
+        assert error in raw
+    assert "MSR_POC_HEALTHY" in raw
+
+
+def test_reset_runbook_validates_membership_before_replacing_the_instance():
     doc = document("MSR-ResetLabInstance.yaml")
     names = [step["name"] for step in doc["mainSteps"]]
+    terminate = names.index("TerminateInstanceInAutoScalingGroup")
 
-    assert names.index("ValidateResettableTarget") < names.index("TerminateCurrentInstance")
-    assert names.index("DescribeCurrentInstance") < names.index("TerminateCurrentInstance")
-    assert names.index("LaunchReplacement") > names.index("TerminateCurrentInstance")
-    assert set(doc["parameters"]) == {"CurrentInstanceId", "LaunchTemplateId",
-                                      "LaunchTemplateVersion", "AutomationAssumeRole",
-                                      "CorrelationId"}
+    assert names.index("ValidateResettableTarget") < terminate
+    assert names.index("DescribeCurrentInstance") < terminate
+    assert names.index("DescribeAutoScalingMembership") < terminate
+    assert names.index("ValidateAutoScalingGroup") < terminate
+    assert names.index("WaitForReplacementInstance") > terminate
+    # LaunchTemplateId/Version ya no son parámetros públicos: son del ASG.
+    assert set(doc["parameters"]) == {"CurrentInstanceId", "AutoScalingGroupName",
+                                      "AutomationAssumeRole", "CorrelationId"}
     assert doc["outputs"] == [
         "Report.OldInstanceId", "Report.NewInstanceId", "Report.LogicalLabId",
         "Report.VulnerableState", "Report.HealthState", "Report.CorrelationId"]
 
 
-def test_reset_runbook_recreates_from_a_fixed_launch_template_version():
+def test_reset_replaces_the_instance_only_through_auto_scaling():
     doc = document("MSR-ResetLabInstance.yaml")
-    launch = next(s for s in doc["mainSteps"] if s["name"] == "LaunchReplacement")
+    raw = document_source("MSR-ResetLabInstance.yaml")
+    terminate = next(s for s in doc["mainSteps"]
+                     if s["name"] == "TerminateInstanceInAutoScalingGroup")
 
-    assert launch["inputs"]["Api"] == "RunInstances"
-    template = launch["inputs"]["LaunchTemplate"]
-    assert template["LaunchTemplateId"] == "{{ LaunchTemplateId }}"
-    assert template["Version"] == "{{ LaunchTemplateVersion }}"
-    assert "$Latest" not in str(launch)
+    assert terminate["inputs"]["Service"] == "autoscaling"
+    assert terminate["inputs"]["Api"] == "TerminateInstanceInAutoScalingGroup"
+    assert terminate["inputs"]["ShouldDecrementDesiredCapacity"] is False
+    assert "TerminateInstances" not in raw
+    assert "RunInstances" not in raw
+
+
+def test_reset_validates_the_expected_launch_template_and_capacity():
+    raw = document_source("MSR-ResetLabInstance.yaml")
+
+    for error in ("RESET_ASG_NOT_ALLOWED", "RESET_INSTANCE_NOT_IN_ASG",
+                  "RESET_ASG_CAPACITY_UNEXPECTED",
+                  "RESET_ASG_LAUNCH_TEMPLATE_UNEXPECTED",
+                  "RESET_ASG_LAUNCH_TEMPLATE_VERSION_UNEXPECTED"):
+        assert error in raw
+    assert "$Latest" not in raw
+
+
+def test_reset_rejects_an_unverifiable_ami():
+    raw = document_source("MSR-ResetLabInstance.yaml")
+
+    assert "RESET_AMI_UNVERIFIABLE" in raw
+    assert 'reported_ami == "unknown"' in raw
 
 
 def test_no_runbook_accepts_free_form_commands_from_the_caller():
@@ -205,6 +281,68 @@ def test_no_runbook_accepts_free_form_commands_from_the_caller():
         forbidden = {"Commands", "Command", "Script", "SourceInfo", "Parameters",
                      "DocumentName", "Operation", "InstallOverrideList"}
         assert not forbidden & set(parameters)
+
+
+def test_the_lab_instance_is_managed_by_an_autoscaling_group_of_fixed_capacity():
+    ec2 = code("ec2.tf")
+
+    # Sin instancia suelta administrada por Terraform: no hay deriva posible.
+    assert 'resource "aws_instance" "lab"' not in ec2
+    assert 'resource "aws_autoscaling_group" "lab"' in ec2
+    for key in ("min_size", "max_size", "desired_capacity"):
+        assert re.search(rf"^\s*{key}\s*=\s*1$", ec2, re.M)
+    assert re.search(r'^\s*health_check_type\s*=\s*"EC2"$', ec2, re.M)
+    assert re.search(r"^\s*protect_from_scale_in\s*=\s*false$", ec2, re.M)
+    assert "propagate_at_launch = true" in ec2
+    assert "aws_autoscaling_policy" not in ec2
+    assert "instance_market_options" not in ec2
+
+
+def test_no_terraform_file_declares_a_standalone_lab_instance():
+    for path in INFRA.glob("*.tf"):
+        assert 'resource "aws_instance"' not in path.read_text(encoding="utf-8")
+
+
+def test_the_autoscaling_group_pins_an_explicit_launch_template_version():
+    block = code("ec2.tf").split('resource "aws_autoscaling_group" "lab"')[1]
+
+    assert "aws_launch_template.lab[0].id" in block
+    assert "aws_launch_template.lab[0].latest_version" in block
+    assert "$Latest" not in block
+
+
+def test_terraform_exposes_the_autoscaling_outputs():
+    outputs = code("outputs.tf")
+
+    for name in ("autoscaling_group_name", "autoscaling_group_arn", "launch_template_id",
+                 "launch_template_version", "lab_instance_id"):
+        assert f'output "{name}"' in outputs
+    # El Instance ID es dinamico: lo mantiene el ASG, no el estado de Terraform.
+    assert "DIN\u00c1MICO" in read("outputs.tf")
+
+
+def test_automation_role_replaces_instances_only_through_auto_scaling():
+    block = policy_document("automation")
+    allow = "".join(b for b in block.split("statement {") if 'effect = "Allow"' in b)
+    deny = "".join(b for b in block.split("statement {") if 'effect = "Deny"' in b)
+
+    assert '"autoscaling:TerminateInstanceInAutoScalingGroup"' in allow
+    for removed in ("ec2:RunInstances", "ec2:TerminateInstances", "ec2:CreateTags",
+                    "iam:PassRole"):
+        assert f'"{removed}"' not in allow
+    assert '"ec2:RunInstances"' in deny
+    assert '"ec2:TerminateInstances"' in deny
+
+
+def test_application_role_cannot_mutate_auto_scaling_or_ec2():
+    block = policy_document("application")
+    deny = "".join(b for b in block.split("statement {") if 'effect = "Deny"' in b)
+
+    for denied in ("ec2:RunInstances", "ec2:TerminateInstances",
+                   "autoscaling:TerminateInstanceInAutoScalingGroup",
+                   "autoscaling:SetDesiredCapacity",
+                   "autoscaling:UpdateAutoScalingGroup"):
+        assert f'"{denied}"' in deny
 
 
 def test_terraform_state_and_tfvars_are_not_versioned():

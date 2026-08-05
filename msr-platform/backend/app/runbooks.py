@@ -96,15 +96,17 @@ CONTRACTS: dict[str, RunbookContract] = {
         optional_parameters=frozenset({"AutomationAssumeRole", "TargetVersion", "SnapshotId"}),
         forbidden_parameters=_FORBIDDEN,
     ),
-    # Reset del laboratorio: termina la instancia actual y la recrea desde una
-    # versión fija del Launch Template (nunca $Latest sin control).
+    # Reset del laboratorio: Auto Scaling sustituye la instancia actual dentro
+    # del grupo de capacidad fija 1. El Launch Template y su versión son
+    # propiedad del ASG y ya no se envían como parámetros del runbook.
     OPERATION_RESET_LAB: RunbookContract(
         operation=OPERATION_RESET_LAB,
-        required_parameters=frozenset({"CurrentInstanceId", "LaunchTemplateId",
-                                       "LaunchTemplateVersion"}),
+        required_parameters=frozenset({"CurrentInstanceId", "AutoScalingGroupName"}),
         optional_parameters=frozenset({"AutomationAssumeRole", "CorrelationId"}),
         forbidden_parameters=_FORBIDDEN | frozenset({"VulnerableAmiId", "TargetVersion",
-                                                     "SnapshotId", "LogicalLabId"}),
+                                                     "SnapshotId", "LogicalLabId",
+                                                     "LaunchTemplateId",
+                                                     "LaunchTemplateVersion"}),
     ),
 }
 

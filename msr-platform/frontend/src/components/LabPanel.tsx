@@ -137,6 +137,9 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked }:
         <Field label="Cuenta / región"
           value={`${instance?.account_id ?? snapshot.lab?.account_id ?? "—"} · ${instance?.region ?? snapshot.lab?.region ?? "—"}`} />
         <Field label="Resets ejecutados" value={String(resets.length)} />
+        {/* Sólo lectura: el grupo lo fija la IaC y el backend; la UI no lo envía nunca. */}
+        <Field label="Auto Scaling Group"
+          value={snapshot.lab?.autoscaling_group_name ?? "—"} mono />
       </div>
 
       {snapshot.resolution_error && (

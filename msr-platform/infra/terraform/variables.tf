@@ -103,6 +103,17 @@ variable "root_volume_size_gib" {
   }
 }
 
+variable "asg_health_check_grace_period_seconds" {
+  description = "Margen antes de que el ASG evalúe la salud de una instancia nueva."
+  type        = number
+  default     = 300
+
+  validation {
+    condition     = var.asg_health_check_grace_period_seconds >= 60
+    error_message = "El periodo de gracia debe permitir el bootstrap (>= 60 s)."
+  }
+}
+
 variable "patch_group" {
   description = "Valor del tag `Patch Group` que asocia la instancia al baseline."
   type        = string

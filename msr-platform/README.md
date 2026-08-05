@@ -93,16 +93,21 @@ en paralelo sin compartir una conexión entre hilos.
 ### Laboratorio EC2 reseteable
 
 La PoC trabaja sobre una **única** instancia de laboratorio identificada por su
-identificador lógico (`MSR_LAB_LOGICAL_ID`, tag `msr-lab-id`), no por Instance ID: cada
-`reset_lab` termina la instancia y crea otra desde el Launch Template, así que el Instance
-ID se resuelve en cada operación por tags (`DescribeInstances`) y debe haber **exactamente
-una** instancia activa (`LAB_TARGET_NOT_FOUND` / `LAB_TARGET_AMBIGUOUS` en caso contrario).
+identificador lógico (`MSR_LAB_LOGICAL_ID`, tag `msr-lab-id`), no por Instance ID: la
+mantiene viva un **Auto Scaling Group de capacidad fija 1** (`MSR_LAB_AUTOSCALING_GROUP_NAME`)
+y cada `reset_lab` la sustituye dentro de ese grupo
+(`TerminateInstanceInAutoScalingGroup` con `ShouldDecrementDesiredCapacity=false`), nunca
+con `ec2:TerminateInstances`/`ec2:RunInstances`. El Instance ID se resuelve en cada
+operación por tags (`DescribeInstances`), debe haber **exactamente una** instancia activa
+(`LAB_TARGET_NOT_FOUND` / `LAB_TARGET_AMBIGUOUS`) y debe pertenecer al ASG configurado
+(`LAB_TARGET_NOT_IN_AUTOSCALING_GROUP`). El nombre del ASG sale siempre de la
+configuración: ni la API ni la UI lo aceptan como entrada.
 
 `reset_lab` **no es un rollback**: no deshace un despliegue fallido, sino que recrea la
 instancia vulnerable para repetir la PoC. No incrementa `rings_done`, conserva el historial
 de jobs y actualiza `LabTarget.current_instance_id` al completarse.
 
-La infraestructura (VPC/subnet existentes, Launch Template, IAM, patch baseline y los dos
+La infraestructura (VPC/subnet existentes, Launch Template, ASG, IAM, patch baseline y los dos
 runbooks Automation) está en [`infra/terraform/`](infra/terraform/README.md) con
 `enable_real_resources = false` por defecto: con ese valor no se crea ningún recurso.
 
@@ -113,7 +118,9 @@ la revisión técnica en
 concurrencia y credenciales en
 [`IMPLEMENTATION_REPORT_PHASE1_2.md`](IMPLEMENTATION_REPORT_PHASE1_2.md). La
 infraestructura, los runbooks y la integración del laboratorio, en
-[`IMPLEMENTATION_REPORT_PHASE2.md`](IMPLEMENTATION_REPORT_PHASE2.md).
+[`IMPLEMENTATION_REPORT_PHASE2.md`](IMPLEMENTATION_REPORT_PHASE2.md); la migración a Auto
+Scaling Group y la verificación estricta del parcheo, en
+[`IMPLEMENTATION_REPORT_PHASE2_1.md`](IMPLEMENTATION_REPORT_PHASE2_1.md).
 
 ## Tests, lint y build
 
@@ -227,7 +234,7 @@ frontend/src/
   pages/      # Dashboard, Tasks, TaskDetail, Cmdb, Catalog, Integrations
   components/ # ImpactGraphView (React Flow), LabPanel (laboratorio EC2)
 infra/terraform/
-  *.tf          # red, IAM, Launch Template, instancia, patch baseline, documentos
+  *.tf          # red, IAM, Launch Template, ASG 1/1/1, patch baseline, documentos
   documents/    # runbooks Automation MSR-PatchLinuxInstance y MSR-ResetLabInstance
 ```
 

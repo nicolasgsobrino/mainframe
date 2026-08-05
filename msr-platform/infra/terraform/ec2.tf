@@ -80,21 +80,42 @@ resource "aws_launch_template" "lab" {
   }
 }
 
-resource "aws_instance" "lab" {
+# La instancia del laboratorio la mantiene un Auto Scaling Group de capacidad
+# fija 1: el reset sustituye la instancia dentro del grupo, de modo que Terraform
+# conserva el control del laboratorio y un `plan` posterior no intenta crear una
+# segunda instancia independiente (que es lo que ocurría con `aws_instance`).
+resource "aws_autoscaling_group" "lab" {
   count = local.enabled
 
+  name                = "${local.name_prefix}-asg"
+  min_size            = 1
+  max_size            = 1
+  desired_capacity    = 1
+  vpc_zone_identifier = [var.subnet_id]
+
+  health_check_type         = "EC2"
+  health_check_grace_period = var.asg_health_check_grace_period_seconds
+  capacity_rebalance        = false
+  # El reset debe poder sustituir la instancia: sin protección de scale-in.
+  protect_from_scale_in = false
+
   launch_template {
-    id      = aws_launch_template.lab[0].id
+    id = aws_launch_template.lab[0].id
+    # Versión fija y explícita: nunca $Latest ni $Default.
     version = aws_launch_template.lab[0].latest_version
   }
 
-  tags        = local.instance_tags
-  volume_tags = local.instance_tags
+  dynamic "tag" {
+    for_each = local.instance_tags
+
+    content {
+      key                 = tag.key
+      value               = tag.value
+      propagate_at_launch = true
+    }
+  }
 
   lifecycle {
-    # El reset del laboratorio se hace por runbook, no recreando desde Terraform.
-    ignore_changes = [launch_template, tags, volume_tags]
-
     precondition {
       condition     = data.aws_caller_identity.current[0].account_id == var.aws_account_id
       error_message = "Las credenciales pertenecen a una cuenta distinta de ${var.aws_account_id}."

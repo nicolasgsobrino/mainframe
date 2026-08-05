@@ -27,7 +27,7 @@ laboratorio deje de ser desechable habrá que mover el backend a S3 + DynamoDB.
 | `data.tf` | Consultas de sólo lectura y `check` de cuenta/región/VPC/AMI |
 | `networking.tf` | Security group **sin ingress** y egress DNS/HTTPS |
 | `iam.tf` | Roles de instancia, Automation y aplicación |
-| `ec2.tf` | Launch Template + instancia del laboratorio |
+| `ec2.tf` | Launch Template + Auto Scaling Group (1/1/1) del laboratorio |
 | `patching.tf` | Patch baseline y patch group |
 | `automation-documents.tf` | Registro de los runbooks Automation |
 | `documents/*.yaml` | Cuerpo de los runbooks (plantillas `templatefile`) |
@@ -37,7 +37,7 @@ laboratorio deje de ser desechable habrá que mover el backend a S3 + DynamoDB.
 ## Guardrails
 
 - `allowed_account_ids` en el provider: credenciales de otra cuenta → error.
-- Preconditions en `aws_instance.lab` y `aws_launch_template.lab`: cuenta,
+- Preconditions en `aws_autoscaling_group.lab` y `aws_launch_template.lab`: cuenta,
   región, pertenencia de la subnet a la VPC, arquitectura `x86_64`, propietario
   Amazon de la AMI y presencia de todos los valores obligatorios.
 - Validaciones de variable: formato de la cuenta y del advisory, volumen ≥ 8 GiB

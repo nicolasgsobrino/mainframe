@@ -30,6 +30,18 @@ data "aws_ami" "lab" {
   }
 }
 
+# Instancia que el ASG mantiene viva en este momento. Es sólo informativa: el
+# Instance ID cambia con cada reset y el backend lo resuelve por tags, nunca desde
+# el estado de Terraform.
+data "aws_instances" "lab" {
+  count = local.enabled
+
+  instance_tags        = local.instance_tags
+  instance_state_names = ["running"]
+
+  depends_on = [aws_autoscaling_group.lab]
+}
+
 # --- Guardrails: cualquier desviación detiene el apply -----------------------
 
 check "account_and_region" {

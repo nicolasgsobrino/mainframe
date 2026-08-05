@@ -128,6 +128,11 @@ data "aws_iam_policy_document" "automation" {
       "ssm:GetAutomationExecution",
       "ssm:GetPatchBaseline",
       "ssm:DescribePatchGroups",
+      # Auto Scaling no admite permisos a nivel de recurso en sus Describe*
+      # (limitación documentada de la API): el filtrado real lo hace el runbook,
+      # que compara el nombre del ASG con el fijado por IaC.
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:DescribeAutoScalingInstances",
     ]
 
     resources = ["*"]
@@ -165,7 +170,8 @@ data "aws_iam_policy_document" "automation" {
     }
   }
 
-  # Reinicio y terminación exclusivamente de la instancia del laboratorio.
+  # Reinicio exclusivamente de la instancia del laboratorio. La sustitución ya no
+  # la hace este rol con ec2:TerminateInstances, sino el Auto Scaling Group.
   statement {
     sid    = "ManageLabInstanceLifecycle"
     effect = "Allow"
@@ -174,7 +180,6 @@ data "aws_iam_policy_document" "automation" {
       "ec2:RebootInstances",
       "ec2:StopInstances",
       "ec2:StartInstances",
-      "ec2:TerminateInstances",
     ]
 
     resources = ["arn:aws:ec2:${var.aws_region}:${var.aws_account_id}:instance/*"]
@@ -190,66 +195,24 @@ data "aws_iam_policy_document" "automation" {
     }
   }
 
-  # Creación de la instancia de repuesto: sólo desde el Launch Template y la
-  # AMI permitidos, y sólo con los tags del laboratorio.
+  # Sustitución de la instancia: Auto Scaling termina la actual y crea la nueva
+  # desde el Launch Template. Restringido al ARN del ASG del laboratorio.
   statement {
-    sid    = "RunInstancesFromLaunchTemplateOnly"
+    sid    = "ReplaceLabInstanceThroughAutoScalingOnly"
     effect = "Allow"
 
-    actions = ["ec2:RunInstances"]
-
-    resources = [
-      "arn:aws:ec2:${var.aws_region}:${var.aws_account_id}:instance/*",
-      "arn:aws:ec2:${var.aws_region}:${var.aws_account_id}:volume/*",
-      "arn:aws:ec2:${var.aws_region}:${var.aws_account_id}:network-interface/*",
-      "arn:aws:ec2:${var.aws_region}:${var.aws_account_id}:security-group/${try(aws_security_group.lab[0].id, "*")}",
-      "arn:aws:ec2:${var.aws_region}:${var.aws_account_id}:subnet/${var.subnet_id}",
-      "arn:aws:ec2:${var.aws_region}:${var.aws_account_id}:launch-template/${try(aws_launch_template.lab[0].id, "*")}",
-      "arn:aws:ec2:${var.aws_region}::image/${var.source_ami_id}",
-    ]
+    actions   = ["autoscaling:TerminateInstanceInAutoScalingGroup"]
+    resources = [try(aws_autoscaling_group.lab[0].arn, "*")]
   }
 
+  # Prohibiciones explícitas: ni crear ni terminar instancias directamente.
   statement {
-    sid    = "TagOnlyExpectedTags"
-    effect = "Allow"
-
-    actions   = ["ec2:CreateTags"]
-    resources = ["arn:aws:ec2:${var.aws_region}:${var.aws_account_id}:*/*"]
-
-    condition {
-      test     = "StringEquals"
-      variable = "ec2:CreateAction"
-      values   = ["RunInstances"]
-    }
-
-    condition {
-      test     = "ForAllValues:StringEquals"
-      variable = "aws:TagKeys"
-      values   = concat(keys(local.instance_tags), ["msr-managed-by"])
-    }
-  }
-
-  # Pasar únicamente el instance profile del laboratorio.
-  statement {
-    sid    = "PassLabInstanceProfileOnly"
-    effect = "Allow"
-
-    actions   = ["iam:PassRole"]
-    resources = [try(aws_iam_role.instance[0].arn, "*")]
-
-    condition {
-      test     = "StringEquals"
-      variable = "iam:PassedToService"
-      values   = ["ec2.amazonaws.com"]
-    }
-  }
-
-  # Prohibiciones explícitas.
-  statement {
-    sid    = "DenyIamAndArbitraryDocuments"
+    sid    = "DenyDirectInstanceLifecycleAndIam"
     effect = "Deny"
 
     actions = [
+      "ec2:RunInstances",
+      "ec2:TerminateInstances",
       "iam:CreateRole",
       "iam:CreatePolicy",
       "iam:AttachRolePolicy",
@@ -309,6 +272,10 @@ data "aws_iam_policy_document" "application" {
       "ssm:GetAutomationExecution",
       "ssm:DescribeAutomationExecutions",
       "ssm:DescribeAutomationStepExecutions",
+      # Sólo lectura: confirmar que la instancia resuelta pertenece al ASG
+      # esperado. Auto Scaling no admite resource-level en sus Describe*.
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:DescribeAutoScalingInstances",
     ]
 
     resources = ["*"]
@@ -358,6 +325,10 @@ data "aws_iam_policy_document" "application" {
       "ssm:SendCommand",
       "ec2:RunInstances",
       "ec2:TerminateInstances",
+      # El control plane nunca toca Auto Scaling: sólo inicia el runbook.
+      "autoscaling:TerminateInstanceInAutoScalingGroup",
+      "autoscaling:SetDesiredCapacity",
+      "autoscaling:UpdateAutoScalingGroup",
       "iam:*",
     ]
 

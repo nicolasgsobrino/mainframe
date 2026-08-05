@@ -1,6 +1,20 @@
 output "lab_instance_id" {
-  description = "Instancia actual del laboratorio (vacío mientras enable_real_resources = false)."
-  value       = try(aws_instance.lab[0].id, "")
+  description = <<-EOT
+    Instancia actual del laboratorio. Es un valor DINÁMICO: lo mantiene el Auto
+    Scaling Group y cambia con cada reset, así que no debe fijarse en el backend
+    (que resuelve la instancia por tags). Vacío con enable_real_resources = false.
+  EOT
+  value       = try(one(data.aws_instances.lab[*].ids[0]), "")
+}
+
+output "autoscaling_group_name" {
+  description = "ASG de capacidad fija 1 que mantiene la instancia; valor de MSR_LAB_AUTOSCALING_GROUP_NAME."
+  value       = try(aws_autoscaling_group.lab[0].name, "")
+}
+
+output "autoscaling_group_arn" {
+  description = "ARN del ASG del laboratorio."
+  value       = try(aws_autoscaling_group.lab[0].arn, "")
 }
 
 output "lab_logical_id" {
@@ -9,13 +23,13 @@ output "lab_logical_id" {
 }
 
 output "lab_public_ip" {
-  description = "IPv4 pública (no hay ingress abierto; se usa sólo para diagnóstico)."
-  value       = try(aws_instance.lab[0].public_ip, "")
+  description = "IPv4 pública dinámica (no hay ingress abierto; sólo diagnóstico)."
+  value       = try(one(data.aws_instances.lab[*].public_ips[0]), "")
 }
 
 output "lab_private_ip" {
-  value       = try(aws_instance.lab[0].private_ip, "")
-  description = "IPv4 privada de la instancia del laboratorio."
+  value       = try(one(data.aws_instances.lab[*].private_ips[0]), "")
+  description = "IPv4 privada dinámica de la instancia actual del laboratorio."
 }
 
 output "launch_template_id" {
@@ -108,7 +122,7 @@ output "estimated_resource_summary" {
       "aws_iam_role.application",
       "aws_iam_role_policy.application",
       "aws_launch_template.lab",
-      "aws_instance.lab",
+      "aws_autoscaling_group.lab",
       "aws_ssm_patch_baseline.lab",
       "aws_ssm_patch_group.lab",
       "aws_ssm_document.patch",

@@ -110,12 +110,27 @@ def test_a_second_reset_is_rejected_while_one_is_active(lab_client, lab_store):
 def test_lab_endpoints_never_accept_instance_ids_or_commands(lab_client):
     """Ningún endpoint del laboratorio admite Instance IDs ni comandos libres."""
     payload = {"instance_id": "i-0deadbeefdeadbeef", "commands": ["rm -rf /"],
-               "document_name": "AWS-RunShellScript"}
+               "document_name": "AWS-RunShellScript",
+               "autoscaling_group_name": "asg-de-otro-equipo",
+               "launch_template_id": "lt-0deadbeefdeadbeef",
+               "launch_template_version": "$Latest"}
 
     reset = lab_client.post(f"/api/labs/{LAB_ID}/reset", json=payload)
 
     assert reset.status_code == 202
     job = reset.json()["job"]
     assert job["targets"][0]["instance_id"] != payload["instance_id"]
-    assert "commands" not in job["request"]
-    assert "document_name" not in job["request"]
+    for forbidden in ("commands", "document_name", "autoscaling_group_name",
+                      "launch_template_id", "launch_template_version"):
+        assert forbidden not in job["request"]
+
+
+def test_lab_status_exposes_the_autoscaling_group_as_read_only(lab_client, lab_store):
+    """El ASG lo fija la IaC: la UI lo muestra, nunca lo elige."""
+    lab_store.settings.lab_autoscaling_group_name = "msr-poc-linux-patching-01-asg"
+    lab_store.register_lab_target({"logical_lab_id": LAB_ID,
+                                   "autoscaling_group_name": "asg-de-otro-equipo"})
+
+    body = lab_client.get(f"/api/labs/{LAB_ID}").json()
+
+    assert body["lab"]["autoscaling_group_name"] == "msr-poc-linux-patching-01-asg"

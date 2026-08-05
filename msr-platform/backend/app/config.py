@@ -74,6 +74,9 @@ class Settings(BaseSettings):
     patch_package_family: str = "kernel"
     lab_launch_template_id: str = ""
     lab_launch_template_version: str = ""
+    # El reset sustituye la instancia dentro de este Auto Scaling Group. El valor
+    # lo fija la IaC y nunca puede llegar desde la API ni desde el frontend.
+    lab_autoscaling_group_name: str = ""
 
     # --- Política de objetivos --------------------------------------------
     allowed_account_ids: list[str] = Field(default_factory=list)
@@ -201,6 +204,11 @@ class Settings(BaseSettings):
             missing.append("MSR_SANDBOX_INSTANCE_ID")
         if self.lab_logical_id and not self.lab_tag_key:
             missing.append("MSR_LAB_TAG_KEY")
+        # El reset real sustituye la instancia dentro del ASG: sin el nombre del
+        # grupo no hay reset posible (y nunca se acepta desde la API).
+        if (self.restore_provider == PROVIDER_AWS_AUTOMATION
+                and self.reset_runbook_name and not self.lab_autoscaling_group_name):
+            missing.append("MSR_LAB_AUTOSCALING_GROUP_NAME")
         if missing:
             raise ConfigurationError(
                 "Ejecución real en AWS (MSR_DRY_RUN=false) con política incompleta. "

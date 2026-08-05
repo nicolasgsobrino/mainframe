@@ -9,6 +9,7 @@ import pytest
 
 from app.labs import (
     ERROR_AMBIGUOUS,
+    ERROR_ASG,
     ERROR_NOT_FOUND,
     ERROR_TAGS,
     AwsLabResolver,
@@ -52,12 +53,26 @@ class FakeSsm:
         return {"InstanceInformationList": [{"PingStatus": "Online"}]}
 
 
+class FakeAutoScaling:
+    def __init__(self, group_name: str | None):
+        self.group_name = group_name
+        self.calls: list[dict] = []
+
+    def describe_auto_scaling_instances(self, **kwargs):
+        self.calls.append(kwargs)
+        if self.group_name is None:
+            return {"AutoScalingInstances": []}
+        return {"AutoScalingInstances": [{"AutoScalingGroupName": self.group_name,
+                                          "LifecycleState": "InService"}]}
+
+
 class FakeProvider:
     name = "aws-automation"
 
-    def __init__(self, instances):
+    def __init__(self, instances, group_name: str | None = None):
         self.ec2 = FakeEc2(instances)
         self.ssm = FakeSsm()
+        self.autoscaling = FakeAutoScaling(group_name)
 
 
 def resolver(aws_settings, instances) -> AwsLabResolver:
@@ -138,6 +153,37 @@ def test_mock_resolver_does_not_touch_aws(settings, repo):
 
     assert mock_resolver.resolve(LAB_ID).instance_id == INSTANCE
     assert mock_resolver.source == "mock"
+
+
+def test_resolution_requires_membership_in_the_configured_autoscaling_group(aws_settings):
+    aws_settings.lab_logical_id = LAB_ID
+    aws_settings.lab_autoscaling_group_name = "msr-poc-linux-patching-01-asg"
+    provider = FakeProvider([instance()], group_name="msr-poc-linux-patching-01-asg")
+
+    resolved = AwsLabResolver(aws_settings, provider).resolve(LAB_ID)
+
+    assert resolved.instance_id == INSTANCE
+    assert provider.autoscaling.calls == [{"InstanceIds": [INSTANCE]}]
+
+
+@pytest.mark.parametrize("group", [None, "asg-de-otro-equipo"])
+def test_an_instance_outside_the_expected_group_is_rejected(aws_settings, group):
+    aws_settings.lab_logical_id = LAB_ID
+    aws_settings.lab_autoscaling_group_name = "msr-poc-linux-patching-01-asg"
+    provider = FakeProvider([instance()], group_name=group)
+
+    with pytest.raises(LabResolutionError) as excinfo:
+        AwsLabResolver(aws_settings, provider).resolve(LAB_ID)
+
+    assert excinfo.value.code == ERROR_ASG
+
+
+def test_default_lab_target_takes_the_autoscaling_group_from_configuration(settings):
+    settings.lab_autoscaling_group_name = "msr-poc-linux-patching-01-asg"
+
+    lab = default_lab_target(settings, LAB_ID)
+
+    assert lab.autoscaling_group_name == "msr-poc-linux-patching-01-asg"
 
 
 def test_default_lab_target_has_no_fixed_instance_id(settings):

@@ -5,11 +5,17 @@
 # Los únicos parámetros de entrada son InstanceId, AutomationAssumeRole y
 # CorrelationId: no se acepta nombre de paquete, comando, advisory, documento
 # ni URL desde el exterior.
+#
+# Systems Manager Automation sólo permite consumir el output de UNA acción
+# `aws:runCommand` por runbook. Por eso el precheck y el postcheck no usan
+# `aws:runCommand`: envían el script con `ssm:SendCommand`, esperan con
+# `ssm:GetCommandInvocation` y leen `StandardOutputContent`. La única acción
+# `aws:runCommand` es la instalación, y no declara outputs.
 schemaVersion: '0.3'
 description: >-
   MSR PoC: aplica el advisory ${candidate_advisory_id} sobre la instancia del
   laboratorio ${lab_id} mediante AWS-RunPatchBaseline, con precheck y postcheck
-  de solo lectura y verificación de salud.
+  de solo lectura y verificación estricta de kernel y salud.
 assumeRole: '{{ AutomationAssumeRole }}'
 parameters:
   InstanceId:
@@ -29,6 +35,7 @@ outputs:
   - Report.Advisory
   - Report.PreviousKernel
   - Report.CurrentKernel
+  - Report.LatestInstalledKernel
   - Report.RebootPerformed
   - Report.PatchStatus
   - Report.HealthStatus
@@ -121,29 +128,58 @@ mainSteps:
       DesiredValues:
         - Online
 
-  # 6) Precheck de SOLO LECTURA (comandos fijos, sin datos del frontend).
-  - name: Precheck
-    action: aws:runCommand
-    timeoutSeconds: 600
+  # 6) Precheck de SOLO LECTURA. Comandos fijos, sin datos del frontend, y sin
+  #    gastar la única acción `aws:runCommand` con output del runbook.
+  - name: SendPrecheckCommand
+    action: aws:executeAwsApi
     onFailure: 'step:FailPrecheck'
     inputs:
+      Service: ssm
+      Api: SendCommand
       DocumentName: AWS-RunShellScript
       InstanceIds:
         - '{{ InstanceId }}'
+      TimeoutSeconds: 600
       Parameters:
         commands:
           - set -uo pipefail
           - echo "MSR_OS=$(. /etc/os-release && echo $${PRETTY_NAME})"
           - echo "MSR_KERNEL_RUNNING=$(uname -r)"
-          - echo "MSR_KERNEL_INSTALLED=$(rpm -q --last kernel | head -n1 | awk '{print $1}')"
+          - echo "MSR_KERNEL_INSTALLED=$(rpm -q --qf '%%{VERSION}-%%{RELEASE}.%%{ARCH}\n' kernel | sort -V | tail -1)"
           - echo "MSR_ADVISORY=${candidate_advisory_id}"
-          - 'if dnf updateinfo list --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
+          - 'if dnf updateinfo list --available --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
           - echo "MSR_HTTPD=$(systemctl is-active httpd || true)"
           - echo "MSR_HEALTH=$(curl -sf --max-time 5 http://127.0.0.1/health || echo UNREACHABLE)"
           - exit 0
     outputs:
-      - Name: Output
-        Selector: '$.Output'
+      - Name: CommandId
+        Selector: '$.Command.CommandId'
+        Type: String
+
+  - name: WaitForPrecheckCommand
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 900
+    onFailure: 'step:FailPrecheck'
+    inputs:
+      Service: ssm
+      Api: GetCommandInvocation
+      CommandId: '{{ SendPrecheckCommand.CommandId }}'
+      InstanceId: '{{ InstanceId }}'
+      PropertySelector: '$.Status'
+      DesiredValues:
+        - Success
+
+  - name: GetPrecheckOutput
+    action: aws:executeAwsApi
+    onFailure: 'step:FailPrecheck'
+    inputs:
+      Service: ssm
+      Api: GetCommandInvocation
+      CommandId: '{{ SendPrecheckCommand.CommandId }}'
+      InstanceId: '{{ InstanceId }}'
+    outputs:
+      - Name: StandardOutputContent
+        Selector: '$.StandardOutputContent'
         Type: String
 
   - name: ParsePrecheck
@@ -153,8 +189,16 @@ mainSteps:
       Runtime: python3.11
       Handler: handler
       InputPayload:
-        output: '{{ Precheck.Output }}'
+        output: '{{ GetPrecheckOutput.StandardOutputContent }}'
       Script: |
+        REQUIRED = (
+            "MSR_ADVISORY_APPLICABLE",
+            "MSR_KERNEL_RUNNING",
+            "MSR_KERNEL_INSTALLED",
+            "MSR_HTTPD",
+            "MSR_HEALTH",
+        )
+
         def parse(text):
             values = {}
             for line in (text or "").splitlines():
@@ -165,12 +209,16 @@ mainSteps:
 
         def handler(events, context):
             values = parse(events["output"])
+            # Un valor ausente NUNCA se sustituye por "unknown": el precheck falla.
+            missing = [k for k in REQUIRED if not values.get(k)]
+            if missing:
+                raise Exception("PRECHECK_OUTPUT_INCOMPLETE:" + ",".join(missing))
             return {
-                "applicable": values.get("MSR_ADVISORY_APPLICABLE", "false"),
-                "kernel_running": values.get("MSR_KERNEL_RUNNING", "unknown"),
-                "kernel_installed": values.get("MSR_KERNEL_INSTALLED", "unknown"),
-                "health": values.get("MSR_HEALTH", "UNREACHABLE"),
-                "httpd": values.get("MSR_HTTPD", "unknown"),
+                "applicable": values["MSR_ADVISORY_APPLICABLE"],
+                "kernel_running": values["MSR_KERNEL_RUNNING"],
+                "kernel_installed": values["MSR_KERNEL_INSTALLED"],
+                "health": values["MSR_HEALTH"],
+                "httpd": values["MSR_HTTPD"],
             }
     outputs:
       - Name: Applicable
@@ -196,8 +244,10 @@ mainSteps:
           StringEquals: 'true'
       Default: FailAdvisoryNotApplicable
 
-  # 8) Instalación mediante el documento Command AWS-RunPatchBaseline, que sólo
-  #    puede invocarse desde un runbook Automation como éste.
+  # 8) Única acción `aws:runCommand` del runbook y SIN outputs: instala mediante
+  #    el documento Command AWS-RunPatchBaseline, que sólo puede invocarse desde
+  #    un runbook Automation como éste. Sin CloudWatchOutputConfig: no existen
+  #    todavía log group ni permisos de logs definidos para el rol Automation.
   - name: InstallPatchBaseline
     action: aws:runCommand
     timeoutSeconds: 3600
@@ -211,12 +261,6 @@ mainSteps:
           - Install
         RebootOption:
           - RebootIfNeeded
-      CloudWatchOutputConfig:
-        CloudWatchOutputEnabled: true
-    outputs:
-      - Name: Output
-        Selector: '$.Output'
-        Type: String
 
   # 9-10) Tras el posible reinicio: running y managed node otra vez.
   - name: WaitForInstanceRunningAfterPatch
@@ -247,30 +291,58 @@ mainSteps:
       DesiredValues:
         - Online
 
-  # 11) Postcheck: advisory ya no aplicable, kernel nuevo y servicio sano.
-  - name: Postcheck
-    action: aws:runCommand
-    timeoutSeconds: 900
+  # 11) Postcheck con el mismo patrón SendCommand + GetCommandInvocation.
+  - name: SendPostcheckCommand
+    action: aws:executeAwsApi
     onFailure: 'step:FailPostcheck'
     inputs:
+      Service: ssm
+      Api: SendCommand
       DocumentName: AWS-RunShellScript
       InstanceIds:
         - '{{ InstanceId }}'
+      TimeoutSeconds: 600
       Parameters:
         commands:
           - set -uo pipefail
           - echo "MSR_KERNEL_RUNNING=$(uname -r)"
-          - echo "MSR_KERNEL_INSTALLED=$(rpm -q --last kernel | head -n1 | awk '{print $1}')"
-          - 'if dnf updateinfo list --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
+          - echo "MSR_KERNEL_INSTALLED=$(rpm -q --qf '%%{VERSION}-%%{RELEASE}.%%{ARCH}\n' kernel | sort -V | tail -1)"
+          - 'if dnf updateinfo list --available --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
           - echo "MSR_HTTPD=$(systemctl is-active httpd || true)"
           - echo "MSR_HEALTH=$(curl -sf --max-time 5 http://127.0.0.1/health || echo UNREACHABLE)"
           - exit 0
     outputs:
-      - Name: Output
-        Selector: '$.Output'
+      - Name: CommandId
+        Selector: '$.Command.CommandId'
         Type: String
 
-  # 12) Outputs estructurados del runbook.
+  - name: WaitForPostcheckCommand
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 900
+    onFailure: 'step:FailPostcheck'
+    inputs:
+      Service: ssm
+      Api: GetCommandInvocation
+      CommandId: '{{ SendPostcheckCommand.CommandId }}'
+      InstanceId: '{{ InstanceId }}'
+      PropertySelector: '$.Status'
+      DesiredValues:
+        - Success
+
+  - name: GetPostcheckOutput
+    action: aws:executeAwsApi
+    onFailure: 'step:FailPostcheck'
+    inputs:
+      Service: ssm
+      Api: GetCommandInvocation
+      CommandId: '{{ SendPostcheckCommand.CommandId }}'
+      InstanceId: '{{ InstanceId }}'
+    outputs:
+      - Name: StandardOutputContent
+        Selector: '$.StandardOutputContent'
+        Type: String
+
+  # 12) Verificación estricta y outputs estructurados del runbook.
   - name: Report
     action: aws:executeScript
     isEnd: true
@@ -282,9 +354,16 @@ mainSteps:
         correlation_id: '{{ CorrelationId }}'
         previous_kernel: '{{ ParsePrecheck.PreviousKernel }}'
         previous_installed: '{{ ParsePrecheck.PreviousKernelInstalled }}'
-        postcheck: '{{ Postcheck.Output }}'
+        postcheck: '{{ GetPostcheckOutput.StandardOutputContent }}'
       Script: |
         ADVISORY = "${candidate_advisory_id}"
+        REQUIRED = (
+            "MSR_ADVISORY_APPLICABLE",
+            "MSR_KERNEL_RUNNING",
+            "MSR_KERNEL_INSTALLED",
+            "MSR_HTTPD",
+            "MSR_HEALTH",
+        )
 
         def parse(text):
             values = {}
@@ -296,19 +375,35 @@ mainSteps:
 
         def handler(events, context):
             after = parse(events["postcheck"])
-            current_kernel = after.get("MSR_KERNEL_RUNNING", "unknown")
-            still_applicable = after.get("MSR_ADVISORY_APPLICABLE", "true") == "true"
-            health = after.get("MSR_HEALTH", "UNREACHABLE")
-            healthy = health == "MSR_POC_HEALTHY" and after.get("MSR_HTTPD") == "active"
-            if still_applicable:
-                raise Exception("PATCH_NOT_EFFECTIVE:" + ADVISORY)
-            if not healthy:
-                raise Exception("HEALTH_CHECK_FAILED")
+            missing = [k for k in REQUIRED if not after.get(k)]
+            if missing:
+                raise Exception("POSTCHECK_OUTPUT_INCOMPLETE:" + ",".join(missing))
+
+            previous_kernel = events["previous_kernel"]
+            current_kernel = after["MSR_KERNEL_RUNNING"]
+            latest_installed = after["MSR_KERNEL_INSTALLED"]
+
+            # 1) El advisory ya no puede aparecer como actualización disponible.
+            if after["MSR_ADVISORY_APPLICABLE"] == "true":
+                raise Exception("ADVISORY_STILL_APPLICABLE:" + ADVISORY)
+            # 2) El kernel en ejecución tiene que haber cambiado.
+            if current_kernel == previous_kernel:
+                raise Exception("KERNEL_NOT_UPDATED:" + current_kernel)
+            # 3) Y tiene que ser el más reciente instalado (reinicio efectivo).
+            if current_kernel != latest_installed:
+                raise Exception(
+                    "KERNEL_NOT_RUNNING_LATEST:" + current_kernel + "!=" + latest_installed
+                )
+            # 4-5) Servicio activo y health check exacto.
+            if after["MSR_HTTPD"] != "active" or after["MSR_HEALTH"] != "MSR_POC_HEALTHY":
+                raise Exception("POST_PATCH_HEALTH_FAILED")
+
             return {
                 "Advisory": ADVISORY,
-                "PreviousKernel": events["previous_kernel"],
+                "PreviousKernel": previous_kernel,
                 "CurrentKernel": current_kernel,
-                "RebootPerformed": str(events["previous_kernel"] != current_kernel).lower(),
+                "LatestInstalledKernel": latest_installed,
+                "RebootPerformed": "true",
                 "PatchStatus": "PATCHED",
                 "HealthStatus": "HEALTHY",
                 "InstanceId": events["instance_id"],
@@ -323,6 +418,9 @@ mainSteps:
         Type: String
       - Name: CurrentKernel
         Selector: '$.Payload.CurrentKernel'
+        Type: String
+      - Name: LatestInstalledKernel
+        Selector: '$.Payload.LatestInstalledKernel'
         Type: String
       - Name: RebootPerformed
         Selector: '$.Payload.RebootPerformed'

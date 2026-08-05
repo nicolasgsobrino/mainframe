@@ -1278,6 +1278,8 @@ class Store:
             vulnerable_ami_id=payload.get("vulnerable_ami_id"),
             launch_template_id=payload.get("launch_template_id"),
             launch_template_version=payload.get("launch_template_version"),
+            # El ASG lo fija la configuración (IaC): nunca llega en el payload.
+            autoscaling_group_name=self.settings.lab_autoscaling_group_name or None,
             expected_vulnerable_package=payload.get("expected_vulnerable_package"),
             expected_vulnerable_version=payload.get("expected_vulnerable_version"),
             required_tags=dict(payload.get("required_tags") or {}),

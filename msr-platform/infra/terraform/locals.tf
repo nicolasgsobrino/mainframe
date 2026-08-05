@@ -4,6 +4,9 @@ locals {
   # Interruptor maestro: mientras sea 0 no se crea ningún recurso mutativo.
   enabled = var.enable_real_resources ? 1 : 0
 
+  # Nombre determinista del Auto Scaling Group del laboratorio.
+  autoscaling_group_name = "${local.name_prefix}-asg"
+
   # Tags que identifican inequívocamente al laboratorio. El runbook de reset
   # sólo puede terminar una instancia que los tenga todos.
   lab_required_tags = {
@@ -34,15 +37,16 @@ locals {
 
   # Valores que el backend debe recibir por entorno (ver outputs).
   backend_environment = {
-    MSR_AWS_REGION                = var.aws_region
-    MSR_ALLOWED_ACCOUNT_IDS       = var.aws_account_id
-    MSR_ALLOWED_REGIONS           = var.aws_region
-    MSR_ALLOWED_ENVIRONMENTS      = var.environment_tag
-    MSR_REQUIRED_TARGET_TAG_KEY   = "msr-poc"
-    MSR_REQUIRED_TARGET_TAG_VALUE = "true"
-    MSR_LAB_LOGICAL_ID            = var.lab_id
-    MSR_PATCH_ADVISORY_ID         = var.candidate_advisory_id
-    MSR_PATCH_RUNBOOK_NAME        = var.patch_runbook_name
-    MSR_RESET_RUNBOOK_NAME        = var.reset_runbook_name
+    MSR_AWS_REGION                 = var.aws_region
+    MSR_ALLOWED_ACCOUNT_IDS        = var.aws_account_id
+    MSR_ALLOWED_REGIONS            = var.aws_region
+    MSR_ALLOWED_ENVIRONMENTS       = var.environment_tag
+    MSR_REQUIRED_TARGET_TAG_KEY    = "msr-poc"
+    MSR_REQUIRED_TARGET_TAG_VALUE  = "true"
+    MSR_LAB_LOGICAL_ID             = var.lab_id
+    MSR_LAB_AUTOSCALING_GROUP_NAME = local.autoscaling_group_name
+    MSR_PATCH_ADVISORY_ID          = var.candidate_advisory_id
+    MSR_PATCH_RUNBOOK_NAME         = var.patch_runbook_name
+    MSR_RESET_RUNBOOK_NAME         = var.reset_runbook_name
   }
 }

@@ -1,6 +1,8 @@
 """Modelo persistente del laboratorio y distinción rollback / reset_lab."""
 from __future__ import annotations
 
+import sqlite3
+
 import pytest
 
 from app.errors import NotFoundError, ValidationError
@@ -43,6 +45,47 @@ def test_lab_target_is_persisted_and_survives_a_new_repository(store, settings):
         assert reloaded.required_tags == {"msr-poc": "true"}
     finally:
         repo_2.close()
+
+
+def test_the_autoscaling_group_comes_from_configuration_not_from_the_payload(store, settings):
+    settings.lab_autoscaling_group_name = "msr-poc-linux-patching-01-asg"
+
+    registered = store.register_lab_target(
+        payload(autoscaling_group_name="asg-de-otro-equipo"))
+
+    assert registered["autoscaling_group_name"] == "msr-poc-linux-patching-01-asg"
+
+
+def test_a_database_without_the_autoscaling_column_is_migrated(settings, tmp_path):
+    """Bases creadas antes de la fase 2.1 se migran sin perder el laboratorio."""
+    path = tmp_path / "legacy.sqlite3"
+    with sqlite3.connect(path) as legacy:
+        legacy.execute(
+            """CREATE TABLE lab_targets (
+                   logical_lab_id              TEXT PRIMARY KEY,
+                   current_instance_id         TEXT,
+                   account_id                  TEXT,
+                   region                      TEXT,
+                   vulnerable_ami_id           TEXT,
+                   launch_template_id          TEXT,
+                   launch_template_version     TEXT,
+                   expected_vulnerable_package TEXT,
+                   expected_vulnerable_version TEXT,
+                   required_tags               TEXT NOT NULL DEFAULT '{}',
+                   last_reset_job_id           TEXT,
+                   updated_at                  TEXT NOT NULL)""")
+        legacy.execute(
+            "INSERT INTO lab_targets (logical_lab_id, current_instance_id, updated_at) "
+            "VALUES (?, ?, ?)", (LAB_ID, INSTANCE, "2026-01-01T00:00:00+00:00"))
+
+    migrated = JobRepository(str(path))
+    try:
+        lab = migrated.get_lab_target(LAB_ID)
+        assert lab is not None
+        assert lab.current_instance_id == INSTANCE
+        assert lab.autoscaling_group_name is None
+    finally:
+        migrated.close()
 
 
 def test_lab_target_rejects_an_invalid_instance_id(store):

@@ -39,6 +39,8 @@ class LabTarget:
     vulnerable_ami_id: str | None = None
     launch_template_id: str | None = None
     launch_template_version: str | None = None
+    # Grupo que mantiene viva la instancia: el reset la sustituye dentro de él.
+    autoscaling_group_name: str | None = None
     expected_vulnerable_package: str | None = None
     expected_vulnerable_version: str | None = None
     required_tags: dict[str, str] = field(default_factory=dict)
@@ -54,6 +56,7 @@ class LabTarget:
             "vulnerable_ami_id": self.vulnerable_ami_id,
             "launch_template_id": self.launch_template_id,
             "launch_template_version": self.launch_template_version,
+            "autoscaling_group_name": self.autoscaling_group_name,
             "expected_vulnerable_package": self.expected_vulnerable_package,
             "expected_vulnerable_version": self.expected_vulnerable_version,
             "required_tags": dict(self.required_tags or {}),

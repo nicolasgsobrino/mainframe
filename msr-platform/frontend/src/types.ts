@@ -104,6 +104,8 @@ export interface LabTarget {
   logical_lab_id: string; current_instance_id: string | null;
   account_id: string | null; region: string | null; vulnerable_ami_id: string | null;
   launch_template_id: string | null; launch_template_version: string | null;
+  /** Sólo lectura: lo fija la IaC; la UI nunca lo envía. */
+  autoscaling_group_name: string | null;
   expected_vulnerable_package: string | null; expected_vulnerable_version: string | null;
   required_tags: Record<string, string>; last_reset_job_id: string | null;
   updated_at: string;

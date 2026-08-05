@@ -20,6 +20,7 @@ ACTIVE_INSTANCE_STATES = ("pending", "running", "stopping", "stopped")
 ERROR_NOT_FOUND = "LAB_TARGET_NOT_FOUND"
 ERROR_AMBIGUOUS = "LAB_TARGET_AMBIGUOUS"
 ERROR_TAGS = "LAB_TARGET_TAGS_INVALID"
+ERROR_ASG = "LAB_TARGET_NOT_IN_AUTOSCALING_GROUP"
 
 
 class LabResolutionError(Exception):
@@ -139,6 +140,7 @@ class AwsLabResolver:
                 ERROR_TAGS,
                 f"La instancia {instance_id} no lleva los tags obligatorios: "
                 f"{', '.join(missing)}.")
+        self._assert_autoscaling_membership(instance_id)
         az = (instance.get("Placement") or {}).get("AvailabilityZone") or ""
         state = ((instance.get("State") or {}).get("Name") or "unknown")
         ssm_managed, ping = self._managed_node(instance_id, state)
@@ -154,6 +156,33 @@ class AwsLabResolver:
             launch_time=(launch_time.isoformat() if hasattr(launch_time, "isoformat")
                          else (str(launch_time) if launch_time else None)),
             source=self.source)
+
+    def _assert_autoscaling_membership(self, instance_id: str) -> None:
+        """La instancia tiene que pertenecer al ASG fijado por la IaC.
+
+        Impide operar sobre una instancia etiquetada a mano fuera del grupo, que
+        el reset no podría sustituir.
+        """
+        expected = self._settings.lab_autoscaling_group_name
+        if not expected:
+            return
+        try:
+            described = self._provider.autoscaling.describe_auto_scaling_instances(
+                InstanceIds=[instance_id])
+        except ProviderError:
+            raise
+        except Exception as exc:
+            raise LabResolutionError(
+                "LAB_TARGET_LOOKUP_FAILED",
+                "No se pudo consultar Auto Scaling para confirmar el grupo del "
+                f"laboratorio ({instance_id}).") from exc
+        entries = described.get("AutoScalingInstances") or []
+        actual = entries[0].get("AutoScalingGroupName") if entries else None
+        if actual != expected:
+            raise LabResolutionError(
+                ERROR_ASG,
+                f"La instancia {instance_id} no pertenece al Auto Scaling Group "
+                f"'{expected}' del laboratorio (grupo actual: {actual or 'ninguno'}).")
 
     def _managed_node(self, instance_id: str, state: str) -> tuple[bool, str | None]:
         if state != "running":
@@ -215,6 +244,7 @@ def default_lab_target(settings: Settings, logical_lab_id: str) -> LabTarget:
         region=settings.aws_region or None,
         launch_template_id=settings.lab_launch_template_id or None,
         launch_template_version=settings.lab_launch_template_version or None,
+        autoscaling_group_name=settings.lab_autoscaling_group_name or None,
         expected_vulnerable_package=settings.patch_package_family or None,
         required_tags=required_lab_tags(settings, logical_lab_id))
 

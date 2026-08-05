@@ -132,11 +132,12 @@ class _AutomationBase:
     name = PROVIDER_AWS_AUTOMATION
 
     def __init__(self, settings: Settings, ssm_client=None, ec2_client=None, sts_client=None,
-                 now_fn=utcnow):
+                 autoscaling_client=None, now_fn=utcnow):
         self._settings = settings
         # Los clientes inyectados (tests) nunca se reemplazan automáticamente.
         self._injected_ssm = ssm_client
         self._injected_ec2 = ec2_client
+        self._injected_autoscaling = autoscaling_client
         self._sts = sts_client
         self._now = now_fn
         self._correlation_id = ""
@@ -244,6 +245,13 @@ class _AutomationBase:
     @property
     def ec2(self):
         return self._injected_ec2 if self._injected_ec2 is not None else self._service_client("ec2")
+
+    @property
+    def autoscaling(self):
+        """Sólo lectura: confirmar la pertenencia de la instancia al ASG del laboratorio."""
+        if self._injected_autoscaling is not None:
+            return self._injected_autoscaling
+        return self._service_client("autoscaling")
 
     # -- validación (sólo lectura) --------------------------------------
     def _resolve_target(self, target: Target) -> tuple[Target, str | None]:
@@ -529,13 +537,11 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
             raise ProviderError(
                 "RESET_LAB_NOT_IMPLEMENTED",
                 f"La operación '{runbook.contract.operation}' no está implementada en AWS.")
-        if request.restore_kind == "reset_lab" and not (
-                self._settings.lab_launch_template_id
-                and self._settings.lab_launch_template_version):
+        if request.restore_kind == "reset_lab" and not self._settings.lab_autoscaling_group_name:
             raise ProviderError(
                 "PROVIDER_MISCONFIGURED",
-                "El reset del laboratorio exige MSR_LAB_LAUNCH_TEMPLATE_ID y "
-                "MSR_LAB_LAUNCH_TEMPLATE_VERSION (versión fija, nunca $Latest).")
+                "El reset del laboratorio exige MSR_LAB_AUTOSCALING_GROUP_NAME: la "
+                "instancia se sustituye dentro de su Auto Scaling Group.")
         return self._evaluate(request.primary_target(), dry_run=request.dry_run)
 
     def _parameters(self, runbook: ResolvedRunbook, target: Target,
@@ -544,13 +550,12 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
         params: dict = {}
         if "InstanceId" in declared:
             params["InstanceId"] = [target.instance_id or ""]
-        # Reset del laboratorio: instancia actual + versión FIJA del Launch Template.
+        # Reset del laboratorio: instancia actual + ASG fijado por configuración.
+        # El nombre del grupo NUNCA llega desde la API ni desde el frontend.
         if "CurrentInstanceId" in declared:
             params["CurrentInstanceId"] = [target.instance_id or ""]
-        if "LaunchTemplateId" in declared:
-            params["LaunchTemplateId"] = [self._settings.lab_launch_template_id]
-        if "LaunchTemplateVersion" in declared:
-            params["LaunchTemplateVersion"] = [self._settings.lab_launch_template_version]
+        if "AutoScalingGroupName" in declared:
+            params["AutoScalingGroupName"] = [self._settings.lab_autoscaling_group_name]
         if "CorrelationId" in declared and request.correlation_id:
             params["CorrelationId"] = [request.correlation_id]
         if "AutomationAssumeRole" in declared and self._settings.automation_assume_role_arn:
