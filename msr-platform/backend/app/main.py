@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,12 +15,29 @@ from pydantic import BaseModel
 from . import engine
 from .config import get_settings
 from .errors import DomainError, NotFoundError
+from .reconciler import JobReconciler
 from .store import STORE
 
 log = logging.getLogger("msr.api")
 settings = get_settings()
 
-app = FastAPI(title="Machine Speed Remediation Platform", version="1.0.0")
+RECONCILER = JobReconciler(STORE, settings.reconciler_interval_seconds,
+                           enabled=settings.reconciler_enabled)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # El estado funcional se reconstruye desde SQLite antes de servir tráfico.
+    STORE.rehydrate_pipeline_state()
+    RECONCILER.start()
+    try:
+        yield
+    finally:
+        await RECONCILER.stop()
+
+
+app = FastAPI(title="Machine Speed Remediation Platform", version="1.1.0",
+              lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allow_origins,
@@ -55,6 +73,9 @@ def execution_config():
         "dry_run": settings.effective_dry_run(STORE.patch_provider.name),
         "poll_interval_seconds": settings.job_poll_interval_seconds,
         "region": settings.aws_region or None,
+        "mode": settings.execution_mode(),
+        "strict_policy": settings.real_aws_execution(),
+        "reconciler": RECONCILER.status(),
     }
 
 
@@ -105,6 +126,47 @@ def task_patch_jobs(tid: str):
 @app.post("/api/patch-jobs/{job_id}/cancel")
 def cancel_patch_job(job_id: str):
     return STORE.cancel_job(job_id).as_dict()
+
+
+class AdminResolveBody(BaseModel):
+    state: str
+    note: str
+    actor: str = "admin"
+
+
+@app.post("/api/patch-jobs/{job_id}/admin-resolve")
+def admin_resolve_job(job_id: str, body: AdminResolveBody):
+    """Cierre manual de un job cuyo estado remoto no ha podido confirmarse."""
+    return STORE.admin_resolve_job(job_id, body.state, body.note, actor=body.actor).as_dict()
+
+
+class LabTargetBody(BaseModel):
+    logical_lab_id: str
+    current_instance_id: str | None = None
+    account_id: str | None = None
+    region: str | None = None
+    vulnerable_ami_id: str | None = None
+    launch_template_id: str | None = None
+    launch_template_version: str | None = None
+    expected_vulnerable_package: str | None = None
+    expected_vulnerable_version: str | None = None
+    required_tags: dict[str, str] = {}
+
+
+@app.get("/api/lab-targets")
+def lab_targets():
+    """Laboratorios reutilizables registrados (modelo; sin operaciones EC2)."""
+    return STORE.list_lab_targets()
+
+
+@app.get("/api/lab-targets/{logical_lab_id}")
+def lab_target(logical_lab_id: str):
+    return STORE.get_lab_target(logical_lab_id)
+
+
+@app.post("/api/lab-targets")
+def register_lab_target(body: LabTargetBody):
+    return STORE.register_lab_target(body.model_dump())
 
 
 class RingPreapproveBody(BaseModel):

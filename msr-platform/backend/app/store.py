@@ -7,11 +7,14 @@ lo reconcilia con `provider.poll()` y aplica el efecto cuando termina.
 """
 from __future__ import annotations
 
+import logging
 import random
+import threading
+import zlib
 from datetime import datetime
 
 from . import engine, seed
-from .config import Settings, get_settings
+from .config import PROVIDER_AWS_AUTOMATION, PROVIDER_MOCK, Settings, get_settings
 from .errors import (
     ConflictError,
     DependencyUnavailableError,
@@ -19,8 +22,16 @@ from .errors import (
     TargetNotAllowedError,
     ValidationError,
 )
-from .jobs import JobState, JobType, PatchJob, new_job_id, state_for_execution
-from .policy import sanitize_text
+from .jobs import (
+    JobState,
+    JobType,
+    PatchJob,
+    is_terminal,
+    new_job_id,
+    state_for_execution,
+)
+from .lab import RESTORE_KIND_RESET_LAB, LabTarget
+from .policy import INSTANCE_ID_RE, sanitize_text
 from .providers import get_patch_provider, get_restore_provider
 from .providers.base import (
     PatchRequest,
@@ -38,6 +49,11 @@ _UNAVAILABLE_CODES = frozenset({"PROVIDER_UNAVAILABLE", "PROVIDER_MISCONFIGURED"
                                 "RUNBOOK_NOT_CONFIGURED", "PROVIDER_START_FAILED"})
 _TASK_SNAPSHOT_KEYS = ("id", "cve", "ci_id", "ci_name", "component", "track",
                        "vulnerable_version", "criticality", "environment")
+# Estados a los que una reconciliación manual administrativa puede llevar un job
+# cuyo resultado remoto no ha podido confirmarse. Nunca a «succeeded».
+ADMIN_RESOLVABLE_STATES = (JobState.FAILED, JobState.CANCELLED, JobState.TIMED_OUT)
+
+log = logging.getLogger("msr.store")
 
 
 def sla_state(sla_due: str) -> dict:
@@ -129,6 +145,14 @@ class Store:
         self.repo = repository or JobRepository(self.settings.jobs_db_absolute_path)
         self.patch_provider = patch_provider or get_patch_provider(self.settings)
         self.restore_provider = restore_provider or get_restore_provider(self.settings)
+        # Proyección en memoria ya aplicada (distinta del resultado persistido del
+        # job): se reconstruye en cada rehidratación.
+        self._projected: set[str] = set()
+        self._job_locks: dict[str, threading.Lock] = {}
+        self._locks_guard = threading.Lock()
+        log.info("store inicializado modo=%s patch_provider=%s restore_provider=%s",
+                 self.settings.execution_mode(), self.patch_provider.name,
+                 self.restore_provider.name)
         self.reset(clear_jobs=False)
 
     def reset(self, clear_jobs: bool = True):
@@ -151,6 +175,9 @@ class Store:
         start_phases = [5, 2, 5, 3, 4]
         for i, (tid, task) in enumerate(self.tasks.items()):
             self._init_pipeline(tid, start_phases[i % len(start_phases)])
+        # El estado funcional vive en memoria, pero los jobs son la fuente de
+        # verdad: se re-proyectan desde SQLite en cada arranque.
+        self.rehydrate_pipeline_state()
 
     # ------------------------------------------------------------------
     def _init_pipeline(self, tid, phase_index):
@@ -163,7 +190,9 @@ class Store:
         # anillos completados si estamos en fase de despliegue
         rings_done = 0
         if phase_index >= 5:
-            rings_done = random.Random(hash(tid) & 0xFFFF).randint(1, 3)
+            # crc32 en lugar de hash(): estable entre procesos, de modo que la
+            # rehidratación parte siempre del mismo histórico de demo.
+            rings_done = random.Random(zlib.crc32(tid.encode()) & 0xFFFF).randint(1, 3)
         # Los anillos ya desplegados se consideran pre-aprobados por el owner (histórico).
         ring_preapprovals = {}
         ring_exclusions = {}
@@ -203,9 +232,56 @@ class Store:
             "artifacts": {"impact": impact, "mvt": mvt, "lab": lab,
                           "prototype": proto, "deployment": deploy, "audit": audit},
             "logs": logs,
+            # Punto de partida determinista del histórico de demo: la
+            # rehidratación vuelve aquí antes de re-proyectar los jobs.
+            "baseline": {
+                "rings_done": rings_done,
+                "task_status": task.get("status"),
+                "vi_status": self.vulnerable_items[task["vulnerable_item_id"]]["status"],
+            },
         }
         if phase_index >= 5 and rings_done >= len(engine.RING_DEFS):
             self.tasks[tid]["status"] = "remediated"
+
+    # ------------------------------------------------------------------
+    # Rehidratación del pipeline desde SQLite
+    # ------------------------------------------------------------------
+    def _reset_projection(self, tid: str) -> None:
+        """Devuelve la proyección en memoria al histórico determinista de demo."""
+        p = self.pipelines[tid]
+        baseline = p["baseline"]
+        t = self.tasks[tid]
+        p["rings_done"] = baseline["rings_done"]
+        p["rolled_back_rings"] = []
+        p["ring_evidence"] = {}
+        p["rollback"] = {"status": "armed", "triggered": False}
+        t["status"] = baseline["task_status"]
+        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = baseline["vi_status"]
+
+    def rehydrate_pipeline_state(self) -> int:
+        """Reconstruye el estado funcional a partir de los jobs persistidos.
+
+        Los jobs son la fuente de verdad: al arrancar, cada tarea vuelve a su
+        línea base y se re-proyectan en orden cronólogico los patch jobs
+        `succeeded` (anillos completados), los restore jobs `restored` (anillos
+        revertidos), la evidencia, los eventos y el estado de la tarea y del
+        Vulnerable Item. Es idempotente: ejecutarla dos veces da el mismo
+        resultado, y no depende del flag de proyección del job.
+        """
+        replayed = 0
+        for tid in self.repo.tasks_with_jobs():
+            if tid not in self.pipelines:
+                continue
+            self._reset_projection(tid)
+            for job in self.repo.list_jobs_for_task_chronological(tid):
+                self._projected.discard(job.id)
+                if job.terminal:
+                    self._apply_job_outcome(tid, job, persist=False)
+                    replayed += 1
+            self._rebuild_deploy(tid)
+        if replayed:
+            log.info("pipeline rehidratado desde SQLite: %s jobs re-proyectados", replayed)
+        return replayed
 
     # ------------------------------------------------------------------
     def _phase_logs(self, pid, task, impact, mvt, lab, proto, deploy):
@@ -455,6 +531,8 @@ class Store:
                 "restore_provider": self.restore_provider.name,
                 "dry_run": self.settings.effective_dry_run(self.patch_provider.name),
                 "poll_interval_seconds": self.settings.job_poll_interval_seconds,
+                "mode": self.settings.execution_mode(),
+                "strict_policy": self.settings.real_aws_execution(),
             },
         }
 
@@ -619,18 +697,9 @@ class Store:
                 return [a for a in ring["plan"]["assets"] if not a.get("excluded")]
         return []
 
-    def _resolve_target(self, tid, ring_no) -> Target:
-        """Objetivo del anillo: el CI raíz si está en el alcance, si no el primero.
-
-        Los IDs de instancia nunca están hardcodeados en la CMDB: si el operador
-        define MSR_SANDBOX_INSTANCE_ID, se superpone al objetivo correspondiente.
-        """
-        assets = self._ring_assets(tid, ring_no)
-        if not assets:
-            raise ValidationError(
-                f"El anillo {ring_no} no tiene activos seleccionados para desplegar.",
-                code="NO_TARGET_SELECTED")
-        asset = next((a for a in assets if a.get("is_root")), assets[0])
+    def _asset_target(self, asset: dict) -> Target:
+        """Los IDs de instancia nunca están hardcodeados en la CMDB: si el operador
+        define MSR_SANDBOX_INSTANCE_ID, se superpone al objetivo correspondiente."""
         logical_id = asset.get("logical_target_id") or asset["id"]
         instance_id = asset.get("instance_id")
         region = asset.get("region")
@@ -645,6 +714,41 @@ class Store:
             tags=dict(asset.get("tags") or {}),
             operating_system=asset.get("os"), environment=asset.get("environment"),
             ssm_managed=bool(asset.get("ssm_managed")), name=asset.get("name"))
+
+    def _resolve_ring_targets(self, tid, ring_no) -> list[Target]:
+        """Todos los activos seleccionados del anillo, en orden de dependencia."""
+        assets = self._ring_assets(tid, ring_no)
+        if not assets:
+            raise ValidationError(
+                f"El anillo {ring_no} no tiene activos seleccionados para desplegar.",
+                code="NO_TARGET_SELECTED")
+        return [self._asset_target(a) for a in assets]
+
+    def _resolve_target(self, tid, ring_no) -> Target:
+        """Objetivo único del anillo (mock multiactivo): CI raíz o el primero."""
+        assets = self._ring_assets(tid, ring_no)
+        if not assets:
+            raise ValidationError(
+                f"El anillo {ring_no} no tiene activos seleccionados para desplegar.",
+                code="NO_TARGET_SELECTED")
+        return self._asset_target(next((a for a in assets if a.get("is_root")), assets[0]))
+
+    def _aws_single_target(self, tid, ring_no, track: str) -> Target:
+        """Con provider AWS un job representa exactamente UNA instancia real."""
+        if (track or "") != "A":
+            raise ValidationError(
+                f"El track {track or 'sin valor'} no se ejecuta en AWS Systems Manager: "
+                "sólo el track A (infraestructura) está soportado en esta fase.",
+                code="UNSUPPORTED_REMEDIATION_TRACK")
+        targets = self._resolve_ring_targets(tid, ring_no)
+        real = [t for t in targets
+                if t.instance_id and INSTANCE_ID_RE.match(t.instance_id)]
+        if len(real) != 1:
+            raise ValidationError(
+                f"El anillo {ring_no} resuelve {len(real)} instancias EC2 reales de "
+                f"{len(targets)} activos y el provider AWS admite exactamente una en esta fase.",
+                code="RING_TARGET_COUNT_UNSUPPORTED")
+        return real[0]
 
     # ------------------------------------------------------------------
     def _provider_error(self, exc: ProviderError):
@@ -702,27 +806,36 @@ class Store:
                     f"La tarea {tid} ya tiene un job activo ({active.id}, estado {active.state.value}).",
                     correlation_id=active.correlation_id)
 
-        target = self._resolve_target(tid, ring_no)
+        deploy = p["artifacts"]["deployment"]
+        ring = next(r for r in deploy["rings"] if r["ring"] == ring_no)
+        track = t.get("track", "A")
+        aws = self.patch_provider.name == PROVIDER_AWS_AUTOMATION
+        if aws:
+            target = self._aws_single_target(tid, ring_no, track)
+            assets_count = 1
+        else:
+            target = self._resolve_target(tid, ring_no)
+            assets_count = max(1, ring["assets"])
         busy = self.repo.active_job_for_target(target.logical_target_id)
         if busy is not None and busy.active:
             raise ConflictError(
                 f"El objetivo {target.logical_target_id} ya tiene un job activo ({busy.id}).",
                 correlation_id=busy.correlation_id)
 
-        deploy = p["artifacts"]["deployment"]
-        ring = next(r for r in deploy["rings"] if r["ring"] == ring_no)
         from_version = engine._prev_version(t)
         request_job_id = new_job_id()
         dry_run = self.settings.effective_dry_run(self.patch_provider.name)
+        # En una ejecución AWS real la versión corregida la determina el runbook:
+        # no se calcula una versión ficticia como evidencia.
+        to_version = "" if (aws and not dry_run) else engine._fixed_version(from_version)
         request = PatchRequest(
             job_id=request_job_id, task_id=tid, ring_number=ring_no,
             targets=(target,),
             spec=PatchSpec(component=t.get("component", t["ci_name"]),
-                           from_version=from_version,
-                           to_version=engine._fixed_version(from_version),
-                           cve=t.get("cve"), track=t.get("track", "A")),
+                           from_version=from_version, to_version=to_version,
+                           cve=t.get("cve"), track=track),
             dry_run=dry_run, ring_label=ring["label"], executor=deploy["executor"],
-            assets_count=max(1, ring["assets"]), task_snapshot=_task_snapshot(t))
+            assets_count=assets_count, task_snapshot=_task_snapshot(t))
         job = PatchJob(
             id=request_job_id, job_type=JobType.PATCH, task_id=tid, ring_number=ring_no,
             provider=self.patch_provider.name, dry_run=dry_run, targets=(target,),
@@ -742,7 +855,7 @@ class Store:
         self.repo.append_event(job.id, job.state,
                                f"Job creado para el anillo {ring_no} ({ring['label']}).")
         self._log(tid, {"actor": "Owner (HITL)", "phase": "deployment",
-                        "msg": f"[HITL] Aprobado despliegue de {ring['label']} ({ring['assets']} activos). "
+                        "msg": f"[HITL] Aprobado despliegue de {ring['label']} ({assets_count} activos). "
                                f"Job {job.id} ({job.provider}"
                                + (", dry-run)" if dry_run else ")") + " creado."})
 
@@ -803,7 +916,10 @@ class Store:
         plan = p["artifacts"]["deployment"]["rollback_plan"]
         reason = reason or ("Fallo de post-checks / breach de health-check" if trigger == "auto"
                            else "Rollback solicitado por el owner")
-        target = self._resolve_target(tid, ring_no)
+        if self.restore_provider.name == PROVIDER_AWS_AUTOMATION:
+            target = self._aws_single_target(tid, ring_no, t.get("track", "A"))
+        else:
+            target = self._resolve_target(tid, ring_no)
         job_id = new_job_id()
         dry_run = self.settings.effective_dry_run(self.restore_provider.name)
         job_type = JobType.RESET_LAB if restore_kind == "reset_lab" else JobType.ROLLBACK
@@ -869,6 +985,15 @@ class Store:
             value = getattr(execution, key, None)
             if value:
                 job.result_payload[key] = value
+        warning_code = execution.warning_code
+        if warning_code:
+            message = (f"[{warning_code}] "
+                       f"{sanitize_text(execution.warning_message, 500)}")
+            job.result_payload["warning"] = {
+                "code": warning_code,
+                "message": sanitize_text(execution.warning_message, 500)}
+            if not self.repo.has_event(job.id, message):
+                self.repo.append_event(job.id, job.state, message)
         target_state = state_for_execution(execution.status, job.job_type)
         if execution.error_code:
             job.error_code = execution.error_code
@@ -880,29 +1005,40 @@ class Store:
                                    sanitize_text(execution.detail, 500) or f"Estado {job.state.value}.")
         return job
 
+    def _provider_for(self, job: PatchJob):
+        return self.patch_provider if job.job_type is JobType.PATCH else self.restore_provider
+
+    def _request_for(self, job: PatchJob):
+        if job.job_type is JobType.PATCH:
+            return _patch_request_from_payload(job.request_payload)
+        return _restore_request_from_payload(job.request_payload)
+
+    def _job_lock(self, job_id: str) -> threading.Lock:
+        with self._locks_guard:
+            return self._job_locks.setdefault(job_id, threading.Lock())
+
     def reconcile_job(self, job: PatchJob) -> PatchJob:
-        """Consulta al provider y aplica el resultado. Idempotente y sin duplicar logs."""
+        """Consulta al provider y aplica el resultado. Idempotente y sin duplicar logs.
+
+        Un mismo job nunca se consulta en paralelo (frontend + reconciliador):
+        si otro hilo lo está reconciliando, se devuelve el estado conocido.
+        """
         if job.terminal or not job.provider_reference:
             return job
-        elapsed = (utcnow() - job.created_at).total_seconds()
-        if elapsed > self.settings.job_timeout_seconds:
-            job.transition_to(JobState.TIMED_OUT, error_code="JOB_TIMED_OUT",
-                              error_message="El job excedió MSR_JOB_TIMEOUT_SECONDS.")
-            self.repo.append_event(job.id, job.state, "Job caducado por timeout.")
-            self.repo.save_job(job)
-            self._apply_job_outcome(job.task_id, job)
+        lock = self._job_lock(job.id)
+        if not lock.acquire(blocking=False):
             return job
         try:
-            if job.job_type is JobType.PATCH:
-                request = _patch_request_from_payload(job.request_payload)
-                execution = self.patch_provider.poll(job.provider_reference, request)
-            else:
-                request = _restore_request_from_payload(job.request_payload)
-                execution = self.restore_provider.poll(job.provider_reference, request)
-        except ProviderError as exc:
-            message = f"No se pudo reconciliar el job: {exc.code}"
-            if not self.repo.has_event(job.id, message):
-                self.repo.append_event(job.id, job.state, message)
+            return self._reconcile_locked(job)
+        finally:
+            lock.release()
+
+    def _reconcile_locked(self, job: PatchJob) -> PatchJob:
+        elapsed = (utcnow() - job.created_at).total_seconds()
+        if elapsed > self.settings.job_timeout_seconds or job.unconfirmed:
+            return self._handle_timeout(job)
+        execution = self._poll_provider(job)
+        if execution is None:
             return job
         self._absorb_execution(job, execution)
         self.repo.save_job(job)
@@ -910,11 +1046,127 @@ class Store:
             self._apply_job_outcome(job.task_id, job)
         return job
 
+    def _poll_provider(self, job: PatchJob):
+        """Consulta al provider; None si la consulta no pudo completarse."""
+        try:
+            return self._provider_for(job).poll(job.provider_reference or "",
+                                                self._request_for(job))
+        except ProviderError as exc:
+            message = f"No se pudo reconciliar el job: {exc.code}"
+            if not self.repo.has_event(job.id, message):
+                self.repo.append_event(job.id, job.state, message)
+            return None
+
+    def _mark_unconfirmed(self, job: PatchJob, state: JobState, code: str,
+                          message: str) -> PatchJob:
+        """Estado no terminal: el lock del objetivo se mantiene deliberadamente."""
+        if job.state is not state:
+            job.transition_to(state, error_code=code, error_message=message)
+            self.repo.append_event(job.id, job.state, message)
+            self.repo.save_job(job)
+        return job
+
+    def _handle_timeout(self, job: PatchJob) -> PatchJob:
+        """Timeout local: nunca es por sí mismo un estado terminal en AWS.
+
+        Sin ejecución remota viva (mock o dry-run) el job caduca. Con ejecución
+        remota se vuelve a consultar el estado, se solicita la parada y el job
+        queda en un estado no confirmado que mantiene el objetivo bloqueado
+        hasta que AWS confirme un estado terminal (o hasta una reconciliación
+        manual administrativa).
+        """
+        remote = job.provider != PROVIDER_MOCK and not job.dry_run
+        if not remote:
+            job.transition_to(JobState.TIMED_OUT, error_code="JOB_TIMED_OUT",
+                              error_message="El job excedió MSR_JOB_TIMEOUT_SECONDS.")
+            self.repo.append_event(job.id, job.state, "Job caducado por timeout.")
+            self.repo.save_job(job)
+            self._apply_job_outcome(job.task_id, job)
+            return job
+
+        self._mark_unconfirmed(
+            job, JobState.TIMEOUT_PENDING_CONFIRMATION, "JOB_TIMEOUT_PENDING_CONFIRMATION",
+            "Timeout local alcanzado: la ejecución remota puede seguir activa, "
+            "el objetivo permanece bloqueado hasta confirmar su estado.")
+        execution = self._poll_provider(job)
+        if execution is None:
+            return self._mark_unconfirmed(
+                job, JobState.REMOTE_STATUS_UNKNOWN, "REMOTE_STATUS_UNKNOWN",
+                "No se pudo obtener el estado remoto de la ejecución: el objetivo "
+                "sigue ocupado y requiere reconciliación manual.")
+        if is_terminal(state_for_execution(execution.status, job.job_type)):
+            self._absorb_execution(job, execution)
+            self.repo.save_job(job)
+            self._apply_job_outcome(job.task_id, job)
+            return job
+        if job.state is JobState.STOP_REQUESTED:
+            return job
+        try:
+            self._provider_for(job).cancel(job.provider_reference or "",
+                                           self._request_for(job))
+        except ProviderError as exc:
+            return self._mark_unconfirmed(
+                job, JobState.REMOTE_STATUS_UNKNOWN, exc.code,
+                f"No se pudo solicitar la parada de la ejecución remota: {exc.code}. "
+                "El objetivo sigue ocupado.")
+        return self._mark_unconfirmed(
+            job, JobState.STOP_REQUESTED, "STOP_REQUESTED",
+            "Parada solicitada al proveedor tras el timeout local: el job no se "
+            "marca como cancelado hasta que la ejecución remota lo confirme.")
+
     # ------------------------------------------------------------------
-    def _apply_job_outcome(self, tid, job: PatchJob) -> None:
-        """Aplica el efecto de un job terminal exactamente una vez."""
-        if tid not in self.pipelines or job.result_payload.get("outcome_applied"):
+    def admin_resolve_job(self, job_id: str, state: str, note: str,
+                          actor: str = "admin") -> PatchJob:
+        """Reconciliación manual de un job sin estado remoto confirmado.
+
+        Sólo cierra jobs en estado no confirmado y deja evento de auditoría; no
+        puede declarar un éxito que AWS no haya confirmado.
+        """
+        job = self.repo.get_job(job_id, with_events=True)
+        if job is None:
+            raise NotFoundError(f"El job {job_id} no existe.")
+        if not job.unconfirmed:
+            raise ValidationError(
+                f"El job {job_id} no está en un estado no confirmado ({job.state.value}).",
+                code="JOB_NOT_UNCONFIRMED")
+        allowed = {s.value for s in ADMIN_RESOLVABLE_STATES}
+        if state not in allowed:
+            raise ValidationError(
+                f"Estado no permitido para reconciliación manual: {state}. "
+                f"Permitidos: {', '.join(sorted(allowed))}.",
+                code="ADMIN_STATE_NOT_ALLOWED")
+        target_state = JobState(state)
+        if job.job_type is not JobType.PATCH and target_state is JobState.FAILED:
+            target_state = JobState.RESTORE_FAILED
+        detail = sanitize_text(note, 500) or "sin detalle"
+        job.transition_to(target_state, error_code="ADMIN_RECONCILED", error_message=detail)
+        self.repo.append_event(
+            job.id, job.state,
+            f"[Auditoría] Reconciliación manual a {job.state.value} por {actor}: {detail}",
+            actor=actor)
+        self.repo.save_job(job)
+        self._apply_job_outcome(job.task_id, job)
+        return job
+
+    def reconcile_active_jobs(self) -> int:
+        """Reconciliación de todos los jobs activos persistidos (reconciliador)."""
+        reconciled = 0
+        for job in self.repo.list_active_jobs():
+            self.reconcile_job(job)
+            reconciled += 1
+        return reconciled
+
+    # ------------------------------------------------------------------
+    def _apply_job_outcome(self, tid, job: PatchJob, *, persist: bool = True) -> None:
+        """Proyecta el resultado de un job terminal sobre el estado en memoria.
+
+        El resultado persistido del job y su proyección son cosas distintas: la
+        proyección se controla en memoria (`_projected`), de modo que reiniciar
+        el backend puede volver a reconstruirla desde SQLite.
+        """
+        if tid not in self.pipelines or job.id in self._projected:
             return
+        self._projected.add(job.id)
         job.result_payload["outcome_applied"] = True
         p = self.pipelines[tid]
         t = self.tasks[tid]
@@ -927,11 +1179,15 @@ class Store:
         elif job.job_type is JobType.PATCH and job.state is JobState.SUCCEEDED:
             ring_no = job.ring_number
             p["rings_done"] = max(p["rings_done"], ring_no)
+            # Sólo se declaran desplegados los objetivos realmente ejecutados.
+            executed = [tg.instance_id or tg.logical_target_id for tg in job.targets]
             p["ring_evidence"][ring_no] = {
                 "steps": job.steps(),
                 "from_version": job.result_payload.get("from_version"),
                 "to_version": job.result_payload.get("to_version"),
                 "job_id": job.id, "provider": job.provider,
+                "executed_assets": job.request_payload.get("assets_count") or len(executed),
+                "executed_targets": executed,
             }
             deploy = self._rebuild_deploy(tid)
             ring = next(r for r in deploy["rings"] if r["ring"] == ring_no)
@@ -940,7 +1196,8 @@ class Store:
                                 "msg": f"$ {step.get('command')} → {step.get('output')} "
                                        f"({step.get('duration_s', 0)}s)"})
             self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                            "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy."})
+                            "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy "
+                                   f"({', '.join(executed) or 'sin objetivos'})."})
             if p["rings_done"] >= len(engine.RING_DEFS):
                 t["status"] = "remediated"
                 self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
@@ -956,7 +1213,62 @@ class Store:
                                    f"{sanitize_text(job.error_message or '-', 300)}. "
                                    f"El anillo {job.ring_number} no avanza."})
             self._rebuild_deploy(tid)
-        self.repo.save_job(job)
+        if persist:
+            self.repo.save_job(job)
+
+    # ------------------------------------------------------------------
+    # Laboratorio reutilizable (modelo persistente; sin operaciones EC2)
+    # ------------------------------------------------------------------
+    def list_lab_targets(self) -> list[dict]:
+        return [lab.as_dict() for lab in self.repo.list_lab_targets()]
+
+    def get_lab_target(self, logical_lab_id: str) -> dict:
+        lab = self.repo.get_lab_target(logical_lab_id)
+        if lab is None:
+            raise NotFoundError(f"El laboratorio {logical_lab_id} no está registrado.")
+        return lab.as_dict()
+
+    def register_lab_target(self, payload: dict) -> dict:
+        """Registra o actualiza la instancia vulnerable reutilizable de la PoC."""
+        logical_lab_id = (payload.get("logical_lab_id") or "").strip()
+        if not logical_lab_id:
+            raise ValidationError("logical_lab_id es obligatorio.",
+                                  code="LAB_TARGET_INVALID")
+        instance_id = payload.get("current_instance_id") or None
+        if instance_id and not INSTANCE_ID_RE.match(instance_id):
+            raise ValidationError(f"current_instance_id no es un Instance ID válido: {instance_id}",
+                                  code="LAB_TARGET_INVALID")
+        existing = self.repo.get_lab_target(logical_lab_id)
+        lab = LabTarget(
+            logical_lab_id=logical_lab_id,
+            current_instance_id=instance_id,
+            account_id=payload.get("account_id"),
+            region=payload.get("region") or self.settings.aws_region or None,
+            vulnerable_ami_id=payload.get("vulnerable_ami_id"),
+            launch_template_id=payload.get("launch_template_id"),
+            launch_template_version=payload.get("launch_template_version"),
+            expected_vulnerable_package=payload.get("expected_vulnerable_package"),
+            expected_vulnerable_version=payload.get("expected_vulnerable_version"),
+            required_tags=dict(payload.get("required_tags") or {}),
+            last_reset_job_id=(existing.last_reset_job_id if existing else None))
+        return self.repo.upsert_lab_target(lab).as_dict()
+
+    def start_lab_reset_job(self, tid: str, logical_lab_id: str,
+                            idempotency_key: str | None = None) -> PatchJob:
+        """`reset_lab`: recreación deliberada de la instancia vulnerable.
+
+        Distinto de `rollback` (recuperación de una ejecución fallida). En esta
+        fase el modelo y el job existen, pero ninguna instancia EC2 se destruye
+        ni se recrea realmente.
+        """
+        lab = self.repo.get_lab_target(logical_lab_id)
+        if lab is None:
+            raise NotFoundError(f"El laboratorio {logical_lab_id} no está registrado.")
+        job = self.start_restore_job(tid, reason=f"Reset del laboratorio {logical_lab_id}",
+                                     trigger="lab_reset", idempotency_key=idempotency_key,
+                                     restore_kind=RESTORE_KIND_RESET_LAB)
+        self.repo.record_lab_reset(logical_lab_id, job.id)
+        return job
 
     # ------------------------------------------------------------------
     def get_job(self, job_id: str) -> PatchJob:

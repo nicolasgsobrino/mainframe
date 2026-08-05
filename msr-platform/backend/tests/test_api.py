@@ -34,7 +34,9 @@ def test_execution_endpoint_exposes_provider_without_secrets(client):
     body = client.get("/api/execution").json()
     assert body["patch_provider"] == "mock"
     assert set(body) == {"patch_provider", "restore_provider", "dry_run",
-                         "poll_interval_seconds", "region"}
+                         "poll_interval_seconds", "region", "mode", "strict_policy",
+                         "reconciler"}
+    assert body["mode"] == "mock"
 
 
 def test_deployment_approval_returns_202_with_the_active_job(client):
@@ -128,3 +130,39 @@ def test_cors_is_not_a_wildcard(client):
     from app.config import get_settings
 
     assert "*" not in get_settings().cors_allow_origins
+
+
+def test_lab_target_endpoints_register_and_expose_the_lab(client):
+    body = {"logical_lab_id": "lab-poc", "current_instance_id": "i-0123456789abcdef0",
+            "account_id": "123456789012", "region": "eu-west-1",
+            "required_tags": {"msr-poc": "true"}}
+
+    created = client.post("/api/lab-targets", json=body)
+
+    assert created.status_code == 200
+    assert created.json()["logical_lab_id"] == "lab-poc"
+    assert [lab["logical_lab_id"] for lab in client.get("/api/lab-targets").json()] == ["lab-poc"]
+    assert client.get("/api/lab-targets/lab-poc").json()["region"] == "eu-west-1"
+    assert client.get("/api/lab-targets/lab-inexistente").status_code == 404
+
+
+def test_lab_target_endpoint_rejects_a_synthetic_instance_id(client):
+    response = client.post("/api/lab-targets",
+                           json={"logical_lab_id": "lab-poc", "current_instance_id": "APP-1001"})
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "LAB_TARGET_INVALID"
+
+
+def test_admin_resolve_rejects_a_confirmed_job(client):
+    tid = deploying_task(client)
+    ring = client.get(f"/api/tasks/{tid}").json()["rings_done"] + 1
+    client.post(f"/api/tasks/{tid}/rings/{ring}/preapprove")
+    job_id = client.post(f"/api/tasks/{tid}/approve").json()["active_job"]["id"]
+    client.post(f"/api/patch-jobs/{job_id}/cancel")
+
+    response = client.post(f"/api/patch-jobs/{job_id}/admin-resolve",
+                           json={"state": "failed", "note": "no procede"})
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "JOB_NOT_UNCONFIRMED"

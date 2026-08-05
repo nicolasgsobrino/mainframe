@@ -18,11 +18,16 @@ environments:
 required_tags:
   msr-poc: "true"
 
+# Sólo documentos PROPIOS de tipo Automation: un documento de tipo Command
+# (AWS-RunPatchBaseline) no puede iniciarse con StartAutomationExecution y el
+# runbook propio lo invoca internamente con aws:runCommand.
 runbooks:
   patch:
-    - AWS-RunPatchBaseline
+    - MSR-PatchLinuxInstance
   restore:
-    - AWS-PatchInstanceWithRollback
+    - MSR-RollbackLinuxInstance
+  reset_lab:
+    - MSR-ResetLabInstance
 
 targets:
   # Sólo instancias EC2 Linux de sandbox; los IDs se resuelven en ejecución y

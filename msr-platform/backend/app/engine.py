@@ -626,6 +626,10 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
             status = "in_progress"
         else:
             status = "pending"
+        ring_evidence = evidence.get(rn) or {}
+        # Un job AWS ejecuta exactamente una instancia: el conteo mostrado nunca
+        # puede ser superior al número de activos realmente ejecutados.
+        executed_assets = ring_evidence.get("executed_assets")
         if rn in evidence:
             actions = evidence[rn]
         elif status in ("completed", "rolled_back"):
@@ -634,8 +638,11 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
             actions = None
         plan = build_ring_plan(task, impact, rn, label, CANARY_PCT[min(i, 4)], executor, ring_nodes,
                                exclusions=exclusions.get(rn), preapproval=preapprovals.get(rn))
+        if executed_assets is not None and status in ("completed", "rolled_back"):
+            assets = int(executed_assets)
         rings.append({
             "ring": rn, "label": label, "assets": assets, "status": status,
+            "executed_assets": executed_assets,
             "post_checks": ["version-assert", "health-check", "smoke-test", "synthetic-probe"] if status in ("completed", "rolled_back") else [],
             "result": {"completed": "healthy", "rolled_back": "reverted", "in_progress": "-", "pending": "-"}[status],
             "actions": actions,

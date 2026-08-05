@@ -16,6 +16,7 @@ import sqlite3
 from datetime import datetime, timezone
 
 from .jobs import ACTIVE_STATES, JobEvent, JobState, JobType, PatchJob
+from .lab import LabTarget
 from .providers.base import Target
 
 SCHEMA = """
@@ -72,6 +73,23 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
     job_id      TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
     scope       TEXT NOT NULL,
     created_at  TEXT NOT NULL
+);
+
+-- Laboratorio reutilizable: describe la instancia vulnerable de la PoC para
+-- poder distinguir `rollback` de `reset_lab`. No dispara ninguna operación.
+CREATE TABLE IF NOT EXISTS lab_targets (
+    logical_lab_id              TEXT PRIMARY KEY,
+    current_instance_id         TEXT,
+    account_id                  TEXT,
+    region                      TEXT,
+    vulnerable_ami_id           TEXT,
+    launch_template_id          TEXT,
+    launch_template_version     TEXT,
+    expected_vulnerable_package TEXT,
+    expected_vulnerable_version TEXT,
+    required_tags               TEXT NOT NULL DEFAULT '{}',
+    last_reset_job_id           TEXT,
+    updated_at                  TEXT NOT NULL
 );
 """
 
@@ -296,8 +314,83 @@ class JobRepository:
             f"SELECT * FROM jobs WHERE state IN ({placeholders}) ORDER BY created_at", states).fetchall()
         return [self._row_to_job(r) for r in rows]
 
+    def list_jobs_for_task_chronological(self, task_id: str) -> list[PatchJob]:
+        """Orden de creación ascendente: base del *replay* de rehidratación."""
+        rows = self._conn.execute(
+            "SELECT * FROM jobs WHERE task_id = ? ORDER BY created_at, id", (task_id,)).fetchall()
+        return [self._row_to_job(r) for r in rows]
+
+    def tasks_with_jobs(self) -> list[str]:
+        return [r["task_id"] for r in self._conn.execute(
+            "SELECT DISTINCT task_id FROM jobs ORDER BY task_id")]
+
+    # --- laboratorio reutilizable --------------------------------------
+    def upsert_lab_target(self, lab: LabTarget) -> LabTarget:
+        lab.updated_at = datetime.now(timezone.utc)
+        self._conn.execute(
+            """INSERT INTO lab_targets (logical_lab_id, current_instance_id, account_id, region,
+                                        vulnerable_ami_id, launch_template_id,
+                                        launch_template_version, expected_vulnerable_package,
+                                        expected_vulnerable_version, required_tags,
+                                        last_reset_job_id, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(logical_lab_id) DO UPDATE SET
+                   current_instance_id = excluded.current_instance_id,
+                   account_id = excluded.account_id,
+                   region = excluded.region,
+                   vulnerable_ami_id = excluded.vulnerable_ami_id,
+                   launch_template_id = excluded.launch_template_id,
+                   launch_template_version = excluded.launch_template_version,
+                   expected_vulnerable_package = excluded.expected_vulnerable_package,
+                   expected_vulnerable_version = excluded.expected_vulnerable_version,
+                   required_tags = excluded.required_tags,
+                   last_reset_job_id = excluded.last_reset_job_id,
+                   updated_at = excluded.updated_at""",
+            (lab.logical_lab_id, lab.current_instance_id, lab.account_id, lab.region,
+             lab.vulnerable_ami_id, lab.launch_template_id, lab.launch_template_version,
+             lab.expected_vulnerable_package, lab.expected_vulnerable_version,
+             json.dumps(lab.required_tags or {}, ensure_ascii=False), lab.last_reset_job_id,
+             _iso(lab.updated_at)))
+        return lab
+
+    @staticmethod
+    def _row_to_lab(row: sqlite3.Row) -> LabTarget:
+        return LabTarget(
+            logical_lab_id=row["logical_lab_id"],
+            current_instance_id=row["current_instance_id"],
+            account_id=row["account_id"],
+            region=row["region"],
+            vulnerable_ami_id=row["vulnerable_ami_id"],
+            launch_template_id=row["launch_template_id"],
+            launch_template_version=row["launch_template_version"],
+            expected_vulnerable_package=row["expected_vulnerable_package"],
+            expected_vulnerable_version=row["expected_vulnerable_version"],
+            required_tags=json.loads(row["required_tags"] or "{}"),
+            last_reset_job_id=row["last_reset_job_id"],
+            updated_at=_parse(row["updated_at"]))
+
+    def get_lab_target(self, logical_lab_id: str) -> LabTarget | None:
+        row = self._conn.execute(
+            "SELECT * FROM lab_targets WHERE logical_lab_id = ?", (logical_lab_id,)).fetchone()
+        return self._row_to_lab(row) if row else None
+
+    def list_lab_targets(self) -> list[LabTarget]:
+        return [self._row_to_lab(r) for r in self._conn.execute(
+            "SELECT * FROM lab_targets ORDER BY logical_lab_id")]
+
+    def record_lab_reset(self, logical_lab_id: str, job_id: str) -> LabTarget | None:
+        lab = self.get_lab_target(logical_lab_id)
+        if lab is None:
+            return None
+        lab.last_reset_job_id = job_id
+        return self.upsert_lab_target(lab)
+
     def clear(self) -> None:
-        """Sólo para `POST /api/reset` y para los tests: vacía el histórico."""
+        """Sólo para `POST /api/reset` y para los tests: vacía el histórico.
+
+        `lab_targets` es configuración del laboratorio, no histórico: sobrevive
+        deliberadamente al reset para poder repetir la PoC sin re-registrarlo.
+        """
         conn = self._conn
         conn.execute("BEGIN IMMEDIATE")
         try:

@@ -82,8 +82,14 @@ class PolicyViolation(Exception):
 
 def evaluate_target(target: Target, settings: Settings, *,
                     instance_state: str | None = None,
-                    require_instance: bool = True) -> TargetPolicyResult:
-    """Evalúa cuenta, región, tags, entorno, estado e inscripción en SSM."""
+                    require_instance: bool = True,
+                    strict: bool = False) -> TargetPolicyResult:
+    """Evalúa cuenta, región, tags, entorno, estado e inscripción en SSM.
+
+    Con `strict=True` (ejecución real en AWS) la política es *fail-closed*: una
+    allowlist vacía no autoriza nada. En mock/dry-run se admite el modo
+    laboratorio, menos restrictivo y etiquetado como tal en los checks.
+    """
     checks: list[dict] = []
     violations: list[str] = []
     first_code: str | None = None
@@ -105,6 +111,10 @@ def evaluate_target(target: Target, settings: Settings, *,
     if settings.allowed_account_ids:
         check("Cuenta permitida", target.account_id in settings.allowed_account_ids,
               "La cuenta del objetivo no está en MSR_ALLOWED_ACCOUNT_IDS.", "TARGET_NOT_ALLOWED")
+    elif strict:
+        check("Cuenta permitida", False,
+              "MSR_ALLOWED_ACCOUNT_IDS está vacío y en ejecución real no autoriza ninguna cuenta.",
+              "POLICY_NOT_CONFIGURED")
     else:
         checks.append({"check": "Cuenta permitida", "ok": True,
                        "detail": "Sin allowlist de cuentas configurada (modo laboratorio)."})
@@ -117,7 +127,15 @@ def evaluate_target(target: Target, settings: Settings, *,
     if settings.allowed_regions:
         check("Región en allowlist", target.region in settings.allowed_regions,
               "La región del objetivo no está en MSR_ALLOWED_REGIONS.", "TARGET_NOT_ALLOWED")
+    elif strict:
+        check("Región en allowlist", False,
+              "MSR_ALLOWED_REGIONS está vacío y en ejecución real no autoriza ninguna región.",
+              "POLICY_NOT_CONFIGURED")
 
+    if strict and not settings.required_target_tag_key:
+        check("Tag obligatorio configurado", False,
+              "MSR_REQUIRED_TARGET_TAG_KEY es obligatorio en ejecución real.",
+              "POLICY_NOT_CONFIGURED")
     if settings.required_target_tag_key:
         tag_value = (target.tags or {}).get(settings.required_target_tag_key)
         check(f"Tag obligatorio {settings.required_target_tag_key}",
@@ -129,6 +147,10 @@ def evaluate_target(target: Target, settings: Settings, *,
         check("Entorno permitido", (target.environment or "") in settings.allowed_environments,
               f"El entorno '{target.environment}' no está permitido para parcheo automático.",
               "TARGET_NOT_ALLOWED")
+    elif strict:
+        check("Entorno permitido", False,
+              "MSR_ALLOWED_ENVIRONMENTS está vacío y en ejecución real no autoriza ningún entorno.",
+              "POLICY_NOT_CONFIGURED")
 
     if instance_state is not None:
         check("Instancia operativa", instance_state == "running",

@@ -15,12 +15,18 @@ const JOB_STATE_LABEL: Record<string, string> = {
   cancelled: "Cancelado", restore_queued: "Restauración en cola",
   restoring: "Restaurando", restored: "Restaurado", restore_failed: "Restauración fallida",
   timed_out: "Tiempo agotado",
+  timeout_pending_confirmation: "Timeout local · pendiente de confirmar en AWS",
+  remote_status_unknown: "Estado remoto desconocido",
+  stop_requested: "Parada solicitada a AWS",
 };
 const JOB_STATE_TONE: Record<string, string> = {
   succeeded: "bg-green-500/15 text-green-400", restored: "bg-green-500/15 text-green-400",
   failed: "bg-red-500/15 text-red-400", restore_failed: "bg-red-500/15 text-red-400",
   timed_out: "bg-red-500/15 text-red-400", cancelled: "bg-gray-500/15 text-gray-300",
   dry_run: "bg-sky-500/15 text-sky-300",
+  timeout_pending_confirmation: "bg-orange-500/15 text-orange-300",
+  remote_status_unknown: "bg-orange-500/15 text-orange-300",
+  stop_requested: "bg-orange-500/15 text-orange-300",
 };
 const jobTone = (state: string) => JOB_STATE_TONE[state] ?? "bg-amber-500/15 text-amber-300";
 /** Etiqueta del modo de ejecución: mock, AWS dry-run o AWS real. */
@@ -394,6 +400,9 @@ function JobCard({ job, execution, busy, onCancel }: {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="chip bg-ink border border-line text-gray-300">{executionModeLabel(job)}</span>
           {job.dry_run && <span className="chip bg-sky-500/15 text-sky-300">dry-run · el parche NO se ha aplicado</span>}
+          {job.unconfirmed && (
+            <span className="chip bg-orange-500/15 text-orange-300">estado remoto sin confirmar · el objetivo sigue bloqueado</span>
+          )}
           <span className="text-gray-500">{job.job_type === "patch" ? "parcheo" : job.job_type === "rollback" ? "rollback" : "reset de laboratorio"}</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -412,7 +421,7 @@ function JobCard({ job, execution, busy, onCancel }: {
         )}
         {execution && (
           <div className="text-[11px] text-gray-600">
-            Refresco cada {execution.poll_interval_seconds}s · provider de restauración {execution.restore_provider}
+            Modo {execution.mode}{execution.strict_policy ? " · política fail-closed" : " · política relajada (mock/dry-run)"} · refresco cada {execution.poll_interval_seconds}s · provider de restauración {execution.restore_provider}{execution.reconciler?.running ? " · reconciliador activo en el backend" : ""}
           </div>
         )}
         {job.error_code && (

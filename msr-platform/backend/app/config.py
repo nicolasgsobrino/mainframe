@@ -11,6 +11,15 @@ from functools import lru_cache
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .runbooks import (
+    DEFAULT_PATCH_RUNBOOK,
+    DEFAULT_RESET_RUNBOOK,
+    DEFAULT_ROLLBACK_RUNBOOK,
+    OPERATION_PATCH,
+    OPERATION_ROLLBACK,
+    contract_for,
+)
+
 PROVIDER_MOCK = "mock"
 PROVIDER_AWS_AUTOMATION = "aws-automation"
 ALLOWED_PROVIDERS = (PROVIDER_MOCK, PROVIDER_AWS_AUTOMATION)
@@ -44,7 +53,9 @@ class Settings(BaseSettings):
     aws_endpoint_url: str = ""
 
     # --- Systems Manager Automation ---------------------------------------
+    # Runbooks propios de tipo Automation (nunca documentos de tipo Command).
     patch_runbook_name: str = ""
+    rollback_runbook_name: str = ""
     reset_runbook_name: str = ""
     automation_assume_role_arn: str = ""
 
@@ -58,13 +69,17 @@ class Settings(BaseSettings):
     allowed_regions: list[str] = Field(default_factory=list)
     allowed_environments: list[str] = Field(default_factory=list)
     allowed_runbooks: list[str] = Field(
-        default_factory=lambda: ["AWS-RunPatchBaseline", "AWS-PatchInstanceWithRollback"])
+        default_factory=lambda: [DEFAULT_PATCH_RUNBOOK, DEFAULT_ROLLBACK_RUNBOOK,
+                                 DEFAULT_RESET_RUNBOOK])
     required_target_tag_key: str = "msr-poc"
     required_target_tag_value: str = "true"
 
     # --- Jobs --------------------------------------------------------------
     job_poll_interval_seconds: int = 2
     job_timeout_seconds: int = 1800
+    # Reconciliador ligero en segundo plano (no ejecuta parches, sólo consulta).
+    reconciler_enabled: bool = True
+    reconciler_interval_seconds: int = 10
     mock_job_duration_seconds: int = 6
     mock_restore_duration_seconds: int = 0
     max_output_chars: int = 2000
@@ -107,6 +122,16 @@ class Settings(BaseSettings):
     def uses_aws(self) -> bool:
         return PROVIDER_AWS_AUTOMATION in (self.patch_provider, self.restore_provider)
 
+    def real_aws_execution(self) -> bool:
+        """True sólo si se ejecutarían operaciones mutativas reales en AWS."""
+        return self.uses_aws() and not self.dry_run
+
+    def execution_mode(self) -> str:
+        """Modo visible en logs y en la UI: mock | aws-dry-run | aws-real."""
+        if not self.uses_aws():
+            return "mock"
+        return "aws-real" if not self.dry_run else "aws-dry-run"
+
     def validate_for_providers(self) -> None:
         """Falla con un mensaje claro si un provider AWS carece de configuración."""
         missing: list[str] = []
@@ -118,15 +143,52 @@ class Settings(BaseSettings):
         if self.restore_provider == PROVIDER_AWS_AUTOMATION:
             if not self.aws_region:
                 missing.append("MSR_AWS_REGION")
-            if not self.reset_runbook_name:
-                missing.append("MSR_RESET_RUNBOOK_NAME")
-        if not self.dry_run and self.uses_aws() and not self.required_target_tag_key:
-            missing.append("MSR_REQUIRED_TARGET_TAG_KEY")
+            if not self.rollback_runbook_name:
+                missing.append("MSR_ROLLBACK_RUNBOOK_NAME")
         if missing:
             raise ConfigurationError(
                 "Configuración AWS incompleta para el provider seleccionado. "
                 f"Variables obligatorias sin valor: {', '.join(sorted(set(missing)))}. "
                 "Con MSR_PATCH_PROVIDER=mock la aplicación arranca sin configuración de AWS.")
+        if self.real_aws_execution():
+            self.validate_real_execution()
+
+    def validate_real_execution(self) -> None:
+        """Política *fail-closed*: en modo real una lista vacía nunca significa
+        «permitir todo», así que toda la allowlist debe estar configurada."""
+        missing: list[str] = []
+        if not self.aws_region:
+            missing.append("MSR_AWS_REGION")
+        if not self.allowed_account_ids:
+            missing.append("MSR_ALLOWED_ACCOUNT_IDS")
+        if not self.allowed_regions:
+            missing.append("MSR_ALLOWED_REGIONS")
+        if not self.allowed_environments:
+            missing.append("MSR_ALLOWED_ENVIRONMENTS")
+        if not self.required_target_tag_key:
+            missing.append("MSR_REQUIRED_TARGET_TAG_KEY")
+        if not self.required_target_tag_value:
+            missing.append("MSR_REQUIRED_TARGET_TAG_VALUE")
+        if not self.allowed_runbooks:
+            missing.append("MSR_ALLOWED_RUNBOOKS")
+        if self.patch_provider == PROVIDER_AWS_AUTOMATION and not self.patch_runbook_name:
+            missing.append("MSR_PATCH_RUNBOOK_NAME")
+        if self.restore_provider == PROVIDER_AWS_AUTOMATION and not self.rollback_runbook_name:
+            missing.append("MSR_ROLLBACK_RUNBOOK_NAME")
+        requires_role = (
+            (self.patch_provider == PROVIDER_AWS_AUTOMATION
+             and contract_for(OPERATION_PATCH).requires_assume_role)
+            or (self.restore_provider == PROVIDER_AWS_AUTOMATION
+                and contract_for(OPERATION_ROLLBACK).requires_assume_role))
+        if requires_role and not self.automation_assume_role_arn:
+            missing.append("MSR_AUTOMATION_ASSUME_ROLE_ARN")
+        if not (self.sandbox_instance_id or self.sandbox_logical_target_id):
+            missing.append("MSR_SANDBOX_INSTANCE_ID")
+        if missing:
+            raise ConfigurationError(
+                "Ejecución real en AWS (MSR_DRY_RUN=false) con política incompleta. "
+                f"Variables obligatorias sin valor: {', '.join(sorted(set(missing)))}. "
+                "En modo real una allowlist vacía no autoriza ningún objetivo.")
 
 
 @lru_cache(maxsize=1)

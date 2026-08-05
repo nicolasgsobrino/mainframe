@@ -42,19 +42,54 @@ configuración, y el **mock es el valor por defecto**:
 | Provider | Valor | Qué hace |
 |----------|-------|----------|
 | Mock | `mock` | Simulación determinista, sin AWS ni credenciales. Progresa por tiempo y se consulta con `poll()`. |
-| AWS SSM Automation | `aws-automation` | `StartAutomationExecution` sobre un runbook allowlisted, con validación read-only previa de EC2/SSM. **Desactivado por defecto.** |
+| AWS SSM Automation | `aws-automation` | `StartAutomationExecution` sobre un runbook **propio de tipo `Automation`** allowlisted, con validación read-only previa de EC2/SSM y `describe_document`. **Desactivado por defecto.** |
 
 El backend nunca usa workers, colas ni `BackgroundTasks`: reconcilia el estado del job
 llamando a `provider.poll()` cuando se consulta la tarea, y el frontend hace polling cada
-`MSR_JOB_POLL_INTERVAL_SECONDS`.
+`MSR_JOB_POLL_INTERVAL_SECONDS`. Además, un **reconciliador periódico** en proceso
+(`MSR_RECONCILER_*`, arrancado por el *lifespan* de FastAPI) consulta los jobs activos
+persistidos, de modo que el estado avanza aunque nadie tenga la UI abierta. El
+reconciliador nunca crea ejecuciones: sólo consulta y persiste.
+
+### Contrato de runbooks
+
+Cada operación tiene un contrato explícito (`backend/app/runbooks.py`) con tipo de
+documento, parámetros obligatorios/opcionales/prohibidos, tracks y sistemas operativos
+admitidos:
+
+| Operación | Runbook por defecto | Variable |
+|-----------|--------------------|----------|
+| `patch` | `MSR-PatchLinuxInstance` | `MSR_PATCH_RUNBOOK_NAME` |
+| `rollback` | `MSR-RollbackLinuxInstance` | `MSR_ROLLBACK_RUNBOOK_NAME` |
+| `reset_lab` | `MSR-ResetLabInstance` | `MSR_RESET_RUNBOOK_NAME` |
+
+Antes de arrancar se llama a `ssm.describe_document` y se exige `DocumentType=Automation`.
+Documentos de tipo `Command` como `AWS-RunPatchBaseline` **no pueden** enviarse a
+`StartAutomationExecution`: el runbook propio los invoca internamente con `aws:runCommand`.
+Los parámetros se derivan del contrato del runbook, nunca de valores genéricos
+(`Operation=Install`, `TargetVersion`) ni de datos enviados por el frontend.
+
+### Límites de la ejecución real
+
+- sólo **track A** (infraestructura): B y C devuelven `UNSUPPORTED_REMEDIATION_TRACK` sin llamar a AWS;
+- un job AWS representa **exactamente una** instancia: cero o varias devuelven `422 RING_TARGET_COUNT_UNSUPPORTED` (el mock mantiene el comportamiento multiactivo);
+- un timeout local **no** libera el objetivo: el job pasa a `timeout_pending_confirmation`, `stop_requested` o `remote_status_unknown` y sólo se cierra con confirmación remota o con `POST /api/patch-jobs/{id}/admin-resolve` (auditado);
+- con `MSR_DRY_RUN=false` la política es **fail-closed**: región, allowlists de cuenta/región/entorno, tag obligatorio, runbook permitido, rol de Automation y objetivo de sandbox deben estar configurados. Una lista vacía nunca significa «permitir todo»;
+- si `MSR_AWS_ROLE_ARN` está configurado, los clientes EC2/SSM se crean con credenciales temporales de STS `AssumeRole` (`RoleSessionName` con el correlation ID sanitizado, nunca registradas).
 
 Copia `.env.example` a `.env` para ajustar la configuración (`MSR_*`). Con los valores por
 defecto (`MSR_PATCH_PROVIDER=mock`, `MSR_DRY_RUN=true`) la aplicación arranca sin AWS y no
 realiza ninguna operación real. Al seleccionar `aws-automation` sin región ni runbook, el
 arranque falla con un error explícito en lugar de intentar llamadas a medias.
 
+El estado funcional en memoria no es la fuente de verdad: al arrancar,
+`rehydrate_pipeline_state()` reconstruye anillos completados, restauraciones, evidencia y
+estado de la tarea/Vulnerable Item desde SQLite.
+
 Detalle completo de arquitectura, esquema SQLite, máquina de estados y variables:
-[`IMPLEMENTATION_REPORT_PHASE1.md`](IMPLEMENTATION_REPORT_PHASE1.md).
+[`IMPLEMENTATION_REPORT_PHASE1.md`](IMPLEMENTATION_REPORT_PHASE1.md) y las correcciones de
+la revisión técnica en
+[`IMPLEMENTATION_REPORT_PHASE1_1.md`](IMPLEMENTATION_REPORT_PHASE1_1.md).
 
 ## Tests, lint y build
 
@@ -115,6 +150,10 @@ uvicorn app.main:app --port 8080
 | GET | `/api/patch-jobs/{job_id}` | Estado de un job de parcheo/restauración |
 | GET | `/api/tasks/{id}/patch-jobs` | Jobs de una tarea (más recientes primero) |
 | POST | `/api/patch-jobs/{job_id}/cancel` | Solicita la cancelación de un job activo |
+| POST | `/api/patch-jobs/{job_id}/admin-resolve` | Reconciliación manual auditada de un job sin estado remoto confirmado |
+| GET | `/api/lab-targets` | Laboratorios reutilizables registrados (`LabTarget`) |
+| GET | `/api/lab-targets/{logical_lab_id}` | Detalle de un laboratorio |
+| POST | `/api/lab-targets` | Registra o actualiza el laboratorio de la PoC |
 
 `POST /api/tasks/{id}/approve` acepta la cabecera `Idempotency-Key`: repetir la misma clave
 devuelve el job original en lugar de lanzar otro. En la fase de despliegue responde `202`
@@ -136,6 +175,9 @@ backend/app/
   jobs.py       # PatchJob, JobEvent y máquina de estados
   repository.py # persistencia SQLite: jobs, targets, eventos, idempotencia
   policy.py     # allowlists, validación de objetivos y sanitización
+  runbooks.py   # contrato explícito de SSM Documents por operación
+  lab.py        # LabTarget: laboratorio vulnerable reutilizable (reset_lab)
+  reconciler.py # reconciliador periódico de jobs activos (no ejecuta parches)
   providers/    # contrato + mock_patch / mock_restore / aws_ssm_automation
 backend/tests/  # pytest (contratos, estados, persistencia, API, AWS con Stubber)
 frontend/src/

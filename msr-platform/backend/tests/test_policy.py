@@ -64,9 +64,9 @@ def test_instance_not_managed_by_ssm_is_rejected(aws_settings):
 
 
 def test_runbook_must_be_allowlisted(aws_settings):
-    assert assert_runbook_allowed("AWS-RunPatchBaseline", aws_settings)
+    assert assert_runbook_allowed("MSR-PatchLinuxInstance", aws_settings)
     with pytest.raises(PolicyViolation):
-        assert_runbook_allowed("AWS-RunShellScript", aws_settings)
+        assert_runbook_allowed("AWS-RunPatchBaseline", aws_settings)
     with pytest.raises(PolicyViolation):
         assert_runbook_allowed("", aws_settings)
 

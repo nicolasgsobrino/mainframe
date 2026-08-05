@@ -166,6 +166,10 @@ class PatchExecution:
     error_message: str | None = None
     raw_status: str | None = None
     detail: str = ""
+    # Degradación parcial (p. ej. no se pudo leer el detalle de pasos): no
+    # invalida `status`, pero debe quedar registrada como evento auditable.
+    warning_code: str | None = None
+    warning_message: str | None = None
 
     def as_dict(self) -> dict:
         data = asdict(self)
@@ -191,6 +195,8 @@ class RestoreExecution:
     error_message: str | None = None
     raw_status: str | None = None
     detail: str = ""
+    warning_code: str | None = None
+    warning_message: str | None = None
 
     def as_dict(self) -> dict:
         data = asdict(self)

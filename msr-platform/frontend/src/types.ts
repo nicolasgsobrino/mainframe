@@ -57,7 +57,11 @@ export interface Task {
 export type JobState =
   | "queued" | "validating" | "dry_run" | "starting" | "running" | "verifying"
   | "succeeded" | "failed" | "cancelling" | "cancelled"
-  | "restore_queued" | "restoring" | "restored" | "restore_failed" | "timed_out";
+  | "restore_queued" | "restoring" | "restored" | "restore_failed" | "timed_out"
+  // Estados no confirmados: la ejecución remota puede seguir viva y el objetivo
+  // permanece bloqueado hasta que AWS confirme un estado terminal.
+  | "timeout_pending_confirmation" | "remote_status_unknown" | "stop_requested";
+export type ExecutionMode = "mock" | "aws-dry-run" | "aws-real";
 export type JobType = "patch" | "rollback" | "reset_lab";
 export type ProviderName = "mock" | "aws-automation" | string;
 
@@ -76,7 +80,8 @@ export interface JobEvent { ts: string; state: JobState; message: string; }
 export interface PatchJob {
   id: string; job_type: JobType; task_id: string; ring_number: number | null;
   provider: ProviderName; provider_reference: string | null;
-  state: JobState; terminal: boolean; dry_run: boolean; correlation_id: string;
+  state: JobState; terminal: boolean; unconfirmed?: boolean;
+  dry_run: boolean; correlation_id: string;
   created_at: string; updated_at: string;
   started_at: string | null; completed_at: string | null;
   error_code: string | null; error_message: string | null;
@@ -85,6 +90,11 @@ export interface PatchJob {
 export interface ExecutionConfig {
   patch_provider: ProviderName; restore_provider: ProviderName;
   dry_run: boolean; poll_interval_seconds: number; region?: string | null;
+  mode: ExecutionMode; strict_policy: boolean;
+  reconciler?: {
+    enabled: boolean; running: boolean; interval_seconds: number;
+    ticks: number; last_reconciled: number; last_error: string | null;
+  };
 }
 /** Sobre de error uniforme del backend. */
 export interface ApiErrorBody {

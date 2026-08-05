@@ -2,24 +2,33 @@
 
 Diseño:
 - `validate_target()` sólo realiza llamadas de SÓLO LECTURA (EC2 DescribeInstances,
-  SSM DescribeInstanceInformation).
+  SSM DescribeInstanceInformation, SSM DescribeDocument).
 - `start()` con `MSR_DRY_RUN=true` NO llama a `StartAutomationExecution`.
-- El runbook y los parámetros los decide el backend a partir de la configuración
-  y de una allowlist interna; nunca llegan desde el frontend.
+- El runbook y sus parámetros salen del contrato declarado en `runbooks.py`:
+  sólo documentos de tipo `Automation` y sólo los parámetros que el runbook
+  declara. Nunca llegan desde el frontend.
 - Los clientes boto3 se pueden inyectar para poder testear con `botocore.stub.Stubber`.
 - No se realiza ninguna llamada a AWS durante el import ni durante el arranque.
 """
 from __future__ import annotations
 
+import re
 import uuid
+from datetime import timedelta
 
 from ..config import PROVIDER_AWS_AUTOMATION, ConfigurationError, Settings
-from ..policy import (
-    PolicyViolation,
-    assert_parameters_allowed,
-    assert_runbook_allowed,
-    evaluate_target,
-    sanitize_text,
+from ..policy import evaluate_target, sanitize_text
+from ..runbooks import (
+    OPERATION_PATCH,
+    OPERATION_RESET_LAB,
+    OPERATION_ROLLBACK,
+    ResolvedRunbook,
+    RunbookContractError,
+    assert_document_type,
+    assert_operating_system_supported,
+    assert_track_supported,
+    resolve_runbook,
+    validate_parameters,
 )
 from .base import (
     ExecutionStatus,
@@ -63,9 +72,11 @@ STEP_STATUS_MAP = {"Success": "ok", "Failed": "failed", "TimedOut": "timed_out",
                    "Cancelled": "cancelled", "InProgress": "running", "Pending": "pending",
                    "Waiting": "waiting"}
 
-# Parámetros que el backend puede enviar a los runbooks permitidos.
-ALLOWED_PARAMETER_KEYS = {"InstanceId", "AutomationAssumeRole", "Operation", "RebootOption",
-                          "SnapshotId", "TargetVersion"}
+_SESSION_NAME_RE = re.compile(r"[^\w+=,.@-]")
+_PERMISSION_ERRORS = ("AccessDenied", "UnauthorizedOperation", "AuthFailure",
+                      "NotAuthorized", "ExpiredToken", "InvalidClientTokenId")
+_THROTTLING_ERRORS = ("Throttling", "ThrottlingException", "RequestLimitExceeded",
+                      "TooManyRequests", "RequestThrottled")
 
 
 def map_status(aws_status: str | None) -> ExecutionStatus:
@@ -75,18 +86,51 @@ def map_status(aws_status: str | None) -> ExecutionStatus:
     return STATUS_MAP.get(aws_status, ExecutionStatus.RUNNING)
 
 
+def classify_error(exc: Exception) -> tuple[str, str]:
+    """Diferencia permisos, throttling y fallo transitorio (código, descripción)."""
+    code = ""
+    response = getattr(exc, "response", None)
+    if isinstance(response, dict):
+        code = str((response.get("Error") or {}).get("Code") or "")
+    text = f"{code} {exc}"
+    if any(token in text for token in _PERMISSION_ERRORS):
+        return "PERMISSION_DENIED", "falta de permisos IAM"
+    if any(token in text for token in _THROTTLING_ERRORS):
+        return "THROTTLED", "throttling de la API de AWS"
+    return "TRANSIENT_FAILURE", "fallo transitorio"
+
+
+def sanitize_session_name(value: str) -> str:
+    """RoleSessionName: sólo [\\w+=,.@-] y como máximo 64 caracteres."""
+    cleaned = _SESSION_NAME_RE.sub("-", value or "")
+    return (cleaned or "msr-platform")[:64]
+
+
 class _AutomationBase:
     """Lógica compartida por los adaptadores de parcheo y restauración."""
 
     name = PROVIDER_AWS_AUTOMATION
 
-    def __init__(self, settings: Settings, ssm_client=None, ec2_client=None, now_fn=utcnow):
+    def __init__(self, settings: Settings, ssm_client=None, ec2_client=None, sts_client=None,
+                 now_fn=utcnow):
         self._settings = settings
         self._ssm = ssm_client
         self._ec2 = ec2_client
+        self._sts = sts_client
         self._now = now_fn
+        self._correlation_id = ""
+        self._assumed: dict | None = None
+        self._assumed_expiry = None
 
     # -- clientes -------------------------------------------------------
+    def _boto3(self):
+        try:
+            import boto3  # import diferido: sin AWS con provider mock
+        except ImportError as exc:  # pragma: no cover - dependencia declarada
+            raise ProviderError("PROVIDER_UNAVAILABLE",
+                                "boto3 no está instalado en el backend.") from exc
+        return boto3
+
     def _session_kwargs(self) -> dict:
         kwargs: dict = {}
         if self._settings.aws_region:
@@ -95,15 +139,53 @@ class _AutomationBase:
             kwargs["profile_name"] = self._settings.aws_profile
         return kwargs
 
-    def _client(self, service: str):
+    @property
+    def sts(self):
+        if self._sts is None:
+            self._sts = self._boto3().Session(**self._session_kwargs()).client("sts")
+        return self._sts
+
+    def _assume_role_credentials(self) -> dict:
+        """Credenciales temporales de `MSR_AWS_ROLE_ARN` vía STS AssumeRole.
+
+        La sesión se renueva cuando caduca; los valores nunca se registran.
+        """
+        now = self._now()
+        if self._assumed and self._assumed_expiry and now < self._assumed_expiry:
+            return self._assumed
+        session_name = sanitize_session_name(
+            f"msr-{self._correlation_id or uuid.uuid4().hex[:12]}")
         try:
-            import boto3  # import diferido: sin AWS con provider mock
-        except ImportError as exc:  # pragma: no cover - dependencia declarada
-            raise ProviderError("PROVIDER_UNAVAILABLE",
-                                "boto3 no está instalado en el backend.") from exc
+            response = self.sts.assume_role(RoleArn=self._settings.aws_role_arn,
+                                            RoleSessionName=session_name,
+                                            DurationSeconds=3600)
+        except Exception as exc:
+            code, kind = classify_error(exc)
+            raise ProviderError(code, f"No se pudo asumir MSR_AWS_ROLE_ARN ({kind}).") from exc
+        credentials = response.get("Credentials") or {}
+        if not credentials.get("AccessKeyId"):
+            raise ProviderError("PERMISSION_DENIED",
+                                "STS no devolvió credenciales temporales para el rol configurado.")
+        self._assumed = {
+            "aws_access_key_id": credentials["AccessKeyId"],
+            "aws_secret_access_key": credentials["SecretAccessKey"],
+            "aws_session_token": credentials.get("SessionToken"),
+        }
+        expiration = credentials.get("Expiration")
+        # Margen de 60 s para no usar credenciales a punto de caducar.
+        self._assumed_expiry = (expiration - timedelta(seconds=60)
+                                if expiration is not None else now + timedelta(minutes=50))
+        return self._assumed
+
+    def _client(self, service: str):
+        boto3 = self._boto3()
         if not self._settings.aws_region:
             raise ConfigurationError("MSR_AWS_REGION es obligatorio para el provider aws-automation.")
-        session = boto3.Session(**self._session_kwargs())
+        session_kwargs = self._session_kwargs()
+        if self._settings.aws_role_arn:
+            session_kwargs.pop("profile_name", None)
+            session_kwargs.update(self._assume_role_credentials())
+        session = boto3.Session(**session_kwargs)
         client_kwargs = {}
         if self._settings.aws_endpoint_url:
             client_kwargs["endpoint_url"] = self._settings.aws_endpoint_url
@@ -163,14 +245,47 @@ class _AutomationBase:
             ssm_managed=ssm_managed, name=target.name)
         return resolved, state
 
-    def _evaluate(self, target: Target) -> TargetPolicyResult:
+    def _evaluate(self, target: Target, *, dry_run: bool) -> TargetPolicyResult:
         resolved, state = self._resolve_target(target)
-        return evaluate_target(resolved, self._settings, instance_state=state, require_instance=True)
+        return evaluate_target(resolved, self._settings, instance_state=state,
+                               require_instance=True, strict=not dry_run)
 
     @staticmethod
     def _as_provider_error(exc: Exception, code: str, message: str) -> ProviderError:
         detail = sanitize_text(str(exc), 400)
         return ProviderError(code, f"{message} Detalle: {detail}")
+
+    # -- contrato de runbook ---------------------------------------------
+    def _runbook(self, operation: str) -> ResolvedRunbook:
+        try:
+            return resolve_runbook(self._settings, operation)
+        except RunbookContractError as exc:
+            raise ProviderError(exc.code, exc.message) from exc
+
+    def _assert_document_is_automation(self, runbook: ResolvedRunbook) -> str:
+        """`DescribeDocument` (lectura) antes de cualquier ejecución real."""
+        try:
+            described = self.ssm.describe_document(Name=runbook.name)
+        except Exception as exc:
+            code, kind = classify_error(exc)
+            raise ProviderError(
+                "RUNBOOK_NOT_FOUND",
+                f"No se pudo describir el runbook '{runbook.name}' ({kind}, {code}).") from exc
+        document = described.get("Document") or {}
+        try:
+            assert_document_type(runbook.name, document.get("DocumentType"), runbook.contract)
+        except RunbookContractError as exc:
+            raise ProviderError(exc.code, exc.message) from exc
+        return document.get("DocumentType") or ""
+
+    def _check_contract(self, runbook: ResolvedRunbook, track: str | None,
+                        target: Target, parameters: dict) -> dict:
+        try:
+            assert_track_supported(track, runbook.contract)
+            assert_operating_system_supported(target.operating_system, runbook.contract)
+            return validate_parameters(runbook.contract, parameters)
+        except RunbookContractError as exc:
+            raise ProviderError(exc.code, exc.message) from exc
 
     # -- ejecución -------------------------------------------------------
     def _client_token(self, idempotency_key: str) -> str:
@@ -184,12 +299,12 @@ class _AutomationBase:
             {"Key": "msr:managed-by", "Value": "msr-platform"},
         ]
 
-    def _start_automation(self, runbook: str, parameters: dict, correlation_id: str,
+    def _start_automation(self, runbook: ResolvedRunbook, parameters: dict, correlation_id: str,
                           task_id: str, idempotency_key: str) -> str:
-        assert_runbook_allowed(runbook, self._settings)
-        assert_parameters_allowed(parameters, ALLOWED_PARAMETER_KEYS)
+        # Última barrera antes de mutar: el documento debe existir y ser Automation.
+        self._assert_document_is_automation(runbook)
         request = {
-            "DocumentName": runbook,
+            "DocumentName": runbook.name,
             "Parameters": {k: (v if isinstance(v, list) else [v]) for k, v in parameters.items()},
             "Mode": "Auto",
             "ClientToken": self._client_token(idempotency_key),
@@ -206,7 +321,7 @@ class _AutomationBase:
                                 "Systems Manager no devolvió AutomationExecutionId.")
         return execution_id
 
-    def _describe(self, provider_reference: str) -> tuple[ExecutionStatus, dict, tuple[ExecutionStep, ...]]:
+    def _describe(self, provider_reference: str):
         try:
             response = self.ssm.get_automation_execution(AutomationExecutionId=provider_reference)
         except Exception as exc:
@@ -214,17 +329,23 @@ class _AutomationBase:
                                           "No se pudo consultar la automatización en Systems Manager.") from exc
         execution = response.get("AutomationExecution") or {}
         raw_status = execution.get("AutomationExecutionStatus")
-        status = map_status(raw_status)
-        steps = self._describe_steps(provider_reference) if raw_status else ()
-        return status, execution, steps
+        steps: tuple[ExecutionStep, ...] = ()
+        warning: tuple[str, str] | None = None
+        if raw_status:
+            steps, warning = self._describe_steps(provider_reference)
+        return map_status(raw_status), execution, steps, warning
 
-    def _describe_steps(self, provider_reference: str) -> tuple[ExecutionStep, ...]:
+    def _describe_steps(self, provider_reference: str):
+        """El detalle de pasos es complementario: si falla, se degrada con aviso."""
         try:
             response = self.ssm.describe_automation_step_executions(
                 AutomationExecutionId=provider_reference)
-        except Exception:
-            # La ausencia de detalle de pasos no debe invalidar la reconciliación.
-            return ()
+        except Exception as exc:
+            code, kind = classify_error(exc)
+            # No se oculta la excepción: se conserva el estado de
+            # GetAutomationExecution y se emite un aviso sanitizado.
+            return (), (code, f"No se pudo leer el detalle de pasos ({kind}): "
+                              f"{sanitize_text(str(exc), 300)}")
         limit = self._settings.max_output_chars
         steps: list[ExecutionStep] = []
         for i, step in enumerate(response.get("StepExecutions") or []):
@@ -243,89 +364,110 @@ class _AutomationBase:
                 started_at=iso_utc(step.get("ExecutionStartTime")),
                 ended_at=iso_utc(step.get("ExecutionEndTime")),
             ))
-        return tuple(steps)
+        return tuple(steps), None
+
+    def _request_stop(self, provider_reference: str, stop_type: str = "Cancel") -> None:
+        try:
+            self.ssm.stop_automation_execution(AutomationExecutionId=provider_reference,
+                                               Type=stop_type)
+        except Exception as exc:
+            raise self._as_provider_error(exc, "CANCEL_NOT_POSSIBLE",
+                                          "Systems Manager no aceptó la parada de la ejecución.") from exc
 
 
 class AwsSsmAutomationPatchProvider(_AutomationBase):
     """Parcheo de paquetes de sistema operativo en una EC2 Linux vía Automation."""
 
-    def validate_target(self, request: PatchRequest) -> TargetPolicyResult:
-        return self._evaluate(request.primary_target())
+    operation = OPERATION_PATCH
 
-    def _parameters(self, target: Target) -> dict:
-        params = {"InstanceId": [target.instance_id or ""]}
-        if self._settings.automation_assume_role_arn:
+    def validate_target(self, request: PatchRequest) -> TargetPolicyResult:
+        self._correlation_id = request.correlation_id
+        runbook = self._runbook(self.operation)
+        target = request.primary_target()
+        try:
+            assert_track_supported(request.spec.track, runbook.contract)
+        except RunbookContractError as exc:
+            raise ProviderError(exc.code, exc.message) from exc
+        return self._evaluate(target, dry_run=request.dry_run)
+
+    def _parameters(self, runbook: ResolvedRunbook, target: Target) -> dict:
+        """Parámetros derivados del esquema del runbook, nunca genéricos."""
+        declared = runbook.contract.declared_parameters
+        params: dict = {}
+        if "InstanceId" in declared:
+            params["InstanceId"] = [target.instance_id or ""]
+        if "AutomationAssumeRole" in declared and self._settings.automation_assume_role_arn:
             params["AutomationAssumeRole"] = [self._settings.automation_assume_role_arn]
-        params["Operation"] = ["Install"]
         return params
 
     def start(self, request: PatchRequest, idempotency_key: str) -> PatchExecution:
-        runbook = self._settings.patch_runbook_name
+        self._correlation_id = request.correlation_id
+        runbook = self._runbook(self.operation)
         target = request.primary_target()
         policy = self.validate_target(request)
         if not policy.allowed:
             raise ProviderError(policy.error_code or "TARGET_NOT_ALLOWED", policy.message)
-        try:
-            assert_runbook_allowed(runbook, self._settings)
-            parameters = assert_parameters_allowed(self._parameters(policy.target or target),
-                                                  ALLOWED_PARAMETER_KEYS)
-        except PolicyViolation as exc:
-            raise ProviderError(exc.code, exc.message) from exc
+        resolved = policy.target or target
+        if (runbook.contract.requires_assume_role and not request.dry_run
+                and not self._settings.automation_assume_role_arn):
+            raise ProviderError("PROVIDER_MISCONFIGURED",
+                                "El runbook requiere MSR_AUTOMATION_ASSUME_ROLE_ARN para ejecutarse.")
+        parameters = self._check_contract(runbook, request.spec.track, resolved,
+                                         self._parameters(runbook, resolved))
 
         started = self._now()
         if request.dry_run:
+            document_type = self._assert_document_is_automation(runbook)
             summary = ExecutionStep(
                 seq=1, actor="msr-platform", tool="Systems Manager Automation (dry-run)",
-                command=f"StartAutomationExecution DocumentName={runbook}",
+                command=f"StartAutomationExecution DocumentName={runbook.name}",
                 output="[dry-run] no se ha invocado ninguna API mutativa de AWS. "
-                       f"Parámetros: {sanitize_text(str(sorted(parameters)), 300)}",
+                       f"Documento {runbook.name} ({document_type}). Parámetros: "
+                       f"{sanitize_text(str(sorted(parameters)), 300)}",
                 status="planned",
                 why="Con MSR_DRY_RUN=true se registra la intención sin ejecutar el runbook.")
             return PatchExecution(
                 provider=self.name, provider_reference=f"{DRY_RUN_PREFIX}{request.job_id}",
                 status=ExecutionStatus.DRY_RUN, dry_run=True, steps=(summary,),
-                from_version=request.spec.from_version, to_version=request.spec.to_version,
                 started_at=iso_utc(started), completed_at=iso_utc(started),
-                detail=f"Dry-run validado contra {target.instance_id} sin cambios aplicados.")
+                detail=f"Dry-run validado contra {resolved.instance_id} sin cambios aplicados.")
 
         execution_id = self._start_automation(runbook, parameters, request.correlation_id,
                                               request.task_id, idempotency_key)
+        # Sin versión objetivo inventada: la evidencia sale del runbook, no del store.
         return PatchExecution(
             provider=self.name, provider_reference=execution_id, status=ExecutionStatus.RUNNING,
-            dry_run=False, from_version=request.spec.from_version,
-            to_version=request.spec.to_version, started_at=iso_utc(started),
-            raw_status="InProgress",
-            detail=f"Automation {runbook} iniciada sobre {target.instance_id}.")
+            dry_run=False, started_at=iso_utc(started), raw_status="InProgress",
+            detail=f"Automation {runbook.name} iniciada sobre {resolved.instance_id}.")
 
     def poll(self, provider_reference: str, request: PatchRequest | None = None) -> PatchExecution:
+        if request is not None:
+            self._correlation_id = request.correlation_id
         if provider_reference.startswith(DRY_RUN_PREFIX):
             return PatchExecution(provider=self.name, provider_reference=provider_reference,
                                   status=ExecutionStatus.DRY_RUN, dry_run=True,
                                   detail="Ejecución dry-run: sin estado remoto que consultar.")
-        status, execution, steps = self._describe(provider_reference)
+        status, execution, steps, warning = self._describe(provider_reference)
         failure = execution.get("FailureMessage")
         return PatchExecution(
             provider=self.name, provider_reference=provider_reference, status=status,
             dry_run=False, steps=steps,
-            from_version=request.spec.from_version if request else None,
-            to_version=request.spec.to_version if request else None,
             started_at=iso_utc(execution.get("ExecutionStartTime")),
             completed_at=iso_utc(execution.get("ExecutionEndTime")),
             error_code="AUTOMATION_FAILED" if failure else None,
             error_message=sanitize_text(failure, self._settings.max_output_chars) if failure else None,
             raw_status=execution.get("AutomationExecutionStatus"),
-            detail=sanitize_text(execution.get("CurrentStepName") or "", 200))
+            detail=sanitize_text(execution.get("CurrentStepName") or "", 200),
+            warning_code=warning[0] if warning else None,
+            warning_message=warning[1] if warning else None)
 
     def cancel(self, provider_reference: str, request: PatchRequest | None = None) -> PatchExecution:
+        if request is not None:
+            self._correlation_id = request.correlation_id
         if provider_reference.startswith(DRY_RUN_PREFIX):
             raise ProviderError("CANCEL_NOT_POSSIBLE",
                                 "Una ejecución dry-run ya ha terminado; no puede cancelarse.")
-        try:
-            self.ssm.stop_automation_execution(AutomationExecutionId=provider_reference,
-                                               Type="Cancel")
-        except Exception as exc:
-            raise self._as_provider_error(exc, "CANCEL_NOT_POSSIBLE",
-                                          "Systems Manager no aceptó la cancelación.") from exc
+        self._request_stop(provider_reference)
         # No se marca cancelado localmente: el estado real lo dicta AWS.
         return self.poll(provider_reference, request)
 
@@ -333,59 +475,77 @@ class AwsSsmAutomationPatchProvider(_AutomationBase):
 class AwsSsmAutomationRestoreProvider(_AutomationBase):
     """Restauración (rollback) mediante un runbook de Automation dedicado."""
 
-    def validate_target(self, request: RestoreRequest) -> TargetPolicyResult:
-        return self._evaluate(request.primary_target())
+    def _operation(self, request: RestoreRequest) -> str:
+        return OPERATION_RESET_LAB if request.restore_kind == "reset_lab" else OPERATION_ROLLBACK
 
-    def _parameters(self, target: Target, request: RestoreRequest) -> dict:
-        params = {"InstanceId": [target.instance_id or ""]}
-        if self._settings.automation_assume_role_arn:
+    def validate_target(self, request: RestoreRequest) -> TargetPolicyResult:
+        self._correlation_id = request.correlation_id
+        runbook = self._runbook(self._operation(request))
+        if not runbook.contract.implemented:
+            raise ProviderError(
+                "RESET_LAB_NOT_IMPLEMENTED",
+                "La recreación real de la instancia vulnerable (reset_lab) todavía no está "
+                "implementada en AWS; sólo existe el modelo persistente LabTarget.")
+        return self._evaluate(request.primary_target(), dry_run=request.dry_run)
+
+    def _parameters(self, runbook: ResolvedRunbook, target: Target,
+                    request: RestoreRequest) -> dict:
+        declared = runbook.contract.declared_parameters
+        params: dict = {}
+        if "InstanceId" in declared:
+            params["InstanceId"] = [target.instance_id or ""]
+        if "AutomationAssumeRole" in declared and self._settings.automation_assume_role_arn:
             params["AutomationAssumeRole"] = [self._settings.automation_assume_role_arn]
-        if request.target_version:
+        # `TargetVersion`/`SnapshotId` sólo se envían si el runbook los declara.
+        if "TargetVersion" in declared and request.target_version:
             params["TargetVersion"] = [request.target_version]
+        if "SnapshotId" in declared and request.snapshot_ref:
+            params["SnapshotId"] = [request.snapshot_ref]
         return params
 
     def start(self, request: RestoreRequest, idempotency_key: str) -> RestoreExecution:
-        runbook = self._settings.reset_runbook_name
-        target = request.primary_target()
+        self._correlation_id = request.correlation_id
+        runbook = self._runbook(self._operation(request))
         policy = self.validate_target(request)
         if not policy.allowed:
             raise ProviderError(policy.error_code or "TARGET_NOT_ALLOWED", policy.message)
-        try:
-            assert_runbook_allowed(runbook, self._settings)
-            parameters = assert_parameters_allowed(self._parameters(policy.target or target, request),
-                                                  ALLOWED_PARAMETER_KEYS)
-        except PolicyViolation as exc:
-            raise ProviderError(exc.code, exc.message) from exc
+        resolved = policy.target or request.primary_target()
+        track = (request.task_snapshot or {}).get("track", "A")
+        parameters = self._check_contract(runbook, track, resolved,
+                                          self._parameters(runbook, resolved, request))
 
         started = self._now()
         if request.dry_run:
+            document_type = self._assert_document_is_automation(runbook)
             summary = ExecutionStep(
                 seq=1, actor="msr-platform", tool="Systems Manager Automation (dry-run)",
-                command=f"StartAutomationExecution DocumentName={runbook}",
-                output="[dry-run] no se ha invocado ninguna API mutativa de AWS.",
+                command=f"StartAutomationExecution DocumentName={runbook.name}",
+                output="[dry-run] no se ha invocado ninguna API mutativa de AWS. "
+                       f"Documento {runbook.name} ({document_type}).",
                 status="planned",
                 why="Con MSR_DRY_RUN=true la restauración sólo se registra.")
             return RestoreExecution(
                 provider=self.name, provider_reference=f"{DRY_RUN_PREFIX}{request.job_id}",
                 status=ExecutionStatus.DRY_RUN, dry_run=True, steps=(summary,),
-                restored_version=request.target_version, started_at=iso_utc(started),
-                completed_at=iso_utc(started),
-                detail=f"Dry-run de restauración sobre {target.instance_id}.")
+                started_at=iso_utc(started), completed_at=iso_utc(started),
+                detail=f"Dry-run de restauración sobre {resolved.instance_id}.")
 
         execution_id = self._start_automation(runbook, parameters, request.correlation_id,
                                               request.task_id, idempotency_key)
         return RestoreExecution(
             provider=self.name, provider_reference=execution_id, status=ExecutionStatus.RUNNING,
-            dry_run=False, restored_version=request.target_version, started_at=iso_utc(started),
-            raw_status="InProgress",
-            detail=f"Automation {runbook} iniciada sobre {target.instance_id}.")
+            dry_run=False, started_at=iso_utc(started), raw_status="InProgress",
+            detail=f"Automation {runbook.name} iniciada sobre {resolved.instance_id}.")
 
-    def poll(self, provider_reference: str, request: RestoreRequest | None = None) -> RestoreExecution:
+    def poll(self, provider_reference: str,
+             request: RestoreRequest | None = None) -> RestoreExecution:
+        if request is not None:
+            self._correlation_id = request.correlation_id
         if provider_reference.startswith(DRY_RUN_PREFIX):
             return RestoreExecution(provider=self.name, provider_reference=provider_reference,
                                     status=ExecutionStatus.DRY_RUN, dry_run=True,
                                     detail="Ejecución dry-run: sin estado remoto que consultar.")
-        status, execution, steps = self._describe(provider_reference)
+        status, execution, steps, warning = self._describe(provider_reference)
         failure = execution.get("FailureMessage")
         return RestoreExecution(
             provider=self.name, provider_reference=provider_reference, status=status,
@@ -396,4 +556,14 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
             error_code="AUTOMATION_FAILED" if failure else None,
             error_message=sanitize_text(failure, self._settings.max_output_chars) if failure else None,
             raw_status=execution.get("AutomationExecutionStatus"),
-            detail=sanitize_text(execution.get("CurrentStepName") or "", 200))
+            detail=sanitize_text(execution.get("CurrentStepName") or "", 200),
+            warning_code=warning[0] if warning else None,
+            warning_message=warning[1] if warning else None)
+
+    def cancel(self, provider_reference: str,
+               request: RestoreRequest | None = None) -> RestoreExecution:
+        if provider_reference.startswith(DRY_RUN_PREFIX):
+            raise ProviderError("CANCEL_NOT_POSSIBLE",
+                                "Una ejecución dry-run ya ha terminado; no puede cancelarse.")
+        self._request_stop(provider_reference)
+        return self.poll(provider_reference, request)
