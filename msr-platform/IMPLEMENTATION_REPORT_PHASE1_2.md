@@ -248,8 +248,17 @@ Modificados:
 
 ## 11. Resultados reales del CI (tras la corrección)
 
-Pendiente de completar con los IDs de las ejecuciones de la corrección (se rellena en cuanto
-GitHub Actions termina): `push / backend`, `push / frontend`, `pull_request / backend`,
-`pull_request / frontend`.
+Commit de la corrección: `7c91fe0`. Los cuatro checks requeridos terminaron en verde:
+
+| Check | Run | Job | Resultado |
+|-------|-----|-----|-----------|
+| `push / backend` | [30991333701](https://github.com/nicolasgsobrino/mainframe/actions/runs/30991333701) | `92257938177` | success |
+| `push / frontend` | [30991333701](https://github.com/nicolasgsobrino/mainframe/actions/runs/30991333701) | `92257938190` | success |
+| `pull_request / backend` | [30991339311](https://github.com/nicolasgsobrino/mainframe/actions/runs/30991339311) | `92257957163` | success |
+| `pull_request / frontend` | [30991339311](https://github.com/nicolasgsobrino/mainframe/actions/runs/30991339311) | `92257957102` | success |
+
+Validaciones locales repetidas con la corrección aplicada: `pytest` 154 passed,
+`ruff check app tests` sin hallazgos, `compileall` exit 0, concurrencia 20/20 pasadas y
+reinicio + renovación de credenciales 10/10 pasadas, todas sin fallos.
 
 PR consolidada: <https://github.com/nicolasgsobrino/mainframe/pull/6>.
