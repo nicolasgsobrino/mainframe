@@ -37,16 +37,18 @@ locals {
 
   # Valores que el backend debe recibir por entorno (ver outputs).
   backend_environment = {
-    MSR_AWS_REGION                 = var.aws_region
-    MSR_ALLOWED_ACCOUNT_IDS        = var.aws_account_id
-    MSR_ALLOWED_REGIONS            = var.aws_region
-    MSR_ALLOWED_ENVIRONMENTS       = var.environment_tag
-    MSR_REQUIRED_TARGET_TAG_KEY    = "msr-poc"
-    MSR_REQUIRED_TARGET_TAG_VALUE  = "true"
-    MSR_LAB_LOGICAL_ID             = var.lab_id
-    MSR_LAB_AUTOSCALING_GROUP_NAME = local.autoscaling_group_name
-    MSR_PATCH_ADVISORY_ID          = var.candidate_advisory_id
-    MSR_PATCH_RUNBOOK_NAME         = var.patch_runbook_name
-    MSR_RESET_RUNBOOK_NAME         = var.reset_runbook_name
+    MSR_AWS_REGION                  = var.aws_region
+    MSR_ALLOWED_ACCOUNT_IDS         = var.aws_account_id
+    MSR_ALLOWED_REGIONS             = var.aws_region
+    MSR_ALLOWED_ENVIRONMENTS        = var.environment_tag
+    MSR_REQUIRED_TARGET_TAG_KEY     = "msr-poc"
+    MSR_REQUIRED_TARGET_TAG_VALUE   = "true"
+    MSR_LAB_LOGICAL_ID              = var.lab_id
+    MSR_LAB_AUTOSCALING_GROUP_NAME  = local.autoscaling_group_name
+    MSR_PATCH_ADVISORY_ID           = var.candidate_advisory_id
+    MSR_PATCH_RELEASEVER            = var.candidate_releasever
+    MSR_PATCH_EXPECTED_FIXED_KERNEL = var.expected_fixed_kernel
+    MSR_PATCH_RUNBOOK_NAME          = var.patch_runbook_name
+    MSR_RESET_RUNBOOK_NAME          = var.reset_runbook_name
   }
 }

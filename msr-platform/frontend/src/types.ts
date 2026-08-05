@@ -107,6 +107,8 @@ export interface LabTarget {
   /** Sólo lectura: lo fija la IaC; la UI nunca lo envía. */
   autoscaling_group_name: string | null;
   expected_vulnerable_package: string | null; expected_vulnerable_version: string | null;
+  /** Sólo lectura: advisory, releasever y kernel corregido los fija la IaC. */
+  candidate_releasever: string | null; expected_fixed_kernel: string | null;
   required_tags: Record<string, string>; last_reset_job_id: string | null;
   updated_at: string;
 }
@@ -124,6 +126,8 @@ export interface LabSnapshot {
   lab: LabTarget | null; instance: LabInstance | null;
   resolution_error: LabResolutionError | null;
   task_id: string; advisory_id: string; package_family: string; environment: string;
+  /** Sólo lectura: la UI los muestra, nunca los envía. */
+  releasever: string; expected_fixed_kernel: string;
   required_tags: Record<string, string>;
   execution_mode: ExecutionMode; dry_run: boolean;
   patch_provider: ProviderName; restore_provider: ProviderName;
@@ -134,7 +138,8 @@ export interface LabSnapshot {
 export interface LabCheck { check: string; ok: boolean; detail: string; code?: string }
 export interface LabValidation {
   logical_lab_id: string; read_only: true; allowed: boolean; checks: LabCheck[];
-  instance: LabInstance | null; task_id: string; advisory_id: string; note: string;
+  instance: LabInstance | null; task_id: string; advisory_id: string;
+  releasever: string; expected_fixed_kernel: string; note: string;
   vulnerable_state: LabVulnerableState; advisory_confirmed: boolean;
   last_patch_job_id: string | null; last_reset_job_id: string | null;
 }

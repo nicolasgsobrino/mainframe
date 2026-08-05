@@ -77,6 +77,25 @@ output "reset_runbook_arn" {
   description = "ARN del runbook de reset."
 }
 
+output "candidate_advisory_id" {
+  description = "Advisory que la PoC debe demostrar; valor de MSR_PATCH_ADVISORY_ID."
+  value       = var.candidate_advisory_id
+}
+
+output "candidate_releasever" {
+  description = <<-EOT
+    Release de Amazon Linux 2023 que contiene la corrección. Precheck, postcheck
+    y reset consultan el advisory con `--releasever` sobre este valor, porque el
+    repositorio de la AMI base está fijado en una release anterior.
+  EOT
+  value       = var.candidate_releasever
+}
+
+output "expected_fixed_kernel" {
+  description = "Kernel mínimo que debe quedar en ejecución tras el parcheo."
+  value       = var.expected_fixed_kernel
+}
+
 output "patch_baseline_id" {
   description = "Baseline que aprueba únicamente el advisory candidato."
   value       = try(aws_ssm_patch_baseline.lab[0].id, "")

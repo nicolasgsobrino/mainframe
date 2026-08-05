@@ -770,8 +770,12 @@ TEST_CATALOG = [
 # 4.bis Escenario de laboratorio de la PoC (track A, sin Instance ID fijo)
 # ---------------------------------------------------------------------------
 LAB_LOGICAL_ID = "linux-patching-01"
-LAB_ADVISORY_ID = "ALAS2023-2026-1651"
+LAB_ADVISORY_ID = "ALAS2023-2026-1924"
 LAB_PACKAGE_FAMILY = "kernel"
+# Release de Amazon Linux 2023 que corrige el advisory (posterior a la AMI base)
+# y kernel resultante esperado. Valores de la IaC, nunca del frontend.
+LAB_RELEASEVER = "2023.12.20260706"
+LAB_EXPECTED_FIXED_KERNEL = "6.1.176-220.358.amzn2023.x86_64"
 LAB_ENVIRONMENT = "sandbox"
 LAB_CI_ID = "SRV-LAB-0001"
 LAB_TASK_ID = "RTASK900900"
@@ -781,6 +785,8 @@ LAB_VITEM_ID = "VIT700900"
 def build_lab_scenario(logical_lab_id: str = LAB_LOGICAL_ID,
                        advisory_id: str = LAB_ADVISORY_ID,
                        package_family: str = LAB_PACKAGE_FAMILY,
+                       releasever: str = LAB_RELEASEVER,
+                       expected_fixed_kernel: str = LAB_EXPECTED_FIXED_KERNEL,
                        region: str | None = None,
                        account_id: str | None = None):
     """CI, Vulnerable Item y Remediation Task del laboratorio EC2 real.
@@ -820,6 +826,7 @@ def build_lab_scenario(logical_lab_id: str = LAB_LOGICAL_ID,
         "sla_due": vitem["sla_due"], "change_type": "standard", "exposed": False,
         "component": package_family, "vulnerable_version": vitem["vulnerable_version"],
         "created_at": iso(detected), "advisory_id": advisory_id,
+        "releasever": releasever, "expected_fixed_kernel": expected_fixed_kernel,
         "logical_lab_id": logical_lab_id, "lab_target": True,
     }
     return ci, vitem, task
@@ -827,6 +834,8 @@ def build_lab_scenario(logical_lab_id: str = LAB_LOGICAL_ID,
 
 def build_all(lab_logical_id: str = LAB_LOGICAL_ID, lab_advisory_id: str = LAB_ADVISORY_ID,
               lab_package_family: str = LAB_PACKAGE_FAMILY,
+              lab_releasever: str = LAB_RELEASEVER,
+              lab_expected_fixed_kernel: str = LAB_EXPECTED_FIXED_KERNEL,
               lab_region: str | None = None, lab_account_id: str | None = None):
     # La CMDB es la fuente de verdad versionada en el repo (formato ServiceNow).
     # Si el export existe se recarga; si no, se genera y se persiste al repo.
@@ -842,7 +851,9 @@ def build_all(lab_logical_id: str = LAB_LOGICAL_ID, lab_advisory_id: str = LAB_A
     # Escenario real de la PoC: instancia EC2 de laboratorio, track A.
     lab_ci, lab_vitem, lab_task = build_lab_scenario(
         logical_lab_id=lab_logical_id, advisory_id=lab_advisory_id,
-        package_family=lab_package_family, region=lab_region, account_id=lab_account_id)
+        package_family=lab_package_family, releasever=lab_releasever,
+        expected_fixed_kernel=lab_expected_fixed_kernel,
+        region=lab_region, account_id=lab_account_id)
     cis = [c for c in cis if c["id"] != lab_ci["id"]] + [lab_ci]
     vitems.append(lab_vitem)
     tasks.append(lab_task)

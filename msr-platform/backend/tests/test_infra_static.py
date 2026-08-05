@@ -363,3 +363,123 @@ def test_no_credentials_are_committed_in_the_infrastructure():
         content = path.read_text(encoding="utf-8")
         assert "aws_secret_access_key" not in content
         assert not re.search(r"AKIA[0-9A-Z]{16}", content)
+
+
+# --- Fase 2.2: advisory vigente, releasever explícito y kernel corregido ----
+
+ADVISORY = "ALAS2023-2026-1924"
+RELEASEVER = "2023.12.20260706"
+FIXED_KERNEL = "6.1.176-220.358.amzn2023.x86_64"
+REPO_ROOT = INFRA.parents[1]
+RETIRED_ADVISORY = "ALAS2023" + "-2026-1651"
+
+
+def test_the_retired_advisory_is_gone_from_code_terraform_and_seeds():
+    """El advisory antiguo se corrigió antes de la AMI base: no puede quedar."""
+    sources = list((REPO_ROOT / "backend" / "app").rglob("*.py"))
+    sources += [p for p in INFRA.rglob("*")
+                if p.is_file() and p.suffix in {".tf", ".tftpl", ".yaml", ".example"}
+                and ".terraform" not in p.parts]
+    sources.append(REPO_ROOT / ".env.example")
+
+    assert sources
+    for path in sources:
+        assert RETIRED_ADVISORY not in path.read_text(encoding="utf-8"), path
+
+
+def test_the_candidate_advisory_is_the_only_one_approved():
+    variables = read("variables.tf")
+    block = variables.split('variable "candidate_advisory_id"')[1]
+
+    assert f'default     = "{ADVISORY}"' in block
+    assert "approved_patches                     = [var.candidate_advisory_id]" in code("patching.tf")
+    assert 'rejected_patches_action              = "ALLOW_AS_DEPENDENCY"' in code("patching.tf")
+    assert "approval_rules" not in code("patching.tf")
+
+
+def test_candidate_releasever_exists_and_is_validated():
+    block = read("variables.tf").split('variable "candidate_releasever"')[1]
+
+    assert f'default     = "{RELEASEVER}"' in block
+    # Formato YYYY.NN.YYYYMMDD comprobado por Terraform, no sólo documentado.
+    assert r"^[0-9]{4}\\.[0-9]{2}\\.[0-9]{8}$" in block
+
+
+def test_the_base_ami_release_is_older_than_the_fix():
+    ec2 = code("ec2.tf")
+
+    assert "substr(var.source_ami_release, 0, 16) < var.candidate_releasever" in ec2
+    assert read("variables.tf").split('variable "source_ami_release"')[1].count(
+        '"2023.11.20260509.0"') == 1
+
+
+def test_the_releasever_reaches_the_backend_and_the_documents():
+    locals_tf = code("locals.tf")
+
+    assert re.search(r"MSR_PATCH_RELEASEVER\s+= var\.candidate_releasever", locals_tf)
+    assert re.search(r"MSR_PATCH_EXPECTED_FIXED_KERNEL\s+= var\.expected_fixed_kernel",
+                     locals_tf)
+    assert re.search(r"candidate_releasever\s+= var\.candidate_releasever",
+                     code("automation-documents.tf"))
+    assert "candidate_releasever" in read("user-data.sh.tftpl")
+
+
+@pytest.mark.parametrize("name", ["MSR-PatchLinuxInstance.yaml", "MSR-ResetLabInstance.yaml"])
+def test_advisory_queries_always_pin_the_releasever(name):
+    raw = document_source(name)
+
+    queries = re.findall(r"dnf updateinfo list[^\n']+", raw)
+    assert queries
+    for query in queries:
+        assert "--advisory ${candidate_advisory_id}" in query
+        assert "--releasever ${candidate_releasever}" in query
+
+
+@pytest.mark.parametrize("name", ["MSR-PatchLinuxInstance.yaml", "MSR-ResetLabInstance.yaml"])
+def test_an_unreachable_repository_is_not_an_inapplicable_advisory(name):
+    raw = document_source(name)
+
+    assert "PATCH_REPOSITORY_UNREACHABLE" in raw
+    assert "MSR_REPO_REACHABLE" in raw
+    # Sin repositorio el resultado es `unknown`, nunca `false`.
+    assert 'echo "MSR_REPO_REACHABLE=false"; echo "MSR_ADVISORY_APPLICABLE=unknown"' in raw
+    assert "ADVISORY_NOT_APPLICABLE" != "PATCH_REPOSITORY_UNREACHABLE"
+
+
+@pytest.mark.parametrize("name", ["MSR-PatchLinuxInstance.yaml", "MSR-ResetLabInstance.yaml"])
+def test_kernel_versions_are_compared_with_sort_v_not_lexicographically(name):
+    raw = document_source(name)
+
+    assert "sort -V" in raw
+    assert "MSR_KERNEL_ORDER" in raw
+    assert "${expected_fixed_kernel}" in raw
+
+
+def test_the_postcheck_requires_the_fixed_kernel():
+    raw = document_source("MSR-PatchLinuxInstance.yaml")
+
+    assert "KERNEL_OLDER_THAN_FIXED" in raw
+    assert 'after["MSR_KERNEL_ORDER"] not in ("equal", "newer")' in raw
+    # `unknown` no puede darse por bueno.
+    assert 'after["MSR_ADVISORY_APPLICABLE"] != "false"' in raw
+
+
+def test_the_precheck_requires_amazon_linux_and_a_vulnerable_kernel():
+    raw = document_source("MSR-PatchLinuxInstance.yaml")
+
+    assert 'values["MSR_OS_ID"].startswith("amzn-2023")' in raw
+    assert "UNSUPPORTED_OPERATING_SYSTEM" in raw
+    assert 'values["MSR_KERNEL_ORDER"] != "older"' in raw
+    assert "KERNEL_ALREADY_FIXED" in raw
+    # El advisory y el releasever comprobados son los renderizados por Terraform.
+    assert "PRECHECK_CONTRACT_MISMATCH" in raw
+
+
+def test_the_reset_checks_advisory_and_kernel_not_only_the_ami():
+    raw = document_source("MSR-ResetLabInstance.yaml")
+
+    assert "RESET_AMI_UNVERIFIABLE" in raw
+    assert "RESET_AMI_RELEASE_MISMATCH" in raw
+    assert "RESET_TARGET_NOT_VULNERABLE" in raw
+    assert "RESET_KERNEL_NOT_VULNERABLE" in raw
+    assert 'values.get("MSR_KERNEL_ORDER") != "older"' in raw

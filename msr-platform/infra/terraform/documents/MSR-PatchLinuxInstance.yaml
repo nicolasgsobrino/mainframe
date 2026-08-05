@@ -144,10 +144,17 @@ mainSteps:
         commands:
           - set -uo pipefail
           - echo "MSR_OS=$(. /etc/os-release && echo $${PRETTY_NAME})"
+          - echo "MSR_OS_ID=$(. /etc/os-release && echo $${ID}-$${VERSION_ID})"
           - echo "MSR_KERNEL_RUNNING=$(uname -r)"
           - echo "MSR_KERNEL_INSTALLED=$(rpm -q --qf '%%{VERSION}-%%{RELEASE}.%%{ARCH}\n' kernel | sort -V | tail -1)"
           - echo "MSR_ADVISORY=${candidate_advisory_id}"
-          - 'if dnf updateinfo list --available --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
+          - echo "MSR_RELEASEVER=${candidate_releasever}"
+          - echo "MSR_EXPECTED_FIXED_KERNEL=${expected_fixed_kernel}"
+          # Comparacion RPM/version real (sort -V), nunca lexicografica.
+          - 'MSR_RUN=$(uname -r); MSR_FIX="${expected_fixed_kernel}"; if [ "$MSR_RUN" = "$MSR_FIX" ]; then echo "MSR_KERNEL_ORDER=equal"; elif [ "$(printf "%s\n%s\n" "$MSR_RUN" "$MSR_FIX" | sort -V | head -1)" = "$MSR_RUN" ]; then echo "MSR_KERNEL_ORDER=older"; else echo "MSR_KERNEL_ORDER=newer"; fi'
+          # El repositorio de la AMI esta fijado en su release: hay que consultar
+          # explicitamente el releasever donde se publico la correccion.
+          - 'MSR_OUT=$(dnf updateinfo list --available --advisory ${candidate_advisory_id} --releasever ${candidate_releasever} 2>/dev/null); MSR_RC=$?; if [ "$MSR_RC" -ne 0 ]; then echo "MSR_REPO_REACHABLE=false"; echo "MSR_ADVISORY_APPLICABLE=unknown"; else echo "MSR_REPO_REACHABLE=true"; if echo "$MSR_OUT" | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi; fi'
           - echo "MSR_HTTPD=$(systemctl is-active httpd || true)"
           - echo "MSR_HEALTH=$(curl -sf --max-time 5 http://127.0.0.1/health || echo UNREACHABLE)"
           - exit 0
@@ -191,10 +198,17 @@ mainSteps:
       InputPayload:
         output: '{{ GetPrecheckOutput.StandardOutputContent }}'
       Script: |
+        ADVISORY = "${candidate_advisory_id}"
+        RELEASEVER = "${candidate_releasever}"
         REQUIRED = (
+            "MSR_OS_ID",
+            "MSR_ADVISORY",
+            "MSR_RELEASEVER",
+            "MSR_REPO_REACHABLE",
             "MSR_ADVISORY_APPLICABLE",
             "MSR_KERNEL_RUNNING",
             "MSR_KERNEL_INSTALLED",
+            "MSR_KERNEL_ORDER",
             "MSR_HTTPD",
             "MSR_HEALTH",
         )
@@ -213,6 +227,21 @@ mainSteps:
             missing = [k for k in REQUIRED if not values.get(k)]
             if missing:
                 raise Exception("PRECHECK_OUTPUT_INCOMPLETE:" + ",".join(missing))
+            # 1) Sistema operativo esperado.
+            if not values["MSR_OS_ID"].startswith("amzn-2023"):
+                raise Exception("UNSUPPORTED_OPERATING_SYSTEM:" + values["MSR_OS_ID"])
+            # 2) El advisory y el releasever son los renderizados por Terraform.
+            if values["MSR_ADVISORY"] != ADVISORY or values["MSR_RELEASEVER"] != RELEASEVER:
+                raise Exception("PRECHECK_CONTRACT_MISMATCH")
+            # 3) Repositorio inaccesible != advisory no aplicable.
+            if values["MSR_REPO_REACHABLE"] != "true":
+                raise Exception("PATCH_REPOSITORY_UNREACHABLE:" + RELEASEVER)
+            # 4) El kernel debe ser ANTERIOR al kernel corregido.
+            if values["MSR_KERNEL_ORDER"] != "older":
+                raise Exception("KERNEL_ALREADY_FIXED:" + values["MSR_KERNEL_RUNNING"])
+            # 5) La instancia debe estar sana antes de tocarla.
+            if values["MSR_HTTPD"] != "active" or values["MSR_HEALTH"] != "MSR_POC_HEALTHY":
+                raise Exception("PRE_PATCH_HEALTH_FAILED")
             return {
                 "applicable": values["MSR_ADVISORY_APPLICABLE"],
                 "kernel_running": values["MSR_KERNEL_RUNNING"],
@@ -307,7 +336,8 @@ mainSteps:
           - set -uo pipefail
           - echo "MSR_KERNEL_RUNNING=$(uname -r)"
           - echo "MSR_KERNEL_INSTALLED=$(rpm -q --qf '%%{VERSION}-%%{RELEASE}.%%{ARCH}\n' kernel | sort -V | tail -1)"
-          - 'if dnf updateinfo list --available --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
+          - 'MSR_RUN=$(uname -r); MSR_FIX="${expected_fixed_kernel}"; if [ "$MSR_RUN" = "$MSR_FIX" ]; then echo "MSR_KERNEL_ORDER=equal"; elif [ "$(printf "%s\n%s\n" "$MSR_RUN" "$MSR_FIX" | sort -V | head -1)" = "$MSR_RUN" ]; then echo "MSR_KERNEL_ORDER=older"; else echo "MSR_KERNEL_ORDER=newer"; fi'
+          - 'MSR_OUT=$(dnf updateinfo list --available --advisory ${candidate_advisory_id} --releasever ${candidate_releasever} 2>/dev/null); MSR_RC=$?; if [ "$MSR_RC" -ne 0 ]; then echo "MSR_REPO_REACHABLE=false"; echo "MSR_ADVISORY_APPLICABLE=unknown"; else echo "MSR_REPO_REACHABLE=true"; if echo "$MSR_OUT" | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi; fi'
           - echo "MSR_HTTPD=$(systemctl is-active httpd || true)"
           - echo "MSR_HEALTH=$(curl -sf --max-time 5 http://127.0.0.1/health || echo UNREACHABLE)"
           - exit 0
@@ -357,10 +387,14 @@ mainSteps:
         postcheck: '{{ GetPostcheckOutput.StandardOutputContent }}'
       Script: |
         ADVISORY = "${candidate_advisory_id}"
+        RELEASEVER = "${candidate_releasever}"
+        EXPECTED_FIXED_KERNEL = "${expected_fixed_kernel}"
         REQUIRED = (
+            "MSR_REPO_REACHABLE",
             "MSR_ADVISORY_APPLICABLE",
             "MSR_KERNEL_RUNNING",
             "MSR_KERNEL_INSTALLED",
+            "MSR_KERNEL_ORDER",
             "MSR_HTTPD",
             "MSR_HEALTH",
         )
@@ -383,8 +417,11 @@ mainSteps:
             current_kernel = after["MSR_KERNEL_RUNNING"]
             latest_installed = after["MSR_KERNEL_INSTALLED"]
 
+            # 0) Sin repositorio no hay verificación posible: no es éxito.
+            if after["MSR_REPO_REACHABLE"] != "true":
+                raise Exception("PATCH_REPOSITORY_UNREACHABLE:" + RELEASEVER)
             # 1) El advisory ya no puede aparecer como actualización disponible.
-            if after["MSR_ADVISORY_APPLICABLE"] == "true":
+            if after["MSR_ADVISORY_APPLICABLE"] != "false":
                 raise Exception("ADVISORY_STILL_APPLICABLE:" + ADVISORY)
             # 2) El kernel en ejecución tiene que haber cambiado.
             if current_kernel == previous_kernel:
@@ -394,12 +431,20 @@ mainSteps:
                 raise Exception(
                     "KERNEL_NOT_RUNNING_LATEST:" + current_kernel + "!=" + latest_installed
                 )
-            # 4-5) Servicio activo y health check exacto.
+            # 4) Y debe ser igual o posterior al kernel corregido (sort -V en la
+            #    instancia; nunca una comparación de cadenas).
+            if after["MSR_KERNEL_ORDER"] not in ("equal", "newer"):
+                raise Exception(
+                    "KERNEL_OLDER_THAN_FIXED:" + current_kernel + "<" + EXPECTED_FIXED_KERNEL
+                )
+            # 5-6) Servicio activo y health check exacto.
             if after["MSR_HTTPD"] != "active" or after["MSR_HEALTH"] != "MSR_POC_HEALTHY":
                 raise Exception("POST_PATCH_HEALTH_FAILED")
 
             return {
                 "Advisory": ADVISORY,
+                "Releasever": RELEASEVER,
+                "ExpectedFixedKernel": EXPECTED_FIXED_KERNEL,
                 "PreviousKernel": previous_kernel,
                 "CurrentKernel": current_kernel,
                 "LatestInstalledKernel": latest_installed,
@@ -412,6 +457,12 @@ mainSteps:
     outputs:
       - Name: Advisory
         Selector: '$.Payload.Advisory'
+        Type: String
+      - Name: Releasever
+        Selector: '$.Payload.Releasever'
+        Type: String
+      - Name: ExpectedFixedKernel
+        Selector: '$.Payload.ExpectedFixedKernel'
         Type: String
       - Name: PreviousKernel
         Selector: '$.Payload.PreviousKernel'

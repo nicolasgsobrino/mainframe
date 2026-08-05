@@ -34,7 +34,9 @@ def test_lab_status_exposes_the_resolved_instance_and_mode(lab_client):
 
     assert body["instance"]["instance_id"].startswith("i-")
     assert body["resolution_error"] is None
-    assert body["advisory_id"] == "ALAS2023-2026-1651"
+    assert body["advisory_id"] == "ALAS2023-2026-1924"
+    assert body["releasever"] == "2023.12.20260706"
+    assert body["expected_fixed_kernel"] == "6.1.176-220.358.amzn2023.x86_64"
     assert body["execution_mode"] == "mock"
     assert body["vulnerable_state"] == "vulnerable_expected"
     assert body["required_tags"]["msr-lab-id"] == LAB_ID
@@ -113,7 +115,10 @@ def test_lab_endpoints_never_accept_instance_ids_or_commands(lab_client):
                "document_name": "AWS-RunShellScript",
                "autoscaling_group_name": "asg-de-otro-equipo",
                "launch_template_id": "lt-0deadbeefdeadbeef",
-               "launch_template_version": "$Latest"}
+               "launch_template_version": "$Latest",
+               "advisory_id": "ALAS2023-2026-0001",
+               "releasever": "2023.0.19700101",
+               "expected_fixed_kernel": "0.0.0-0.amzn2023.x86_64"}
 
     reset = lab_client.post(f"/api/labs/{LAB_ID}/reset", json=payload)
 
@@ -121,7 +126,8 @@ def test_lab_endpoints_never_accept_instance_ids_or_commands(lab_client):
     job = reset.json()["job"]
     assert job["targets"][0]["instance_id"] != payload["instance_id"]
     for forbidden in ("commands", "document_name", "autoscaling_group_name",
-                      "launch_template_id", "launch_template_version"):
+                      "launch_template_id", "launch_template_version",
+                      "advisory_id", "releasever", "expected_fixed_kernel"):
         assert forbidden not in job["request"]
 
 
@@ -134,3 +140,19 @@ def test_lab_status_exposes_the_autoscaling_group_as_read_only(lab_client, lab_s
     body = lab_client.get(f"/api/labs/{LAB_ID}").json()
 
     assert body["lab"]["autoscaling_group_name"] == "msr-poc-linux-patching-01-asg"
+
+
+def test_the_frontend_cannot_change_the_advisory_or_the_releasever(lab_client, lab_store):
+    """Advisory, releasever y kernel corregido son contrato de la IaC."""
+    lab_store.register_lab_target({
+        "logical_lab_id": LAB_ID,
+        "advisory_id": "ALAS2023-2026-0001",
+        "candidate_releasever": "2023.01.19700101",
+        "expected_fixed_kernel": "0.0.0-0.amzn2023.x86_64",
+    })
+
+    body = lab_client.get(f"/api/labs/{LAB_ID}").json()
+
+    assert body["advisory_id"] == "ALAS2023-2026-1924"
+    assert body["lab"]["candidate_releasever"] == "2023.12.20260706"
+    assert body["lab"]["expected_fixed_kernel"] == "6.1.176-220.358.amzn2023.x86_64"

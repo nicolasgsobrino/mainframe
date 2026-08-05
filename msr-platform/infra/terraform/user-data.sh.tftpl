@@ -35,6 +35,9 @@ cat > /var/lib/msr-poc/baseline.json <<JSON
   "kernel_installed": "$(rpm -q --last kernel | head -n1 | awk '{print $1}')",
   "amazon_linux_release": "$${PRETTY_NAME}",
   "candidate_advisory_id": "${candidate_advisory_id}",
+  "candidate_releasever": "${candidate_releasever}",
+  "expected_fixed_kernel": "${expected_fixed_kernel}",
+  "expected_ami_release": "${source_ami_release}",
   "candidate_package_family": "${candidate_package_family}",
   "logical_lab_id": "${lab_id}",
   "bootstrap_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"

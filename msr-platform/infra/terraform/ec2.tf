@@ -1,7 +1,10 @@
 locals {
   user_data = templatefile("${path.module}/user-data.sh.tftpl", {
     source_ami_id            = var.source_ami_id
+    source_ami_release       = var.source_ami_release
     candidate_advisory_id    = var.candidate_advisory_id
+    candidate_releasever     = var.candidate_releasever
+    expected_fixed_kernel    = var.expected_fixed_kernel
     candidate_package_family = var.candidate_package_family
     lab_id                   = var.lab_id
   })
@@ -138,9 +141,20 @@ resource "aws_autoscaling_group" "lab" {
         var.subnet_id != "",
         var.vpc_id != "",
         var.candidate_advisory_id != "",
+        var.candidate_releasever != "",
+        var.expected_fixed_kernel != "",
         var.operator_role_arn != "",
       ])
       error_message = "Faltan valores obligatorios para una ejecución real."
+    }
+
+    precondition {
+      # La AMI base debe ser ANTERIOR a la release que corrige el advisory; en
+      # caso contrario la imagen ya vendría parcheada y la PoC no demostraría
+      # nada. Ambos formatos son de anchura fija (YYYY.NN.YYYYMMDD), así que la
+      # comparación de cadenas equivale a la comparación cronológica.
+      condition     = substr(var.source_ami_release, 0, 16) < var.candidate_releasever
+      error_message = "La AMI base (${var.source_ami_release}) no es anterior a ${var.candidate_releasever}: ya contendría la corrección."
     }
   }
 }

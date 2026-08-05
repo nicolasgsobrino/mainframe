@@ -107,6 +107,16 @@ configuración: ni la API ni la UI lo aceptan como entrada.
 instancia vulnerable para repetir la PoC. No incrementa `rings_done`, conserva el historial
 de jobs y actualiza `LabTarget.current_instance_id` al completarse.
 
+El advisory demostrado es **`ALAS2023-2026-1924`** (familia `kernel`). El repositorio de la
+AMI base está fijado en su propia release (`2023.11.20260509.0`), anterior a la corrección,
+así que precheck, postcheck y reset consultan el advisory con
+`dnf updateinfo list --available --advisory ... --releasever 2023.12.20260706`
+(`MSR_PATCH_RELEASEVER`) y exigen que el kernel en ejecución quede en
+`6.1.176-220.358.amzn2023.x86_64` o posterior (`MSR_PATCH_EXPECTED_FIXED_KERNEL`, comparado
+con `sort -V`, nunca lexicográficamente). Un repositorio inaccesible devuelve
+`PATCH_REPOSITORY_UNREACHABLE` y no se confunde con `ADVISORY_NOT_APPLICABLE`. Los tres
+valores salen de la IaC: la UI sólo los muestra.
+
 La infraestructura (VPC/subnet existentes, Launch Template, ASG, IAM, patch baseline y los dos
 runbooks Automation) está en [`infra/terraform/`](infra/terraform/README.md) con
 `enable_real_resources = false` por defecto: con ese valor no se crea ningún recurso.
@@ -120,7 +130,9 @@ concurrencia y credenciales en
 infraestructura, los runbooks y la integración del laboratorio, en
 [`IMPLEMENTATION_REPORT_PHASE2.md`](IMPLEMENTATION_REPORT_PHASE2.md); la migración a Auto
 Scaling Group y la verificación estricta del parcheo, en
-[`IMPLEMENTATION_REPORT_PHASE2_1.md`](IMPLEMENTATION_REPORT_PHASE2_1.md).
+[`IMPLEMENTATION_REPORT_PHASE2_1.md`](IMPLEMENTATION_REPORT_PHASE2_1.md); el cambio de
+advisory y el releasever explícito, en
+[`IMPLEMENTATION_REPORT_PHASE2_2.md`](IMPLEMENTATION_REPORT_PHASE2_2.md).
 
 ## Tests, lint y build
 

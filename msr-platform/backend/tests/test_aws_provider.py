@@ -12,6 +12,7 @@ from botocore.stub import Stubber
 from pydantic import ValidationError as PydanticValidationError
 from test_providers_mock import patch_request
 
+from app import seed
 from app.config import ConfigurationError, Settings
 from app.providers import get_patch_provider, get_restore_provider
 from app.providers.aws_ssm_automation import (
@@ -93,6 +94,20 @@ def test_factory_defaults_to_mock():
     assert get_patch_provider(settings).name == "mock"
     assert get_restore_provider(settings).name == "mock"
     assert settings.dry_run is True
+
+
+def test_default_advisory_releasever_and_fixed_kernel_match_the_iac():
+    """Fase 2.2: el advisory vigente y su releasever son contrato de la IaC."""
+    settings = Settings(_env_file=None)
+
+    assert settings.patch_advisory_id == "ALAS2023-2026-1924"
+    assert settings.patch_releasever == "2023.12.20260706"
+    assert settings.patch_expected_fixed_kernel == "6.1.176-220.358.amzn2023.x86_64"
+    assert seed.LAB_ADVISORY_ID == settings.patch_advisory_id
+    assert seed.LAB_RELEASEVER == settings.patch_releasever
+    # Y los defaults seguros no cambian.
+    assert settings.dry_run is True
+    assert settings.patch_provider == "mock"
 
 
 def test_unknown_provider_is_rejected_at_configuration_time():

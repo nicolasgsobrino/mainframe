@@ -6,8 +6,11 @@ locals {
     aws_region               = var.aws_region
     lab_id                   = var.lab_id
     candidate_advisory_id    = var.candidate_advisory_id
+    candidate_releasever     = var.candidate_releasever
+    expected_fixed_kernel    = var.expected_fixed_kernel
     candidate_package_family = var.candidate_package_family
     source_ami_id            = var.source_ami_id
+    source_ami_release       = var.source_ami_release
     required_tags_json       = jsonencode(local.lab_required_tags)
     instance_tags_json = jsonencode([
       for key, value in local.instance_tags : { Key = key, Value = value }

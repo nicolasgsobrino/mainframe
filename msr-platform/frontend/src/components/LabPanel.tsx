@@ -140,6 +140,9 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked }:
         {/* Sólo lectura: el grupo lo fija la IaC y el backend; la UI no lo envía nunca. */}
         <Field label="Auto Scaling Group"
           value={snapshot.lab?.autoscaling_group_name ?? "—"} mono />
+        {/* Sólo lectura: releasever y kernel corregido también vienen de la IaC. */}
+        <Field label="Releasever" value={snapshot.releasever} mono />
+        <Field label="Kernel corregido" value={snapshot.expected_fixed_kernel} mono />
       </div>
 
       {snapshot.resolution_error && (

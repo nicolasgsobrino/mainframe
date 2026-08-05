@@ -174,7 +174,17 @@ class Store:
     def reset(self, clear_jobs: bool = True):
         if clear_jobs:
             self.repo.clear()
-        data = seed.build_all()
+        # Advisory, releasever y kernel corregido salen SIEMPRE de la
+        # configuración (IaC/entorno), nunca de la petición del cliente.
+        data = seed.build_all(
+            lab_logical_id=self.settings.lab_logical_id,
+            lab_advisory_id=self.settings.patch_advisory_id,
+            lab_package_family=self.settings.patch_package_family,
+            lab_releasever=self.settings.patch_releasever,
+            lab_expected_fixed_kernel=self.settings.patch_expected_fixed_kernel,
+            lab_region=self.settings.aws_region or None,
+            lab_account_id=(self.settings.allowed_account_ids[0]
+                            if self.settings.allowed_account_ids else None))
         self.cis = data["cis"]
         self.edges = data["edges"]
         self.findings = data["findings"]
@@ -1282,6 +1292,10 @@ class Store:
             autoscaling_group_name=self.settings.lab_autoscaling_group_name or None,
             expected_vulnerable_package=payload.get("expected_vulnerable_package"),
             expected_vulnerable_version=payload.get("expected_vulnerable_version"),
+            # Igual que el ASG: advisory, releasever y kernel corregido son
+            # contrato de la IaC; el payload no puede sobreescribirlos.
+            candidate_releasever=self.settings.patch_releasever or None,
+            expected_fixed_kernel=self.settings.patch_expected_fixed_kernel or None,
             required_tags=dict(payload.get("required_tags") or {}),
             last_reset_job_id=(existing.last_reset_job_id if existing else None))
         return self.repo.upsert_lab_target(lab).as_dict()
@@ -1355,6 +1369,8 @@ class Store:
             "task_id": tid,
             "advisory_id": self.settings.patch_advisory_id,
             "package_family": self.settings.patch_package_family,
+            "releasever": self.settings.patch_releasever,
+            "expected_fixed_kernel": self.settings.patch_expected_fixed_kernel,
             "environment": self.settings.lab_environment,
             "required_tags": required_lab_tags(self.settings, logical_lab_id),
             "execution_mode": self.settings.execution_mode(),
@@ -1413,6 +1429,8 @@ class Store:
             "instance": instance.as_dict() if instance else None,
             "task_id": tid,
             "advisory_id": self.settings.patch_advisory_id,
+            "releasever": self.settings.patch_releasever,
+            "expected_fixed_kernel": self.settings.patch_expected_fixed_kernel,
             "note": ("La aplicabilidad real del advisory sólo se confirma con el precheck "
                      "del runbook; esta validación no ejecuta nada en la instancia."),
             **self._lab_state(tid),

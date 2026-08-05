@@ -54,11 +54,47 @@ variable "instance_type" {
 variable "candidate_advisory_id" {
   description = "Advisory candidato de Amazon Linux aprobado por el patch baseline."
   type        = string
-  default     = "ALAS2023-2026-1651"
+  default     = "ALAS2023-2026-1924"
 
   validation {
     condition     = can(regex("^ALAS2023-[0-9]{4}-[0-9]+$", var.candidate_advisory_id))
     error_message = "candidate_advisory_id debe tener el formato ALAS2023-AAAA-NNNN."
+  }
+}
+
+# La AMI base fija el repositorio de Amazon Linux 2023 en su propia release, por
+# lo que un advisory posterior no se ve sin consultar explícitamente el
+# releasever donde se publicó la corrección.
+variable "candidate_releasever" {
+  description = "Release de Amazon Linux 2023 que contiene la corrección del advisory candidato."
+  type        = string
+  default     = "2023.12.20260706"
+
+  validation {
+    condition     = can(regex("^[0-9]{4}\\.[0-9]{2}\\.[0-9]{8}$", var.candidate_releasever))
+    error_message = "candidate_releasever debe tener el formato YYYY.NN.YYYYMMDD."
+  }
+}
+
+variable "expected_fixed_kernel" {
+  description = "Versión mínima del kernel que debe quedar en ejecución tras el parcheo."
+  type        = string
+  default     = "6.1.176-220.358.amzn2023.x86_64"
+
+  validation {
+    condition     = can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+-[0-9.]+\\.amzn2023\\.[a-z0-9_]+$", var.expected_fixed_kernel))
+    error_message = "expected_fixed_kernel debe ser una versión de kernel de Amazon Linux 2023."
+  }
+}
+
+variable "source_ami_release" {
+  description = "Release de Amazon Linux 2023 de la AMI base; debe ser anterior a candidate_releasever."
+  type        = string
+  default     = "2023.11.20260509.0"
+
+  validation {
+    condition     = can(regex("^[0-9]{4}\\.[0-9]{2}\\.[0-9]{8}\\.[0-9]+$", var.source_ami_release))
+    error_message = "source_ami_release debe tener el formato YYYY.NN.YYYYMMDD.N."
   }
 }
 

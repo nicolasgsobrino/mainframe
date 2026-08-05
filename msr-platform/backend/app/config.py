@@ -70,8 +70,12 @@ class Settings(BaseSettings):
     lab_logical_id: str = "linux-patching-01"
     lab_tag_key: str = "msr-lab-id"
     lab_environment: str = "sandbox"
-    patch_advisory_id: str = "ALAS2023-2026-1651"
+    patch_advisory_id: str = "ALAS2023-2026-1924"
     patch_package_family: str = "kernel"
+    # El repositorio de la AMI base está fijado en su propia release, anterior a
+    # la corrección: los checks consultan el advisory con este `--releasever`.
+    patch_releasever: str = "2023.12.20260706"
+    patch_expected_fixed_kernel: str = "6.1.176-220.358.amzn2023.x86_64"
     lab_launch_template_id: str = ""
     lab_launch_template_version: str = ""
     # El reset sustituye la instancia dentro de este Auto Scaling Group. El valor

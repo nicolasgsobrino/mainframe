@@ -246,6 +246,8 @@ def default_lab_target(settings: Settings, logical_lab_id: str) -> LabTarget:
         launch_template_version=settings.lab_launch_template_version or None,
         autoscaling_group_name=settings.lab_autoscaling_group_name or None,
         expected_vulnerable_package=settings.patch_package_family or None,
+        candidate_releasever=settings.patch_releasever or None,
+        expected_fixed_kernel=settings.patch_expected_fixed_kernel or None,
         required_tags=required_lab_tags(settings, logical_lab_id))
 
 

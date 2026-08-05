@@ -77,6 +77,17 @@ valores del `.env` del backend. `MSR_PATCH_PROVIDER`, `MSR_RESTORE_PROVIDER` y
 `MSR_DRY_RUN` conservan sus valores seguros: la ejecución real se habilita en un
 paso posterior y explícito.
 
+## Advisory candidato y releasever
+
+`candidate_advisory_id` (`ALAS2023-2026-1924`) se corrigió en la release
+`candidate_releasever` (`2023.12.20260706`), posterior a la release de la AMI
+base `source_ami_release` (`2023.11.20260509.0`) — un precondition de
+`aws_autoscaling_group.lab` lo exige. Como el repositorio de la AMI está fijado en
+su propia release, precheck, postcheck y reset consultan siempre
+`dnf updateinfo list --available --advisory <advisory> --releasever <releasever>`
+y comparan el kernel con `expected_fixed_kernel`
+(`6.1.176-220.358.amzn2023.x86_64`) mediante `sort -V`.
+
 ## Limitaciones conocidas
 
 - Patch Manager no ofrece una API para comprobar que un advisory existe: si

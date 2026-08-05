@@ -43,6 +43,10 @@ class LabTarget:
     autoscaling_group_name: str | None = None
     expected_vulnerable_package: str | None = None
     expected_vulnerable_version: str | None = None
+    # Release de Amazon Linux con la corrección (`dnf --releasever`) y kernel
+    # mínimo esperado tras el parcheo. Ambos salen de la IaC, nunca de la API.
+    candidate_releasever: str | None = None
+    expected_fixed_kernel: str | None = None
     required_tags: dict[str, str] = field(default_factory=dict)
     last_reset_job_id: str | None = None
     updated_at: object = field(default_factory=utcnow)
@@ -59,6 +63,8 @@ class LabTarget:
             "autoscaling_group_name": self.autoscaling_group_name,
             "expected_vulnerable_package": self.expected_vulnerable_package,
             "expected_vulnerable_version": self.expected_vulnerable_version,
+            "candidate_releasever": self.candidate_releasever,
+            "expected_fixed_kernel": self.expected_fixed_kernel,
             "required_tags": dict(self.required_tags or {}),
             "last_reset_job_id": self.last_reset_job_id,
             "updated_at": iso_utc(self.updated_at) if self.updated_at else None,

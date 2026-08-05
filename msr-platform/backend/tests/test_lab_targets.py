@@ -57,7 +57,7 @@ def test_the_autoscaling_group_comes_from_configuration_not_from_the_payload(sto
 
 
 def test_a_database_without_the_autoscaling_column_is_migrated(settings, tmp_path):
-    """Bases creadas antes de la fase 2.1 se migran sin perder el laboratorio."""
+    """Bases creadas antes de las fases 2.1/2.2 se migran sin perder datos."""
     path = tmp_path / "legacy.sqlite3"
     with sqlite3.connect(path) as legacy:
         legacy.execute(
@@ -84,8 +84,20 @@ def test_a_database_without_the_autoscaling_column_is_migrated(settings, tmp_pat
         assert lab is not None
         assert lab.current_instance_id == INSTANCE
         assert lab.autoscaling_group_name is None
+        assert lab.candidate_releasever is None
+        assert lab.expected_fixed_kernel is None
     finally:
         migrated.close()
+
+
+def test_the_releasever_and_fixed_kernel_come_from_configuration(store):
+    """El payload no puede fijar el releasever ni el kernel esperado."""
+    registered = store.register_lab_target(payload(
+        candidate_releasever="2023.01.19700101",
+        expected_fixed_kernel="0.0.0-0.amzn2023.x86_64"))
+
+    assert registered["candidate_releasever"] == store.settings.patch_releasever
+    assert registered["expected_fixed_kernel"] == store.settings.patch_expected_fixed_kernel
 
 
 def test_lab_target_rejects_an_invalid_instance_id(store):

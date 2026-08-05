@@ -323,7 +323,13 @@ mainSteps:
           - "TOKEN=$(curl -sf -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')"
           - 'echo "MSR_AMI=$(curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/ami-id || echo unknown)"'
           - echo "MSR_KERNEL_RUNNING=$(uname -r)"
-          - 'if dnf updateinfo list --available --advisory ${candidate_advisory_id} 2>/dev/null | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi'
+          # Release base de la AMI, escrita por el bootstrap desde la IaC.
+          - 'MSR_AMI_RELEASE=$(grep expected_ami_release /var/lib/msr-poc/baseline.json | cut -d''"'' -f4)'
+          - 'echo "MSR_AMI_RELEASE=$${MSR_AMI_RELEASE:-unknown}"'
+          # Comparacion de version real (sort -V), nunca lexicografica.
+          - 'MSR_RUN=$(uname -r); MSR_FIX="${expected_fixed_kernel}"; if [ "$MSR_RUN" = "$MSR_FIX" ]; then echo "MSR_KERNEL_ORDER=equal"; elif [ "$(printf "%s\n%s\n" "$MSR_RUN" "$MSR_FIX" | sort -V | head -1)" = "$MSR_RUN" ]; then echo "MSR_KERNEL_ORDER=older"; else echo "MSR_KERNEL_ORDER=newer"; fi'
+          # El advisory solo es visible consultando el releasever que lo corrige.
+          - 'MSR_OUT=$(dnf updateinfo list --available --advisory ${candidate_advisory_id} --releasever ${candidate_releasever} 2>/dev/null); MSR_RC=$?; if [ "$MSR_RC" -ne 0 ]; then echo "MSR_REPO_REACHABLE=false"; echo "MSR_ADVISORY_APPLICABLE=unknown"; else echo "MSR_REPO_REACHABLE=true"; if echo "$MSR_OUT" | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi; fi'
           - echo "MSR_HTTPD=$(systemctl is-active httpd || true)"
           - echo "MSR_HEALTH=$(curl -sf --max-time 5 http://127.0.0.1/health || echo UNREACHABLE)"
           - exit 0
@@ -390,6 +396,10 @@ mainSteps:
         described_image_id: '{{ VerifyNewInstanceTags.ImageId }}'
       Script: |
         EXPECTED_AMI = "${source_ami_id}"
+        EXPECTED_AMI_RELEASE = "${source_ami_release}"
+        ADVISORY = "${candidate_advisory_id}"
+        RELEASEVER = "${candidate_releasever}"
+        EXPECTED_FIXED_KERNEL = "${expected_fixed_kernel}"
         REQUIRED_TAGS = ${required_tags_json}
         LOGICAL_LAB_ID = "${lab_id}"
 
@@ -419,14 +429,33 @@ mainSteps:
             if reported_ami != EXPECTED_AMI or described_ami != EXPECTED_AMI:
                 raise Exception("RESET_AMI_MISMATCH:" + reported_ami + "/" + str(described_ami))
 
+            # La release base de la AMI debe ser la esperada (anterior a la
+            # corrección): no basta con el ID ni con la fecha de la imagen.
+            if values.get("MSR_AMI_RELEASE") != EXPECTED_AMI_RELEASE:
+                raise Exception(
+                    "RESET_AMI_RELEASE_MISMATCH:" + str(values.get("MSR_AMI_RELEASE"))
+                )
+
+            # Repositorio inaccesible != instancia no vulnerable.
+            if values.get("MSR_REPO_REACHABLE") != "true":
+                raise Exception("PATCH_REPOSITORY_UNREACHABLE:" + RELEASEVER)
             if values.get("MSR_ADVISORY_APPLICABLE") != "true":
-                raise Exception("RESET_TARGET_NOT_VULNERABLE")
+                raise Exception("RESET_TARGET_NOT_VULNERABLE:" + ADVISORY)
+            # El kernel tiene que ser ANTERIOR al corregido.
+            if values.get("MSR_KERNEL_ORDER") != "older":
+                raise Exception(
+                    "RESET_KERNEL_NOT_VULNERABLE:" + str(values.get("MSR_KERNEL_RUNNING"))
+                )
             if values.get("MSR_HTTPD") != "active" or values.get("MSR_HEALTH") != "MSR_POC_HEALTHY":
                 raise Exception("RESET_HEALTH_CHECK_FAILED")
             return {
                 "OldInstanceId": events["old_instance_id"],
                 "NewInstanceId": events["new_instance_id"],
                 "LogicalLabId": LOGICAL_LAB_ID,
+                "Advisory": ADVISORY,
+                "Releasever": RELEASEVER,
+                "ExpectedFixedKernel": EXPECTED_FIXED_KERNEL,
+                "RunningKernel": values.get("MSR_KERNEL_RUNNING", ""),
                 "VulnerableState": "VULNERABLE",
                 "HealthState": "HEALTHY",
                 "CorrelationId": events["correlation_id"],
