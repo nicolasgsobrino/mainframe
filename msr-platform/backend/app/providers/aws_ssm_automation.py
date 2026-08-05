@@ -114,13 +114,19 @@ class _AutomationBase:
     def __init__(self, settings: Settings, ssm_client=None, ec2_client=None, sts_client=None,
                  now_fn=utcnow):
         self._settings = settings
-        self._ssm = ssm_client
-        self._ec2 = ec2_client
+        # Los clientes inyectados (tests) nunca se reemplazan automáticamente.
+        self._injected_ssm = ssm_client
+        self._injected_ec2 = ec2_client
         self._sts = sts_client
         self._now = now_fn
         self._correlation_id = ""
         self._assumed: dict | None = None
         self._assumed_expiry = None
+        # Generación de credenciales: cuando STS las renueva invalida los
+        # clientes construidos con las anteriores.
+        self._credentials_generation = 0
+        self._clients: dict[str, object] = {}
+        self._clients_generation = -1
 
     # -- clientes -------------------------------------------------------
     def _boto3(self):
@@ -175,6 +181,7 @@ class _AutomationBase:
         # Margen de 60 s para no usar credenciales a punto de caducar.
         self._assumed_expiry = (expiration - timedelta(seconds=60)
                                 if expiration is not None else now + timedelta(minutes=50))
+        self._credentials_generation += 1
         return self._assumed
 
     def _client(self, service: str):
@@ -191,17 +198,32 @@ class _AutomationBase:
             client_kwargs["endpoint_url"] = self._settings.aws_endpoint_url
         return session.client(service, **client_kwargs)
 
+    def _service_client(self, service: str):
+        """Cliente vigente del servicio.
+
+        Con `MSR_AWS_ROLE_ARN` los clientes se construyen con credenciales
+        temporales: al renovarlas cambia la generación y se descartan los
+        clientes anteriores, de forma que ninguna operación reutilice un cliente
+        con credenciales caducadas.
+        """
+        if self._settings.aws_role_arn:
+            self._assume_role_credentials()
+            if self._clients_generation != self._credentials_generation:
+                self._clients.clear()
+                self._clients_generation = self._credentials_generation
+        client = self._clients.get(service)
+        if client is None:
+            client = self._client(service)
+            self._clients[service] = client
+        return client
+
     @property
     def ssm(self):
-        if self._ssm is None:
-            self._ssm = self._client("ssm")
-        return self._ssm
+        return self._injected_ssm if self._injected_ssm is not None else self._service_client("ssm")
 
     @property
     def ec2(self):
-        if self._ec2 is None:
-            self._ec2 = self._client("ec2")
-        return self._ec2
+        return self._injected_ec2 if self._injected_ec2 is not None else self._service_client("ec2")
 
     # -- validación (sólo lectura) --------------------------------------
     def _resolve_target(self, target: Target) -> tuple[Target, str | None]:

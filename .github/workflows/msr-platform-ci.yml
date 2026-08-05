@@ -1,0 +1,84 @@
+name: msr-platform CI
+
+# Sólo se ejecuta cuando cambia la PoC: el resto del repositorio no se toca.
+# No se configuran credenciales AWS: los tests nunca llaman a una cuenta real.
+on:
+  push:
+    branches:
+      - main
+      - "devin/**msr-aws**"
+    paths:
+      - "msr-platform/**"
+      - ".github/workflows/msr-platform-ci.yml"
+  pull_request:
+    paths:
+      - "msr-platform/**"
+      - ".github/workflows/msr-platform-ci.yml"
+
+permissions:
+  contents: read
+
+env:
+  # Defaults seguros: provider mock y dry-run, igual que en local.
+  MSR_PATCH_PROVIDER: mock
+  MSR_RESTORE_PROVIDER: mock
+  MSR_DRY_RUN: "true"
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: msr-platform/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: |
+            msr-platform/backend/requirements.txt
+            msr-platform/backend/requirements-dev.txt
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+      - name: pytest
+        run: pytest
+      - name: Tests de concurrencia repetidos
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "== pasada $i =="
+            pytest tests/test_repository_concurrency.py -x -q
+          done
+      - name: ruff
+        run: ruff check app tests
+      - name: compileall
+        run: python -m compileall app tests
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: msr-platform/frontend
+    steps:
+      - uses: actions/checkout@v4
+      # oxlint publica su binario nativo como dependencia opcional con
+      # `engines: ^20.19.0 || >=22.12.0`: con Node 20.18 npm la omite y el lint
+      # falla con "Cannot find native binding". La versión la fija .nvmrc.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: msr-platform/frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: msr-platform/frontend/package-lock.json
+      - name: npm ci
+        run: npm ci
+      - name: Comprobar el binario nativo de oxlint
+        run: test -d node_modules/@oxlint/binding-linux-x64-gnu
+      - name: npm run lint
+        run: npm run lint
+      - name: tsc
+        run: npx tsc -b
+      - name: npm run build
+        run: npm run build

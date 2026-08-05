@@ -7,17 +7,30 @@ Garantías:
   (índice único parcial), de modo que dos peticiones simultáneas no pueden
   lanzar dos operaciones sobre la misma instancia.
 - No se persisten secretos: sólo payloads construidos por el backend.
+
+Concurrencia: una conexión SQLite no se comparte entre threads. Cada operación
+abre su propia conexión (`connection()`) con `WAL` y `busy_timeout`, y las
+escrituras se agrupan en `BEGIN IMMEDIATE` (`transaction()`). La única excepción
+es `:memory:`, donde cada conexión nueva sería *otra* base de datos: en ese caso
+se reutiliza una conexión compartida serializada con un `threading.RLock`.
 """
 from __future__ import annotations
 
 import json
 import os
 import sqlite3
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from .jobs import ACTIVE_STATES, JobEvent, JobState, JobType, PatchJob
 from .lab import LabTarget
 from .providers.base import Target
+
+MEMORY_PATH = ":memory:"
+BUSY_TIMEOUT_MS = 5000
+CONNECT_TIMEOUT_SECONDS = 5
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS jobs (
@@ -121,28 +134,94 @@ def _parse(value: str | None) -> datetime | None:
 
 
 class JobRepository:
-    """Repositorio de jobs. Una instancia por proceso; conexión reutilizada."""
+    """Repositorio de jobs con una conexión SQLite por operación."""
 
     def __init__(self, db_path: str):
         self.db_path = db_path
-        if db_path != ":memory:":
+        self.in_memory = db_path == MEMORY_PATH
+        # Serializa el acceso a la conexión compartida de `:memory:`. Es
+        # reentrante para permitir lecturas anidadas dentro de una operación.
+        self._guard = threading.RLock()
+        self._shared: sqlite3.Connection | None = None
+        self._closed = False
+        if not self.in_memory:
             directory = os.path.dirname(os.path.abspath(db_path))
             os.makedirs(directory, exist_ok=True)
-        self._conn = sqlite3.connect(db_path, isolation_level=None, check_same_thread=False)
-        self._conn.row_factory = sqlite3.Row
-        self._conn.execute("PRAGMA foreign_keys = ON")
-        if db_path != ":memory:":
-            self._conn.execute("PRAGMA journal_mode = WAL")
-        self._conn.executescript(SCHEMA)
+        else:
+            self._shared = self._connect()
+        with self.connection() as conn:
+            conn.executescript(SCHEMA)
+
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(
+            self.db_path,
+            isolation_level=None,
+            timeout=CONNECT_TIMEOUT_SECONDS,
+            # Sólo la conexión compartida de `:memory:` cruza threads, y está
+            # protegida por `self._guard`.
+            check_same_thread=not self.in_memory,
+        )
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        if not self.in_memory:
+            conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
+        return conn
+
+    @contextmanager
+    def connection(self) -> Iterator[sqlite3.Connection]:
+        """Conexión de uso exclusivo para la operación en curso."""
+        if self.in_memory and self._closed:
+            raise RuntimeError("El repositorio en memoria ya está cerrado.")
+        if self._shared is not None:
+            with self._guard:
+                yield self._shared
+            return
+        conn = self._connect()
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+    @contextmanager
+    def transaction(self) -> Iterator[sqlite3.Connection]:
+        """Escritura atómica: `BEGIN IMMEDIATE` + `COMMIT`/`ROLLBACK`."""
+        with self.connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                yield conn
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+            conn.execute("COMMIT")
 
     def close(self) -> None:
-        self._conn.close()
+        """Cierra la conexión compartida de `:memory:`.
+
+        Con una base en fichero no hay nada que cerrar: cada operación usa su
+        propia conexión, así que cerrar el repositorio no invalida las que se
+        abran después.
+        """
+        with self._guard:
+            self._closed = True
+            if self._shared is not None:
+                self._shared.close()
+                self._shared = None
 
     # ------------------------------------------------------------------
-    def _row_to_job(self, row: sqlite3.Row, with_events: bool = False) -> PatchJob:
+    @staticmethod
+    def _events(conn: sqlite3.Connection, job_id: str) -> tuple[JobEvent, ...]:
+        return tuple(
+            JobEvent(job_id=r["job_id"], state=r["state"], message=r["message"], actor=r["actor"],
+                     created_at=_parse(r["created_at"]), id=r["id"])
+            for r in conn.execute(
+                "SELECT * FROM job_events WHERE job_id = ? ORDER BY id", (job_id,)))
+
+    def _row_to_job(self, conn: sqlite3.Connection, row: sqlite3.Row,
+                    with_events: bool = False) -> PatchJob:
         targets = tuple(
             Target.from_dict(json.loads(r["payload"]))
-            for r in self._conn.execute(
+            for r in conn.execute(
                 "SELECT payload FROM job_targets WHERE job_id = ? ORDER BY id", (row["id"],)))
         job = PatchJob(
             id=row["id"],
@@ -166,8 +245,13 @@ class JobRepository:
             targets=targets,
         )
         if with_events:
-            job.events = tuple(self.list_events(job.id))
+            job.events = self._events(conn, job.id)
         return job
+
+    def _job_by_id(self, conn: sqlite3.Connection, job_id: str,
+                   with_events: bool = False) -> PatchJob | None:
+        row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+        return self._row_to_job(conn, row, with_events) if row else None
 
     # ------------------------------------------------------------------
     def create_job(self, job: PatchJob, *, scope: str = "approve") -> tuple[PatchJob, bool]:
@@ -177,65 +261,61 @@ class JobRepository:
         job original con `created=False`. Si otro job activo ocupa el objetivo,
         lanza `TargetBusyError`.
         """
-        conn = self._conn
-        conn.execute("BEGIN IMMEDIATE")
+        replayed_id: str | None = None
         try:
-            existing = conn.execute(
-                "SELECT job_id FROM idempotency_keys WHERE key = ?", (job.idempotency_key,)).fetchone()
-            if existing:
-                conn.execute("COMMIT")
-                return self.get_job(existing["job_id"], with_events=True), False
-
-            for target in job.targets:
-                busy = conn.execute(
-                    "SELECT job_id FROM job_targets WHERE logical_target_id = ? AND active = 1",
-                    (target.logical_target_id,)).fetchone()
-                if busy:
-                    conn.execute("ROLLBACK")
-                    raise TargetBusyError(target.logical_target_id, busy["job_id"])
-
-            conn.execute(
-                """INSERT INTO jobs (id, job_type, task_id, ring_number, provider, provider_reference,
-                                     state, dry_run, correlation_id, created_at, updated_at, started_at,
-                                     completed_at, error_code, error_message, idempotency_key,
-                                     request_payload, result_payload)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (job.id, job.job_type.value, job.task_id, job.ring_number, job.provider,
-                 job.provider_reference, job.state.value, int(job.dry_run), job.correlation_id,
-                 _iso(job.created_at), _iso(job.updated_at), _iso(job.started_at),
-                 _iso(job.completed_at), job.error_code, job.error_message, job.idempotency_key,
-                 json.dumps(job.request_payload, ensure_ascii=False),
-                 json.dumps(job.result_payload, ensure_ascii=False)))
-            active = 0 if job.terminal else 1
-            for target in job.targets:
-                conn.execute(
-                    """INSERT INTO job_targets (job_id, logical_target_id, instance_id, payload, active)
-                       VALUES (?,?,?,?,?)""",
-                    (job.id, target.logical_target_id, target.instance_id,
-                     json.dumps(target.as_dict(), ensure_ascii=False), active))
-            conn.execute(
-                "INSERT INTO idempotency_keys (key, job_id, scope, created_at) VALUES (?,?,?,?)",
-                (job.idempotency_key, job.id, scope, _iso(job.created_at)))
-            conn.execute("COMMIT")
+            with self.transaction() as conn:
+                existing = conn.execute(
+                    "SELECT job_id FROM idempotency_keys WHERE key = ?",
+                    (job.idempotency_key,)).fetchone()
+                if existing:
+                    replayed_id = existing["job_id"]
+                else:
+                    self._insert_job(conn, job, scope)
         except sqlite3.IntegrityError as exc:
-            conn.execute("ROLLBACK")
             if "ux_active" in str(exc):
                 target_id = job.targets[0].logical_target_id if job.targets else "?"
                 raise TargetBusyError(target_id) from exc
             raise
-        except TargetBusyError:
-            raise
-        except Exception:
-            conn.execute("ROLLBACK")
-            raise
+        if replayed_id is not None:
+            replayed = self.get_job(replayed_id, with_events=True)
+            if replayed is not None:
+                return replayed, False
         return job, True
+
+    def _insert_job(self, conn: sqlite3.Connection, job: PatchJob, scope: str) -> None:
+        for target in job.targets:
+            busy = conn.execute(
+                "SELECT job_id FROM job_targets WHERE logical_target_id = ? AND active = 1",
+                (target.logical_target_id,)).fetchone()
+            if busy:
+                raise TargetBusyError(target.logical_target_id, busy["job_id"])
+        conn.execute(
+            """INSERT INTO jobs (id, job_type, task_id, ring_number, provider, provider_reference,
+                                 state, dry_run, correlation_id, created_at, updated_at, started_at,
+                                 completed_at, error_code, error_message, idempotency_key,
+                                 request_payload, result_payload)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (job.id, job.job_type.value, job.task_id, job.ring_number, job.provider,
+             job.provider_reference, job.state.value, int(job.dry_run), job.correlation_id,
+             _iso(job.created_at), _iso(job.updated_at), _iso(job.started_at),
+             _iso(job.completed_at), job.error_code, job.error_message, job.idempotency_key,
+             json.dumps(job.request_payload, ensure_ascii=False),
+             json.dumps(job.result_payload, ensure_ascii=False)))
+        active = 0 if job.terminal else 1
+        for target in job.targets:
+            conn.execute(
+                """INSERT INTO job_targets (job_id, logical_target_id, instance_id, payload, active)
+                   VALUES (?,?,?,?,?)""",
+                (job.id, target.logical_target_id, target.instance_id,
+                 json.dumps(target.as_dict(), ensure_ascii=False), active))
+        conn.execute(
+            "INSERT INTO idempotency_keys (key, job_id, scope, created_at) VALUES (?,?,?,?)",
+            (job.idempotency_key, job.id, scope, _iso(job.created_at)))
 
     # ------------------------------------------------------------------
     def save_job(self, job: PatchJob) -> PatchJob:
         """Persiste el estado del job y libera el lock si es terminal."""
-        conn = self._conn
-        conn.execute("BEGIN IMMEDIATE")
-        try:
+        with self.transaction() as conn:
             conn.execute(
                 """UPDATE jobs SET provider_reference = ?, state = ?, dry_run = ?, updated_at = ?,
                                    started_at = ?, completed_at = ?, error_code = ?, error_message = ?,
@@ -245,89 +325,101 @@ class JobRepository:
                  _iso(job.started_at), _iso(job.completed_at), job.error_code, job.error_message,
                  json.dumps(job.request_payload, ensure_ascii=False),
                  json.dumps(job.result_payload, ensure_ascii=False), job.id))
+            # El lock sólo se libera con un estado terminal confirmado: los
+            # estados no confirmados mantienen el objetivo ocupado.
             if job.terminal:
                 conn.execute("UPDATE job_targets SET active = 0 WHERE job_id = ?", (job.id,))
-            conn.execute("COMMIT")
-        except Exception:
-            conn.execute("ROLLBACK")
-            raise
         return job
 
     def append_event(self, job_id: str, state: JobState, message: str,
                      actor: str = "msr-platform") -> JobEvent:
         event = JobEvent(job_id=job_id, state=state.value, message=message[:2000], actor=actor)
-        self._conn.execute(
-            "INSERT INTO job_events (job_id, state, message, actor, created_at) VALUES (?,?,?,?,?)",
-            (job_id, event.state, event.message, event.actor, _iso(event.created_at)))
+        with self.connection() as conn:
+            conn.execute(
+                "INSERT INTO job_events (job_id, state, message, actor, created_at) VALUES (?,?,?,?,?)",
+                (job_id, event.state, event.message, event.actor, _iso(event.created_at)))
         return event
 
     def has_event(self, job_id: str, message: str) -> bool:
         """Evita duplicar eventos/logs cuando el polling repite la reconciliación."""
-        row = self._conn.execute(
-            "SELECT 1 FROM job_events WHERE job_id = ? AND message = ? LIMIT 1",
-            (job_id, message[:2000])).fetchone()
+        with self.connection() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM job_events WHERE job_id = ? AND message = ? LIMIT 1",
+                (job_id, message[:2000])).fetchone()
         return row is not None
 
     def list_events(self, job_id: str) -> list[JobEvent]:
-        return [
-            JobEvent(job_id=r["job_id"], state=r["state"], message=r["message"], actor=r["actor"],
-                     created_at=_parse(r["created_at"]), id=r["id"])
-            for r in self._conn.execute(
-                "SELECT * FROM job_events WHERE job_id = ? ORDER BY id", (job_id,))]
+        with self.connection() as conn:
+            return list(self._events(conn, job_id))
 
     # ------------------------------------------------------------------
     def get_job(self, job_id: str, with_events: bool = False) -> PatchJob | None:
-        row = self._conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
-        return self._row_to_job(row, with_events) if row else None
+        with self.connection() as conn:
+            return self._job_by_id(conn, job_id, with_events)
 
     def get_job_by_idempotency_key(self, key: str) -> PatchJob | None:
-        row = self._conn.execute(
-            "SELECT job_id FROM idempotency_keys WHERE key = ?", (key,)).fetchone()
-        return self.get_job(row["job_id"], with_events=True) if row else None
+        with self.connection() as conn:
+            row = conn.execute(
+                "SELECT job_id FROM idempotency_keys WHERE key = ?", (key,)).fetchone()
+            return self._job_by_id(conn, row["job_id"], with_events=True) if row else None
 
     def list_jobs_for_task(self, task_id: str, limit: int = 50) -> list[PatchJob]:
-        rows = self._conn.execute(
-            "SELECT * FROM jobs WHERE task_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
-            (task_id, limit)).fetchall()
-        return [self._row_to_job(r) for r in rows]
+        with self.connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM jobs WHERE task_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+                (task_id, limit)).fetchall()
+            return [self._row_to_job(conn, r) for r in rows]
 
-    def _active_placeholders(self) -> tuple[str, tuple[str, ...]]:
+    @staticmethod
+    def _active_placeholders() -> tuple[str, tuple[str, ...]]:
         states = tuple(s.value for s in sorted(ACTIVE_STATES, key=lambda s: s.value))
         return ",".join("?" for _ in states), states
 
     def active_job_for_task(self, task_id: str) -> PatchJob | None:
         placeholders, states = self._active_placeholders()
-        row = self._conn.execute(
-            f"SELECT * FROM jobs WHERE task_id = ? AND state IN ({placeholders}) "
-            "ORDER BY created_at DESC, id DESC LIMIT 1", (task_id, *states)).fetchone()
-        return self._row_to_job(row, with_events=True) if row else None
+        with self.connection() as conn:
+            row = conn.execute(
+                f"SELECT * FROM jobs WHERE task_id = ? AND state IN ({placeholders}) "
+                "ORDER BY created_at DESC, id DESC LIMIT 1", (task_id, *states)).fetchone()
+            return self._row_to_job(conn, row, with_events=True) if row else None
 
     def active_job_for_target(self, logical_target_id: str) -> PatchJob | None:
-        row = self._conn.execute(
-            "SELECT job_id FROM job_targets WHERE logical_target_id = ? AND active = 1 LIMIT 1",
-            (logical_target_id,)).fetchone()
-        return self.get_job(row["job_id"], with_events=True) if row else None
+        with self.connection() as conn:
+            row = conn.execute(
+                "SELECT job_id FROM job_targets WHERE logical_target_id = ? AND active = 1 LIMIT 1",
+                (logical_target_id,)).fetchone()
+            return self._job_by_id(conn, row["job_id"], with_events=True) if row else None
 
     def list_active_jobs(self) -> list[PatchJob]:
         placeholders, states = self._active_placeholders()
-        rows = self._conn.execute(
-            f"SELECT * FROM jobs WHERE state IN ({placeholders}) ORDER BY created_at", states).fetchall()
-        return [self._row_to_job(r) for r in rows]
+        with self.connection() as conn:
+            rows = conn.execute(
+                f"SELECT * FROM jobs WHERE state IN ({placeholders}) ORDER BY created_at",
+                states).fetchall()
+            return [self._row_to_job(conn, r) for r in rows]
 
     def list_jobs_for_task_chronological(self, task_id: str) -> list[PatchJob]:
         """Orden de creación ascendente: base del *replay* de rehidratación."""
-        rows = self._conn.execute(
-            "SELECT * FROM jobs WHERE task_id = ? ORDER BY created_at, id", (task_id,)).fetchall()
-        return [self._row_to_job(r) for r in rows]
+        with self.connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM jobs WHERE task_id = ? ORDER BY created_at, id", (task_id,)).fetchall()
+            return [self._row_to_job(conn, r) for r in rows]
 
     def tasks_with_jobs(self) -> list[str]:
-        return [r["task_id"] for r in self._conn.execute(
-            "SELECT DISTINCT task_id FROM jobs ORDER BY task_id")]
+        with self.connection() as conn:
+            return [r["task_id"] for r in conn.execute(
+                "SELECT DISTINCT task_id FROM jobs ORDER BY task_id")]
 
     # --- laboratorio reutilizable --------------------------------------
     def upsert_lab_target(self, lab: LabTarget) -> LabTarget:
         lab.updated_at = datetime.now(timezone.utc)
-        self._conn.execute(
+        with self.connection() as conn:
+            self._upsert_lab(conn, lab)
+        return lab
+
+    @staticmethod
+    def _upsert_lab(conn: sqlite3.Connection, lab: LabTarget) -> None:
+        conn.execute(
             """INSERT INTO lab_targets (logical_lab_id, current_instance_id, account_id, region,
                                         vulnerable_ami_id, launch_template_id,
                                         launch_template_version, expected_vulnerable_package,
@@ -351,7 +443,6 @@ class JobRepository:
              lab.expected_vulnerable_package, lab.expected_vulnerable_version,
              json.dumps(lab.required_tags or {}, ensure_ascii=False), lab.last_reset_job_id,
              _iso(lab.updated_at)))
-        return lab
 
     @staticmethod
     def _row_to_lab(row: sqlite3.Row) -> LabTarget:
@@ -370,20 +461,27 @@ class JobRepository:
             updated_at=_parse(row["updated_at"]))
 
     def get_lab_target(self, logical_lab_id: str) -> LabTarget | None:
-        row = self._conn.execute(
-            "SELECT * FROM lab_targets WHERE logical_lab_id = ?", (logical_lab_id,)).fetchone()
-        return self._row_to_lab(row) if row else None
+        with self.connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM lab_targets WHERE logical_lab_id = ?", (logical_lab_id,)).fetchone()
+            return self._row_to_lab(row) if row else None
 
     def list_lab_targets(self) -> list[LabTarget]:
-        return [self._row_to_lab(r) for r in self._conn.execute(
-            "SELECT * FROM lab_targets ORDER BY logical_lab_id")]
+        with self.connection() as conn:
+            return [self._row_to_lab(r) for r in conn.execute(
+                "SELECT * FROM lab_targets ORDER BY logical_lab_id")]
 
     def record_lab_reset(self, logical_lab_id: str, job_id: str) -> LabTarget | None:
-        lab = self.get_lab_target(logical_lab_id)
-        if lab is None:
-            return None
-        lab.last_reset_job_id = job_id
-        return self.upsert_lab_target(lab)
+        with self.transaction() as conn:
+            row = conn.execute(
+                "SELECT * FROM lab_targets WHERE logical_lab_id = ?", (logical_lab_id,)).fetchone()
+            if row is None:
+                return None
+            lab = self._row_to_lab(row)
+            lab.last_reset_job_id = job_id
+            lab.updated_at = datetime.now(timezone.utc)
+            self._upsert_lab(conn, lab)
+        return lab
 
     def clear(self) -> None:
         """Sólo para `POST /api/reset` y para los tests: vacía el histórico.
@@ -391,12 +489,6 @@ class JobRepository:
         `lab_targets` es configuración del laboratorio, no histórico: sobrevive
         deliberadamente al reset para poder repetir la PoC sin re-registrarlo.
         """
-        conn = self._conn
-        conn.execute("BEGIN IMMEDIATE")
-        try:
+        with self.transaction() as conn:
             for table in ("idempotency_keys", "job_events", "job_targets", "jobs"):
                 conn.execute(f"DELETE FROM {table}")
-            conn.execute("COMMIT")
-        except Exception:
-            conn.execute("ROLLBACK")
-            raise

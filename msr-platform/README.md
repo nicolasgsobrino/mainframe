@@ -75,7 +75,7 @@ Los parámetros se derivan del contrato del runbook, nunca de valores genéricos
 - un job AWS representa **exactamente una** instancia: cero o varias devuelven `422 RING_TARGET_COUNT_UNSUPPORTED` (el mock mantiene el comportamiento multiactivo);
 - un timeout local **no** libera el objetivo: el job pasa a `timeout_pending_confirmation`, `stop_requested` o `remote_status_unknown` y sólo se cierra con confirmación remota o con `POST /api/patch-jobs/{id}/admin-resolve` (auditado);
 - con `MSR_DRY_RUN=false` la política es **fail-closed**: región, allowlists de cuenta/región/entorno, tag obligatorio, runbook permitido, rol de Automation y objetivo de sandbox deben estar configurados. Una lista vacía nunca significa «permitir todo»;
-- si `MSR_AWS_ROLE_ARN` está configurado, los clientes EC2/SSM se crean con credenciales temporales de STS `AssumeRole` (`RoleSessionName` con el correlation ID sanitizado, nunca registradas).
+- si `MSR_AWS_ROLE_ARN` está configurado, los clientes EC2/SSM se crean con credenciales temporales de STS `AssumeRole` (`RoleSessionName` con el correlation ID sanitizado, nunca registradas) y **se reconstruyen** en cuanto la sesión se renueva: ninguna operación reutiliza un cliente con credenciales caducadas.
 
 Copia `.env.example` a `.env` para ajustar la configuración (`MSR_*`). Con los valores por
 defecto (`MSR_PATCH_PROVIDER=mock`, `MSR_DRY_RUN=true`) la aplicación arranca sin AWS y no
@@ -86,10 +86,16 @@ El estado funcional en memoria no es la fuente de verdad: al arrancar,
 `rehydrate_pipeline_state()` reconstruye anillos completados, restauraciones, evidencia y
 estado de la tarea/Vulnerable Item desde SQLite.
 
+SQLite se usa con una **conexión por operación** (WAL, `busy_timeout` de 5 s y escrituras con
+`BEGIN IMMEDIATE`), de modo que requests, polling del frontend y reconciliador pueden actuar
+en paralelo sin compartir una conexión entre hilos.
+
 Detalle completo de arquitectura, esquema SQLite, máquina de estados y variables:
-[`IMPLEMENTATION_REPORT_PHASE1.md`](IMPLEMENTATION_REPORT_PHASE1.md) y las correcciones de
+[`IMPLEMENTATION_REPORT_PHASE1.md`](IMPLEMENTATION_REPORT_PHASE1.md), las correcciones de
 la revisión técnica en
-[`IMPLEMENTATION_REPORT_PHASE1_1.md`](IMPLEMENTATION_REPORT_PHASE1_1.md).
+[`IMPLEMENTATION_REPORT_PHASE1_1.md`](IMPLEMENTATION_REPORT_PHASE1_1.md) y el hardening de
+concurrencia y credenciales en
+[`IMPLEMENTATION_REPORT_PHASE1_2.md`](IMPLEMENTATION_REPORT_PHASE1_2.md).
 
 ## Tests, lint y build
 
@@ -100,14 +106,20 @@ pytest                 # tests del flujo de jobs, providers, persistencia y API
 ruff check .           # lint
 
 cd ../frontend
+npm ci                 # requiere Node >= 22.12 (ver .nvmrc)
 npm run lint           # oxlint
 npx tsc -b             # type checking
 npm run build          # build de producción
 ```
 
+Las mismas comprobaciones se ejecutan en CI para cualquier cambio en `msr-platform/**`
+(`.github/workflows/msr-platform-ci.yml`), sin credenciales AWS.
+
 ## Ejecutar en local
 
-Necesitas Python 3.10+ y Node 18+.
+Necesitas Python 3.10+ y Node >= 22.12 (`frontend/.nvmrc`). Con Node 20.18 npm omite el
+binario nativo opcional de oxlint (`engines: ^20.19.0 || >=22.12.0`) y `npm run lint` falla
+con `Cannot find native binding`.
 
 ```bash
 # 1) Backend  (http://localhost:8080)

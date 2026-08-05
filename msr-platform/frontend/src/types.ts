@@ -94,6 +94,7 @@ export interface ExecutionConfig {
   reconciler?: {
     enabled: boolean; running: boolean; interval_seconds: number;
     ticks: number; last_reconciled: number; last_error: string | null;
+    consecutive_failures?: number;
   };
 }
 /** Sobre de error uniforme del backend. */

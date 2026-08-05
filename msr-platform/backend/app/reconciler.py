@@ -7,13 +7,21 @@ el resultado, de modo que el estado avanza aunque nadie tenga la UI abierta.
 
 El `Store` garantiza que un mismo job no se consulta en paralelo (lock por job),
 por lo que el reconciliador y el polling del frontend pueden coexistir.
+
+Cada pasada relee el estado persistido y no conserva conexiones SQLite ni objetos
+`PatchJob` entre iteraciones. Un fallo transitorio no termina el bucle: se anota
+un error sanitizado y se espera con *backoff* acotado hasta el siguiente ciclo.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
 
+from .policy import sanitize_text
+
 log = logging.getLogger("msr.reconciler")
+
+MAX_BACKOFF_MULTIPLIER = 8
 
 
 class JobReconciler:
@@ -27,6 +35,7 @@ class JobReconciler:
         self.ticks = 0
         self.last_reconciled = 0
         self.last_error: str | None = None
+        self.consecutive_failures = 0
 
     @property
     def running(self) -> bool:
@@ -40,6 +49,7 @@ class JobReconciler:
             "ticks": self.ticks,
             "last_reconciled": self.last_reconciled,
             "last_error": self.last_error,
+            "consecutive_failures": self.consecutive_failures,
         }
 
     def start(self) -> None:
@@ -66,15 +76,24 @@ class JobReconciler:
         self.ticks += 1
         self.last_reconciled = reconciled
         self.last_error = None
+        self.consecutive_failures = 0
         return reconciled
+
+    def _delay(self) -> float:
+        """Backoff lineal acotado tras fallos consecutivos."""
+        multiplier = min(1 + self.consecutive_failures, MAX_BACKOFF_MULTIPLIER)
+        return self.interval_seconds * multiplier
 
     async def _loop(self) -> None:
         while True:
-            await asyncio.sleep(self.interval_seconds)
+            await asyncio.sleep(self._delay())
             try:
                 await self.tick()
             except asyncio.CancelledError:
                 raise
             except Exception as exc:  # nunca debe tumbar el bucle
-                self.last_error = f"{type(exc).__name__}: {exc}"
-                log.exception("fallo en la reconciliación periódica")
+                self.consecutive_failures += 1
+                # Mensaje sanitizado: nunca credenciales ni payloads completos.
+                self.last_error = sanitize_text(f"{type(exc).__name__}: {exc}", 300)
+                log.warning("fallo en la reconciliación periódica (%s consecutivos): %s",
+                            self.consecutive_failures, self.last_error)
