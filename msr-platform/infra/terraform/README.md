@@ -108,6 +108,30 @@ espacio al lanzar. `aws_ssm_patch_group.lab` registra el valor `msr-poc-linux`
 contra el baseline personalizado, de modo que `AWS-RunPatchBaseline` selecciona
 ese baseline y no el predeterminado del sistema operativo.
 
+## Etiquetas corporativas externas
+
+Un sistema corporativo añade a los recursos etiquetas propias (`APPID`,
+`BILLINGCODE`, `BUSINESSAREA`, `ENVIRONMENT`…). Terraform no las conoce, así que
+al actualizar un recurso intentaría eliminarlas. Para evitarlo, el provider
+declara:
+
+```hcl
+ignore_tags {
+  keys = var.externally_managed_tag_keys
+}
+```
+
+`externally_managed_tag_keys` es `[]` por defecto —el módulo sigue siendo
+reutilizable fuera de esta cuenta— y **la lista real debe configurarse
+explícitamente** en el entorno corporativo (ver `terraform.tfvars.example`). No
+se usan `key_prefixes`: las claves corporativas no comparten un prefijo
+inequívoco. Los valores de esas etiquetas no se declaran en ningún sitio.
+
+`Name`, `PatchGroup` y las etiquetas `msr-*` **siguen gestionadas por
+Terraform**: la variable rechaza esas claves y no se usa
+`lifecycle { ignore_changes = [tags] }`, de modo que el drift funcional sigue
+apareciendo en el plan.
+
 ## Suspensión del proceso `Launch`
 
 `suspended_processes` del ASG es estado deseado explícito, controlado por

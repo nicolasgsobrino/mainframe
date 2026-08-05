@@ -8,4 +8,11 @@ provider "aws" {
   default_tags {
     tags = local.common_tags
   }
+
+  # Etiquetas que administra un sistema corporativo externo: Terraform no las
+  # crea, no las modifica y, sobre todo, no las elimina al actualizar recursos.
+  # Sus valores no se conocen ni se declaran aquí.
+  ignore_tags {
+    keys = var.externally_managed_tag_keys
+  }
 }

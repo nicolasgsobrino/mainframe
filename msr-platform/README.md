@@ -124,6 +124,12 @@ espacios en las claves expuestas por IMDS), de modo que `AWS-RunPatchBaseline` r
 baseline personalizado registrado para ese patch group y no el predeterminado del sistema
 operativo.
 
+Las etiquetas corporativas que añade un sistema externo (`APPID`, `BILLINGCODE`,
+`BUSINESSAREA`…) se excluyen de la gestión del provider con `ignore_tags` y
+`externally_managed_tag_keys` (vacía por defecto, configurada explícitamente en el entorno
+corporativo): Terraform no conoce sus valores y no puede eliminarlas. `Name`, `PatchGroup` y
+las etiquetas `msr-*` siguen gestionadas y su drift sigue apareciendo en el plan.
+
 El ASG puede mantener su proceso `Launch` suspendido durante una recuperación controlada
 (`asg_launch_suspended = true`, `suspended_processes = ["Launch"]`); el valor por defecto es
 `false` y sólo se vuelve a él con un plan revisado, cuando Launch Template, instance profile

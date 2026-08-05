@@ -144,6 +144,30 @@ variable "asg_health_check_grace_period_seconds" {
   }
 }
 
+variable "externally_managed_tag_keys" {
+  type        = list(string)
+  description = "Claves de etiquetas administradas por sistemas externos y excluidas de la gestión del proveedor AWS."
+  default     = []
+
+  validation {
+    condition = (
+      length(var.externally_managed_tag_keys) ==
+      length(distinct(var.externally_managed_tag_keys))
+    )
+    error_message = "externally_managed_tag_keys no puede contener duplicados."
+  }
+
+  validation {
+    condition = alltrue([
+      for key in var.externally_managed_tag_keys :
+      key != "Name" &&
+      key != "PatchGroup" &&
+      !startswith(key, "msr-")
+    ])
+    error_message = "No se pueden ignorar Name, PatchGroup ni etiquetas operativas msr-*."
+  }
+}
+
 variable "asg_launch_suspended" {
   type        = bool
   description = "Mantiene suspendido el proceso Launch del ASG durante una recuperación controlada."

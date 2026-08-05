@@ -8,6 +8,19 @@ aws_region     = "eu-north-1"
 vpc_id         = "vpc-023864c0ca3c82eab"
 subnet_id      = "subnet-0bb97e6254e4f83e9"
 
+# Etiquetas administradas por un sistema corporativo externo. Terraform las
+# ignora (`ignore_tags` del provider) para no eliminarlas al actualizar recursos:
+# no conoce ni gestiona sus valores. Fuera de ese entorno el valor es [].
+# En la cuenta corporativa de la PoC:
+#   externally_managed_tag_keys = [
+#     "APPID", "BILLINGCODE", "BILLINGCONTACT", "BUSINESSAREA", "CMS",
+#     "COUNTRY", "CSCLASS", "CSQUAL", "CSTYPE", "ENVIRONMENT", "FUNCTION",
+#     "GROUPCONTACT", "MEMBERFIRM", "PRIMARYCONTACT", "SECONDARYCONTACT",
+#   ]
+# Name, PatchGroup y las etiquetas msr-* siguen bajo control de Terraform y no
+# pueden incluirse en esta lista.
+externally_managed_tag_keys = []
+
 # Proceso Launch del ASG. Operación normal: el grupo lanza la instancia.
 #   asg_launch_suspended = false
 # Recuperación/contención temporal (el grupo no lanza nada):

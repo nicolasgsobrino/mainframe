@@ -188,6 +188,54 @@ run "the_enabled_plan_requires_the_existing_instance_profile" {
   expect_failures = [aws_launch_template.lab, check.instance_profile]
 }
 
+# Las claves corporativas se ignoran por configuración; las funcionales de la
+# PoC nunca pueden excluirse de la gestión de Terraform.
+run "the_ignored_tag_keys_reject_duplicates" {
+  command = plan
+
+  variables {
+    externally_managed_tag_keys = ["APPID", "APPID"]
+  }
+
+  expect_failures = [var.externally_managed_tag_keys]
+}
+
+run "the_ignored_tag_keys_reject_the_functional_tags" {
+  command = plan
+
+  variables {
+    externally_managed_tag_keys = ["Name", "PatchGroup", "msr-lab-id"]
+  }
+
+  expect_failures = [var.externally_managed_tag_keys]
+}
+
+run "the_corporate_tag_keys_can_be_ignored" {
+  command = plan
+
+  variables {
+    externally_managed_tag_keys = [
+      "APPID", "BILLINGCODE", "BILLINGCONTACT", "BUSINESSAREA", "CMS",
+      "COUNTRY", "CSCLASS", "CSQUAL", "CSTYPE", "ENVIRONMENT", "FUNCTION",
+      "GROUPCONTACT", "MEMBERFIRM", "PRIMARYCONTACT", "SECONDARYCONTACT",
+    ]
+  }
+
+  # Ignorar etiquetas externas no altera las de la PoC ni el número de recursos.
+  assert {
+    condition = (
+      aws_launch_template.lab[0].tag_specifications[0].tags["PatchGroup"] == var.patch_group &&
+      aws_launch_template.lab[0].tag_specifications[0].tags["msr-lab-id"] == var.lab_id
+    )
+    error_message = "Las etiquetas funcionales siguen gestionadas por Terraform."
+  }
+
+  assert {
+    condition     = length(output.estimated_resource_summary.resources) == 10
+    error_message = "El resumen debe seguir enumerando diez recursos."
+  }
+}
+
 # Recuperación controlada: el grupo conserva `Launch` suspendido mientras se
 # corrigen Launch Template, instance profile y etiquetas.
 run "the_recovery_mode_keeps_launch_suspended" {

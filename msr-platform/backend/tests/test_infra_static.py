@@ -338,6 +338,72 @@ def test_the_lab_instance_is_managed_by_an_autoscaling_group_of_fixed_capacity()
     assert "instance_market_options" not in ec2
 
 
+CORPORATE_TAG_KEYS = (
+    "APPID", "BILLINGCODE", "BILLINGCONTACT", "BUSINESSAREA", "CMS", "COUNTRY",
+    "CSCLASS", "CSQUAL", "CSTYPE", "ENVIRONMENT", "FUNCTION", "GROUPCONTACT",
+    "MEMBERFIRM", "PRIMARYCONTACT", "SECONDARYCONTACT",
+)
+
+
+def test_the_provider_ignores_externally_managed_tags():
+    """Un sistema corporativo mantiene esas claves: Terraform no puede borrarlas."""
+    provider = code("providers.tf")
+
+    assert "ignore_tags {" in provider
+    assert "keys = var.externally_managed_tag_keys" in provider
+    # Las claves corporativas no comparten un prefijo inequívoco.
+    assert "key_prefixes" not in provider
+
+
+def test_the_externally_managed_tag_keys_are_empty_by_default_and_validated():
+    variables = code("variables.tf")
+    block = variables.split('variable "externally_managed_tag_keys"')[1].split(
+        "\nvariable ")[0]
+
+    assert "type        = list(string)" in block
+    assert re.search(r"default\s*=\s*\[\]", block)
+    assert "distinct(var.externally_managed_tag_keys)" in block
+    for protected in ('key != "Name"', 'key != "PatchGroup"',
+                      '!startswith(key, "msr-")'):
+        assert protected in block
+
+
+@pytest.mark.parametrize("key", CORPORATE_TAG_KEYS)
+def test_the_corporate_tags_are_never_declared_as_managed_values(key):
+    """Terraform ignora esas claves; sus valores no entran en la configuración."""
+    sources = [p for p in INFRA.rglob("*")
+               if p.is_file() and p.suffix in {".tf", ".yaml", ".tftpl", ".example"}
+               and ".terraform" not in p.parts]
+    for path in sources:
+        content = code(path.name) if path.suffix == ".tf" else path.read_text(
+            encoding="utf-8")
+        assert not re.search(rf'"{key}"\s*=', content), path.name
+        assert not re.search(rf"^\s*{key}\s*[:=]", content, re.M), path.name
+
+
+def test_the_functional_tags_stay_under_terraform_control():
+    locals_tf = code("locals.tf")
+
+    for key in ("msr-poc", "msr-managed-by", "msr-owner", "msr-cost-center",
+                "msr-environment", "msr-lab-id", "msr-resettable"):
+        assert f'"{key}"' in locals_tf
+    assert '"Name"       = "msr-poc-${var.lab_id}"' in locals_tf
+    assert '"PatchGroup" = var.patch_group' in locals_tf
+
+
+def test_terraform_declares_no_individual_tag_resource():
+    for path in INFRA.glob("*.tf"):
+        assert 'resource "aws_ec2_tag"' not in path.read_text(encoding="utf-8")
+
+
+def test_no_resource_hides_tag_drift_with_ignore_changes():
+    for path in INFRA.glob("*.tf"):
+        content = code(path.name)
+        for attribute in ("tags", "tags_all", "tag_specifications"):
+            assert not re.search(rf"ignore_changes\s*=\s*\[[^\]]*\b{attribute}\b",
+                                 content), (path.name, attribute)
+
+
 def test_the_launch_process_suspension_is_explicit_and_off_by_default():
     """La contención es estado deseado, no drift oculto."""
     variables = code("variables.tf")
