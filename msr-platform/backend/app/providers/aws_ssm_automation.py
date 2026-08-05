@@ -17,7 +17,7 @@ import uuid
 from datetime import timedelta
 
 from ..config import PROVIDER_AWS_AUTOMATION, ConfigurationError, Settings
-from ..policy import evaluate_target, sanitize_text
+from ..policy import INSTANCE_ID_RE, evaluate_target, sanitize_text
 from ..runbooks import (
     OPERATION_PATCH,
     OPERATION_RESET_LAB,
@@ -98,6 +98,26 @@ def classify_error(exc: Exception) -> tuple[str, str]:
     if any(token in text for token in _THROTTLING_ERRORS):
         return "THROTTLED", "throttling de la API de AWS"
     return "TRANSIENT_FAILURE", "fallo transitorio"
+
+
+def _automation_output(execution: dict, key: str) -> str | None:
+    """Output declarado del runbook (p. ej. `NewInstanceId`), sanitizado.
+
+    Los outputs de Automation llegan como `{'Paso.Output': ['valor']}`; sólo se
+    aceptan los que declara el contrato y con el formato esperado.
+    """
+    outputs = execution.get("Outputs") or {}
+    for name, values in outputs.items():
+        if not str(name).endswith(key):
+            continue
+        items = values if isinstance(values, list) else [values]
+        for item in items:
+            candidate = sanitize_text(str(item), 64).strip()
+            if key.endswith("InstanceId") and not INSTANCE_ID_RE.match(candidate):
+                continue
+            if candidate:
+                return candidate
+    return None
 
 
 def sanitize_session_name(value: str) -> str:
@@ -420,6 +440,8 @@ class AwsSsmAutomationPatchProvider(_AutomationBase):
             params["InstanceId"] = [target.instance_id or ""]
         if "AutomationAssumeRole" in declared and self._settings.automation_assume_role_arn:
             params["AutomationAssumeRole"] = [self._settings.automation_assume_role_arn]
+        if "CorrelationId" in declared and self._correlation_id:
+            params["CorrelationId"] = [self._correlation_id]
         return params
 
     def start(self, request: PatchRequest, idempotency_key: str) -> PatchExecution:
@@ -506,8 +528,14 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
         if not runbook.contract.implemented:
             raise ProviderError(
                 "RESET_LAB_NOT_IMPLEMENTED",
-                "La recreación real de la instancia vulnerable (reset_lab) todavía no está "
-                "implementada en AWS; sólo existe el modelo persistente LabTarget.")
+                f"La operación '{runbook.contract.operation}' no está implementada en AWS.")
+        if request.restore_kind == "reset_lab" and not (
+                self._settings.lab_launch_template_id
+                and self._settings.lab_launch_template_version):
+            raise ProviderError(
+                "PROVIDER_MISCONFIGURED",
+                "El reset del laboratorio exige MSR_LAB_LAUNCH_TEMPLATE_ID y "
+                "MSR_LAB_LAUNCH_TEMPLATE_VERSION (versión fija, nunca $Latest).")
         return self._evaluate(request.primary_target(), dry_run=request.dry_run)
 
     def _parameters(self, runbook: ResolvedRunbook, target: Target,
@@ -516,6 +544,15 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
         params: dict = {}
         if "InstanceId" in declared:
             params["InstanceId"] = [target.instance_id or ""]
+        # Reset del laboratorio: instancia actual + versión FIJA del Launch Template.
+        if "CurrentInstanceId" in declared:
+            params["CurrentInstanceId"] = [target.instance_id or ""]
+        if "LaunchTemplateId" in declared:
+            params["LaunchTemplateId"] = [self._settings.lab_launch_template_id]
+        if "LaunchTemplateVersion" in declared:
+            params["LaunchTemplateVersion"] = [self._settings.lab_launch_template_version]
+        if "CorrelationId" in declared and request.correlation_id:
+            params["CorrelationId"] = [request.correlation_id]
         if "AutomationAssumeRole" in declared and self._settings.automation_assume_role_arn:
             params["AutomationAssumeRole"] = [self._settings.automation_assume_role_arn]
         # `TargetVersion`/`SnapshotId` sólo se envían si el runbook los declara.
@@ -572,6 +609,7 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
         return RestoreExecution(
             provider=self.name, provider_reference=provider_reference, status=status,
             dry_run=False, steps=steps,
+            new_instance_id=_automation_output(execution, "NewInstanceId"),
             restored_version=request.target_version if request else None,
             started_at=iso_utc(execution.get("ExecutionStartTime")),
             completed_at=iso_utc(execution.get("ExecutionEndTime")),

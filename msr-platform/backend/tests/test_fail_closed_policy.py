@@ -76,12 +76,26 @@ def test_empty_allowlists_do_not_mean_allow_all_in_real_mode():
     ("required_target_tag_value", ""),
     ("allowed_runbooks", []),
     ("automation_assume_role_arn", ""),
-    ("sandbox_instance_id", ""),
 ])
 def test_each_missing_requirement_blocks_real_execution(field, empty):
     settings = real_settings(**{field: empty})
     with pytest.raises(ConfigurationError):
         settings.validate_for_providers()
+
+
+def test_real_execution_requires_some_resolvable_target_identity():
+    settings = real_settings(sandbox_instance_id="", sandbox_logical_target_id="",
+                             lab_logical_id="")
+    with pytest.raises(ConfigurationError) as excinfo:
+        settings.validate_for_providers()
+    assert "MSR_SANDBOX_INSTANCE_ID" in str(excinfo.value)
+
+
+def test_a_resolvable_logical_lab_id_replaces_a_fixed_instance_id():
+    """El laboratorio cambia de Instance ID en cada reset: basta el ID lógico."""
+    settings = real_settings(sandbox_instance_id="", lab_logical_id="linux-patching-01")
+    settings.validate_for_providers()
+    assert settings.real_aws_execution() is True
 
 
 def test_dry_run_is_less_restrictive_but_clearly_identified():

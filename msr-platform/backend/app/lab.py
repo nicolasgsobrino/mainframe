@@ -7,18 +7,25 @@ Distinción importante:
 - `reset_lab` → recreación deliberada de la instancia vulnerable para volver a
   repetir la PoC desde cero.
 
-Esta fase sólo modela y persiste el laboratorio: no se implementa ninguna
-operación de destrucción o recreación real de EC2.
+El Instance ID nunca se fija en la CMDB: se resuelve por tags (`labs.py`) y se
+actualiza aquí cada vez que un reset recrea la instancia.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .providers.base import iso_utc, utcnow
+from .providers.base import (
+    RESTORE_KIND_RESET_LAB,
+    RESTORE_KIND_ROLLBACK,
+    iso_utc,
+    synthetic_instance_id,
+    utcnow,
+)
 
-RESTORE_KIND_ROLLBACK = "rollback"
-RESTORE_KIND_RESET_LAB = "reset_lab"
 RESTORE_KINDS = (RESTORE_KIND_ROLLBACK, RESTORE_KIND_RESET_LAB)
+
+__all__ = ["LabTarget", "RESTORE_KINDS", "RESTORE_KIND_RESET_LAB",
+           "RESTORE_KIND_ROLLBACK", "synthetic_instance_id"]
 
 
 @dataclass(slots=True)

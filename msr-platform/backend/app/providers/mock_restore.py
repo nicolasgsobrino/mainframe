@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from ..config import PROVIDER_MOCK, Settings
 from .base import (
+    RESTORE_KIND_RESET_LAB,
     ExecutionStatus,
     ExecutionStep,
     ProviderError,
@@ -16,6 +17,7 @@ from .base import (
     RestoreRequest,
     TargetPolicyResult,
     iso_utc,
+    synthetic_instance_id,
     utcnow,
 )
 
@@ -121,7 +123,37 @@ class MockRestoreProvider:
         return TargetPolicyResult(allowed=True, checks=checks, target=target,
                                   message="Objetivo válido para restauración simulada.")
 
+    @staticmethod
+    def _reset_instance_id(request: RestoreRequest) -> str | None:
+        """Instance ID de la instancia recreada (simulada) tras un reset."""
+        if request.restore_kind != RESTORE_KIND_RESET_LAB:
+            return None
+        return synthetic_instance_id(request.primary_target().logical_target_id,
+                                     request.job_id)
+
+    def _reset_steps(self, request: RestoreRequest) -> tuple[ExecutionStep, ...]:
+        """Plan simulado del reset: terminar la instancia y recrearla desde el LT."""
+        target = request.primary_target()
+        new_instance_id = self._reset_instance_id(request) or ""
+        plan = [
+            ("validar tags obligatorios", f"describe-instances {target.instance_id or '-'}",
+             "Tags msr-poc/msr-lab-id/msr-resettable verificados antes de destruir nada."),
+            ("terminar la instancia actual", f"terminate-instances {target.instance_id or '-'}",
+             "Instancia del laboratorio terminada (simulado)."),
+            ("recrear desde el Launch Template", "run-instances --launch-template <version fija>",
+             f"Nueva instancia vulnerable {new_instance_id} (simulado)."),
+            ("esperar nodo gestionado y health check", "describe-instance-information + /health",
+             "La nueva instancia responde y vuelve a estar en estado vulnerable."),
+        ]
+        return tuple(
+            ExecutionStep(seq=i + 1, actor="msr-platform", tool="reset de laboratorio (simulado)",
+                          command=command, output=output, status="ok",
+                          why=f"Reset del laboratorio: {request.reason}")
+            for i, (_name, command, output) in enumerate(plan))
+
     def _steps(self, request: RestoreRequest) -> tuple[ExecutionStep, ...]:
+        if request.restore_kind == RESTORE_KIND_RESET_LAB:
+            return self._reset_steps(request)
         task = request.task_snapshot
         if not task:
             raise ProviderError("REQUEST_INCOMPLETE",
@@ -144,6 +176,7 @@ class MockRestoreProvider:
                 provider=self.name, provider_reference=f"dryrun:{request.job_id}",
                 status=ExecutionStatus.DRY_RUN, dry_run=True, steps=planned,
                 restored_version=request.target_version, started_at=iso_utc(started),
+                new_instance_id=None,
                 completed_at=iso_utc(started),
                 detail="Restauración en dry-run: no se aplica ningún cambio.")
         return RestoreExecution(
@@ -167,6 +200,7 @@ class MockRestoreProvider:
             provider=self.name, provider_reference=provider_reference,
             status=ExecutionStatus.SUCCEEDED if done else ExecutionStatus.RUNNING,
             dry_run=False, steps=steps, restored_version=request.target_version,
+            new_instance_id=self._reset_instance_id(request) if done else None,
             started_at=iso_utc(started),
             completed_at=iso_utc(self._now()) if done else None,
             detail="Restauración simulada completada." if done else "Restauración simulada en curso.")

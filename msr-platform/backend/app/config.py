@@ -64,6 +64,17 @@ class Settings(BaseSettings):
     sandbox_instance_id: str = ""
     sandbox_logical_target_id: str = ""
 
+    # --- Laboratorio reseteable (fase 2) -----------------------------------
+    # La instancia se resuelve por tags a partir del identificador lógico: el
+    # reset la recrea con otro Instance ID, así que nunca se fija en la CMDB.
+    lab_logical_id: str = "linux-patching-01"
+    lab_tag_key: str = "msr-lab-id"
+    lab_environment: str = "sandbox"
+    patch_advisory_id: str = "ALAS2023-2026-1651"
+    patch_package_family: str = "kernel"
+    lab_launch_template_id: str = ""
+    lab_launch_template_version: str = ""
+
     # --- Política de objetivos --------------------------------------------
     allowed_account_ids: list[str] = Field(default_factory=list)
     allowed_regions: list[str] = Field(default_factory=list)
@@ -182,8 +193,14 @@ class Settings(BaseSettings):
                 and contract_for(OPERATION_ROLLBACK).requires_assume_role))
         if requires_role and not self.automation_assume_role_arn:
             missing.append("MSR_AUTOMATION_ASSUME_ROLE_ARN")
-        if not (self.sandbox_instance_id or self.sandbox_logical_target_id):
+        # Identidad del objetivo: un Instance ID explícito o un identificador
+        # lógico resoluble por tags (el laboratorio cambia de Instance ID en
+        # cada reset, así que nunca puede fijarse uno).
+        if not (self.sandbox_instance_id or self.sandbox_logical_target_id
+                or self.lab_logical_id):
             missing.append("MSR_SANDBOX_INSTANCE_ID")
+        if self.lab_logical_id and not self.lab_tag_key:
+            missing.append("MSR_LAB_TAG_KEY")
         if missing:
             raise ConfigurationError(
                 "Ejecución real en AWS (MSR_DRY_RUN=false) con política incompleta. "

@@ -169,6 +169,37 @@ def register_lab_target(body: LabTargetBody):
     return STORE.register_lab_target(body.model_dump())
 
 
+# --- Laboratorio EC2 reseteable (fase 2) ---------------------------------
+# El Instance ID nunca se acepta desde el cliente: sólo el identificador
+# lógico del laboratorio, que se resuelve por tags en el backend.
+@app.get("/api/labs/{logical_lab_id}")
+def lab_status(logical_lab_id: str):
+    """Estado del laboratorio: instancia resuelta, advisory, modo y job activo."""
+    return STORE.lab_snapshot(logical_lab_id)
+
+
+@app.post("/api/labs/{logical_lab_id}/validate")
+def lab_validate(logical_lab_id: str):
+    """Validación de sólo lectura: no inicia ninguna Automation ni muta nada."""
+    return STORE.validate_lab(logical_lab_id)
+
+
+@app.post("/api/labs/{logical_lab_id}/reset", status_code=status.HTTP_202_ACCEPTED)
+def lab_reset(logical_lab_id: str,
+              idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
+    """Recrea la instancia vulnerable (`reset_lab`); no es un rollback."""
+    job = STORE.start_lab_reset_job(
+        logical_lab_id,
+        idempotency_key=_idempotency_key(idempotency_key, logical_lab_id, "lab-reset"))
+    return {"job": job.as_dict(), "lab": STORE.get_lab_target(logical_lab_id)}
+
+
+@app.get("/api/labs/{logical_lab_id}/jobs")
+def lab_jobs(logical_lab_id: str):
+    """Historial de jobs del laboratorio (parcheos y resets)."""
+    return STORE.lab_jobs(logical_lab_id)
+
+
 class RingPreapproveBody(BaseModel):
     approver: str | None = None
     note: str | None = None

@@ -12,3 +12,12 @@ data/*.db-shm
 data/*.db-wal
 .pytest_cache/
 .ruff_cache/
+
+# Terraform: el estado local puede contener valores sensibles y nunca se versiona.
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+crash.log
+crash.*.log

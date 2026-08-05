@@ -144,7 +144,9 @@ def test_lab_target_endpoints_register_and_expose_the_lab(client):
 
     assert created.status_code == 200
     assert created.json()["logical_lab_id"] == "lab-poc"
-    assert [lab["logical_lab_id"] for lab in client.get("/api/lab-targets").json()] == ["lab-poc"]
+    # Además del laboratorio configurado, que se registra al arrancar el store.
+    assert "lab-poc" in [lab["logical_lab_id"]
+                         for lab in client.get("/api/lab-targets").json()]
     assert client.get("/api/lab-targets/lab-poc").json()["region"] == "eu-west-1"
     assert client.get("/api/lab-targets/lab-inexistente").status_code == 404
 

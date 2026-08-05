@@ -1,8 +1,7 @@
-"""Fase 1.1: modelo persistente del laboratorio y distinción rollback / reset_lab."""
+"""Modelo persistente del laboratorio y distinción rollback / reset_lab."""
 from __future__ import annotations
 
 import pytest
-from conftest import deployment_task
 
 from app.errors import NotFoundError, ValidationError
 from app.jobs import JobType
@@ -64,22 +63,18 @@ def test_unknown_lab_target_is_reported_as_missing(store):
 
 def test_reset_lab_is_a_different_operation_than_rollback(store):
     """`reset_lab` recrea el laboratorio; `rollback` recupera un fallo."""
-    tid = deployment_task(store)
-    store.register_lab_target(payload())
+    lab_id = store.settings.lab_logical_id
 
-    reset = store.start_lab_reset_job(tid, LAB_ID, idempotency_key="key-reset")
+    reset = store.start_lab_reset_job(lab_id, idempotency_key="key-reset")
 
     assert reset.job_type is JobType.RESET_LAB
     assert reset.request_payload["restore_kind"] == "reset_lab"
-    assert store.get_lab_target(LAB_ID)["last_reset_job_id"] == reset.id
-    # Ninguna instancia EC2 se destruye ni se recrea en esta fase.
-    assert store.get_lab_target(LAB_ID)["current_instance_id"] == INSTANCE
+    assert store.get_lab_target(lab_id)["last_reset_job_id"] == reset.id
 
 
 def test_reset_lab_requires_a_registered_lab(store):
-    tid = deployment_task(store)
     with pytest.raises(NotFoundError):
-        store.start_lab_reset_job(tid, "lab-inexistente")
+        store.start_lab_reset_job("lab-inexistente")
 
 
 def test_job_history_reset_keeps_the_lab_configuration(store):

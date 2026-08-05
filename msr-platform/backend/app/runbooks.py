@@ -86,8 +86,9 @@ CONTRACTS: dict[str, RunbookContract] = {
     OPERATION_PATCH: RunbookContract(
         operation=OPERATION_PATCH,
         required_parameters=frozenset({"InstanceId"}),
-        optional_parameters=frozenset({"AutomationAssumeRole", "RebootOption"}),
-        forbidden_parameters=_FORBIDDEN | frozenset({"TargetVersion", "SnapshotId"}),
+        optional_parameters=frozenset({"AutomationAssumeRole", "CorrelationId"}),
+        forbidden_parameters=_FORBIDDEN | frozenset({"TargetVersion", "SnapshotId",
+                                                     "RebootOption"}),
     ),
     OPERATION_ROLLBACK: RunbookContract(
         operation=OPERATION_ROLLBACK,
@@ -95,15 +96,15 @@ CONTRACTS: dict[str, RunbookContract] = {
         optional_parameters=frozenset({"AutomationAssumeRole", "TargetVersion", "SnapshotId"}),
         forbidden_parameters=_FORBIDDEN,
     ),
-    # El reset del laboratorio (recreación de la instancia vulnerable) todavía
-    # no está implementado: sólo existe el modelo persistente (LabTarget).
+    # Reset del laboratorio: termina la instancia actual y la recrea desde una
+    # versión fija del Launch Template (nunca $Latest sin control).
     OPERATION_RESET_LAB: RunbookContract(
         operation=OPERATION_RESET_LAB,
-        required_parameters=frozenset({"LogicalLabId"}),
-        optional_parameters=frozenset({"AutomationAssumeRole", "LaunchTemplateId",
-                                       "LaunchTemplateVersion", "VulnerableAmiId"}),
-        forbidden_parameters=_FORBIDDEN,
-        implemented=False,
+        required_parameters=frozenset({"CurrentInstanceId", "LaunchTemplateId",
+                                       "LaunchTemplateVersion"}),
+        optional_parameters=frozenset({"AutomationAssumeRole", "CorrelationId"}),
+        forbidden_parameters=_FORBIDDEN | frozenset({"VulnerableAmiId", "TargetVersion",
+                                                     "SnapshotId", "LogicalLabId"}),
     ),
 }
 

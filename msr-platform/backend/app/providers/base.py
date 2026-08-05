@@ -6,12 +6,26 @@ credenciales ni objetos de boto3.
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Protocol, runtime_checkable
 
 MAX_TEXT = 2000
+
+RESTORE_KIND_ROLLBACK = "rollback"
+RESTORE_KIND_RESET_LAB = "reset_lab"
+
+
+def synthetic_instance_id(logical_lab_id: str, generation: str) -> str:
+    """Instance ID simulado y determinista del laboratorio en modo mock.
+
+    Cambia en cada reset (la generación es el job que lo recreó), igual que una
+    instancia real recreada desde el Launch Template.
+    """
+    digest = hashlib.sha256(f"{logical_lab_id}:{generation}".encode()).hexdigest()
+    return f"i-{digest[:17]}"
 
 
 def utcnow() -> datetime:
@@ -189,6 +203,8 @@ class RestoreExecution:
     dry_run: bool = True
     steps: tuple[ExecutionStep, ...] = ()
     restored_version: str | None = None
+    # Sólo en `reset_lab`: la instancia recreada tiene un Instance ID nuevo.
+    new_instance_id: str | None = None
     started_at: str | None = None
     completed_at: str | None = None
     error_code: str | None = None

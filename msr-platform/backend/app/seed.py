@@ -766,7 +766,68 @@ TEST_CATALOG = [
 ]
 
 
-def build_all():
+# ---------------------------------------------------------------------------
+# 4.bis Escenario de laboratorio de la PoC (track A, sin Instance ID fijo)
+# ---------------------------------------------------------------------------
+LAB_LOGICAL_ID = "linux-patching-01"
+LAB_ADVISORY_ID = "ALAS2023-2026-1651"
+LAB_PACKAGE_FAMILY = "kernel"
+LAB_ENVIRONMENT = "sandbox"
+LAB_CI_ID = "SRV-LAB-0001"
+LAB_TASK_ID = "RTASK900900"
+LAB_VITEM_ID = "VIT700900"
+
+
+def build_lab_scenario(logical_lab_id: str = LAB_LOGICAL_ID,
+                       advisory_id: str = LAB_ADVISORY_ID,
+                       package_family: str = LAB_PACKAGE_FAMILY,
+                       region: str | None = None,
+                       account_id: str | None = None):
+    """CI, Vulnerable Item y Remediation Task del laboratorio EC2 real.
+
+    El Instance ID NO se fija aquí: la instancia se resuelve en ejecución a
+    partir del `logical_target_id` y de los tags obligatorios, porque el reset
+    del laboratorio la recrea con un identificador distinto.
+    """
+    ci = target_fields(_std_fields({
+        "id": LAB_CI_ID, "name": f"msr-poc-{logical_lab_id}", "ci_class": "server",
+        "criticality": "low", "environment": LAB_ENVIRONMENT, "track": "A",
+        "os": "Amazon Linux 2023", "owner": "linux-ops", "location": f"AWS {region or '-'}",
+        "logical_target_id": logical_lab_id, "instance_id": None,
+        "account_id": account_id, "region": region, "ssm_managed": True,
+        "tags": {"msr-poc": "true", "msr-lab-id": logical_lab_id,
+                 "msr-environment": LAB_ENVIRONMENT, "msr-resettable": "true",
+                 "Patch Group": "msr-poc-linux"},
+        "support_group": "SG-Infra-Linux", "lab_target": True,
+    }))
+    detected = NOW - timedelta(days=1)
+    vitem = {
+        "id": LAB_VITEM_ID, "cve": advisory_id,
+        "title": f"Amazon Linux 2023 {package_family} security advisory {advisory_id}",
+        "cvss": 7.8, "epss": 0.11, "kev": False, "exploit_available": False,
+        "track": "A", "component": package_family, "vulnerable_version": "pendiente de precheck",
+        "ci_id": ci["id"], "ci_name": ci["name"], "ci_class": "server", "exposed": False,
+        "criticality": "low", "environment": LAB_ENVIRONMENT, "owner": "linux-ops",
+        "risk_score": 42, "sources": ["Amazon Linux Security Center (ALAS)"],
+        "status": "open", "detected_at": iso(detected), "sla_days": 15,
+        "lane": "standard", "sla_due": iso(detected + timedelta(days=15)),
+    }
+    task = {
+        "id": LAB_TASK_ID, "vulnerable_item_id": vitem["id"], "cve": advisory_id,
+        "title": vitem["title"], "track": "A", "lane": "standard", "risk_score": 42,
+        "priority": _priority_label(42), "ci_id": ci["id"], "ci_name": ci["name"],
+        "owner": "linux-ops", "criticality": "low", "environment": LAB_ENVIRONMENT,
+        "sla_due": vitem["sla_due"], "change_type": "standard", "exposed": False,
+        "component": package_family, "vulnerable_version": vitem["vulnerable_version"],
+        "created_at": iso(detected), "advisory_id": advisory_id,
+        "logical_lab_id": logical_lab_id, "lab_target": True,
+    }
+    return ci, vitem, task
+
+
+def build_all(lab_logical_id: str = LAB_LOGICAL_ID, lab_advisory_id: str = LAB_ADVISORY_ID,
+              lab_package_family: str = LAB_PACKAGE_FAMILY,
+              lab_region: str | None = None, lab_account_id: str | None = None):
     # La CMDB es la fuente de verdad versionada en el repo (formato ServiceNow).
     # Si el export existe se recarga; si no, se genera y se persiste al repo.
     if has_cmdb_export():
@@ -778,6 +839,13 @@ def build_all():
     for ci in cis:
         target_fields(ci)
     findings, vitems, tasks = build_records(cis, edges)
+    # Escenario real de la PoC: instancia EC2 de laboratorio, track A.
+    lab_ci, lab_vitem, lab_task = build_lab_scenario(
+        logical_lab_id=lab_logical_id, advisory_id=lab_advisory_id,
+        package_family=lab_package_family, region=lab_region, account_id=lab_account_id)
+    cis = [c for c in cis if c["id"] != lab_ci["id"]] + [lab_ci]
+    vitems.append(lab_vitem)
+    tasks.append(lab_task)
     catalog = [dict(zip(
         ["id", "name", "layer", "applies_to", "remediation_type", "criticality", "tool", "evidence"], t))
         for t in TEST_CATALOG]

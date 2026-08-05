@@ -30,8 +30,16 @@ from .jobs import (
     new_job_id,
     state_for_execution,
 )
-from .lab import RESTORE_KIND_RESET_LAB, LabTarget
-from .policy import INSTANCE_ID_RE, sanitize_text
+from .lab import RESTORE_KIND_RESET_LAB, LabTarget, synthetic_instance_id
+from .labs import (
+    LabInstance,
+    LabResolutionError,
+    check_lab_tags,
+    default_lab_target,
+    get_lab_resolver,
+    required_lab_tags,
+)
+from .policy import INSTANCE_ID_RE, evaluate_target, sanitize_text
 from .providers import get_patch_provider, get_restore_provider
 from .providers.base import (
     PatchRequest,
@@ -42,6 +50,12 @@ from .providers.base import (
     utcnow,
 )
 from .repository import JobRepository, TargetBusyError
+from .runbooks import (
+    OPERATION_PATCH,
+    OPERATION_RESET_LAB,
+    RunbookContractError,
+    resolve_runbook,
+)
 from .seed import NOW, iso
 
 # Códigos de provider que representan configuración ausente o dependencia caída.
@@ -145,6 +159,8 @@ class Store:
         self.repo = repository or JobRepository(self.settings.jobs_db_absolute_path)
         self.patch_provider = patch_provider or get_patch_provider(self.settings)
         self.restore_provider = restore_provider or get_restore_provider(self.settings)
+        # Resuelve el Instance ID del laboratorio por tags (nunca lo fija).
+        self.lab_resolver = get_lab_resolver(self.settings, self.patch_provider, self.repo)
         # Proyección en memoria ya aplicada (distinta del resultado persistido del
         # job): se reconstruye en cada rehidratación.
         self._projected: set[str] = set()
@@ -175,9 +191,22 @@ class Store:
         start_phases = [5, 2, 5, 3, 4]
         for i, (tid, task) in enumerate(self.tasks.items()):
             self._init_pipeline(tid, start_phases[i % len(start_phases)])
+        self._ensure_lab_target()
         # El estado funcional vive en memoria, pero los jobs son la fuente de
         # verdad: se re-proyectan desde SQLite en cada arranque.
         self.rehydrate_pipeline_state()
+
+    def _ensure_lab_target(self) -> None:
+        """Registra el laboratorio configurado si aún no está en SQLite."""
+        logical_lab_id = self.settings.lab_logical_id
+        if not logical_lab_id or self.repo.get_lab_target(logical_lab_id) is not None:
+            return
+        lab = default_lab_target(self.settings, logical_lab_id)
+        if self.patch_provider.name == PROVIDER_MOCK:
+            # En modo mock no hay EC2 que consultar: la instancia inicial del
+            # laboratorio se simula (y cambia con cada reset).
+            lab.current_instance_id = synthetic_instance_id(logical_lab_id, "genesis")
+        self.repo.upsert_lab_target(lab)
 
     # ------------------------------------------------------------------
     def _init_pipeline(self, tid, phase_index):
@@ -981,7 +1010,7 @@ class Store:
             "provider_detail": sanitize_text(execution.detail, 500),
             "raw_status": execution.raw_status,
         })
-        for key in ("from_version", "to_version", "restored_version"):
+        for key in ("from_version", "to_version", "restored_version", "new_instance_id"):
             value = getattr(execution, key, None)
             if value:
                 job.result_payload[key] = value
@@ -1203,6 +1232,8 @@ class Store:
                 self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
                 self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
                                 "msg": "Reescaneo verificado. Vulnerable Item → FIXED. Informe de auditoría generado."})
+        elif job.job_type is JobType.RESET_LAB and job.state is JobState.RESTORED:
+            self._apply_lab_reset(tid, job)
         elif job.job_type is not JobType.PATCH and job.state is JobState.RESTORED:
             self._apply_rollback(tid, job)
         elif job.state in (JobState.FAILED, JobState.RESTORE_FAILED, JobState.TIMED_OUT,
@@ -1253,22 +1284,256 @@ class Store:
             last_reset_job_id=(existing.last_reset_job_id if existing else None))
         return self.repo.upsert_lab_target(lab).as_dict()
 
-    def start_lab_reset_job(self, tid: str, logical_lab_id: str,
-                            idempotency_key: str | None = None) -> PatchJob:
-        """`reset_lab`: recreación deliberada de la instancia vulnerable.
-
-        Distinto de `rollback` (recuperación de una ejecución fallida). En esta
-        fase el modelo y el job existen, pero ninguna instancia EC2 se destruye
-        ni se recrea realmente.
-        """
+    # --- resolución dinámica por identificador lógico -------------------
+    def _lab_or_404(self, logical_lab_id: str) -> LabTarget:
         lab = self.repo.get_lab_target(logical_lab_id)
         if lab is None:
             raise NotFoundError(f"El laboratorio {logical_lab_id} no está registrado.")
-        job = self.start_restore_job(tid, reason=f"Reset del laboratorio {logical_lab_id}",
-                                     trigger="lab_reset", idempotency_key=idempotency_key,
-                                     restore_kind=RESTORE_KIND_RESET_LAB)
+        return lab
+
+    def _lab_task_id(self, logical_lab_id: str) -> str:
+        """Tarea de remediación track A asociada al laboratorio."""
+        for tid, task in self.tasks.items():
+            if task.get("logical_lab_id") == logical_lab_id:
+                return tid
+        raise NotFoundError(
+            f"No hay ninguna tarea de remediación asociada al laboratorio {logical_lab_id}.")
+
+    def _resolve_lab_instance(self, logical_lab_id: str) -> LabInstance:
+        """Instance ID actual del laboratorio, resuelto por tags (nunca fijado)."""
+        instance = self.lab_resolver.resolve(logical_lab_id)
+        lab = self.repo.get_lab_target(logical_lab_id)
+        if lab is not None and lab.current_instance_id != instance.instance_id:
+            lab.current_instance_id = instance.instance_id
+            lab.account_id = instance.account_id or lab.account_id
+            lab.region = instance.region or lab.region
+            lab.vulnerable_ami_id = instance.image_id or lab.vulnerable_ami_id
+            self.repo.upsert_lab_target(lab)
+        return instance
+
+    def _lab_state(self, tid: str) -> dict:
+        """Estado vulnerable/parcheado derivado del histórico de jobs del laboratorio.
+
+        No se declara «parcheado» por antigüedad ni por la AMI: sólo cuenta un
+        patch job realmente confirmado como `succeeded` después del último reset.
+        """
+        last_patch = last_reset = None
+        for job in self.repo.list_jobs_for_task_chronological(tid):
+            if job.job_type is JobType.PATCH and job.state is JobState.SUCCEEDED:
+                last_patch = job
+            elif job.job_type is JobType.RESET_LAB and job.state is JobState.RESTORED:
+                last_reset = job
+        patched = last_patch is not None and (
+            last_reset is None or last_patch.completed_at >= last_reset.completed_at)
+        return {
+            "vulnerable_state": "patched" if patched else "vulnerable_expected",
+            "advisory_confirmed": False,
+            "last_patch_job_id": last_patch.id if last_patch else None,
+            "last_reset_job_id": last_reset.id if last_reset else None,
+        }
+
+    def lab_snapshot(self, logical_lab_id: str) -> dict:
+        """Vista de sólo lectura del laboratorio para la UI (`GET /api/labs/{id}`)."""
+        lab = self._lab_or_404(logical_lab_id)
+        tid = self._lab_task_id(logical_lab_id)
+        instance: dict | None = None
+        resolution_error: dict | None = None
+        try:
+            instance = self._resolve_lab_instance(logical_lab_id).as_dict()
+        except LabResolutionError as exc:
+            resolution_error = {"code": exc.code, "message": exc.message,
+                                "candidates": list(exc.candidates)}
+        except ProviderError as exc:
+            resolution_error = {"code": exc.code, "message": exc.message, "candidates": []}
+        active = self.active_job(tid)
+        return {
+            "lab": self.repo.get_lab_target(logical_lab_id).as_dict() if lab else None,
+            "instance": instance,
+            "resolution_error": resolution_error,
+            "task_id": tid,
+            "advisory_id": self.settings.patch_advisory_id,
+            "package_family": self.settings.patch_package_family,
+            "environment": self.settings.lab_environment,
+            "required_tags": required_lab_tags(self.settings, logical_lab_id),
+            "execution_mode": self.settings.execution_mode(),
+            "dry_run": self.settings.effective_dry_run(self.patch_provider.name),
+            "patch_provider": self.patch_provider.name,
+            "restore_provider": self.restore_provider.name,
+            "active_job": active.as_dict() if active else None,
+            **self._lab_state(tid),
+        }
+
+    def validate_lab(self, logical_lab_id: str) -> dict:
+        """Validación de sólo lectura: no inicia ninguna Automation ni muta nada."""
+        self._lab_or_404(logical_lab_id)
+        tid = self._lab_task_id(logical_lab_id)
+        checks: list[dict] = [{"check": "Laboratorio registrado", "ok": True,
+                               "detail": f"Laboratorio {logical_lab_id} presente en SQLite."}]
+        instance = None
+        try:
+            instance = self._resolve_lab_instance(logical_lab_id)
+            checks.append({"check": "Instancia resuelta por tags", "ok": True,
+                           "detail": f"{instance.instance_id} ({instance.source})."})
+        except (LabResolutionError, ProviderError) as exc:
+            checks.append({"check": "Instancia resuelta por tags", "ok": False,
+                           "detail": exc.message, "code": exc.code})
+
+        if instance is not None:
+            missing = check_lab_tags(instance.tags, self.settings, logical_lab_id)
+            checks.append({"check": "Tags obligatorios", "ok": not missing,
+                           "detail": ("Todos los tags obligatorios presentes."
+                                      if not missing else f"Faltan: {', '.join(missing)}")})
+            checks.append({"check": "Instancia en ejecución", "ok": instance.state == "running",
+                           "detail": f"Estado EC2: {instance.state}."})
+            checks.append({"check": "Nodo gestionado por SSM", "ok": instance.ssm_managed,
+                           "detail": f"PingStatus: {instance.ping_status or 'desconocido'}."})
+            policy = evaluate_target(
+                instance.as_target(self.settings.lab_environment), self.settings,
+                instance_state=instance.state, require_instance=True,
+                strict=self.settings.real_aws_execution())
+            checks.extend(policy.checks)
+
+        for operation in (OPERATION_PATCH, OPERATION_RESET_LAB):
+            try:
+                runbook = resolve_runbook(self.settings, operation)
+                detail = f"{runbook.name} (Automation)."
+                ok = True
+            except RunbookContractError as exc:
+                detail, ok = exc.message, False
+            checks.append({"check": f"Runbook de {operation} configurado", "ok": ok,
+                           "detail": detail})
+
+        return {
+            "logical_lab_id": logical_lab_id,
+            "read_only": True,
+            "allowed": all(c.get("ok") for c in checks),
+            "checks": checks,
+            "instance": instance.as_dict() if instance else None,
+            "task_id": tid,
+            "advisory_id": self.settings.patch_advisory_id,
+            "note": ("La aplicabilidad real del advisory sólo se confirma con el precheck "
+                     "del runbook; esta validación no ejecuta nada en la instancia."),
+            **self._lab_state(tid),
+        }
+
+    def lab_jobs(self, logical_lab_id: str) -> list[dict]:
+        """Historial completo de jobs del laboratorio (parcheo y resets)."""
+        self._lab_or_404(logical_lab_id)
+        tid = self._lab_task_id(logical_lab_id)
+        return [job.as_dict() for job in self.list_task_jobs(tid)]
+
+    def start_lab_reset_job(self, logical_lab_id: str,
+                            idempotency_key: str | None = None) -> PatchJob:
+        """`reset_lab`: recreación deliberada de la instancia vulnerable.
+
+        Distinto de `rollback` (recuperación de una ejecución fallida): no
+        depende de que haya anillos desplegados, no toca `rings_done` al
+        crearse y termina actualizando el Instance ID del laboratorio.
+        """
+        lab = self._lab_or_404(logical_lab_id)
+        tid = self._lab_task_id(logical_lab_id)
+        replay = self._replay(idempotency_key)
+        if replay is not None:
+            return replay
+        try:
+            instance = self._resolve_lab_instance(logical_lab_id)
+        except LabResolutionError as exc:
+            raise ValidationError(exc.message, code=exc.code) from exc
+        target = instance.as_target(self.settings.lab_environment)
+
+        active = self.repo.active_job_for_task(tid)
+        if active is not None:
+            active = self.reconcile_job(active)
+            if active.active:
+                raise ConflictError(f"El laboratorio {logical_lab_id} ya tiene un job activo "
+                                    f"({active.id}).", correlation_id=active.correlation_id)
+
+        job_id = new_job_id()
+        dry_run = self.settings.effective_dry_run(self.restore_provider.name)
+        request = RestoreRequest(
+            job_id=job_id, task_id=tid, ring_number=0, targets=(target,),
+            reason=f"Reset del laboratorio {logical_lab_id}", target_version="",
+            snapshot_ref=None, dry_run=dry_run, restore_kind=RESTORE_KIND_RESET_LAB,
+            task_snapshot=_task_snapshot(self.tasks[tid]))
+        job = PatchJob(
+            id=job_id, job_type=JobType.RESET_LAB, task_id=tid, ring_number=0,
+            provider=self.restore_provider.name, dry_run=dry_run, targets=(target,),
+            state=JobState.RESTORE_QUEUED,
+            idempotency_key=idempotency_key or f"auto:{job_id}",
+            request_payload=_restore_request_payload(request))
+        job.request_payload.update({
+            "trigger": "lab_reset", "correlation_id": job.correlation_id,
+            "logical_lab_id": logical_lab_id,
+            "previous_instance_id": instance.instance_id,
+        })
+        request = _restore_request_from_payload(job.request_payload)
+
+        try:
+            job, created = self.repo.create_job(job, scope="lab_reset")
+        except TargetBusyError as exc:
+            raise ConflictError(
+                f"El objetivo {exc.logical_target_id} ya tiene un job activo.") from exc
+        if not created:
+            return job
         self.repo.record_lab_reset(logical_lab_id, job.id)
+        self.repo.append_event(job.id, job.state,
+                               f"Reset del laboratorio {logical_lab_id} solicitado sobre "
+                               f"{instance.instance_id}.")
+        job.transition_to(JobState.VALIDATING)
+        self.repo.save_job(job)
+        try:
+            policy = self.restore_provider.validate_target(request)
+            job.result_payload["policy"] = policy.as_dict()
+            if not policy.allowed:
+                self._fail_job(job, policy.error_code or "TARGET_NOT_ALLOWED", policy.message)
+                raise TargetNotAllowedError(policy.message,
+                                            code=policy.error_code or "TARGET_NOT_ALLOWED",
+                                            correlation_id=job.correlation_id)
+            execution = self.restore_provider.start(request, job.idempotency_key)
+        except ProviderError as exc:
+            self._fail_job(job, exc.code, exc.message)
+            raise self._provider_error(exc) from exc
+
+        job.provider_reference = execution.provider_reference
+        job.dry_run = execution.dry_run
+        self._absorb_execution(job, execution)
+        self.repo.save_job(job)
+        if job.terminal:
+            self._apply_job_outcome(tid, job)
+        else:
+            job = self.reconcile_job(job)
+        _ = lab
         return job
+
+    def _apply_lab_reset(self, tid: str, job: PatchJob) -> None:
+        """Efecto de un reset confirmado: nueva instancia y laboratorio vulnerable.
+
+        No modifica el historial de jobs ni incrementa `rings_done`: devuelve el
+        laboratorio a su línea base para poder repetir el ciclo completo.
+        """
+        logical_lab_id = job.request_payload.get("logical_lab_id") or ""
+        previous = job.request_payload.get("previous_instance_id")
+        new_instance_id = job.result_payload.get("new_instance_id")
+        lab = self.repo.get_lab_target(logical_lab_id) if logical_lab_id else None
+        if lab is not None:
+            if new_instance_id:
+                lab.current_instance_id = new_instance_id
+            lab.last_reset_job_id = job.id
+            self.repo.upsert_lab_target(lab)
+
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        p["rings_done"] = 0
+        p["ring_evidence"] = {}
+        p["rolled_back_rings"] = []
+        t["status"] = "in_flight" if t.get("status") == "remediated" else t.get("status")
+        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "open"
+        self._rebuild_deploy(tid)
+        self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                        "msg": f"↺ Reset del laboratorio {logical_lab_id or '-'} completado "
+                               f"(job {job.id}): instancia {previous or '-'} → "
+                               f"{new_instance_id or 'pendiente de resolver'}. "
+                               "El laboratorio vuelve a estado vulnerable."})
 
     # ------------------------------------------------------------------
     def get_job(self, job_id: str) -> PatchJob:
