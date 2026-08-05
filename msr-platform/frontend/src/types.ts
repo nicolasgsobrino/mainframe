@@ -54,6 +54,43 @@ export interface Task {
   affected_count: number; sla?: SlaState;
 }
 
+export type JobState =
+  | "queued" | "validating" | "dry_run" | "starting" | "running" | "verifying"
+  | "succeeded" | "failed" | "cancelling" | "cancelled"
+  | "restore_queued" | "restoring" | "restored" | "restore_failed" | "timed_out";
+export type JobType = "patch" | "rollback" | "reset_lab";
+export type ProviderName = "mock" | "aws-automation" | string;
+
+export interface JobTarget {
+  logical_target_id: string; instance_id: string | null; account_id: string | null;
+  region: string | null; tags: Record<string, string>;
+  operating_system: string | null; environment: string | null;
+  ssm_managed?: boolean; name?: string | null;
+}
+export interface JobStep {
+  seq: number; actor: string; tool: string; command: string; output: string;
+  status: string; why?: string; duration_s?: number;
+  started_at?: string | null; ended_at?: string | null;
+}
+export interface JobEvent { ts: string; state: JobState; message: string; }
+export interface PatchJob {
+  id: string; job_type: JobType; task_id: string; ring_number: number | null;
+  provider: ProviderName; provider_reference: string | null;
+  state: JobState; terminal: boolean; dry_run: boolean; correlation_id: string;
+  created_at: string; updated_at: string;
+  started_at: string | null; completed_at: string | null;
+  error_code: string | null; error_message: string | null;
+  targets: JobTarget[]; steps: JobStep[]; events?: JobEvent[];
+}
+export interface ExecutionConfig {
+  patch_provider: ProviderName; restore_provider: ProviderName;
+  dry_run: boolean; poll_interval_seconds: number; region?: string | null;
+}
+/** Sobre de error uniforme del backend. */
+export interface ApiErrorBody {
+  error: { code: string; message: string; correlation_id: string };
+}
+
 export interface CI {
   id: string; name: string; ci_class: string; criticality: string;
   environment?: string; owner?: string; version?: string; os?: string;
@@ -61,6 +98,8 @@ export interface CI {
   engine?: string; maintenance_window?: string;
   sys_class_name?: string; install_status?: string; business_criticality?: string;
   cmdb_source?: string; support_group?: string; image?: string; cloud?: string;
+  logical_target_id?: string; instance_id?: string | null; account_id?: string | null;
+  region?: string | null; tags?: Record<string, string>; ssm_managed?: boolean;
 }
 export interface Edge { source: string; target: string; type: string; }
 
@@ -135,6 +174,7 @@ export interface RingPlan {
 export interface Ring {
   ring: number; label: string; assets: number; status: string; post_checks: string[]; result: string;
   actions: { steps: RingAction[]; from_version: string; to_version: string } | null;
+  job?: PatchJob | null;
   plan: RingPlan;
   health: { error_rate_pct: number; p95_latency_ms: number; availability_pct: number } | null;
 }
@@ -183,5 +223,6 @@ export interface TaskDetail {
   lane: Lane; lane_meta: LaneMeta; lane_flow: LaneFlow;
   artifacts: { impact: ImpactGraph; mvt: Mvt; lab: LabResults; prototype: Prototype; deployment: Deployment; audit: Audit };
   logs: LogEntry[]; rings_done: number; sla?: SlaState;
+  active_job?: PatchJob | null; jobs?: PatchJob[]; execution?: ExecutionConfig;
 }
 export interface Service { name: string; role: string; status: string; type: string; detail: string; }

@@ -1,12 +1,38 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { api } from "../api";
-import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment } from "../types";
+import { ApiError, api, releaseIdempotencyKey } from "../api";
+import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob } from "../types";
 import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 import { useView } from "../view";
 
 const PHASE_IDS = ["detection", "prioritization", "pre_implementation", "lab_testing", "prototype", "deployment"];
+
+const JOB_STATE_LABEL: Record<string, string> = {
+  queued: "En cola", validating: "Validando objetivo", dry_run: "Dry-run (sin cambios)",
+  starting: "Arrancando", running: "En ejecución", verifying: "Verificando",
+  succeeded: "Completado", failed: "Fallido", cancelling: "Cancelando",
+  cancelled: "Cancelado", restore_queued: "Restauración en cola",
+  restoring: "Restaurando", restored: "Restaurado", restore_failed: "Restauración fallida",
+  timed_out: "Tiempo agotado",
+};
+const JOB_STATE_TONE: Record<string, string> = {
+  succeeded: "bg-green-500/15 text-green-400", restored: "bg-green-500/15 text-green-400",
+  failed: "bg-red-500/15 text-red-400", restore_failed: "bg-red-500/15 text-red-400",
+  timed_out: "bg-red-500/15 text-red-400", cancelled: "bg-gray-500/15 text-gray-300",
+  dry_run: "bg-sky-500/15 text-sky-300",
+};
+const jobTone = (state: string) => JOB_STATE_TONE[state] ?? "bg-amber-500/15 text-amber-300";
+/** Etiqueta del modo de ejecución: mock, AWS dry-run o AWS real. */
+const executionModeLabel = (job: PatchJob): string => {
+  if (job.provider === "mock") return "Simulación (mock)";
+  return job.dry_run ? "AWS · dry-run (sin cambios reales)" : "AWS Systems Manager · ejecución real";
+};
+
+const toError = (e: unknown) =>
+  e instanceof ApiError
+    ? { code: e.code, message: e.message, correlationId: e.correlationId }
+    : { code: "NETWORK_ERROR", message: e instanceof Error ? e.message : String(e), correlationId: null };
 
 function Verdict({ v }: { v: string }) {
   const ok = v === "pass";
@@ -20,9 +46,33 @@ export default function TaskDetail() {
   const [d, setD] = useState<TD | null>(null);
   const [sel, setSel] = useState<number>(0);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<{ code: string; message: string; correlationId: string | null } | null>(null);
+  const keepSelection = useRef(false);
 
-  const load = () => api.task(id!).then((r) => { setD(r); setSel(r.phase_index); });
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  const apply = useCallback((r: TD) => {
+    setD(r);
+    if (!keepSelection.current) setSel(r.phase_index);
+  }, []);
+
+  const load = useCallback(async () => {
+    keepSelection.current = false;
+    apply(await api.task(id!));
+  }, [id, apply]);
+
+  useEffect(() => { load().catch((e) => setError(toError(e))); }, [load]);
+
+  // Polling del job activo: se reanuda tras un reload porque `active_job` viene
+  // del backend, y se detiene en cuanto el job alcanza un estado terminal.
+  const activeJob = d?.active_job ?? null;
+  const pollMs = (d?.execution?.poll_interval_seconds ?? 2) * 1000;
+  useEffect(() => {
+    if (!activeJob || activeJob.terminal) return;
+    const timer = window.setInterval(() => {
+      keepSelection.current = true;
+      api.task(id!).then(apply).catch((e) => setError(toError(e)));
+    }, pollMs);
+    return () => window.clearInterval(timer);
+  }, [activeJob, id, pollMs, apply]);
 
   if (!d) return <div className="p-8 text-gray-500">Cargando…</div>;
   const { task, vulnerable_item: vi, artifacts: a } = d;
@@ -30,36 +80,45 @@ export default function TaskDetail() {
   const currentPhaseId = PHASE_IDS[d.phase_index];
   const selPhaseId = PHASE_IDS[sel];
   const phaseLogs = d.logs.filter((l) => l.phase === selPhaseId);
+  const jobRunning = !!activeJob && !activeJob.terminal;
+  const locked = busy || jobRunning;
 
-  const approve = async () => {
+  const run = async (action: () => Promise<TD>) => {
     setBusy(true);
-    const r = await api.approve(id!);
-    setD(r); setSel(r.phase_index); setBusy(false);
+    setError(null);
+    try {
+      apply(await action());
+    } catch (e) {
+      setError(toError(e));
+    } finally {
+      setBusy(false);
+    }
   };
-  const rollback = async () => {
+
+  const approve = () => run(() => api.approve(id!, d.rings_done + 1));
+  const rollback = () => run(() => api.rollback(id!, d.rings_done));
+  const simulate = () => run(() => api.simulateIncident(id!));
+  const preapproveRing = (ring: number) => run(() => api.preapproveRing(id!, ring));
+  const saveRingAssets = (ring: number, excluded: string[]) =>
+    run(() => api.updateRingAssets(id!, ring, excluded));
+  const cancelJob = async (jobId: string) => {
     setBusy(true);
-    const r = await api.rollback(id!);
-    setD(r); setSel(r.phase_index); setBusy(false);
-  };
-  const simulate = async () => {
-    setBusy(true);
-    const r = await api.simulateIncident(id!);
-    setD(r); setSel(r.phase_index); setBusy(false);
-  };
-  const preapproveRing = async (ring: number) => {
-    setBusy(true);
-    const r = await api.preapproveRing(id!, ring);
-    setD(r); setSel(r.phase_index); setBusy(false);
-  };
-  const saveRingAssets = async (ring: number, excluded: string[]) => {
-    setBusy(true);
-    const r = await api.updateRingAssets(id!, ring, excluded);
-    setD(r); setSel(r.phase_index); setBusy(false);
+    setError(null);
+    try {
+      await api.cancelPatchJob(jobId);
+      releaseIdempotencyKey(`approve:${id}:${d.rings_done + 1}`);
+      keepSelection.current = true;
+      apply(await api.task(id!));
+    } catch (e) {
+      setError(toError(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const nextRing = a.deployment.rings[d.rings_done];
   const nextRingPreapproved = !!nextRing?.plan.approval.preapproved;
-  const canApprove = !done && (
+  const canApprove = !done && !jobRunning && (
     currentPhaseId === "deployment"
       ? nextRingPreapproved
       : (currentPhaseId !== "lab_testing" || a.lab.verdict === "pass")
@@ -219,10 +278,20 @@ export default function TaskDetail() {
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm text-red-300 flex items-start justify-between gap-3">
+          <span>
+            <b>{error.code}</b> — {error.message}
+            {error.correlationId && <span className="text-red-400/70 font-mono text-xs"> · {error.correlationId}</span>}
+          </span>
+          <button className="text-xs text-red-200/70 hover:text-red-100" onClick={() => setError(null)}>cerrar</button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Artifact panel */}
         <div className="xl:col-span-2 space-y-5">
-          <PhaseArtifacts phaseId={selPhaseId} d={d} busy={busy} isTech={isTech}
+          <PhaseArtifacts phaseId={selPhaseId} d={d} busy={locked} isTech={isTech}
             onPreapprove={preapproveRing} onSaveAssets={saveRingAssets} />
         </div>
 
@@ -246,6 +315,11 @@ export default function TaskDetail() {
             </div>
           </div>
 
+          {(activeJob || (d.jobs?.length ?? 0) > 0) && (
+            <JobCard job={activeJob ?? d.jobs![0]} execution={d.execution}
+              busy={busy} onCancel={cancelJob} />
+          )}
+
           {/* HITL control */}
           <div className="card p-4">
             <div className="text-sm font-semibold mb-1">Aprobación humana (HITL)</div>
@@ -253,9 +327,9 @@ export default function TaskDetail() {
               <div className="space-y-3">
                 <div className="text-xs text-green-400">Tarea remediada. Vulnerable Item cerrado con evidencia de auditoría.</div>
                 <div className="text-xs text-gray-400">¿Anomalía detectada en producción tras el despliegue? Puedes ejecutar un rollback.</div>
-                <button disabled={busy} onClick={rollback}
+                <button disabled={locked} onClick={rollback}
                   className="btn w-full justify-center btn-ghost border border-amber-500/40 text-amber-300 hover:bg-amber-500/10">
-                  {busy ? "Procesando…" : "⟲ Ejecutar rollback del último anillo"}
+                  {locked ? "Procesando…" : "⟲ Ejecutar rollback del último anillo"}
                 </button>
               </div>
             ) : (
@@ -269,21 +343,24 @@ export default function TaskDetail() {
                 {!canApprove && currentPhaseId === "lab_testing" && (
                   <div className="text-xs text-red-400 mb-2">⚠ El MVT ha fallado en laboratorio. ServiceNow bloquea el avance (rollback / análisis).</div>
                 )}
-                {!canApprove && currentPhaseId === "deployment" && nextRing && (
+                {!nextRingPreapproved && currentPhaseId === "deployment" && nextRing && (
                   <div className="text-xs text-amber-300 mb-2">⚠ El anillo {nextRing.ring} requiere revisión y <b>pre-aprobación Human-Driven</b> de su informe pre-anillo (arriba, en Fase 6) antes de desplegar.</div>
                 )}
-                <button disabled={busy || !canApprove} onClick={approve}
-                  className={`btn w-full justify-center ${canApprove ? "btn-brand" : "btn-ghost opacity-50 cursor-not-allowed"}`}>
-                  {busy ? "Procesando…" : currentPhaseId === "deployment" ? "Aprobar y desplegar anillo" : "Aprobar fase y avanzar"}
+                {jobRunning && (
+                  <div className="text-xs text-amber-300 mb-2">⏳ Job {activeJob!.id} en curso ({JOB_STATE_LABEL[activeJob!.state] ?? activeJob!.state}). Las acciones mutativas están bloqueadas hasta que finalice.</div>
+                )}
+                <button disabled={locked || !canApprove} onClick={approve}
+                  className={`btn w-full justify-center ${canApprove && !locked ? "btn-brand" : "btn-ghost opacity-50 cursor-not-allowed"}`}>
+                  {locked ? "Procesando…" : currentPhaseId === "deployment" ? "Aprobar y desplegar anillo" : "Aprobar fase y avanzar"}
                 </button>
                 {currentPhaseId === "deployment" && d.rings_done > 0 && (
                   <div className="mt-3 pt-3 border-t border-line space-y-2">
                     <div className="text-[11px] text-gray-500">Gestión de rollback (anillo {d.rings_done} desplegado)</div>
-                    <button disabled={busy} onClick={rollback}
+                    <button disabled={locked} onClick={rollback}
                       className="btn w-full justify-center btn-ghost border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs">
                       ⟲ Rollback manual del anillo
                     </button>
-                    <button disabled={busy} onClick={simulate}
+                    <button disabled={locked} onClick={simulate}
                       className="btn w-full justify-center btn-ghost border border-red-500/40 text-red-300 hover:bg-red-500/10 text-xs">
                       ⚠ Simular incidente → rollback automático
                     </button>
@@ -293,6 +370,81 @@ export default function TaskDetail() {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Estado del job de parcheo/restauración: provider, modo, objetivo y pasos. */
+function JobCard({ job, execution, busy, onCancel }: {
+  job: PatchJob;
+  execution?: TD["execution"];
+  busy: boolean;
+  onCancel: (jobId: string) => void;
+}) {
+  const target = job.targets[0];
+  const running = !job.terminal;
+  return (
+    <div className="card overflow-hidden">
+      <div className="px-4 py-3 border-b border-line flex items-center justify-between gap-2">
+        <div className="text-sm font-semibold">Ejecución del parche</div>
+        <span className={`chip ${jobTone(job.state)}`}>{JOB_STATE_LABEL[job.state] ?? job.state}</span>
+      </div>
+      <div className="p-4 space-y-2 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="chip bg-ink border border-line text-gray-300">{executionModeLabel(job)}</span>
+          {job.dry_run && <span className="chip bg-sky-500/15 text-sky-300">dry-run · el parche NO se ha aplicado</span>}
+          <span className="text-gray-500">{job.job_type === "patch" ? "parcheo" : job.job_type === "rollback" ? "rollback" : "reset de laboratorio"}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Meta k="Job" v={job.id} />
+          <Meta k="Provider" v={job.provider} />
+          <Meta k="Anillo" v={job.ring_number ? String(job.ring_number) : "—"} />
+          <Meta k="Referencia" v={job.provider_reference ?? "—"} />
+        </div>
+        {target && (
+          <div className="grid grid-cols-2 gap-2">
+            <Meta k="Objetivo" v={target.name || target.logical_target_id} />
+            <Meta k="Instance ID" v={target.instance_id ?? "sin resolver"} />
+            <Meta k="Región" v={target.region ?? "—"} />
+            <Meta k="SSM" v={target.ssm_managed ? "gestionado" : "no gestionado"} />
+          </div>
+        )}
+        {execution && (
+          <div className="text-[11px] text-gray-600">
+            Refresco cada {execution.poll_interval_seconds}s · provider de restauración {execution.restore_provider}
+          </div>
+        )}
+        {job.error_code && (
+          <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-red-300">
+            <b>{job.error_code}</b> — {job.error_message}
+            <div className="font-mono text-[10px] text-red-400/70">{job.correlation_id}</div>
+          </div>
+        )}
+        {job.steps.length > 0 && (
+          <div className="space-y-1 max-h-[220px] overflow-y-auto">
+            {job.steps.map((s) => (
+              <div key={s.seq} className="rounded border border-line bg-ink px-2 py-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[11px] text-gray-300 truncate">{s.command}</span>
+                  <span className={`chip shrink-0 ${s.status === "ok" ? "bg-green-500/15 text-green-400" : s.status === "planned" ? "bg-sky-500/15 text-sky-300" : s.status === "failed" ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-300"}`}>{s.status}</span>
+                </div>
+                <div className="text-[11px] text-gray-500 mt-0.5 break-words">{s.output}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {job.events && job.events.length > 0 && (
+          <div className="text-[11px] text-gray-600">
+            Último evento: {job.events[job.events.length - 1].message}
+          </div>
+        )}
+        {running && (
+          <button disabled={busy} onClick={() => onCancel(job.id)}
+            className="btn w-full justify-center btn-ghost border border-line text-gray-300 text-xs">
+            Cancelar job
+          </button>
+        )}
       </div>
     </div>
   );
