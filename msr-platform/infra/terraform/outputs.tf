@@ -96,6 +96,22 @@ output "expected_fixed_kernel" {
   value       = var.expected_fixed_kernel
 }
 
+output "release_order" {
+  description = <<-EOT
+    Orden temporal entre la AMI base y la release que corrige el advisory. La
+    comparación es numérica sobre la fecha YYYYMMDD; `ami_precedes_fix = false`
+    detiene el plan en el precondition del Auto Scaling Group.
+  EOT
+  value = {
+    source_ami_product = local.source_ami_release_product
+    candidate_product  = local.candidate_release_product
+    source_ami_date    = local.source_ami_release_date
+    candidate_date     = local.candidate_release_date
+    amazon_linux_2023  = local.releases_are_amazon_linux_2023
+    ami_precedes_fix   = local.ami_release_precedes_fix
+  }
+}
+
 output "patch_baseline_id" {
   description = "Baseline que aprueba únicamente el advisory candidato."
   value       = try(aws_ssm_patch_baseline.lab[0].id, "")

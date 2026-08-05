@@ -406,11 +406,47 @@ def test_candidate_releasever_exists_and_is_validated():
 
 
 def test_the_base_ami_release_is_older_than_the_fix():
-    ec2 = code("ec2.tf")
+    """Fase 2.3: la relación temporal se deriva de la fecha, no del texto."""
+    locals_tf = code("locals.tf")
 
-    assert "substr(var.source_ami_release, 0, 16) < var.candidate_releasever" in ec2
+    assert "tonumber(split(\".\", var.source_ami_release)[2])" in locals_tf
+    assert "tonumber(split(\".\", var.candidate_releasever)[2])" in locals_tf
+    assert "local.source_ami_release_date < local.candidate_release_date" in locals_tf
+    assert "condition     = local.ami_release_precedes_fix" in code("ec2.tf")
     assert read("variables.tf").split('variable "source_ami_release"')[1].count(
         '"2023.11.20260509.0"') == 1
+
+
+def test_no_terraform_expression_compares_strings_with_relational_operators():
+    """Terraform rechaza `<`/`>` entre strings: rompió el primer plan real."""
+    for path in INFRA.rglob("*.tf"):
+        if ".terraform" in path.parts:
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            expression = line.split("#")[0]
+            comparisons = re.findall(r"(\S+)\s*(?:<|>|<=|>=)\s*(\S+)", expression)
+            for left, right in comparisons:
+                operands = f"{left} {right}"
+                assert "var.source_ami_release" not in operands, line
+                assert "var.candidate_releasever" not in operands, line
+                assert "substr(" not in operands, line
+
+
+def test_terraform_tests_cover_the_release_order_with_a_mocked_provider():
+    tests = list((INFRA / "tests").glob("*.tftest.hcl"))
+    bodies = {p.name: p.read_text(encoding="utf-8") for p in tests}
+
+    assert {"release_order.tftest.hcl", "enabled_plan.tftest.hcl"} <= set(bodies)
+    for body in bodies.values():
+        assert 'mock_provider "aws"' in body
+        # Nada de credenciales ni de recursos reales en los tests.
+        assert "access_key" not in body
+        assert "command = apply" not in body
+
+    enabled = bodies["enabled_plan.tftest.hcl"]
+    assert "enable_real_resources = true" in enabled
+    assert "expect_failures = [aws_autoscaling_group.lab]" in enabled
+    assert "length(output.estimated_resource_summary.resources) == 18" in enabled
 
 
 def test_the_releasever_reaches_the_backend_and_the_documents():

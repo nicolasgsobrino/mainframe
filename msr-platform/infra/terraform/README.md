@@ -62,6 +62,10 @@ terraform fmt -check -recursive
 terraform init -backend=false
 terraform validate
 
+# Tests nativos: evalúan la configuración (incluida enable_real_resources = true)
+# con `mock_provider "aws"`, sin credenciales y sin crear ningún recurso.
+terraform test
+
 # 1) Revisión estática, sin recursos (valor predeterminado):
 terraform init
 terraform plan -out=tfplan            # enable_real_resources = false → plan vacío

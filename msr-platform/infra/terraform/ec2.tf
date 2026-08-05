@@ -151,9 +151,9 @@ resource "aws_autoscaling_group" "lab" {
     precondition {
       # La AMI base debe ser ANTERIOR a la release que corrige el advisory; en
       # caso contrario la imagen ya vendría parcheada y la PoC no demostraría
-      # nada. Ambos formatos son de anchura fija (YYYY.NN.YYYYMMDD), así que la
-      # comparación de cadenas equivale a la comparación cronológica.
-      condition     = substr(var.source_ami_release, 0, 16) < var.candidate_releasever
+      # nada. La comparación es numérica sobre la fecha YYYYMMDD: Terraform no
+      # admite `<` entre strings y el orden lexicográfico no es cronológico.
+      condition     = local.ami_release_precedes_fix
       error_message = "La AMI base (${var.source_ami_release}) no es anterior a ${var.candidate_releasever}: ya contendría la corrección."
     }
   }

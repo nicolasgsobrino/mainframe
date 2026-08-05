@@ -43,51 +43,58 @@ data "aws_instances" "lab" {
 }
 
 # --- Guardrails: cualquier desviación detiene el apply -----------------------
+#
+# Las condiciones se escriben como `alltrue([for ... ])` sobre la lista del data
+# source: HCL evalúa ambos operandos de `||`, así que un `one(...)` sobre una
+# lista vacía (con `enable_real_resources = false`) haría fallar la expresión en
+# lugar de darla por buena.
 
 check "account_and_region" {
   assert {
-    condition = !var.enable_real_resources || (
-      one(data.aws_caller_identity.current[*].account_id) == var.aws_account_id
-    )
+    condition = alltrue([
+      for identity in data.aws_caller_identity.current :
+      identity.account_id == var.aws_account_id
+    ])
     error_message = "Las credenciales apuntan a una cuenta distinta de ${var.aws_account_id}."
   }
 
   assert {
-    condition = !var.enable_real_resources || (
-      one(data.aws_region.current[*].name) == var.aws_region
-    )
+    condition = alltrue([
+      for region in data.aws_region.current : region.name == var.aws_region
+    ])
     error_message = "La región efectiva no es ${var.aws_region}."
   }
 }
 
 check "network" {
   assert {
-    condition = !var.enable_real_resources || (
-      one(data.aws_subnet.lab[*].vpc_id) == var.vpc_id
-    )
+    condition = alltrue([
+      for subnet in data.aws_subnet.lab : subnet.vpc_id == var.vpc_id
+    ])
     error_message = "La subnet ${var.subnet_id} no pertenece a la VPC ${var.vpc_id}."
   }
 
   assert {
-    condition = !var.enable_real_resources || (
-      one(data.aws_vpc.lab[*].id) == var.vpc_id
-    )
+    condition = alltrue([
+      for vpc in data.aws_vpc.lab : vpc.id == var.vpc_id
+    ])
     error_message = "La VPC resuelta no coincide con vpc_id."
   }
 }
 
 check "ami" {
   assert {
-    condition = !var.enable_real_resources || (
-      one(data.aws_ami.lab[*].architecture) == "x86_64"
-    )
+    condition = alltrue([
+      for ami in data.aws_ami.lab : ami.architecture == "x86_64"
+    ])
     error_message = "La AMI ${var.source_ami_id} no es x86_64."
   }
 
   assert {
-    condition = !var.enable_real_resources || (
-      contains(["amazon", "137112412989"], one(data.aws_ami.lab[*].owner_id))
-    )
+    condition = alltrue([
+      for ami in data.aws_ami.lab :
+      contains(["amazon", "137112412989"], ami.owner_id)
+    ])
     error_message = "La AMI ${var.source_ami_id} no pertenece a Amazon."
   }
 }

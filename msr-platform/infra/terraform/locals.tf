@@ -35,6 +35,24 @@ locals {
     },
   )
 
+  # Orden temporal entre la AMI base y la corrección del advisory. Terraform no
+  # admite `<`/`>` entre strings, y comparar `2023.11` con `2023.12` como texto
+  # sería lexicográfico: la relación se deriva de la fecha YYYYMMDD como número.
+  source_ami_release_product = join(".", slice(split(".", var.source_ami_release), 0, 2))
+  candidate_release_product  = join(".", slice(split(".", var.candidate_releasever), 0, 2))
+  source_ami_release_date    = tonumber(split(".", var.source_ami_release)[2])
+  candidate_release_date     = tonumber(split(".", var.candidate_releasever)[2])
+
+  # Ambos productos deben ser Amazon Linux 2023 y la AMI estrictamente anterior.
+  releases_are_amazon_linux_2023 = (
+    startswith(local.source_ami_release_product, "2023.") &&
+    startswith(local.candidate_release_product, "2023.")
+  )
+  ami_release_precedes_fix = (
+    local.releases_are_amazon_linux_2023 &&
+    local.source_ami_release_date < local.candidate_release_date
+  )
+
   # Valores que el backend debe recibir por entorno (ver outputs).
   backend_environment = {
     MSR_AWS_REGION                  = var.aws_region

@@ -76,6 +76,10 @@ jobs:
         run: terraform init -backend=false -input=false
       - name: terraform validate
         run: terraform validate
+      # `terraform test` evalúa la configuración con `enable_real_resources=true`
+      # sobre `mock_provider "aws"`: no necesita credenciales ni crea recursos.
+      - name: terraform test
+        run: terraform test
 
   frontend:
     runs-on: ubuntu-latest
