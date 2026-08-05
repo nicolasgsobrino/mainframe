@@ -2,8 +2,12 @@
 
 Define el laboratorio de la PoC: **una** instancia EC2 Amazon Linux 2023
 deliberadamente vulnerable, su Launch Template, el patch baseline restringido a
-un único advisory, los dos runbooks de Systems Manager Automation y los tres
-roles IAM (instancia, Automation y aplicación).
+un único advisory y los dos runbooks de Systems Manager Automation. **No gestiona
+IAM**: la cuenta deniega `iam:AttachRolePolicy`, `iam:PutRolePolicy` e
+`iam:UpdateAssumeRolePolicy`, así que la instancia reutiliza el instance profile
+corporativo existente (`existing_instance_profile_name`) como data source de sólo
+lectura, el backend usa las credenciales de su entorno y Automation las de la
+identidad que la inicia.
 
 > **Nada se crea por defecto.** `enable_real_resources = false` es el valor
 > predeterminado: el plan queda vacío y no se realiza ninguna llamada mutativa a
@@ -24,9 +28,8 @@ laboratorio deje de ser desechable habrá que mover el backend a S3 + DynamoDB.
 | `providers.tf` | Provider AWS, `allowed_account_ids`, `default_tags` |
 | `variables.tf` | Todas las variables (nada hardcodeado en los recursos) |
 | `locals.tf` | Tags obligatorios, tags de coste y entorno del backend |
-| `data.tf` | Consultas de sólo lectura y `check` de cuenta/región/VPC/AMI |
+| `data.tf` | Consultas de sólo lectura (incluido el instance profile corporativo) y `check` de cuenta/región/VPC/AMI |
 | `networking.tf` | Security group **sin ingress** y egress DNS/HTTPS |
-| `iam.tf` | Roles de instancia, Automation y aplicación |
 | `ec2.tf` | Launch Template + Auto Scaling Group (1/1/1) del laboratorio |
 | `patching.tf` | Patch baseline y patch group |
 | `automation-documents.tf` | Registro de los runbooks Automation |
@@ -42,7 +45,11 @@ laboratorio deje de ser desechable habrá que mover el backend a S3 + DynamoDB.
   Amazon de la AMI y presencia de todos los valores obligatorios.
 - Validaciones de variable: formato de la cuenta y del advisory, volumen ≥ 8 GiB
   y `allowed_ui_cidr != 0.0.0.0/0`.
-- `check` de cuenta, región, red y AMI para que un `plan` avise antes del apply.
+- `check` de cuenta, región, red, AMI e instance profile para que un `plan` avise
+  antes del apply.
+- El Launch Template exige que `existing_instance_profile_name` y
+  `existing_instance_profile_role_name` estén fijados, que el profile contenga ese
+  rol y que su ARN pertenezca a `aws_account_id`.
 
 ## Seguridad de la instancia
 
@@ -101,6 +108,12 @@ y comparan el kernel con `expected_fixed_kernel`
 - `ec2:DescribeInstances` y las APIs `ssm:Describe*` no admiten permisos a nivel
   de recurso ni condiciones por tag: esas acciones de lectura quedan con
   `Resource: *`. Las acciones mutativas sí están restringidas por tag.
+- La instancia lleva el tag `PatchGroup` (sin espacio): con
+  `instance_metadata_tags = "enabled"` EC2 rechaza `Patch Group` como clave de tag
+  al lanzar. Patch Manager asocia baselines por el tag `Patch Group`, así que la
+  asociación automática del baseline no se aplicará por tag; el runbook invoca
+  `AWS-RunPatchBaseline` sobre la instancia y el baseline sigue declarado y
+  disponible para asociarlo explícitamente.
 - El contenido de los runbooks no puede validarse sin AWS; se comprueba de forma
   estática (render de la plantilla + parseo YAML + contrato de parámetros) en la
   suite de tests del backend.

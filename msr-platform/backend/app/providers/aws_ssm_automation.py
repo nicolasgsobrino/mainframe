@@ -175,8 +175,12 @@ class _AutomationBase:
     def _assume_role_credentials(self) -> dict:
         """Credenciales temporales de `MSR_AWS_ROLE_ARN` vía STS AssumeRole.
 
-        La sesión se renueva cuando caduca; los valores nunca se registran.
+        Sin rol configurado no se llama a STS: valen las credenciales de la
+        cadena estándar de boto3. La sesión se renueva cuando caduca y los
+        valores nunca se registran.
         """
+        if not self._settings.aws_role_arn:
+            return {}
         now = self._now()
         if self._assumed and self._assumed_expiry and now < self._assumed_expiry:
             return self._assumed

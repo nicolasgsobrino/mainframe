@@ -27,9 +27,12 @@ parameters:
     allowedPattern: '^[\w+=,.@-]{1,255}$'
   AutomationAssumeRole:
     type: String
-    description: Rol que asume Systems Manager para ejecutar el runbook.
-    default: '${automation_role_arn}'
-    allowedPattern: '^arn:aws:iam::[0-9]{12}:role/[\w+=,.@/-]+$'
+    description: >-
+      Rol opcional que asume Systems Manager. Vacío por defecto: la ejecución
+      usa las credenciales de la identidad que inicia la Automation, porque la
+      cuenta no permite crear un service role propio para la PoC.
+    default: ''
+    allowedPattern: '^$|^arn:aws:iam::[0-9]{12}:role/[\w+=,.@/-]+$'
   CorrelationId:
     type: String
     description: Identificador de correlación del job de la plataforma.

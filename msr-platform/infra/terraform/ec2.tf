@@ -24,8 +24,10 @@ resource "aws_launch_template" "lab" {
   key_name  = null
   user_data = base64encode(local.user_data)
 
+  # Instance profile corporativo preexistente: la cuenta deniega iam:PutRolePolicy,
+  # iam:AttachRolePolicy e iam:UpdateAssumeRolePolicy, así que la PoC no gestiona IAM.
   iam_instance_profile {
-    arn = aws_iam_instance_profile.instance[0].arn
+    arn = data.aws_iam_instance_profile.existing[0].arn
   }
 
   network_interfaces {
@@ -79,6 +81,26 @@ resource "aws_launch_template" "lab" {
     precondition {
       condition     = contains(["amazon", "137112412989"], data.aws_ami.lab[0].owner_id)
       error_message = "La AMI ${var.source_ami_id} no pertenece a Amazon."
+    }
+
+    # Sin instance profile corporativo la instancia no sería un managed node y la
+    # cuenta no permite que la PoC cree uno propio.
+    precondition {
+      condition = (
+        var.existing_instance_profile_name != "" &&
+        var.existing_instance_profile_role_name != ""
+      )
+      error_message = "existing_instance_profile_name y existing_instance_profile_role_name son obligatorios con enable_real_resources = true."
+    }
+
+    precondition {
+      condition     = data.aws_iam_instance_profile.existing[0].role_name == var.existing_instance_profile_role_name
+      error_message = "El instance profile ${var.existing_instance_profile_name} no contiene el rol ${var.existing_instance_profile_role_name}."
+    }
+
+    precondition {
+      condition     = data.aws_iam_instance_profile.existing[0].arn == "arn:aws:iam::${var.aws_account_id}:instance-profile/${var.existing_instance_profile_name}"
+      error_message = "El instance profile no pertenece a la cuenta ${var.aws_account_id}."
     }
   }
 }

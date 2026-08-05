@@ -150,8 +150,20 @@ variable "asg_health_check_grace_period_seconds" {
   }
 }
 
+variable "existing_instance_profile_name" {
+  type        = string
+  description = "Instance profile corporativo existente utilizado por la EC2."
+  default     = ""
+}
+
+variable "existing_instance_profile_role_name" {
+  type        = string
+  description = "Rol que debe contener el instance profile corporativo."
+  default     = ""
+}
+
 variable "patch_group" {
-  description = "Valor del tag `Patch Group` que asocia la instancia al baseline."
+  description = "Valor del tag `PatchGroup` que asocia la instancia al baseline."
   type        = string
   default     = "msr-poc-linux"
 }

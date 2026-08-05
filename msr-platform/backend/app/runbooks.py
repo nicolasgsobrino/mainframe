@@ -8,6 +8,11 @@ Automation es el que los invoca internamente mediante `aws:runCommand`.
 Cada operación declara su propio esquema de parámetros: el backend nunca envía
 parámetros genéricos (`Operation=Install`, `TargetVersion`, ...) a un runbook
 que no los declara.
+
+`AutomationAssumeRole` es opcional y sólo puede proceder de la configuración
+interna: cuando no está configurado se omite por completo de
+`StartAutomationExecution` y la ejecución hereda las credenciales de la
+identidad que la inicia.
 """
 from __future__ import annotations
 
@@ -89,12 +94,16 @@ CONTRACTS: dict[str, RunbookContract] = {
         optional_parameters=frozenset({"AutomationAssumeRole", "CorrelationId"}),
         forbidden_parameters=_FORBIDDEN | frozenset({"TargetVersion", "SnapshotId",
                                                      "RebootOption"}),
+        # La cuenta deniega la creación de un service role de Automation: la
+        # ejecución usa las credenciales de la identidad que la inicia.
+        requires_assume_role=False,
     ),
     OPERATION_ROLLBACK: RunbookContract(
         operation=OPERATION_ROLLBACK,
         required_parameters=frozenset({"InstanceId"}),
         optional_parameters=frozenset({"AutomationAssumeRole", "TargetVersion", "SnapshotId"}),
         forbidden_parameters=_FORBIDDEN,
+        requires_assume_role=False,
     ),
     # Reset del laboratorio: Auto Scaling sustituye la instancia actual dentro
     # del grupo de capacidad fija 1. El Launch Template y su versión son
@@ -107,6 +116,7 @@ CONTRACTS: dict[str, RunbookContract] = {
                                                      "SnapshotId", "LogicalLabId",
                                                      "LaunchTemplateId",
                                                      "LaunchTemplateVersion"}),
+        requires_assume_role=False,
     ),
 }
 

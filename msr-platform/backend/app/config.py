@@ -16,6 +16,7 @@ from .runbooks import (
     DEFAULT_RESET_RUNBOOK,
     DEFAULT_ROLLBACK_RUNBOOK,
     OPERATION_PATCH,
+    OPERATION_RESET_LAB,
     OPERATION_ROLLBACK,
     contract_for,
 )
@@ -193,11 +194,15 @@ class Settings(BaseSettings):
             missing.append("MSR_PATCH_RUNBOOK_NAME")
         if self.restore_provider == PROVIDER_AWS_AUTOMATION and not self.rollback_runbook_name:
             missing.append("MSR_ROLLBACK_RUNBOOK_NAME")
+        # MSR_AUTOMATION_ASSUME_ROLE_ARN es opcional: ningún contrato exige un
+        # service role porque la cuenta deniega crearlo. Si algún runbook futuro
+        # lo declarase obligatorio, la ejecución real vuelve a exigirlo.
         requires_role = (
             (self.patch_provider == PROVIDER_AWS_AUTOMATION
              and contract_for(OPERATION_PATCH).requires_assume_role)
             or (self.restore_provider == PROVIDER_AWS_AUTOMATION
-                and contract_for(OPERATION_ROLLBACK).requires_assume_role))
+                and (contract_for(OPERATION_ROLLBACK).requires_assume_role
+                     or contract_for(OPERATION_RESET_LAB).requires_assume_role)))
         if requires_role and not self.automation_assume_role_arn:
             missing.append("MSR_AUTOMATION_ASSUME_ROLE_ARN")
         # Identidad del objetivo: un Instance ID explícito o un identificador

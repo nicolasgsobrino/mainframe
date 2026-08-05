@@ -74,7 +74,8 @@ Los parámetros se derivan del contrato del runbook, nunca de valores genéricos
 - sólo **track A** (infraestructura): B y C devuelven `UNSUPPORTED_REMEDIATION_TRACK` sin llamar a AWS;
 - un job AWS representa **exactamente una** instancia: cero o varias devuelven `422 RING_TARGET_COUNT_UNSUPPORTED` (el mock mantiene el comportamiento multiactivo);
 - un timeout local **no** libera el objetivo: el job pasa a `timeout_pending_confirmation`, `stop_requested` o `remote_status_unknown` y sólo se cierra con confirmación remota o con `POST /api/patch-jobs/{id}/admin-resolve` (auditado);
-- con `MSR_DRY_RUN=false` la política es **fail-closed**: región, allowlists de cuenta/región/entorno, tag obligatorio, runbook permitido, rol de Automation y objetivo de sandbox deben estar configurados. Una lista vacía nunca significa «permitir todo»;
+- con `MSR_DRY_RUN=false` la política es **fail-closed**: región, allowlists de cuenta/región/entorno, tag obligatorio, runbook permitido y objetivo de sandbox deben estar configurados. Una lista vacía nunca significa «permitir todo»;
+- las credenciales son las del entorno donde corre el backend y la Automation se ejecuta con las de la identidad que la inicia: `MSR_AWS_ROLE_ARN` y `MSR_AUTOMATION_ASSUME_ROLE_ARN` son opcionales y con valor vacío no se llama a STS ni se envía `AutomationAssumeRole`;
 - si `MSR_AWS_ROLE_ARN` está configurado, los clientes EC2/SSM se crean con credenciales temporales de STS `AssumeRole` (`RoleSessionName` con el correlation ID sanitizado, nunca registradas) y **se reconstruyen** en cuanto la sesión se renueva: ninguna operación reutiliza un cliente con credenciales caducadas.
 
 Copia `.env.example` a `.env` para ajustar la configuración (`MSR_*`). Con los valores por
@@ -117,8 +118,9 @@ con `sort -V`, nunca lexicográficamente). Un repositorio inaccesible devuelve
 `PATCH_REPOSITORY_UNREACHABLE` y no se confunde con `ADVISORY_NOT_APPLICABLE`. Los tres
 valores salen de la IaC: la UI sólo los muestra.
 
-La infraestructura (VPC/subnet existentes, Launch Template, ASG, IAM, patch baseline y los dos
-runbooks Automation) está en [`infra/terraform/`](infra/terraform/README.md) con
+La infraestructura (VPC/subnet existentes, Launch Template, ASG, patch baseline y los dos
+runbooks Automation; **diez recursos**, sin IAM: la instancia reutiliza el instance profile
+corporativo existente como data source de sólo lectura) está en [`infra/terraform/`](infra/terraform/README.md) con
 `enable_real_resources = false` por defecto: con ese valor no se crea ningún recurso.
 
 Detalle completo de arquitectura, esquema SQLite, máquina de estados y variables:
@@ -246,7 +248,7 @@ frontend/src/
   pages/      # Dashboard, Tasks, TaskDetail, Cmdb, Catalog, Integrations
   components/ # ImpactGraphView (React Flow), LabPanel (laboratorio EC2)
 infra/terraform/
-  *.tf          # red, IAM, Launch Template, ASG 1/1/1, patch baseline, documentos
+  *.tf          # red, Launch Template, ASG 1/1/1, patch baseline, documentos
   documents/    # runbooks Automation MSR-PatchLinuxInstance y MSR-ResetLabInstance
 ```
 

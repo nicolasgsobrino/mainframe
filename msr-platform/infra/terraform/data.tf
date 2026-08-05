@@ -30,6 +30,13 @@ data "aws_ami" "lab" {
   }
 }
 
+# Instance profile corporativo: sólo lectura. Terraform no lo crea, no lo etiqueta
+# y no lo modifica; tampoco gestiona el rol que contiene.
+data "aws_iam_instance_profile" "existing" {
+  count = local.enabled
+  name  = var.existing_instance_profile_name
+}
+
 # Instancia que el ASG mantiene viva en este momento. Es sólo informativa: el
 # Instance ID cambia con cada reset y el backend lo resuelve por tags, nunca desde
 # el estado de Terraform.
@@ -79,6 +86,24 @@ check "network" {
       for vpc in data.aws_vpc.lab : vpc.id == var.vpc_id
     ])
     error_message = "La VPC resuelta no coincide con vpc_id."
+  }
+}
+
+check "instance_profile" {
+  assert {
+    condition = alltrue([
+      for profile in data.aws_iam_instance_profile.existing :
+      profile.role_name == var.existing_instance_profile_role_name
+    ])
+    error_message = "El instance profile ${var.existing_instance_profile_name} no contiene el rol ${var.existing_instance_profile_role_name}."
+  }
+
+  assert {
+    condition = alltrue([
+      for profile in data.aws_iam_instance_profile.existing :
+      profile.arn == "arn:aws:iam::${var.aws_account_id}:instance-profile/${var.existing_instance_profile_name}"
+    ])
+    error_message = "El instance profile no pertenece a la cuenta ${var.aws_account_id}."
   }
 }
 

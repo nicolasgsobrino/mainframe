@@ -803,7 +803,7 @@ def build_lab_scenario(logical_lab_id: str = LAB_LOGICAL_ID,
         "account_id": account_id, "region": region, "ssm_managed": True,
         "tags": {"msr-poc": "true", "msr-lab-id": logical_lab_id,
                  "msr-environment": LAB_ENVIRONMENT, "msr-resettable": "true",
-                 "Patch Group": "msr-poc-linux"},
+                 "PatchGroup": "msr-poc-linux"},
         "support_group": "SG-Infra-Linux", "lab_target": True,
     }))
     detected = NOW - timedelta(days=1)

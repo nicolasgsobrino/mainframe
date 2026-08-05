@@ -48,15 +48,20 @@ mock_provider "aws" {
     }
   }
 
-  mock_data "aws_iam_policy_document" {
+  # Instance profile corporativo existente: sólo lectura, nunca gestionado.
+  mock_data "aws_iam_instance_profile" {
     defaults = {
-      json = "{}"
+      arn       = "arn:aws:iam::133789123239:instance-profile/EC2SSMAgentProfileL0"
+      role_name = "EC2SSMAgentProfile"
+      role_arn  = "arn:aws:iam::133789123239:role/EC2SSMAgentProfile"
     }
   }
 }
 
 variables {
-  enable_real_resources = true
+  enable_real_resources               = true
+  existing_instance_profile_name      = "EC2SSMAgentProfileL0"
+  existing_instance_profile_role_name = "EC2SSMAgentProfile"
 }
 
 run "the_default_configuration_plans_nothing" {
@@ -106,22 +111,69 @@ run "the_enabled_configuration_plans_every_resource" {
   }
 
   assert {
-    # Depende del ARN del ASG: si el ASG no se planifica, esta política tampoco.
-    condition     = length(aws_iam_role_policy.automation) == 1
-    error_message = "La política del rol de Automation debe planificarse con el ASG."
+    # El instance profile es un data source: se consume su ARN, no se crea.
+    condition = (
+      aws_launch_template.lab[0].iam_instance_profile[0].arn
+      == "arn:aws:iam::133789123239:instance-profile/EC2SSMAgentProfileL0"
+    )
+    error_message = "El Launch Template debe usar el instance profile corporativo existente."
   }
 
-  # 18 recursos: los 16 del plan fallido más `aws_autoscaling_group.lab` (que
-  # abortó por el operando inválido) y `aws_iam_role_policy.automation`, que
-  # depende de su ARN.
   assert {
-    condition     = length(output.estimated_resource_summary.resources) == 18
+    condition     = aws_launch_template.lab[0].tag_specifications[0].tags["PatchGroup"] == "msr-poc-linux"
+    error_message = "El tag del patch group debe ser `PatchGroup`, sin espacio."
+  }
+
+  # 10 recursos: los 18 anteriores menos los ocho recursos IAM propios, que la
+  # cuenta no permite crear (DenyIAMUser).
+  assert {
+    condition     = length(output.estimated_resource_summary.resources) == 10
     error_message = "El resumen debe enumerar exactamente los recursos planificados."
+  }
+
+  assert {
+    condition = length([
+      for name in output.estimated_resource_summary.resources :
+      name if startswith(name, "aws_iam_")
+    ]) == 0
+    error_message = "Terraform no puede gestionar ningún recurso IAM."
+  }
+
+  assert {
+    condition     = output.instance_profile_arn == "arn:aws:iam::133789123239:instance-profile/EC2SSMAgentProfileL0"
+    error_message = "instance_profile_arn debe devolver el ARN del profile existente."
+  }
+
+  assert {
+    condition = (
+      output.backend_credential_mode == "ambient-caller" &&
+      output.automation_credential_mode == "caller-context"
+    )
+    error_message = "Backend y Automation usan credenciales del contexto, sin roles propios."
+  }
+
+  assert {
+    condition = (
+      output.required_backend_environment.MSR_AWS_ROLE_ARN == "" &&
+      output.required_backend_environment.MSR_AUTOMATION_ASSUME_ROLE_ARN == ""
+    )
+    error_message = "El entorno del backend no puede exigir ningún role ARN."
   }
 }
 
+run "the_enabled_plan_requires_the_existing_instance_profile" {
+  command = plan
+
+  variables {
+    existing_instance_profile_name      = ""
+    existing_instance_profile_role_name = ""
+  }
+
+  expect_failures = [aws_launch_template.lab, check.instance_profile]
+}
+
 # Reproduce el escenario del plan fallido: el precondition del ASG detiene el
-# plan y deja fuera el propio ASG y la política que depende de su ARN (16 de 18).
+# plan y deja fuera el propio ASG (9 de 10 recursos).
 run "a_newer_ami_stops_the_enabled_plan" {
   command = plan
 

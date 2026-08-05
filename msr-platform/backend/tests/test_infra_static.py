@@ -15,14 +15,6 @@ INFRA = pathlib.Path(__file__).resolve().parents[2] / "infra" / "terraform"
 DOCUMENTS = INFRA / "documents"
 
 
-def policy_document(name: str) -> str:
-    """Cuerpo exacto de un `aws_iam_policy_document` (sin arrastrar los siguientes)."""
-    pattern = rf'^data "aws_iam_policy_document" "{re.escape(name)}" \{{(.*?)^\}}'
-    match = re.search(pattern, code("iam.tf"), re.S | re.M)
-    assert match, f"no existe el policy document '{name}'"
-    return match.group(1)
-
-
 def read(name: str) -> str:
     return (INFRA / name).read_text(encoding="utf-8")
 
@@ -54,7 +46,7 @@ def test_default_configuration_creates_no_real_resources():
     assert re.search(r"default\s*=\s*false", block)
     # Todos los recursos mutativos dependen del interruptor maestro.
     assert "enabled = var.enable_real_resources ? 1 : 0" in read("locals.tf")
-    for filename in ("ec2.tf", "networking.tf", "iam.tf", "patching.tf",
+    for filename in ("ec2.tf", "networking.tf", "patching.tf",
                      "automation-documents.tf"):
         content = read(filename)
         resources = re.findall(r'^resource "([^"]+)" "([^"]+)" \{(.*?)^\}',
@@ -117,41 +109,51 @@ def test_patch_baseline_approves_only_the_candidate_advisory():
     assert "aws_ssm_patch_group" in patching
 
 
-@pytest.mark.parametrize("role", ["instance_boundary", "automation", "application"])
-def test_no_role_grants_administrator_wildcards(role):
-    iam = code("iam.tf")
-    block = iam.split(f'data "aws_iam_policy_document" "{role}"')[1]
-    allow_blocks = [b for b in block.split("statement {") if 'effect = "Allow"' in b]
-
-    for allow in allow_blocks:
-        actions = re.findall(r'"([a-z0-9]+:[A-Za-z*]+)"', allow)
-        assert "*" not in actions
-        assert not [a for a in actions if a.endswith(":*")], allow[:200]
+def test_terraform_does_not_manage_any_iam_resource():
+    """La cuenta deniega iam:PutRolePolicy/AttachRolePolicy/UpdateAssumeRolePolicy."""
+    assert not (INFRA / "iam.tf").exists()
+    for path in INFRA.glob("*.tf"):
+        content = path.read_text(encoding="utf-8")
+        assert not re.search(r'^resource "aws_iam_', content, re.M), path.name
+        assert 'data "aws_iam_policy_document"' not in content, path.name
 
 
-def test_instance_role_cannot_start_automations_or_create_instances():
-    block = code("iam.tf").split('data "aws_iam_policy_document" "instance_boundary"')[1]
+def test_the_instance_reuses_the_existing_corporate_instance_profile():
+    data_tf = code("data.tf")
+    ec2 = code("ec2.tf")
 
-    for denied in ("ssm:StartAutomationExecution", "ec2:RunInstances",
-                   "ec2:TerminateInstances", "sts:AssumeRole", "iam:*"):
-        assert f'"{denied}"' in block
-    assert 'effect = "Deny"' in block
-
-
-def test_application_role_can_only_start_the_two_msr_runbooks():
-    block = code("iam.tf").split('data "aws_iam_policy_document" "application"')[1]
-
-    assert "automation-definition/${var.patch_runbook_name}" in block
-    assert "automation-definition/${var.reset_runbook_name}" in block
-    assert '"ssm:SendCommand",' in block.split('effect = "Deny"')[1]  # denegado
+    assert 'data "aws_iam_instance_profile" "existing"' in data_tf
+    assert "name  = var.existing_instance_profile_name" in data_tf
+    assert "arn = data.aws_iam_instance_profile.existing[0].arn" in ec2
+    # Sólo lectura: ni tags ni ningún otro atributo del profile se gestionan.
+    profile_block = data_tf.split('data "aws_iam_instance_profile" "existing"')[1].split("}")[0]
+    assert "tags" not in profile_block
 
 
-def test_automation_role_only_targets_the_tagged_lab_instance():
-    block = code("iam.tf").split('data "aws_iam_policy_document" "automation"')[1]
+def test_the_existing_instance_profile_is_mandatory_in_real_mode():
+    variables = code("variables.tf")
+    ec2 = code("ec2.tf")
 
-    assert "for_each = local.lab_required_tags" in block
-    assert "ec2:ResourceTag/${condition.key}" in block
-    assert "ssm:resourceTag/${condition.key}" in block
+    for name in ("existing_instance_profile_name", "existing_instance_profile_role_name"):
+        assert f'variable "{name}"' in variables
+    assert 'var.existing_instance_profile_name != ""' in ec2
+    assert 'var.existing_instance_profile_role_name != ""' in ec2
+    # El profile debe contener el rol esperado y pertenecer a la cuenta.
+    assert ("data.aws_iam_instance_profile.existing[0].role_name == "
+            "var.existing_instance_profile_role_name") in ec2
+    assert 'instance-profile/${var.existing_instance_profile_name}' in ec2
+
+
+def test_the_patch_group_tag_key_has_no_space():
+    locals_tf = code("locals.tf")
+
+    assert '"PatchGroup" = var.patch_group' in locals_tf
+    sources = [p for p in INFRA.rglob("*")
+               if p.is_file() and p.suffix in {".tf", ".yaml", ".tftpl", ".example"}
+               and ".terraform" not in p.parts]
+    sources += [pathlib.Path(__file__).resolve().parents[1] / "app" / "seed.py"]
+    for path in sources:
+        assert "Patch Group" not in path.read_text(encoding="utf-8"), path.name
 
 
 def test_both_documents_are_automation_documents():
@@ -322,28 +324,18 @@ def test_terraform_exposes_the_autoscaling_outputs():
     assert "DIN\u00c1MICO" in read("outputs.tf")
 
 
-def test_automation_role_replaces_instances_only_through_auto_scaling():
-    block = policy_document("automation")
-    allow = "".join(b for b in block.split("statement {") if 'effect = "Allow"' in b)
-    deny = "".join(b for b in block.split("statement {") if 'effect = "Deny"' in b)
+def test_the_outputs_describe_the_credential_model_without_roles():
+    outputs = code("outputs.tf")
 
-    assert '"autoscaling:TerminateInstanceInAutoScalingGroup"' in allow
-    for removed in ("ec2:RunInstances", "ec2:TerminateInstances", "ec2:CreateTags",
-                    "iam:PassRole"):
-        assert f'"{removed}"' not in allow
-    assert '"ec2:RunInstances"' in deny
-    assert '"ec2:TerminateInstances"' in deny
-
-
-def test_application_role_cannot_mutate_auto_scaling_or_ec2():
-    block = policy_document("application")
-    deny = "".join(b for b in block.split("statement {") if 'effect = "Deny"' in b)
-
-    for denied in ("ec2:RunInstances", "ec2:TerminateInstances",
-                   "autoscaling:TerminateInstanceInAutoScalingGroup",
-                   "autoscaling:SetDesiredCapacity",
-                   "autoscaling:UpdateAutoScalingGroup"):
-        assert f'"{denied}"' in deny
+    for removed in ("application_role_arn", "automation_role_arn", "automation_trust_policy"):
+        assert f'output "{removed}"' not in outputs
+    for added in ("instance_profile_name", "instance_profile_role_name",
+                  "backend_credential_mode", "automation_credential_mode"):
+        assert f'output "{added}"' in outputs
+    assert 'value       = "ambient-caller"' in outputs
+    assert 'value       = "caller-context"' in outputs
+    assert 'MSR_AWS_ROLE_ARN               = ""' in outputs
+    assert 'MSR_AUTOMATION_ASSUME_ROLE_ARN = ""' in outputs
 
 
 def test_terraform_state_and_tfvars_are_not_versioned():
@@ -445,9 +437,10 @@ def test_terraform_tests_cover_the_release_order_with_a_mocked_provider():
         assert "command = apply" not in body
 
     enabled = bodies["enabled_plan.tftest.hcl"]
-    assert "enable_real_resources = true" in enabled
+    assert "enable_real_resources               = true" in enabled
     assert "expect_failures = [aws_autoscaling_group.lab]" in enabled
-    assert "length(output.estimated_resource_summary.resources) == 18" in enabled
+    assert "length(output.estimated_resource_summary.resources) == 10" in enabled
+    assert 'startswith(name, "aws_iam_")' in enabled
 
 
 def test_the_releasever_reaches_the_backend_and_the_documents():
@@ -580,28 +573,31 @@ def test_the_replacement_wait_is_native_and_validates_a_new_instance():
     assert raw.count("ValidateReplacementInstance.NewInstanceId") >= 5
 
 
-def test_the_automation_trust_policy_is_scoped_to_the_account_and_region():
-    iam = code("iam.tf")
-    block = iam.split("automation_trust_policy = jsonencode(")[1].split("})")[0]
+@pytest.mark.parametrize("name", ["MSR-PatchLinuxInstance.yaml",
+                                  "MSR-ResetLabInstance.yaml"])
+def test_no_execute_script_calls_aws_apis(name):
+    """Sin service role de Automation, los scripts sólo validan sus inputs."""
+    doc = document(name)
 
-    assert 'Service = "ssm.amazonaws.com"' in block
-    assert block.count("Service") == 1
-    assert 'StringEquals = { "aws:SourceAccount" = var.aws_account_id }' in block
-    assert 'ArnLike      = { "aws:SourceArn" = local.automation_trust_source_arn }' in block
-    assert (
-        'automation_trust_source_arn = '
-        '"arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:automation-execution/*"'
-    ) in iam
-    assert "arn:aws:ssm:*:*:*" not in iam
+    for step in doc["mainSteps"]:
+        if step["action"] != "aws:executeScript":
+            continue
+        script = step["inputs"]["Script"]
+        for forbidden in ("boto3", "botocore", ".client(", "import os", "urllib",
+                          "subprocess"):
+            assert forbidden not in script, (step["name"], forbidden)
 
 
-def test_the_terraform_tests_cover_the_trust_policy_json():
-    body = (INFRA / "tests" / "automation_trust.tftest.hcl").read_text(encoding="utf-8")
+@pytest.mark.parametrize("name", ["MSR-PatchLinuxInstance.yaml",
+                                  "MSR-ResetLabInstance.yaml"])
+def test_the_assume_role_parameter_is_optional_and_empty_by_default(name):
+    doc = document(name)
+    parameter = doc["parameters"]["AutomationAssumeRole"]
 
-    assert "jsondecode(output.automation_trust_policy)" in body
-    assert 'Condition.StringEquals["aws:SourceAccount"]' in body
-    assert 'Condition.ArnLike["aws:SourceArn"]' in body
-    assert "arn:aws:ssm:eu-north-1:133789123239:automation-execution/*" in body
+    assert parameter["default"] == ""
+    # El patrón acepta el valor vacío: la Automation usa las credenciales del
+    # iniciador cuando no hay rol configurado.
+    assert parameter["allowedPattern"].startswith("^$|")
 
 
 def test_the_reset_checks_advisory_and_kernel_not_only_the_ami():

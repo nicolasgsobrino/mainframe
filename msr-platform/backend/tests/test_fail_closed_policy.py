@@ -16,7 +16,6 @@ REQUIRED = (
     "MSR_REQUIRED_TARGET_TAG_KEY",
     "MSR_REQUIRED_TARGET_TAG_VALUE",
     "MSR_ALLOWED_RUNBOOKS",
-    "MSR_AUTOMATION_ASSUME_ROLE_ARN",
     "MSR_SANDBOX_INSTANCE_ID",
 )
 
@@ -33,7 +32,6 @@ def real_settings(**overrides) -> Settings:
         "allowed_account_ids": ["123456789012"],
         "allowed_regions": ["eu-west-1"],
         "allowed_environments": ["development"],
-        "automation_assume_role_arn": "arn:aws:iam::123456789012:role/MSR-AutomationRole",
         "sandbox_instance_id": "i-0123456789abcdef0",
     }
     data.update(overrides)
@@ -75,12 +73,25 @@ def test_empty_allowlists_do_not_mean_allow_all_in_real_mode():
     ("required_target_tag_key", ""),
     ("required_target_tag_value", ""),
     ("allowed_runbooks", []),
-    ("automation_assume_role_arn", ""),
 ])
 def test_each_missing_requirement_blocks_real_execution(field, empty):
     settings = real_settings(**{field: empty})
     with pytest.raises(ConfigurationError):
         settings.validate_for_providers()
+
+
+def test_real_execution_does_not_require_an_automation_service_role():
+    """La cuenta no permite crear un service role: Automation usa al iniciador."""
+    settings = real_settings(automation_assume_role_arn="")
+    settings.validate_for_providers()
+    assert settings.real_aws_execution() is True
+
+
+def test_real_execution_does_not_require_an_application_role_to_assume():
+    """Sin MSR_AWS_ROLE_ARN el backend usa la cadena estándar de boto3."""
+    settings = real_settings(aws_role_arn="")
+    settings.validate_for_providers()
+    assert settings.aws_role_arn == ""
 
 
 def test_real_execution_requires_some_resolvable_target_identity():

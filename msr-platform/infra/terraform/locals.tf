@@ -30,8 +30,10 @@ locals {
     local.common_tags,
     local.lab_required_tags,
     {
-      "Name"        = "msr-poc-${var.lab_id}"
-      "Patch Group" = var.patch_group
+      # `PatchGroup` sin espacio: con `instance_metadata_tags = "enabled"` EC2
+      # rechaza las claves con espacios al lanzar la instancia.
+      "Name"       = "msr-poc-${var.lab_id}"
+      "PatchGroup" = var.patch_group
     },
   )
 

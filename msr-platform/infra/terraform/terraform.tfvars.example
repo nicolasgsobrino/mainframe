@@ -7,6 +7,11 @@ vpc_id            = "vpc-023864c0ca3c82eab"
 subnet_id         = "subnet-0bb97e6254e4f83e9"
 operator_role_arn = "arn:aws:iam::133789123239:role/AWS_133789123239_Admin"
 
+# Instance profile corporativo preexistente: la cuenta deniega la creación de
+# roles y políticas propios, así que Terraform sólo lo lee.
+existing_instance_profile_name      = "EC2SSMAgentProfileL0"
+existing_instance_profile_role_name = "EC2SSMAgentProfile"
+
 lab_id             = "linux-patching-01"
 source_ami_id      = "ami-0b2ab3a97a77bd35e" # al2023-ami-2023.11.20260509.0-kernel-6.1-x86_64
 source_ami_release = "2023.11.20260509.0"

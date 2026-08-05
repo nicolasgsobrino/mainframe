@@ -15,7 +15,6 @@ locals {
     instance_tags_json = jsonencode([
       for key, value in local.instance_tags : { Key = key, Value = value }
     ])
-    automation_role_arn     = try(aws_iam_role.automation[0].arn, "arn:aws:iam::${var.aws_account_id}:role/${local.name_prefix}-automation-role")
     launch_template_id      = try(aws_launch_template.lab[0].id, "lt-00000000")
     launch_template_version = try(tostring(aws_launch_template.lab[0].latest_version), "1")
     # Nombre determinista del ASG (mismo valor que aws_autoscaling_group.lab):

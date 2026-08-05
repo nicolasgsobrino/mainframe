@@ -347,6 +347,46 @@ def test_assume_role_uses_sts_and_sanitizes_the_session_name(aws_settings, clien
         sts_stub.assert_no_pending_responses()
 
 
+def test_an_empty_role_arn_keeps_the_standard_boto3_credential_chain(aws_settings, clients):
+    """Sin MSR_AWS_ROLE_ARN no se llama a STS: valen las credenciales del entorno."""
+    ssm, ec2, _ssm_stub, _ec2_stub = clients
+    aws_settings.aws_role_arn = ""
+    sts = boto3.client("sts", region_name="eu-west-1", aws_access_key_id="test",
+                       aws_secret_access_key="test")
+    with Stubber(sts) as sts_stub:
+        provider = AwsSsmAutomationPatchProvider(aws_settings, ssm_client=ssm, ec2_client=ec2,
+                                                 sts_client=sts)
+
+        assert provider._assume_role_credentials() == {}
+        # Cualquier llamada a STS habría hecho fallar al Stubber sin respuestas.
+        sts_stub.assert_no_pending_responses()
+
+
+def test_an_empty_automation_role_omits_the_parameter(aws_real_settings, clients):
+    """AutomationAssumeRole no puede enviarse como lista con la cadena vacía."""
+    ssm, ec2, ssm_stub, ec2_stub = clients
+    aws_real_settings.automation_assume_role_arn = ""
+    stub_describe_instance(ec2_stub)
+    stub_instance_information(ssm_stub)
+    stub_describe_document(ssm_stub)
+    request = request_with_instance(dry_run=False)
+    ssm_stub.add_response(
+        "start_automation_execution", {"AutomationExecutionId": EXECUTION_ID},
+        {"DocumentName": DEFAULT_PATCH_RUNBOOK,
+         "Parameters": {"InstanceId": [INSTANCE]},
+         "Mode": "Auto",
+         "ClientToken": CLIENT_TOKEN,
+         "Tags": [{"Key": "msr:correlation-id", "Value": request.correlation_id},
+                  {"Key": "msr:task-id", "Value": request.task_id},
+                  {"Key": "msr:managed-by", "Value": "msr-platform"}]})
+    provider = AwsSsmAutomationPatchProvider(aws_real_settings, ssm_client=ssm, ec2_client=ec2)
+
+    execution = provider.start(request, "key-1")
+
+    assert execution.provider_reference == EXECUTION_ID
+    ssm_stub.assert_no_pending_responses()
+
+
 def test_session_name_is_sanitized_and_truncated():
     assert sanitize_session_name("corr/abc 123") == "corr-abc-123"
     assert len(sanitize_session_name("x" * 200)) == 64

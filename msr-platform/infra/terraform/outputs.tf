@@ -43,18 +43,28 @@ output "launch_template_version" {
 }
 
 output "instance_profile_arn" {
-  description = "Instance profile del managed node."
-  value       = try(aws_iam_instance_profile.instance[0].arn, "")
+  description = "Instance profile corporativo reutilizado por la instancia (no gestionado por Terraform)."
+  value       = try(data.aws_iam_instance_profile.existing[0].arn, "")
 }
 
-output "application_role_arn" {
-  description = "Rol del control plane; valor de MSR_AWS_ROLE_ARN."
-  value       = try(aws_iam_role.application[0].arn, "")
+output "instance_profile_name" {
+  description = "Nombre del instance profile corporativo reutilizado."
+  value       = var.existing_instance_profile_name
 }
 
-output "automation_role_arn" {
-  description = "Rol de Automation; valor de MSR_AUTOMATION_ASSUME_ROLE_ARN."
-  value       = try(aws_iam_role.automation[0].arn, "")
+output "instance_profile_role_name" {
+  description = "Rol contenido en el instance profile corporativo."
+  value       = var.existing_instance_profile_role_name
+}
+
+output "backend_credential_mode" {
+  description = "El backend usa las credenciales del entorno donde se ejecuta (sin sts:AssumeRole)."
+  value       = "ambient-caller"
+}
+
+output "automation_credential_mode" {
+  description = "Automation se ejecuta con las credenciales de quien la inicia (sin service role)."
+  value       = "caller-context"
 }
 
 output "patch_runbook_name" {
@@ -112,22 +122,13 @@ output "release_order" {
   }
 }
 
-output "automation_trust_policy" {
-  description = <<-EOT
-    Trust del rol de Automation. Exige simultáneamente el principal
-    ssm.amazonaws.com, aws:SourceAccount y aws:SourceArn acotado a
-    `automation-execution/*` de la cuenta y la región configuradas.
-  EOT
-  value       = local.automation_trust_policy
-}
-
 output "patch_baseline_id" {
   description = "Baseline que aprueba únicamente el advisory candidato."
   value       = try(aws_ssm_patch_baseline.lab[0].id, "")
 }
 
 output "patch_group" {
-  description = "Patch group asociado al baseline (tag `Patch Group`)."
+  description = "Patch group asociado al baseline (tag `PatchGroup` en la instancia)."
   value       = var.patch_group
 }
 
@@ -142,9 +143,11 @@ output "required_backend_environment" {
     MSR_RESTORE_PROVIDER y MSR_DRY_RUN mantienen sus valores seguros por
     defecto y no se activan desde aquí.
   EOT
+  # Ambos ARNs quedan vacíos a propósito: el backend usa las credenciales del
+  # entorno y Automation las de la identidad que la inicia.
   value = merge(local.backend_environment, {
-    MSR_AWS_ROLE_ARN               = try(aws_iam_role.application[0].arn, "")
-    MSR_AUTOMATION_ASSUME_ROLE_ARN = try(aws_iam_role.automation[0].arn, "")
+    MSR_AWS_ROLE_ARN               = ""
+    MSR_AUTOMATION_ASSUME_ROLE_ARN = ""
   })
 }
 
@@ -157,14 +160,6 @@ output "estimated_resource_summary" {
       "aws_vpc_security_group_egress_rule.https",
       "aws_vpc_security_group_egress_rule.dns_tcp",
       "aws_vpc_security_group_egress_rule.dns_udp",
-      "aws_iam_role.instance",
-      "aws_iam_role_policy.instance_boundary",
-      "aws_iam_role_policy_attachment.instance_ssm_core",
-      "aws_iam_instance_profile.instance",
-      "aws_iam_role.automation",
-      "aws_iam_role_policy.automation",
-      "aws_iam_role.application",
-      "aws_iam_role_policy.application",
       "aws_launch_template.lab",
       "aws_autoscaling_group.lab",
       "aws_ssm_patch_baseline.lab",
