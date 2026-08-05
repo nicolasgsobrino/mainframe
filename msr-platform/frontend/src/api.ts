@@ -1,18 +1,71 @@
-import type { Overview, Task, TaskDetail, CI, Edge, TestCase, VulnerableItem, Service, CmdbSummary, CmdbCiRaw, CmdbTables } from "./types";
+import type { Overview, Task, TaskDetail, CI, Edge, TestCase, VulnerableItem, Service, CmdbSummary, CmdbCiRaw, CmdbTables, ApiErrorBody, ExecutionConfig, PatchJob } from "./types";
+
+/** Error de API con el sobre uniforme del backend (`error.code`/`correlation_id`). */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly correlationId: string | null;
+
+  constructor(status: number, code: string, message: string, correlationId: string | null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.correlationId = correlationId;
+  }
+}
 
 const j = async (r: Response) => {
-  if (!r.ok) throw new Error(await r.text());
+  if (!r.ok) {
+    const raw = await r.text();
+    let body: Partial<ApiErrorBody> = {};
+    try {
+      body = JSON.parse(raw) as ApiErrorBody;
+    } catch {
+      body = {};
+    }
+    const err = body.error;
+    throw new ApiError(r.status, err?.code ?? `HTTP_${r.status}`,
+      err?.message ?? (raw || r.statusText), err?.correlation_id ?? null);
+  }
   return r.json();
 };
+
+/** Clave de idempotencia estable por (tarea, operación) mientras la pestaña vive. */
+const idempotencyKeys = new Map<string, string>();
+const idempotencyKey = (scope: string): string => {
+  const existing = idempotencyKeys.get(scope);
+  if (existing) return existing;
+  const key = `${scope}:${crypto.randomUUID()}`;
+  idempotencyKeys.set(scope, key);
+  return key;
+};
+/** Se descarta tras una operación terminada para permitir el siguiente anillo. */
+export const releaseIdempotencyKey = (scope: string) => idempotencyKeys.delete(scope);
+
+const mutate = (url: string, scope: string, body?: unknown) =>
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Idempotency-Key": idempotencyKey(scope),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }).then(j);
 
 export const api = {
   overview: (): Promise<Overview> => fetch("/api/overview").then(j),
   tasks: (): Promise<Task[]> => fetch("/api/tasks").then(j),
   task: (id: string): Promise<TaskDetail> => fetch(`/api/tasks/${id}`).then(j),
-  approve: (id: string): Promise<TaskDetail> =>
-    fetch(`/api/tasks/${id}/approve`, { method: "POST" }).then(j),
-  rollback: (id: string): Promise<TaskDetail> =>
-    fetch(`/api/tasks/${id}/rollback`, { method: "POST" }).then(j),
+  execution: (): Promise<ExecutionConfig> => fetch("/api/execution").then(j),
+  approve: (id: string, ring: number): Promise<TaskDetail> =>
+    mutate(`/api/tasks/${id}/approve`, `approve:${id}:${ring}`),
+  rollback: (id: string, ring: number): Promise<TaskDetail> =>
+    mutate(`/api/tasks/${id}/rollback`, `rollback:${id}:${ring}`),
+  patchJob: (jobId: string): Promise<PatchJob> => fetch(`/api/patch-jobs/${jobId}`).then(j),
+  taskPatchJobs: (id: string): Promise<PatchJob[]> => fetch(`/api/tasks/${id}/patch-jobs`).then(j),
+  cancelPatchJob: (jobId: string): Promise<PatchJob> =>
+    mutate(`/api/patch-jobs/${jobId}/cancel`, `cancel:${jobId}`),
   simulateIncident: (id: string): Promise<TaskDetail> =>
     fetch(`/api/tasks/${id}/simulate-incident`, { method: "POST" }).then(j),
   preapproveRing: (id: string, ring: number, note?: string): Promise<TaskDetail> =>

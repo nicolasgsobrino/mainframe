@@ -7,6 +7,25 @@ import CmdbRecordModal from "../components/CmdbRecordModal";
 
 const PAGE = 50;
 
+/** Resuelve si el CI puede ser objetivo de un parcheo automatizado en AWS. */
+function PatchTarget({ ci }: { ci: CI }) {
+  if (!ci.instance_id)
+    return (
+      <span className="chip bg-gray-500/15 text-gray-400" title="La CMDB de demo no expone un Instance ID de EC2; el parcheo real requiere resolverlo antes de ejecutar.">
+        sin instancia AWS
+      </span>
+    );
+  return (
+    <span className="text-xs text-gray-300">
+      <span className="font-mono">{ci.instance_id}</span>
+      {ci.region && <span className="text-gray-500"> · {ci.region}</span>}
+      <span className={`chip ml-1 ${ci.ssm_managed ? "bg-green-500/15 text-green-400" : "bg-amber-500/15 text-amber-300"}`}>
+        {ci.ssm_managed ? "SSM" : "sin SSM"}
+      </span>
+    </span>
+  );
+}
+
 export default function Cmdb() {
   const [summary, setSummary] = useState<CmdbSummary | null>(null);
   const [services, setServices] = useState<CI[]>([]);
@@ -164,6 +183,7 @@ export default function Cmdb() {
                 <th className="px-2 py-2 font-medium">Dominio</th>
                 <th className="px-2 py-2 font-medium">Criticidad</th>
                 <th className="px-2 py-2 font-medium">Entorno</th>
+                <th className="px-2 py-2 font-medium">Objetivo de parcheo</th>
                 <th className="px-2 py-2 font-medium">Support group</th>
                 <th className="px-2 py-2 font-medium text-right">Registro CMDB</th>
               </tr>
@@ -182,6 +202,7 @@ export default function Cmdb() {
                   <td className="px-2 py-2">{c.track ? <Track t={c.track} /> : <span className="text-gray-600 text-xs">—</span>}</td>
                   <td className="px-2 py-2 text-gray-400 capitalize">{c.criticality}</td>
                   <td className="px-2 py-2 text-gray-400">{c.environment}</td>
+                  <td className="px-2 py-2"><PatchTarget ci={c} /></td>
                   <td className="px-2 py-2 text-gray-500 text-xs">{c.support_group}</td>
                   <td className="px-2 py-2 text-right">
                     <button

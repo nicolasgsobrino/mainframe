@@ -9,7 +9,7 @@ PR, informe de auditoría). La ejecución técnica se delega a herramientas exte
 from __future__ import annotations
 import math
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from .seed import NOW, iso
 
@@ -108,6 +108,14 @@ def build_impact_graph(task, cis, edges, adj=None, max_nodes=10):
                 "criticality": c.get("criticality", "medium"),
                 "environment": c.get("environment", "-"),
                 "is_root": cid == root_id,
+                # Identidad del objetivo para providers reales (opcional).
+                "logical_target_id": c.get("logical_target_id", cid),
+                "instance_id": c.get("instance_id"),
+                "account_id": c.get("account_id"),
+                "region": c.get("region"),
+                "tags": c.get("tags") or {},
+                "ssm_managed": bool(c.get("ssm_managed")),
+                "os": c.get("os"),
             }
 
     add(root_id)
@@ -373,6 +381,12 @@ def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nod
             "criticality": n.get("criticality", "medium"),
             "environment": stage["env"],
             "is_root": is_root,
+            "logical_target_id": n.get("logical_target_id", n["id"]),
+            "instance_id": n.get("instance_id"),
+            "account_id": n.get("account_id"),
+            "region": n.get("region"),
+            "tags": n.get("tags") or {},
+            "ssm_managed": bool(n.get("ssm_managed")),
             "reason": _asset_reason(stage, n["ci_class"], n.get("criticality", "medium"), is_root),
             "excluded": n["id"] in excluded,
         })
@@ -481,145 +495,17 @@ def _fixed_version(version):
 
 
 def build_ring_actions(task, ring_no, assets, executor, ts_base):
-    """Acciones concretas que ejecutan Devin + el ejecutor técnico para un anillo.
+    """Wrapper de compatibilidad: la simulación vive en `providers.mock_patch`."""
+    from .providers.mock_patch import build_ring_actions as _mock_build_ring_actions
 
-    Devuelve una lista ordenada de pasos con comando, actor, herramienta,
-    salida simulada, estado y duración — para que la demo muestre que las
-    acciones se ejecutaron realmente (no solo que 'se aprobó').
-    """
-    rng = _rng(task["id"] + f"actions{ring_no}")
-    stage = RING_STAGES.get(ring_no, RING_STAGES[5])
-    prev = _prev_version(task)
-    fixed = _fixed_version(prev)
-    comp = task.get("component", task["ci_name"])
-    ci = task["ci_name"]
-    steps = []
-
-    canary = stage["pct"]
-
-    def add(actor, tool, command, output, why, duration=None):
-        steps.append({
-            "seq": len(steps) + 1, "actor": actor, "tool": tool,
-            "command": command, "output": output, "status": "ok", "why": why,
-            "duration_s": duration if duration is not None else rng.randint(2, 40),
-        })
-
-    # Prólogo por entorno: en Lab/Pre-productivo Devin levanta una RÉPLICA (IaC).
-    if stage["kind"] == "replica":
-        prov = "Terraform + Ansible"
-        add("Devin", prov, f"terraform apply -target=replica.{stage['key']} ({assets} CIs)",
-            f"Réplica de {assets} CIs aprovisionada en «{stage['env']}»",
-            f"Se levanta una réplica efímera (IaC) de toda la infraestructura impactada para aplicar y probar el fix "
-            f"sin tocar producción (etapa «{stage['env']}»).")
-
-    if task["track"] == "C":
-        add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-image", f"Switched to branch 'fix/{task['cve'].lower()}-image'",
-            "Se aísla el cambio en una rama para trazabilidad y revisión (dominio C: la remediación es reconstruir la imagen).")
-        add("Devin", "Docker", f"update base image: {comp} {prev} → {fixed}", "Dockerfile + manifests actualizados",
-            f"El fix de {task['cve']} está en la versión {fixed} de {comp}; se actualiza la imagen base, no se parchea en caliente.")
-        add("GitHub Actions", "Docker", f"docker build --no-cache -t registry/{ci}:{fixed} .", f"Built image sha256:{rng.randint(10**11,10**12)}",
-            "Build limpio y reproducible del artefacto inmutable que se promocionará por los anillos.")
-        add("Devin", "Trivy", f"trivy image registry/{ci}:{fixed}", "0 CRITICAL / 0 HIGH · imagen firmada (cosign)",
-            "Se verifica que la nueva imagen no reintroduce vulnerabilidades y se firma (cosign) antes de desplegar.")
-        add("Argo CD", "Helm", f"argocd app sync {ci} --revision {fixed} (canary {canary}%)", f"Rollout progresivo a {assets} pods",
-            f"Despliegue GitOps progresivo al {canary}% de los pods de este anillo para acotar el blast radius del cambio.")
-    elif task["track"] == "B":
-        add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-bump", f"Switched to branch 'fix/{task['cve'].lower()}-bump'",
-            "Rama dedicada para el bump de dependencia (dominio B: se remedia actualizando la librería y reconstruyendo).")
-        add("Devin", "CI/CD", f"bump {comp}: {prev} → {fixed}", f"1 file changed · lockfile updated",
-            f"Se eleva {comp} a {fixed} (versión con el fix) y se fija el lockfile para un build determinista.")
-        add("Devin", "CI/CD", f"gh pr merge --squash (ring {ring_no})", "Merged. Deploy workflow triggered.",
-            "El merge del PR dispara el pipeline de despliegue; el cambio queda auditado en la PR.")
-        add("GitHub Actions", "Docker", f"docker build -t {ci}:{fixed} .", f"Successfully tagged {ci}:{fixed}",
-            "Se construye el artefacto con la dependencia ya parcheada.")
-        add("GitHub Actions", "Helm", f"helm upgrade {ci} --set image.tag={fixed} --set canary.weight={canary}", f"Rollout deployed to {assets} pods",
-            f"Rollout canary al {canary}% para validar por telemetría antes de ampliar el alcance.")
-    else:
-        add("Devin", executor, f"snapshot create {ci} --pre-patch (ring {ring_no})", f"Snapshot snap-{rng.randint(10000,99999)} created for {assets} hosts",
-            "Se toma snapshot ANTES de parchear para garantizar rollback inmediato si un post-check falla (dominio A: parcheo in-place).")
-        add(executor, executor, f"deploy patch {comp} {prev} → {fixed} --limit ring{ring_no}", f"{assets} hosts targeted · maintenance window OK",
-            f"El ejecutor ({executor}) apunta solo a los {assets} hosts de este anillo, dentro de la ventana de mantenimiento aprobada.")
-        add(executor, "OS", f"install {comp}-{fixed}", f"{assets}/{assets} hosts updated",
-            f"Instala la versión {fixed} que corrige {task['cve']} en los hosts objetivo.")
-        add(executor, "OS", "systemctl restart affected-services", f"services restarted on {assets} hosts",
-            "Reinicio controlado de los servicios afectados para que el parche tome efecto.")
-
-    # Post-checks (evidencia de validación tras aplicar)
-    post_why = {
-        "version-assert": "Confirma que la versión instalada es la parcheada (no un rollback silencioso).",
-        "health-check": "Verifica que los servicios responden sanos tras el cambio.",
-        "smoke-test": "Ejecuta el camino crítico de negocio para detectar regresiones.",
-        "synthetic-probe": "Sonda sintética externa para validar disponibilidad de cara al usuario.",
-    }
-    for chk in ["version-assert", "health-check", "smoke-test", "synthetic-probe"]:
-        add("Devin", "post-check", chk, f"{chk}: OK ({assets}/{assets})", post_why[chk], rng.randint(1, 12))
-
-    # En Lab/Pre-productivo se ejecuta toda la batería de pruebas sobre la réplica.
-    if stage["tests"]:
-        n_tests = rng.randint(8, 14)
-        add("Devin", "CI/CD", f"run test-suite --env {stage['key']} (MVT completo)",
-            f"{n_tests}/{n_tests} pruebas PASS · regresión OK",
-            f"En «{stage['env']}» se ejecuta la batería completa de pruebas (funcionales, integración y de "
-            f"parche) sobre la réplica antes de promocionar; si algo falla, el despliegue no avanza.")
-        if stage["key"] == "lab":
-            add("Devin", "Terraform", "terraform destroy -target=replica.lab",
-                "Réplica de laboratorio destruida (entorno efímero)",
-                "El laboratorio es efímero: tras validar se destruye para no dejar coste ni deriva de configuración.")
-    return {"steps": steps, "from_version": prev, "to_version": fixed}
+    return _mock_build_ring_actions(task, ring_no, assets, executor, ts_base)
 
 
 def build_rollback_plan(task, impact):
-    """Plan de rollback armado desde el inicio (contemplación del rollback)."""
-    rng = _rng(task["id"] + "rbplan")
-    prev = _prev_version(task)
-    fixed = _fixed_version(prev)
-    ci = task["ci_name"]
-    comp = task.get("component", ci)
-    if task["track"] == "C":
-        strategy = "GitOps rollback (revisión previa + imagen firmada)"
-        steps = [
-            {"actor": "Devin", "tool": "Argo CD", "command": f"argocd app rollback {ci} <previous-revision>",
-             "desc": f"Sincroniza la revisión estable anterior (imagen {ci}:{prev})."},
-            {"actor": "Argo CD", "tool": "Helm", "command": f"kubectl rollout undo deploy/{ci}",
-             "desc": "Revierte el rollout al ReplicaSet sano; 100% del tráfico a la imagen previa."},
-            {"actor": "Devin", "tool": "post-check", "command": "health-check + smoke-test",
-             "desc": "Verifica salud de los pods tras el rollback."},
-        ]
-        snapshot_ref = f"registry/{ci}:{prev}"
-    elif task["track"] == "B":
-        strategy = "artifact-redeploy (imagen previa)"
-        steps = [
-            {"actor": "Devin", "tool": "Helm", "command": f"helm rollback {ci} <previous-revision>",
-             "desc": f"Redeploy de la imagen {ci}:{prev} (revisión estable anterior)."},
-            {"actor": "GitHub Actions", "tool": "CI/CD", "command": f"deploy {ci}:{prev} --canary.weight=100",
-             "desc": "Restablece el 100% del tráfico al artefacto sano."},
-            {"actor": "Devin", "tool": "post-check", "command": "health-check + smoke-test",
-             "desc": "Verifica salud tras el rollback."},
-        ]
-        snapshot_ref = f"registry/{ci}:{prev}"
-    else:
-        strategy = "snapshot-restore (VM / paquete)"
-        steps = [
-            {"actor": "Devin", "tool": "Ansible", "command": f"package downgrade {comp} {fixed} → {prev}",
-             "desc": f"Restaura la versión previa {comp}-{prev}."},
-            {"actor": "Ansible", "tool": "IaC", "command": "restore snapshot <pre-patch>",
-             "desc": "Restaura el snapshot tomado antes del parche si el downgrade no basta."},
-            {"actor": "Ansible", "tool": "OS", "command": "systemctl restart affected-services",
-             "desc": "Reinicia servicios y valida arranque."},
-            {"actor": "Devin", "tool": "post-check", "command": "health-check + synthetic-probe",
-             "desc": "Verifica salud tras el rollback."},
-        ]
-        snapshot_ref = f"snap-pre-{task['cve'].lower()}"
-    return {
-        "strategy": strategy,
-        "snapshot_ref": snapshot_ref,
-        "target_version": prev,
-        "from_version": fixed,
-        "rto_minutes": rng.choice([5, 8, 10, 15]),
-        "auto_trigger": "fallo de post-checks / breach de health-check tras un anillo",
-        "steps": steps,
-        "tested_in_lab": True,
-    }
+    """Wrapper de compatibilidad: el plan vive en `providers.mock_restore`."""
+    from .providers.mock_restore import build_rollback_plan as _mock_build_rollback_plan
+
+    return _mock_build_rollback_plan(task, impact)
 
 
 CHANGE_TYPE_META = {
@@ -714,8 +600,13 @@ def build_itsm_change(task, impact, rng):
 
 
 def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_back_rings=None,
-                     preapprovals=None, exclusions=None):
+                     preapprovals=None, exclusions=None, evidence=None, active_jobs=None):
+    """`evidence` contiene, por anillo, las acciones REALES ejecutadas por el
+    provider (job). Si existe, prevalece sobre la simulación regenerada, de modo
+    que reconstruir el despliegue nunca sobrescribe la evidencia del job."""
     rng = _rng(task["id"] + "deploy")
+    evidence = evidence or {}
+    active_jobs = active_jobs or {}
     rolled_back_rings = set(rolled_back_rings or [])
     preapprovals = preapprovals or {}
     exclusions = exclusions or {}
@@ -735,7 +626,12 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
             status = "in_progress"
         else:
             status = "pending"
-        actions = build_ring_actions(task, rn, max(1, assets), executor, ts_base) if status in ("completed", "rolled_back") else None
+        if rn in evidence:
+            actions = evidence[rn]
+        elif status in ("completed", "rolled_back"):
+            actions = build_ring_actions(task, rn, max(1, assets), executor, ts_base)
+        else:
+            actions = None
         plan = build_ring_plan(task, impact, rn, label, CANARY_PCT[min(i, 4)], executor, ring_nodes,
                                exclusions=exclusions.get(rn), preapproval=preapprovals.get(rn))
         rings.append({
@@ -744,6 +640,7 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
             "result": {"completed": "healthy", "rolled_back": "reverted", "in_progress": "-", "pending": "-"}[status],
             "actions": actions,
             "plan": plan,
+            "job": active_jobs.get(rn),
             "health": {
                 "error_rate_pct": round(rng.uniform(0.0, 0.3), 2),
                 "p95_latency_ms": rng.randint(120, 420),

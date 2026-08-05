@@ -177,6 +177,26 @@ SUPPORT_GROUPS = [
 ]
 
 
+def target_fields(ci: dict) -> dict:
+    """Campos OPCIONALES de identidad de objetivo para providers reales.
+
+    La CMDB sintética nunca contiene Instance IDs reales: `instance_id` queda a
+    None y debe resolverlo el operador (variables MSR_SANDBOX_*) para la
+    instancia EC2 de sandbox. El provider AWS rechaza cualquier ID que no cumpla
+    el patrón `i-…`, por lo que los IDs sintéticos (SRV-1001) no son ejecutables.
+    """
+    location = ci.get("location") or ""
+    region = location[4:].strip() if location.startswith("AWS ") else None
+    ci.setdefault("logical_target_id", ci["id"])
+    ci.setdefault("instance_id", None)
+    ci.setdefault("account_id", None)
+    ci.setdefault("region", region)
+    ci.setdefault("ssm_managed", False)
+    if "tags" not in ci:
+        ci["tags"] = {"Environment": ci.get("environment", "-"), "msr-poc": "false"}
+    return ci
+
+
 def _std_fields(ci):
     """Añade los campos estandarizados (CSDM) que llegarían de una CMDB real."""
     crit = ci.get("criticality", "medium")
@@ -754,6 +774,9 @@ def build_all():
     else:
         cis, edges = build_cmdb()
         export_cmdb(cis, edges)
+    # Campos de identidad de objetivo (opcionales): también sobre exports previos.
+    for ci in cis:
+        target_fields(ci)
     findings, vitems, tasks = build_records(cis, edges)
     catalog = [dict(zip(
         ["id", "name", "layer", "applies_to", "remediation_type", "criticality", "tool", "evidence"], t))

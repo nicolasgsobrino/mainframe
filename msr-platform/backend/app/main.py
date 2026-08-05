@@ -1,23 +1,61 @@
 """API FastAPI de la plataforma Machine Speed Remediation (demo)."""
 from __future__ import annotations
-import os
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
+import logging
+import os
+import uuid
+
+from fastapi import FastAPI, Header, HTTPException, Request, Response, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from . import engine
+from .config import get_settings
+from .errors import DomainError, NotFoundError
 from .store import STORE
+
+log = logging.getLogger("msr.api")
+settings = get_settings()
 
 app = FastAPI(title="Machine Speed Remediation Platform", version="1.0.0")
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+    CORSMiddleware,
+    allow_origins=settings.cors_allow_origins,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Idempotency-Key"],
 )
+
+
+@app.exception_handler(DomainError)
+def domain_error_handler(request: Request, exc: DomainError):
+    """Formato de error uniforme: {"error": {code, message, correlation_id}}."""
+    log.warning("domain_error code=%s correlation_id=%s path=%s",
+                exc.code, exc.correlation_id, request.url.path)
+    return JSONResponse(status_code=exc.http_status, content=exc.to_payload())
+
+
+def _idempotency_key(provided: str | None, tid: str, suffix: str) -> str:
+    """Clave efectiva: la del cliente o una temporal única por petición."""
+    return provided or f"transient:{suffix}:{tid}:{uuid.uuid4().hex}"
 
 
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/execution")
+def execution_config():
+    """Configuración de ejecución visible por la UI (sin secretos)."""
+    return {
+        "patch_provider": STORE.patch_provider.name,
+        "restore_provider": STORE.restore_provider.name,
+        "dry_run": settings.effective_dry_run(STORE.patch_provider.name),
+        "poll_interval_seconds": settings.job_poll_interval_seconds,
+        "region": settings.aws_region or None,
+    }
 
 
 @app.get("/api/overview")
@@ -39,11 +77,34 @@ def task_detail(tid: str):
 
 
 @app.post("/api/tasks/{tid}/approve")
-def approve(tid: str):
-    d = STORE.approve_phase(tid)
+def approve(tid: str, response: Response,
+            idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
+    """Fases 1-5: 200 síncrono. Fase de despliegue: 202 con el job creado."""
+    if tid not in STORE.pipelines:
+        raise NotFoundError(f"La tarea {tid} no existe.")
+    phase_id = engine.PHASE_IDS[STORE.pipelines[tid]["phase_index"]]
+    deploying = phase_id == "deployment"
+    d = STORE.approve_phase(tid, _idempotency_key(idempotency_key, tid, "approve"))
     if not d:
-        raise HTTPException(404, "task not found")
+        raise NotFoundError(f"La tarea {tid} no existe.")
+    if deploying:
+        response.status_code = status.HTTP_202_ACCEPTED
     return d
+
+
+@app.get("/api/patch-jobs/{job_id}")
+def patch_job(job_id: str):
+    return STORE.get_job(job_id).as_dict()
+
+
+@app.get("/api/tasks/{tid}/patch-jobs")
+def task_patch_jobs(tid: str):
+    return [j.as_dict() for j in STORE.list_task_jobs(tid)]
+
+
+@app.post("/api/patch-jobs/{job_id}/cancel")
+def cancel_patch_job(job_id: str):
+    return STORE.cancel_job(job_id).as_dict()
 
 
 class RingPreapproveBody(BaseModel):
@@ -73,10 +134,14 @@ def update_ring_assets(tid: str, ring_no: int, body: RingAssetsBody):
 
 
 @app.post("/api/tasks/{tid}/rollback")
-def rollback(tid: str):
-    d = STORE.rollback(tid, trigger="manual")
+def rollback(tid: str, response: Response,
+             idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
+    d = STORE.rollback(tid, trigger="manual",
+                       idempotency_key=_idempotency_key(idempotency_key, tid, "rollback"))
     if not d:
-        raise HTTPException(404, "task not found")
+        raise NotFoundError(f"La tarea {tid} no existe.")
+    if d.get("active_job"):
+        response.status_code = status.HTTP_202_ACCEPTED
     return d
 
 
