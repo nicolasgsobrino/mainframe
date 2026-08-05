@@ -235,7 +235,8 @@ def test_reset_runbook_validates_membership_before_replacing_the_instance():
     assert names.index("DescribeCurrentInstance") < terminate
     assert names.index("DescribeAutoScalingMembership") < terminate
     assert names.index("ValidateAutoScalingGroup") < terminate
-    assert names.index("WaitForReplacementInstance") > terminate
+    assert names.index("WaitForReplacementInService") > terminate
+    assert names.index("ValidateReplacementInstance") > terminate
     # LaunchTemplateId/Version ya no son parámetros públicos: son del ASG.
     assert set(doc["parameters"]) == {"CurrentInstanceId", "AutoScalingGroupName",
                                       "AutomationAssumeRole", "CorrelationId"}
@@ -509,6 +510,98 @@ def test_the_precheck_requires_amazon_linux_and_a_vulnerable_kernel():
     assert "KERNEL_ALREADY_FIXED" in raw
     # El advisory y el releasever comprobados son los renderizados por Terraform.
     assert "PRECHECK_CONTRACT_MISMATCH" in raw
+
+
+@pytest.mark.parametrize("name", ["MSR-PatchLinuxInstance.yaml",
+                                  "MSR-ResetLabInstance.yaml"])
+def test_no_execute_script_step_exceeds_the_aws_limit(name):
+    """AWS limita cada `aws:executeScript` a 600 s: no puede haber sondeos largos."""
+    doc = document(name)
+    raw = document_source(name)
+
+    scripts = [s for s in doc["mainSteps"] if s["action"] == "aws:executeScript"]
+    assert scripts
+    for step in scripts:
+        timeout = step.get("timeoutSeconds")
+        assert timeout is not None, step["name"]
+        assert timeout <= 600, (step["name"], timeout)
+
+        source = step["inputs"]["Script"]
+        assert "time.sleep" not in source, step["name"]
+        # Ningún deadline interno puede superar el límite de la acción.
+        for seconds in re.findall(r"time\.time\(\)\s*\+\s*([0-9]+)", source):
+            assert int(seconds) <= 600, (step["name"], seconds)
+        for seconds in re.findall(r"deadline\s*=\s*([0-9]+)", source):
+            assert int(seconds) <= 600, (step["name"], seconds)
+
+    # Las esperas largas son nativas de Automation, no scripts.
+    for step in doc["mainSteps"]:
+        if step.get("timeoutSeconds", 0) > 600:
+            assert step["action"] in ("aws:waitForAwsResourceProperty",
+                                      "aws:runCommand"), step["name"]
+    assert "while time.time()" not in raw
+
+
+def test_the_replacement_wait_is_native_and_validates_a_new_instance():
+    doc = document("MSR-ResetLabInstance.yaml")
+    steps = {s["name"]: s for s in doc["mainSteps"]}
+
+    in_service = steps["WaitForReplacementInService"]
+    assert in_service["action"] == "aws:waitForAwsResourceProperty"
+    assert in_service["timeoutSeconds"] == 1800
+    assert in_service["inputs"]["Service"] == "autoscaling"
+    assert in_service["inputs"]["Api"] == "DescribeAutoScalingGroups"
+    assert in_service["inputs"]["DesiredValues"] == ["InService"]
+
+    healthy = steps["WaitForReplacementHealthy"]
+    assert healthy["action"] == "aws:waitForAwsResourceProperty"
+    assert healthy["inputs"]["PropertySelector"].endswith("HealthStatus")
+    assert healthy["inputs"]["DesiredValues"] == ["Healthy"]
+
+    describe = steps["DescribeReplacementInstance"]
+    assert describe["action"] == "aws:executeAwsApi"
+    assert describe["inputs"]["Api"] == "DescribeAutoScalingGroups"
+
+    validate = steps["ValidateReplacementInstance"]
+    assert validate["action"] == "aws:executeScript"
+    assert validate["timeoutSeconds"] <= 120
+    script = validate["inputs"]["Script"]
+    # Exactamente una instancia, distinta de la anterior, InService y Healthy.
+    assert "RESET_ASG_INSTANCE_COUNT_UNEXPECTED" in script
+    assert 'new["InstanceId"] == old' in script
+    assert "RESET_REPLACEMENT_NOT_CREATED" in script
+    assert "RESET_REPLACEMENT_NOT_IN_SERVICE" in script
+    assert "RESET_REPLACEMENT_NOT_HEALTHY" in script
+    assert [o["Name"] for o in validate["outputs"]] == ["NewInstanceId"]
+
+    # Los pasos posteriores consumen el nuevo output, no el antiguo.
+    raw = document_source("MSR-ResetLabInstance.yaml")
+    assert "WaitForReplacementInstance.NewInstanceId" not in raw
+    assert raw.count("ValidateReplacementInstance.NewInstanceId") >= 5
+
+
+def test_the_automation_trust_policy_is_scoped_to_the_account_and_region():
+    iam = code("iam.tf")
+    block = iam.split("automation_trust_policy = jsonencode(")[1].split("})")[0]
+
+    assert 'Service = "ssm.amazonaws.com"' in block
+    assert block.count("Service") == 1
+    assert 'StringEquals = { "aws:SourceAccount" = var.aws_account_id }' in block
+    assert 'ArnLike      = { "aws:SourceArn" = local.automation_trust_source_arn }' in block
+    assert (
+        'automation_trust_source_arn = '
+        '"arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:automation-execution/*"'
+    ) in iam
+    assert "arn:aws:ssm:*:*:*" not in iam
+
+
+def test_the_terraform_tests_cover_the_trust_policy_json():
+    body = (INFRA / "tests" / "automation_trust.tftest.hcl").read_text(encoding="utf-8")
+
+    assert "jsondecode(output.automation_trust_policy)" in body
+    assert 'Condition.StringEquals["aws:SourceAccount"]' in body
+    assert 'Condition.ArnLike["aws:SourceArn"]' in body
+    assert "arn:aws:ssm:eu-north-1:133789123239:automation-execution/*" in body
 
 
 def test_the_reset_checks_advisory_and_kernel_not_only_the_ami():

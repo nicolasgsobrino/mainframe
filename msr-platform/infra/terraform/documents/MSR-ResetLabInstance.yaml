@@ -71,6 +71,7 @@ mainSteps:
 
   - name: ValidateResettableTarget
     action: aws:executeScript
+    timeoutSeconds: 120
     onFailure: 'step:FailTargetInvalid'
     inputs:
       Runtime: python3.11
@@ -159,6 +160,7 @@ mainSteps:
 
   - name: ValidateAutoScalingGroup
     action: aws:executeScript
+    timeoutSeconds: 120
     onFailure: 'step:FailTargetInvalid'
     inputs:
       Runtime: python3.11
@@ -232,43 +234,86 @@ mainSteps:
       DesiredValues:
         - terminated
 
-  - name: WaitForReplacementInstance
-    action: aws:executeScript
+  # La espera larga es nativa: `aws:executeScript` está limitado a 600 s por AWS,
+  # así que el sondeo lo hace Automation, no un bucle dentro de un script.
+  - name: WaitForReplacementInService
+    action: aws:waitForAwsResourceProperty
     timeoutSeconds: 1800
+    onFailure: Abort
+    inputs:
+      Service: autoscaling
+      Api: DescribeAutoScalingGroups
+      AutoScalingGroupNames:
+        - '{{ AutoScalingGroupName }}'
+      PropertySelector: '$.AutoScalingGroups[0].Instances[0].LifecycleState'
+      DesiredValues:
+        - InService
+
+  - name: WaitForReplacementHealthy
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 900
+    onFailure: Abort
+    inputs:
+      Service: autoscaling
+      Api: DescribeAutoScalingGroups
+      AutoScalingGroupNames:
+        - '{{ AutoScalingGroupName }}'
+      PropertySelector: '$.AutoScalingGroups[0].Instances[0].HealthStatus'
+      DesiredValues:
+        - Healthy
+
+  - name: DescribeReplacementInstance
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: autoscaling
+      Api: DescribeAutoScalingGroups
+      AutoScalingGroupNames:
+        - '{{ AutoScalingGroupName }}'
+    outputs:
+      - Name: Instances
+        Selector: '$.AutoScalingGroups[0].Instances'
+        Type: MapList
+
+  # Validación corta y sin sondeo: el estado ya lo garantizaron las esperas.
+  - name: ValidateReplacementInstance
+    action: aws:executeScript
+    timeoutSeconds: 120
     onFailure: Abort
     inputs:
       Runtime: python3.11
       Handler: handler
       InputPayload:
         old_instance_id: '{{ CurrentInstanceId }}'
+        instances: '{{ DescribeReplacementInstance.Instances }}'
       Script: |
-        import time
-
-        import boto3
-
-        EXPECTED_GROUP = "${autoscaling_group_name}"
+        TERMINAL = (
+            "Terminating",
+            "Terminating:Wait",
+            "Terminating:Proceed",
+            "Terminated",
+        )
 
         def handler(events, context):
-            asg = boto3.client("autoscaling")
             old = events["old_instance_id"]
-            deadline = time.time() + 1500
-            while time.time() < deadline:
-                groups = asg.describe_auto_scaling_groups(
-                    AutoScalingGroupNames=[EXPECTED_GROUP]
-                )["AutoScalingGroups"]
-                instances = groups[0]["Instances"] if groups else []
-                healthy = [
-                    i for i in instances
-                    if i["InstanceId"] != old
-                    and i["LifecycleState"] == "InService"
-                    and i["HealthStatus"] == "Healthy"
-                ]
-                if len(healthy) == 1:
-                    return {"new_instance_id": healthy[0]["InstanceId"]}
-                if len(healthy) > 1:
-                    raise Exception("RESET_ASG_INSTANCE_COUNT_UNEXPECTED:" + str(len(healthy)))
-                time.sleep(15)
-            raise Exception("RESET_REPLACEMENT_TIMED_OUT")
+            active = [
+                i for i in events["instances"] or []
+                if i.get("LifecycleState") not in TERMINAL
+            ]
+            if len(active) != 1:
+                raise Exception("RESET_ASG_INSTANCE_COUNT_UNEXPECTED:" + str(len(active)))
+            new = active[0]
+            if new["InstanceId"] == old:
+                raise Exception("RESET_REPLACEMENT_NOT_CREATED:" + old)
+            if new.get("LifecycleState") != "InService":
+                raise Exception(
+                    "RESET_REPLACEMENT_NOT_IN_SERVICE:" + str(new.get("LifecycleState"))
+                )
+            if new.get("HealthStatus") != "Healthy":
+                raise Exception(
+                    "RESET_REPLACEMENT_NOT_HEALTHY:" + str(new.get("HealthStatus"))
+                )
+            return {"new_instance_id": new["InstanceId"]}
     outputs:
       - Name: NewInstanceId
         Selector: '$.Payload.new_instance_id'
@@ -283,7 +328,7 @@ mainSteps:
       Service: ec2
       Api: DescribeInstances
       InstanceIds:
-        - '{{ WaitForReplacementInstance.NewInstanceId }}'
+        - '{{ ValidateReplacementInstance.NewInstanceId }}'
       PropertySelector: '$.Reservations[0].Instances[0].State.Name'
       DesiredValues:
         - running
@@ -298,7 +343,7 @@ mainSteps:
       Filters:
         - Key: InstanceIds
           Values:
-            - '{{ WaitForReplacementInstance.NewInstanceId }}'
+            - '{{ ValidateReplacementInstance.NewInstanceId }}'
       PropertySelector: '$.InstanceInformationList[0].PingStatus'
       DesiredValues:
         - Online
@@ -313,7 +358,7 @@ mainSteps:
       Api: SendCommand
       DocumentName: AWS-RunShellScript
       InstanceIds:
-        - '{{ WaitForReplacementInstance.NewInstanceId }}'
+        - '{{ ValidateReplacementInstance.NewInstanceId }}'
       TimeoutSeconds: 900
       Parameters:
         commands:
@@ -346,7 +391,7 @@ mainSteps:
       Service: ssm
       Api: GetCommandInvocation
       CommandId: '{{ SendReadinessCommand.CommandId }}'
-      InstanceId: '{{ WaitForReplacementInstance.NewInstanceId }}'
+      InstanceId: '{{ ValidateReplacementInstance.NewInstanceId }}'
       PropertySelector: '$.Status'
       DesiredValues:
         - Success
@@ -358,7 +403,7 @@ mainSteps:
       Service: ssm
       Api: GetCommandInvocation
       CommandId: '{{ SendReadinessCommand.CommandId }}'
-      InstanceId: '{{ WaitForReplacementInstance.NewInstanceId }}'
+      InstanceId: '{{ ValidateReplacementInstance.NewInstanceId }}'
     outputs:
       - Name: StandardOutputContent
         Selector: '$.StandardOutputContent'
@@ -371,7 +416,7 @@ mainSteps:
       Service: ec2
       Api: DescribeInstances
       InstanceIds:
-        - '{{ WaitForReplacementInstance.NewInstanceId }}'
+        - '{{ ValidateReplacementInstance.NewInstanceId }}'
     outputs:
       - Name: Tags
         Selector: '$.Reservations[0].Instances[0].Tags'
@@ -383,13 +428,14 @@ mainSteps:
   # 12) Verificación estricta y salida estructurada del reset.
   - name: Report
     action: aws:executeScript
+    timeoutSeconds: 120
     isEnd: true
     inputs:
       Runtime: python3.11
       Handler: handler
       InputPayload:
         old_instance_id: '{{ CurrentInstanceId }}'
-        new_instance_id: '{{ WaitForReplacementInstance.NewInstanceId }}'
+        new_instance_id: '{{ ValidateReplacementInstance.NewInstanceId }}'
         correlation_id: '{{ CorrelationId }}'
         readiness: '{{ GetReadinessOutput.StandardOutputContent }}'
         tags: '{{ VerifyNewInstanceTags.Tags }}'
@@ -482,6 +528,7 @@ mainSteps:
 
   - name: FailTargetInvalid
     action: aws:executeScript
+    timeoutSeconds: 120
     isEnd: true
     inputs:
       Runtime: python3.11

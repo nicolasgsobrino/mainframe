@@ -112,6 +112,15 @@ output "release_order" {
   }
 }
 
+output "automation_trust_policy" {
+  description = <<-EOT
+    Trust del rol de Automation. Exige simultáneamente el principal
+    ssm.amazonaws.com, aws:SourceAccount y aws:SourceArn acotado a
+    `automation-execution/*` de la cuenta y la región configuradas.
+  EOT
+  value       = local.automation_trust_policy
+}
+
 output "patch_baseline_id" {
   description = "Baseline que aprueba únicamente el advisory candidato."
   value       = try(aws_ssm_patch_baseline.lab[0].id, "")

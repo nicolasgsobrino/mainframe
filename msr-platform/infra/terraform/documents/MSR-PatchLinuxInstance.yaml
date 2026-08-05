@@ -80,6 +80,7 @@ mainSteps:
   # 4) Tags obligatorios del laboratorio + cuenta y región.
   - name: ValidateAccountRegionAndTags
     action: aws:executeScript
+    timeoutSeconds: 120
     onFailure: 'step:FailTargetInvalid'
     inputs:
       Runtime: python3.11
@@ -191,6 +192,7 @@ mainSteps:
 
   - name: ParsePrecheck
     action: aws:executeScript
+    timeoutSeconds: 120
     onFailure: 'step:FailPrecheck'
     inputs:
       Runtime: python3.11
@@ -375,6 +377,7 @@ mainSteps:
   # 12) Verificación estricta y outputs estructurados del runbook.
   - name: Report
     action: aws:executeScript
+    timeoutSeconds: 120
     isEnd: true
     inputs:
       Runtime: python3.11
@@ -492,6 +495,7 @@ mainSteps:
   # --- Terminaciones funcionales explícitas ---------------------------------
   - name: FailAdvisoryNotApplicable
     action: aws:executeScript
+    timeoutSeconds: 120
     isEnd: true
     inputs:
       Runtime: python3.11
@@ -502,6 +506,7 @@ mainSteps:
 
   - name: FailTargetInvalid
     action: aws:executeScript
+    timeoutSeconds: 120
     isEnd: true
     inputs:
       Runtime: python3.11
@@ -512,6 +517,7 @@ mainSteps:
 
   - name: FailPrecheck
     action: aws:executeScript
+    timeoutSeconds: 120
     isEnd: true
     inputs:
       Runtime: python3.11
@@ -522,6 +528,7 @@ mainSteps:
 
   - name: FailPatch
     action: aws:executeScript
+    timeoutSeconds: 120
     isEnd: true
     inputs:
       Runtime: python3.11
@@ -532,6 +539,7 @@ mainSteps:
 
   - name: FailPostcheck
     action: aws:executeScript
+    timeoutSeconds: 120
     isEnd: true
     inputs:
       Runtime: python3.11

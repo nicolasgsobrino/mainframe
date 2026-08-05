@@ -75,21 +75,26 @@ resource "aws_iam_instance_profile" "instance" {
 # 2) Rol de Automation: lo asume Systems Manager para ejecutar los runbooks.
 # ---------------------------------------------------------------------------
 
-data "aws_iam_policy_document" "automation_trust" {
-  statement {
-    actions = ["sts:AssumeRole"]
+# El trust se construye con `jsonencode` (no con `aws_iam_policy_document`) para
+# que `terraform test` pueda comprobar el JSON exacto con el provider simulado.
+# El principal es únicamente ssm.amazonaws.com y deben cumplirse a la vez
+# aws:SourceAccount y aws:SourceArn, acotado a las ejecuciones de Automation de
+# esta cuenta y región (nunca arn:aws:ssm:*:*:*).
+locals {
+  automation_trust_source_arn = "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:automation-execution/*"
 
-    principals {
-      type        = "Service"
-      identifiers = ["ssm.amazonaws.com"]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [var.aws_account_id]
-    }
-  }
+  automation_trust_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "ssm.amazonaws.com" }
+      Condition = {
+        StringEquals = { "aws:SourceAccount" = var.aws_account_id }
+        ArnLike      = { "aws:SourceArn" = local.automation_trust_source_arn }
+      }
+    }]
+  })
 }
 
 resource "aws_iam_role" "automation" {
@@ -97,7 +102,7 @@ resource "aws_iam_role" "automation" {
 
   name                 = "${local.name_prefix}-automation-role"
   description          = "MSR PoC: ejecución de los runbooks MSR-* sobre la instancia etiquetada"
-  assume_role_policy   = data.aws_iam_policy_document.automation_trust.json
+  assume_role_policy   = local.automation_trust_policy
   max_session_duration = 3600
   tags                 = local.common_tags
 }
