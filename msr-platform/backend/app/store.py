@@ -179,7 +179,7 @@ class Store:
         # (patch, reset o reconciliación), también entre tasks independientes.
         self.lab_locks = LabLockManager(
             self.settings,
-            get_lab_lock_backend(self.settings, self.repo, self._dynamodb_client),
+            get_lab_lock_backend(self.settings, self.repo, self.dynamodb_client),
             default_holder())
         # Reconciliador del laboratorio, independiente del reconciliador de jobs.
         self.lab_lifecycle = LabLifecycleManager(self)
@@ -193,7 +193,7 @@ class Store:
                  self.restore_provider.name)
         self.reset(clear_jobs=False)
 
-    def _dynamodb_client(self):
+    def dynamodb_client(self):
         """Cliente DynamoDB del provider AWS, con sus mismas credenciales."""
         provider = self.restore_provider
         if provider.name != PROVIDER_AWS_AUTOMATION:

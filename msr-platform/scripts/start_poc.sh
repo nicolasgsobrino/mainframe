@@ -7,7 +7,8 @@
 #   MSR_POC_MODE=aws  scripts/start_poc.sh   # falla si no hay identidad de workload
 #
 # Nunca ejecuta un patch ni un reset: `MSR_DRY_RUN=true` y la comprobación del
-# laboratorio es la no destructiva (`app.lab_hook` sin `--confirm`).
+# laboratorio es la no destructiva (`app.preflight` contra AWS, o `app.lab_hook`
+# sin `--confirm` en mock).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -101,9 +102,15 @@ curl -fsS -m 5 "http://localhost:$PORT/api/execution" || true
 echo
 
 # --- 6. Laboratorio: comprobación NO destructiva ------------------------------
-# Sin `--confirm`: descubre la instancia por tags e informa. Nunca resetea.
+# Contra AWS, el preflight valida además la identidad federada y la tabla de
+# locks; en mock basta el hook. Ninguno de los dos autoriza un reset.
 log "Laboratorio (comprobación no destructiva)"
-(cd "$ROOT/backend" && "$PY" -m app.lab_hook) ||
+if [ "$AWS_OK" = "1" ]; then
+  CHECK="app.preflight"
+else
+  CHECK="app.lab_hook"
+fi
+(cd "$ROOT/backend" && "$PY" -m "$CHECK") ||
   echo "El laboratorio no está listo (ver salida): la aplicación sigue arriba."
 
 cat <<EOF

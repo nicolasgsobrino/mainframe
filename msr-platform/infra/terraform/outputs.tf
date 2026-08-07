@@ -327,3 +327,37 @@ output "backend_lock_table" {
     managed       = var.enable_backend_lock_table
   }
 }
+
+# --- Bootstrap único del rol federado del backend externo --------------------
+
+output "backend_external_role_bootstrap" {
+  description = <<-EOT
+    Paquete atómico que debe aplicar el equipo de cloud una sola vez: proveedor
+    OIDC, rol federado y política. Este Terraform NO crea ninguno de los tres
+    (la cuenta deniega adjuntar políticas a un rol). La política de permisos es
+    la misma que publica backend_task_role_permission_policy_json: las llamadas a
+    AWS no dependen de dónde se ejecute la aplicación.
+  EOT
+  value = {
+    oidc_provider = {
+      url       = "https://${var.devin_oidc_issuer_host}"
+      arn       = local.backend_oidc_provider_arn
+      client_id = var.devin_oidc_audience
+      jwks_uri  = "https://${var.devin_oidc_issuer_host}/.well-known/jwks.json"
+      subject   = var.devin_oidc_subject
+    }
+    role = {
+      name                   = var.backend_external_role_name
+      arn                    = "arn:aws:iam::${var.aws_account_id}:role/${var.backend_external_role_name}"
+      trust_policy_json      = jsonencode(local.backend_external_role_trust_policy)
+      permission_policy_json = jsonencode(local.backend_task_permission_policy)
+    }
+    lock_table = {
+      name          = var.backend_lock_table_name
+      arn           = local.backend_lock_table_arn
+      partition_key = "lab_id"
+      ttl_attribute = "expires_at"
+      billing_mode  = "PAY_PER_REQUEST"
+    }
+  }
+}

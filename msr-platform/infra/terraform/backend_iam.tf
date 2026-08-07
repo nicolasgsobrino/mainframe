@@ -44,6 +44,30 @@ locals {
     }]
   }
 
+  # --- Trust policy del rol federado (arquitectura vigente) ---------------
+  # La aplicación se ejecuta en la VM de la sesión de Devin, fuera de AWS: la
+  # identidad es un token OIDC de la sesión intercambiado por credenciales
+  # temporales. `sub` es el valor verificado del token de esta organización, así
+  # que sólo sus sesiones pueden asumir el rol. Sin comodines y sin claves.
+  backend_oidc_provider_arn = (
+    "arn:aws:iam::${var.aws_account_id}:oidc-provider/${var.devin_oidc_issuer_host}"
+  )
+  backend_external_role_trust_policy = {
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "OnlyDevinSessionsOfThisOrgMayAssumeThisRole"
+      Effect    = "Allow"
+      Principal = { Federated = local.backend_oidc_provider_arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${var.devin_oidc_issuer_host}:aud" = var.devin_oidc_audience
+          "${var.devin_oidc_issuer_host}:sub" = var.devin_oidc_subject
+        }
+      }
+    }]
+  }
+
   # --- ARNs sobre los que opera el backend --------------------------------
   backend_runbook_arns = [
     "arn:aws:ssm:${var.aws_region}:${var.aws_account_id}:automation-definition/${var.patch_runbook_name}",

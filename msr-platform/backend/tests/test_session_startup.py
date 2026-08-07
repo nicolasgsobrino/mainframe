@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+from types import SimpleNamespace
 
 import boto3
 import pytest
@@ -18,6 +19,7 @@ from app.identity_check import describe_identity
 PLATFORM = pathlib.Path(__file__).resolve().parents[2]
 START = PLATFORM / "scripts" / "start_poc.sh"
 REPORT = PLATFORM / "ARCHITECTURE_REPORT_PHASE2_11.md"
+BOOTSTRAP = PLATFORM / "AWS_BOOTSTRAP_REQUEST.md"
 
 CREDENTIAL_MARKERS = ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
                       "aws_access_key_id", "aws_secret_access_key", "aws configure",
@@ -26,6 +28,11 @@ CREDENTIAL_MARKERS = ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION
 
 def read(path: pathlib.Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def json_blocks(text: str) -> list[str]:
+    """Bloques ```json de un documento: las políticas, sin la prosa que las explica."""
+    return re.findall(r"```json\n(.*?)```", text, re.DOTALL)
 
 
 def code(path: pathlib.Path) -> str:
@@ -73,11 +80,16 @@ def test_the_startup_script_keeps_the_safe_defaults():
 
 
 def test_the_startup_script_never_authorizes_a_destructive_reconciliation():
-    """`app.lab_hook` sin `--confirm`: descubre e informa, nunca recrea."""
-    invocations = [line for line in code(START).splitlines() if "-m app.lab_hook" in line]
+    """Comprobación no destructiva: `app.preflight` contra AWS, `app.lab_hook` en
+    mock, y nunca `--confirm`."""
+    # Sólo las líneas que ejecutan algo, no el mensaje final que documenta el reset.
+    checks = [line for line in code(START).splitlines()
+              if ("app.lab_hook" in line or "app.preflight" in line)
+              and ("CHECK=" in line or "-m " in line)]
 
-    assert invocations
-    for line in invocations:
+    assert [line for line in checks if "app.preflight" in line]
+    assert [line for line in checks if "app.lab_hook" in line]
+    for line in checks:
         assert "--confirm" not in line, line
 
 
@@ -103,17 +115,31 @@ def test_the_startup_script_is_idempotent():
 # --- verificación de identidad ----------------------------------------------
 
 class _FakeSts:
+    arn: str | None = None
+
     def __init__(self, account: str):
         self._account = account
 
     def get_caller_identity(self) -> dict:
-        return {"Account": self._account,
-                "Arn": f"arn:aws:sts::{self._account}:assumed-role/MSRExternalBackendRole/msr"}
+        arn = self.arn or f"arn:aws:sts::{self._account}:assumed-role/MSRExternalBackendRole/msr"
+        return {"Account": self._account, "Arn": arn}
+
+
+class _FakeCredentials:
+    """Credenciales resueltas por el SDK: `method` y presencia de session token."""
+
+    def __init__(self, method: str, token: str | None):
+        self.method = method
+        self._token = token
+
+    def get_frozen_credentials(self):
+        return SimpleNamespace(access_key="AKIAFAKE", secret_key="fake", token=self._token)
 
 
 class _FakeSession:
-    def __init__(self, account: str | Exception):
+    def __init__(self, account: str | Exception, credentials: _FakeCredentials | None = None):
         self._account = account
+        self._credentials = credentials or _FakeCredentials("custom-process", "fake-token")
 
     def __call__(self, **kwargs):
         return self
@@ -124,16 +150,23 @@ class _FakeSession:
             raise self._account
         return _FakeSts(self._account)
 
+    def get_credentials(self):
+        return self._credentials
+
 
 @pytest.fixture
 def identity_settings(monkeypatch):
-    def _configure(account: str | Exception, allowed: list[str]):
+    def _configure(account: str | Exception, allowed: list[str], *,
+                   credentials: _FakeCredentials | None = None, arn: str | None = None):
         settings = Settings(_env_file=None, aws_region="eu-north-1",
                             patch_provider="aws-automation",
                             restore_provider="aws-automation",
                             allowed_account_ids=allowed)
         monkeypatch.setattr("app.identity_check.get_settings", lambda: settings)
-        monkeypatch.setattr(boto3, "Session", _FakeSession(account))
+        session = _FakeSession(account, credentials)
+        if arn is not None:
+            monkeypatch.setattr(_FakeSts, "arn", arn, raising=False)
+        monkeypatch.setattr(boto3, "Session", session)
         return settings
     return _configure
 
@@ -146,9 +179,40 @@ def test_a_usable_identity_in_the_allowed_account_enables_aws(identity_settings)
     assert result["usable"] is True
     assert result["account"] == "133789123239"
     assert result["credentials_source"] == "default-chain"
+    # El rol federado del bootstrap, con credenciales temporales de STS.
+    assert result["role"] == "MSRExternalBackendRole"
+    assert result["temporary"] is True
+    assert result["static_credentials_present"] is False
     # Nunca se publica una credencial, sólo su origen.
     for key in result:
         assert key not in ("access_key_id", "secret_access_key", "session_token")
+
+
+def test_a_permanent_iam_key_is_rejected_even_in_the_allowed_account(identity_settings):
+    # Clave de usuario IAM: sin session token y resuelta del entorno.
+    identity_settings("133789123239", ["133789123239"],
+                      credentials=_FakeCredentials("env", None),
+                      arn="arn:aws:iam::133789123239:user/algun-humano")
+
+    result = describe_identity()
+
+    assert result["usable"] is False
+    assert result["temporary"] is False
+    assert result["static_credentials_present"] is True
+    assert result["role"] == ""
+    assert "no es un rol asumido" in result["error"]
+
+
+def test_temporary_credentials_from_a_static_source_are_rejected(identity_settings):
+    # Credenciales de STS pegadas en ~/.aws/credentials: no es la federación OIDC.
+    identity_settings("133789123239", ["133789123239"],
+                      credentials=_FakeCredentials("shared-credentials-file", "fake-token"))
+
+    result = describe_identity()
+
+    assert result["usable"] is False
+    assert result["static_credentials_present"] is True
+    assert "shared-credentials-file" in result["error"]
 
 
 def test_an_identity_outside_the_allowlist_is_rejected(identity_settings):
@@ -192,6 +256,40 @@ def test_single_valued_allowlists_can_come_from_the_environment(monkeypatch):
 
     assert settings.allowed_regions == ["eu-north-1"]
     assert settings.allowed_account_ids == ["133789123239", "999999999999"]
+
+
+# --- el paquete de bootstrap para el equipo de cloud -------------------------
+
+def test_the_bootstrap_package_is_atomic_and_self_contained():
+    package = read(BOOTSTRAP)
+
+    # Los tres elementos del bootstrap, con sus valores verificados.
+    assert "https://deloitte-es.devinenterprise.com" in package
+    assert "org_id:org-4793cba689a54a11b8fe70ed031524c4" in package
+    assert "MSRExternalBackendRole" in package
+    assert "PAY_PER_REQUEST" in package
+    assert "expires_at" in package
+    # No pide nada de la arquitectura descartada.
+    for removed in ("ecs ", "ecr ", "aws elbv2", "nat-gateway", "create-vpc-endpoint"):
+        assert removed not in package.lower(), removed
+    # Las políticas publicadas: DynamoDB acotado a las tres acciones del lock.
+    for document in json_blocks(package):
+        actions = re.findall(r'"(dynamodb:\w+)"', document)
+        assert set(actions) <= {"dynamodb:GetItem", "dynamodb:PutItem",
+                                "dynamodb:DeleteItem"}, actions
+        assert "iam:PassRole" not in document
+    # Y no contiene ninguna credencial.
+    for marker in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "aws_secret_access_key"):
+        assert marker not in package, marker
+
+
+def test_the_validation_checklist_covers_the_authorized_dry_run():
+    package = read(BOOTSTRAP)
+
+    for check in ("setup-aws-oidc", "app.preflight", "133789123239", "eu-north-1",
+                  "Online", "MSR_DRY_RUN=true", "tags"):
+        assert check in package, check
+    assert "autorización explícita y separada" in package
 
 
 # --- el informe de la fase 2.11 ---------------------------------------------

@@ -491,3 +491,45 @@ variable "backend_lock_table_name" {
   type        = string
   default     = "msr-poc-lab-locks"
 }
+
+# --- Identidad federada del backend externo (OIDC de la sesión de Devin) -----
+
+variable "devin_oidc_issuer_host" {
+  description = <<-EOT
+    Host del emisor OIDC de este despliegue de Devin, sin esquema: es el nombre
+    del proveedor OIDC de IAM y el prefijo de las claves de condición.
+  EOT
+  type        = string
+  default     = "deloitte-es.devinenterprise.com"
+
+  validation {
+    condition     = !can(regex("^https?://", var.devin_oidc_issuer_host))
+    error_message = "devin_oidc_issuer_host es un host, sin https://."
+  }
+}
+
+variable "devin_oidc_audience" {
+  description = "Audiencia del token intercambiado y client ID del proveedor OIDC."
+  type        = string
+  default     = "sts.amazonaws.com"
+}
+
+variable "devin_oidc_subject" {
+  description = <<-EOT
+    `sub` exacto verificado en el token de esta organización. Restringe el rol a
+    las sesiones de Devin de la organización: nunca debe ser un comodín.
+  EOT
+  type        = string
+  default     = "org_id:org-4793cba689a54a11b8fe70ed031524c4"
+
+  validation {
+    condition     = can(regex("^org_id:org-[0-9a-f]{32}$", var.devin_oidc_subject))
+    error_message = "devin_oidc_subject debe tener la forma org_id:org-<32 hex>."
+  }
+}
+
+variable "backend_external_role_name" {
+  description = "Rol federado que asume el backend de MSR desde la sesión de Devin."
+  type        = string
+  default     = "MSRExternalBackendRole"
+}

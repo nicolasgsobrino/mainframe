@@ -109,9 +109,8 @@ funcional:
   `ssm:GetAutomationExecution`, `ssm:DescribeAutomationStepExecutions`,
   `ssm:StopAutomationExecution`, `ssm:ListCommands`, `ssm:GetCommandInvocation` — parcheo y
   seguimiento, acotado a los tres runbooks MSR.
-- `autoscaling:DescribeAutoScalingGroups`, `autoscaling:DescribeScalingActivities`,
+- `autoscaling:DescribeAutoScalingGroups`, `autoscaling:DescribeAutoScalingInstances`,
   `autoscaling:TerminateInstanceInAutoScalingGroup` — reset y recuperación dentro del ASG.
-- `sts:GetCallerIdentity` — verificación de identidad del arranque.
 - Lock, acotado a la tabla:
 
 ```json
@@ -125,6 +124,15 @@ funcional:
 Sigue **sin** `iam:PassRole` (los runbooks no declaran `assumeRole`: la Automation corre con la
 identidad que la inicia), sin `dynamodb:UpdateItem` y sin `dynamodb:*`.
 
+`sts:GetCallerIdentity`, que usa la verificación de arranque, **no aparece** en la política
+porque AWS lo autoriza siempre a cualquier identidad: no hace falta concederlo.
+
+El JSON literal de la trust policy y de la política, los comandos de la CLI y los criterios de
+aceptación están en `AWS_BOOTSTRAP_REQUEST.md`, el entregable para el equipo de Cloud/IAM. Los
+dos documentos los publica ahora Terraform en el output `backend_external_role_bootstrap`, con
+test propio (`tests/external_backend_identity.tftest.hcl`) que fija el `sub` verificado, la
+ausencia de comodines y el alcance del statement de DynamoDB.
+
 ### 3.4 Tabla de locks
 
 `msr-poc-lab-locks`, clave de partición `lab_id`, TTL en `expires_at`, `PAY_PER_REQUEST`
@@ -135,8 +143,7 @@ destructiva.
 
 ### 3.5 Blueprint del repositorio
 
-Configuración única en Devin (hoy el repositorio **no tiene blueprint**, verificado). Propuesta
-enviada como sugerencia para su aprobación:
+Configuración única en Devin (el repositorio no tenía blueprint). **Aprobado por el usuario**:
 
 ```yaml
 initialize:
@@ -154,8 +161,10 @@ resuelve credenciales temporales por la cadena estándar del SDK y la aplicació
 configura perfil (`MSR_AWS_PROFILE=`) ni assume-role (`MSR_AWS_ROLE_ARN=`). No hace falta
 guardar ningún secreto: el ARN del rol no es sensible.
 
-Mientras el blueprint no esté aprobado, `scripts/start_poc.sh` instala las dependencias por sí
-mismo y arranca en modo `mock` (no hay identidad de AWS) — la demo funciona simulada.
+La acción sólo escribe ficheros: no llama a STS al construir el snapshot, así que el blueprint
+no falla porque el rol todavía no exista (verificado leyendo su implementación). Hasta que el
+bootstrap esté aplicado, `scripts/start_poc.sh` instala las dependencias por sí mismo y arranca
+en modo `mock` — la demo funciona simulada.
 
 ---
 
@@ -185,9 +194,11 @@ Lo que hace, en orden:
    - `MSR_POC_MODE=aws` fuerza el modo AWS y **falla** si no hay identidad.
 5. **Backend** en `127.0.0.1:8080` (reinicio idempotente: mata el uvicorn anterior de ese
    puerto), espera activa del health y volcado de `/api/health` y `/api/execution`.
-6. **Laboratorio, comprobación no destructiva**: `python -m app.lab_hook` **sin** `--confirm`
-   → descubre la instancia por tags, valida cuenta/región/tags e informa. Nunca resetea. Si el
-   laboratorio no está listo, lo dice y deja la aplicación arriba.
+6. **Laboratorio, comprobación no destructiva**: contra AWS, `python -m app.preflight`
+   (identidad federada, valores por defecto seguros, alcanzabilidad de la tabla de locks con
+   `GetItem` y estado del laboratorio con el reset **prohibido**, `allow_reset=False`); en mock,
+   `python -m app.lab_hook` sin `--confirm`. Ninguno resetea. Si el laboratorio no está listo,
+   lo dice y deja la aplicación arriba.
 7. **Instrucciones**: abrir `http://localhost:8080` en el navegador de la VM y operar desde la
    pestaña Desktop.
 
@@ -204,10 +215,12 @@ que sólo se relanza el backend y se revalida el laboratorio.
 ### 4.2 Lo que el usuario no necesita
 
 Ni instalación local, ni `aws login`, ni perfil de AWS, ni claves estáticas, ni Instance ID, ni
-`.env`, ni nombres de runbooks, ni la CLI de AWS. Sólo pedirle a Devin que arranque la PoC.
+`.env`, ni nombres de runbooks, ni ejecutar ningún comando de la CLI de AWS (el helper del
+`credential_process` sí la invoca por dentro, y ya viene instalada en la VM). Sólo pedirle a
+Devin que arranque la PoC.
 
-Playbook/knowledge asociado: `msr-platform/PLAYBOOK_START_POC.md`, para que «arranca la PoC de
-MSR» sea suficiente.
+Playbook/knowledge asociado: `msr-platform/PLAYBOOK_START_POC.md` y el playbook «Arrancar la
+PoC de MSR» ya creado en Devin, para que «arranca la PoC de MSR» sea suficiente.
 
 ---
 
@@ -220,7 +233,11 @@ MSR» sea suficiente.
 | Reconciliación en arranque | `MSR_LAB_RECONCILE_ON_STARTUP` fijado a `false` por el script |
 | Mutar el laboratorio en paralelo | Imposible: el lock admite una sola operación a la vez |
 
-Tests que lo fijan (`backend/tests/test_session_startup.py`): el script no contiene ninguna
+Tests que lo fijan (`backend/tests/test_session_startup.py` y `test_preflight.py`): el
+preflight exige credenciales temporales y federadas, rechaza cualquier clave estática visible
+para el SDK, lee la tabla de locks sin escribirla y llama al laboratorio siempre con
+`allow_reset=False` (un laboratorio ya parcheado **falla** la comprobación en vez de
+recrearse). Además, el script no contiene ninguna
 credencial ni `aws configure`/`aws login`, no fija ningún Instance ID, no lee ni copia un
 `.env`, mantiene `MSR_DRY_RUN=true` y `MSR_LAB_RECONCILE_ON_STARTUP=false`, nunca invoca
 `app.lab_hook --confirm`, verifica la identidad **antes** de activar los providers de AWS y es
@@ -247,7 +264,13 @@ arranque fail-closed contra AWS era imposible sin fichero `.env`.
 | Trust policy y política de permisos | Escritas, listas para aplicar |
 | Script de arranque idempotente | Implementado y probado en modo mock |
 | Tests de sesión limpia | Implementados |
-| Blueprint con `setup-aws-oidc` | Propuesto, pendiente de aprobación |
-| Proveedor OIDC, `MSRExternalBackendRole`, tabla de locks | **Pendientes de autorización** (ninguna mutación hecha) |
-| Arranque en modo `aws` verificado de punta a punta | Pendiente: requiere el bootstrap anterior |
-| Patch/reset reales | Pendientes de autorización explícita |
+| Blueprint con `setup-aws-oidc` y playbook | **Aprobados** por el usuario |
+| Preflight de validación en dry-run | Implementado (`python -m app.preflight`) |
+| Paquete atómico para el equipo de Cloud/IAM | Entregado: `AWS_BOOTSTRAP_REQUEST.md` |
+| Proveedor OIDC, `MSRExternalBackendRole`, tabla de locks | **Pendientes del equipo de cloud** (ninguna mutación hecha desde aquí) |
+| Arranque en modo `aws` verificado de punta a punta | Pendiente: requiere el bootstrap anterior, en una sesión nueva |
+| Patch/reset reales | Pendientes de autorización explícita y separada |
+
+La validación end-to-end en dry-run (14 comprobaciones, sin patch ni reset) se ejecutará en una
+sesión nueva cuando el equipo de cloud confirme el bootstrap: checklist en
+`AWS_BOOTSTRAP_REQUEST.md` §5.
