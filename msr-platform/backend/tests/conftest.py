@@ -64,7 +64,6 @@ def aws_real_settings(aws_settings) -> Settings:
     aws_settings.allowed_account_ids = ["123456789012"]
     aws_settings.allowed_regions = ["eu-west-1"]
     aws_settings.allowed_environments = ["development"]
-    aws_settings.sandbox_instance_id = "i-0123456789abcdef0"
     return aws_settings
 
 

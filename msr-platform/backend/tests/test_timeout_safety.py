@@ -26,12 +26,12 @@ def build_store(settings, provider) -> Store:
 def running_job(store: Store):
     tid = deployment_task(store)
     ring_no = engine.RING_DEFS[store.pipelines[tid]["rings_done"]][0]
-    assets = store._ring_assets(tid, ring_no)
-    logical = assets[0].get("logical_target_id") or assets[0]["id"]
-    store.settings.sandbox_instance_id = INSTANCE
-    store.settings.sandbox_logical_target_id = logical
     store.tasks[tid]["track"] = "A"
     store.preapprove_ring(tid, ring_no)
+    assets = store._ring_assets(tid, ring_no)
+    logical = assets[0].get("logical_target_id") or assets[0]["id"]
+    # El Instance ID viaja en el activo: ninguna variable de entorno lo fija.
+    assets[0]["instance_id"] = INSTANCE
     return store.start_ring_patch_job(tid, "key-timeout"), tid, logical
 
 

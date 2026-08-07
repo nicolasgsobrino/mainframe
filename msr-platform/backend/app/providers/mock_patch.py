@@ -223,7 +223,25 @@ class MockPatchProvider:
             dry_run=False, steps=steps, from_version=plan["from_version"],
             to_version=plan["to_version"], started_at=iso_utc(started),
             completed_at=iso_utc(self._now()) if done else None,
+            report=self._report(request, plan) if done else {},
             detail=f"{len(steps)}/{len(all_steps)} pasos completados.")
+
+    def _report(self, request: PatchRequest, plan: dict) -> dict[str, str]:
+        """Report simulado con la misma forma que el del runbook de Automation."""
+        target = request.primary_target()
+        report = {
+            "Advisory": self._settings.patch_advisory_id,
+            "Releasever": self._settings.patch_releasever,
+            "ExpectedFixedKernel": self._settings.patch_expected_fixed_kernel,
+            "PreviousKernel": plan["from_version"],
+            "CurrentKernel": self._settings.patch_expected_fixed_kernel or plan["to_version"],
+            "PatchStatus": "PATCHED",
+            "HealthStatus": "HEALTHY",
+            "CorrelationId": request.correlation_id,
+        }
+        if target.instance_id:
+            report["InstanceId"] = target.instance_id
+        return {key: value for key, value in report.items() if value}
 
     # ------------------------------------------------------------------
     def cancel(self, provider_reference: str, request: PatchRequest | None = None) -> PatchExecution:

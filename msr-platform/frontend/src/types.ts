@@ -110,6 +110,14 @@ export interface LabTarget {
   /** Sólo lectura: advisory, releasever y kernel corregido los fija la IaC. */
   candidate_releasever: string | null; expected_fixed_kernel: string | null;
   required_tags: Record<string, string>; last_reset_job_id: string | null;
+  /** Estado operativo reconciliado con AWS (fase 2.6). */
+  previous_instance_id: string | null; lab_state: LabState;
+  current_kernel: string | null; advisory_applicable: boolean | null;
+  ssm_state: string | null; health_state: string | null; evidence_source: string | null;
+  last_patch_job_id: string | null;
+  last_patch_execution_id: string | null; last_reset_execution_id: string | null;
+  reconciliation_state: ReconciliationState; last_reconciled_at: string | null;
+  last_reconciliation_error: string | null; last_correlation_id: string | null;
   updated_at: string;
 }
 export interface LabInstance {
@@ -121,8 +129,53 @@ export interface LabInstance {
 export interface LabResolutionError {
   code: string; message: string; candidates: string[];
 }
-export type LabVulnerableState = "vulnerable_expected" | "patched";
-export interface LabSnapshot {
+export type LabState = "unknown" | "vulnerable" | "patched";
+export type ReconciliationState =
+  "idle" | "running" | "ready" | "resetting" | "failed" | "skipped";
+
+/** Evidencia de sólo lectura observada en AWS (o simulada en modo mock). */
+export interface LabEvidence {
+  vulnerable_state: LabState; health_state: string; ssm_state: string | null;
+  current_kernel: string | null; expected_fixed_kernel: string | null;
+  advisory_id: string | null; advisory_applicable: boolean | null;
+  source: string; detail: string; ready: boolean; checks: LabCheck[];
+}
+
+/** Estado del reconciliador (`ensure_lab_ready`). */
+export interface LabReconciliation {
+  logical_lab_id: string; execution_mode: ExecutionMode; credentials_source: string;
+  reconcile_on_startup: boolean; holder: string;
+  lock: { holder: string; correlation_id: string; reason: string; expires_at: string } | null;
+  reconciliation_state: ReconciliationState | null; lab_state: LabState | null;
+  current_instance_id: string | null; previous_instance_id: string | null;
+  last_reconciled_at: string | null; last_reconciliation_error: string | null;
+  last_correlation_id: string | null; last_result: LabReconcileResult | null;
+}
+
+export interface LabReconcileResult {
+  logical_lab_id: string; state: ReconciliationState; action: "none" | "reset";
+  ready: boolean; execution_mode: ExecutionMode; dry_run: boolean;
+  account_id: string | null; region: string | null;
+  autoscaling_group_name: string | null;
+  instance_id: string | null; previous_instance_id: string | null;
+  evidence: LabEvidence | null; correlation_id: string;
+  error_code: string | null; error: string | null; detail: string;
+  holder: string; observed_at: string;
+}
+
+/** Estado operativo del laboratorio proyectado en las vistas del backend. */
+export interface LabOperationalState {
+  vulnerable_state: LabState; advisory_confirmed: boolean;
+  advisory_applicable: boolean | null; current_kernel: string | null;
+  health_state: string | null; ssm_state: string | null; evidence_source: string | null;
+  reconciliation_state: ReconciliationState | null; last_reconciled_at: string | null;
+  last_reconciliation_error: string | null;
+  last_patch_execution_id: string | null; last_reset_execution_id: string | null;
+  previous_instance_id: string | null;
+  last_patch_job_id: string | null; last_reset_job_id: string | null;
+}
+
+export interface LabSnapshot extends LabOperationalState {
   lab: LabTarget | null; instance: LabInstance | null;
   resolution_error: LabResolutionError | null;
   task_id: string; advisory_id: string; package_family: string; environment: string;
@@ -132,16 +185,14 @@ export interface LabSnapshot {
   execution_mode: ExecutionMode; dry_run: boolean;
   patch_provider: ProviderName; restore_provider: ProviderName;
   active_job: PatchJob | null;
-  vulnerable_state: LabVulnerableState; advisory_confirmed: boolean;
-  last_patch_job_id: string | null; last_reset_job_id: string | null;
+  reconciliation: LabReconciliation;
 }
 export interface LabCheck { check: string; ok: boolean; detail: string; code?: string }
-export interface LabValidation {
+export interface LabValidation extends LabOperationalState {
   logical_lab_id: string; read_only: true; allowed: boolean; checks: LabCheck[];
-  instance: LabInstance | null; task_id: string; advisory_id: string;
+  instance: LabInstance | null; evidence: LabEvidence | null;
+  task_id: string; advisory_id: string;
   releasever: string; expected_fixed_kernel: string; note: string;
-  vulnerable_state: LabVulnerableState; advisory_confirmed: boolean;
-  last_patch_job_id: string | null; last_reset_job_id: string | null;
 }
 export interface LabResetResponse { job: PatchJob; lab: LabTarget }
 

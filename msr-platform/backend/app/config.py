@@ -60,11 +60,6 @@ class Settings(BaseSettings):
     reset_runbook_name: str = ""
     automation_assume_role_arn: str = ""
 
-    # --- Objetivo de sandbox (primera integración: 1 EC2 Linux) -----------
-    # Permite apuntar a la instancia real sin hardcodear IDs en la CMDB.
-    sandbox_instance_id: str = ""
-    sandbox_logical_target_id: str = ""
-
     # --- Laboratorio reseteable (fase 2) -----------------------------------
     # La instancia se resuelve por tags a partir del identificador lógico: el
     # reset la recrea con otro Instance ID, así que nunca se fija en la CMDB.
@@ -82,6 +77,16 @@ class Settings(BaseSettings):
     # El reset sustituye la instancia dentro de este Auto Scaling Group. El valor
     # lo fija la IaC y nunca puede llegar desde la API ni desde el frontend.
     lab_autoscaling_group_name: str = ""
+
+    # --- Ciclo de vida del laboratorio (fase 2.6) --------------------------
+    # `ensure_lab_ready` reconcilia el laboratorio contra AWS. Nunca se ejecuta
+    # en cada arranque de un worker: se activa explícitamente (hook de despliegue
+    # o endpoint) y se protege con un lock persistido en SQLite.
+    lab_reconcile_on_startup: bool = False
+    lab_reconcile_lock_ttl_seconds: int = 1800
+    lab_reconcile_timeout_seconds: int = 1800
+    lab_reconcile_poll_interval_seconds: int = 15
+    lab_replacement_timeout_seconds: int = 900
 
     # --- Política de objetivos --------------------------------------------
     allowed_account_ids: list[str] = Field(default_factory=list)
@@ -151,6 +156,21 @@ class Settings(BaseSettings):
             return "mock"
         return "aws-real" if not self.dry_run else "aws-dry-run"
 
+    def credentials_source(self) -> str:
+        """Origen de las credenciales AWS (nunca su valor).
+
+        `default-chain` es el modo desplegado: boto3 usa la identidad IAM del
+        entorno de ejecución. `profile` sólo se usa en desarrollo local y
+        `assume-role` cuando se configura un rol explícito.
+        """
+        if not self.uses_aws():
+            return "none"
+        if self.aws_role_arn:
+            return "assume-role"
+        if self.aws_profile:
+            return "profile"
+        return "default-chain"
+
     def validate_for_providers(self) -> None:
         """Falla con un mensaje claro si un provider AWS carece de configuración."""
         missing: list[str] = []
@@ -205,12 +225,11 @@ class Settings(BaseSettings):
                      or contract_for(OPERATION_RESET_LAB).requires_assume_role)))
         if requires_role and not self.automation_assume_role_arn:
             missing.append("MSR_AUTOMATION_ASSUME_ROLE_ARN")
-        # Identidad del objetivo: un Instance ID explícito o un identificador
-        # lógico resoluble por tags (el laboratorio cambia de Instance ID en
-        # cada reset, así que nunca puede fijarse uno).
-        if not (self.sandbox_instance_id or self.sandbox_logical_target_id
-                or self.lab_logical_id):
-            missing.append("MSR_SANDBOX_INSTANCE_ID")
+        # Identidad del objetivo: sólo el identificador lógico del laboratorio,
+        # resoluble por tags. El Instance ID es efímero (cada reset lo cambia) y
+        # nunca se configura.
+        if not self.lab_logical_id:
+            missing.append("MSR_LAB_LOGICAL_ID")
         if self.lab_logical_id and not self.lab_tag_key:
             missing.append("MSR_LAB_TAG_KEY")
         # El reset real sustituye la instancia dentro del ASG: sin el nombre del

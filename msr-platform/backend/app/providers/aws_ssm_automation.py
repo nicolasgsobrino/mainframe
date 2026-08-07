@@ -100,7 +100,31 @@ def classify_error(exc: Exception) -> tuple[str, str]:
     return "TRANSIENT_FAILURE", "fallo transitorio"
 
 
-def _automation_output(execution: dict, key: str) -> str | None:
+# Outputs declarados por los runbooks de la PoC. Sólo estos se copian al job:
+# nada que no declare el contrato llega al estado local ni a la UI.
+PATCH_REPORT_KEYS = ("Advisory", "Releasever", "ExpectedFixedKernel", "PreviousKernel",
+                     "CurrentKernel", "LatestInstalledKernel", "RebootPerformed",
+                     "PatchStatus", "HealthStatus", "InstanceId", "CorrelationId")
+RESET_REPORT_KEYS = ("OldInstanceId", "NewInstanceId", "LogicalLabId", "Advisory",
+                     "Releasever", "ExpectedFixedKernel", "RunningKernel",
+                     "VulnerableState", "HealthState", "CorrelationId")
+
+
+def _automation_report(execution: dict, keys: tuple[str, ...], limit: int) -> dict[str, str]:
+    """Outputs declarados del runbook, saneados (Automation Report).
+
+    Los Instance ID se validan contra el patrón `i-…`: un valor que no lo cumpla
+    se descarta en lugar de propagarse al estado local.
+    """
+    report: dict[str, str] = {}
+    for key in keys:
+        value = _automation_output(execution, key, limit=limit)
+        if value:
+            report[key] = value
+    return report
+
+
+def _automation_output(execution: dict, key: str, limit: int = 64) -> str | None:
     """Output declarado del runbook (p. ej. `NewInstanceId`), sanitizado.
 
     Los outputs de Automation llegan como `{'Paso.Output': ['valor']}`; sólo se
@@ -112,7 +136,7 @@ def _automation_output(execution: dict, key: str) -> str | None:
             continue
         items = values if isinstance(values, list) else [values]
         for item in items:
-            candidate = sanitize_text(str(item), 64).strip()
+            candidate = sanitize_text(str(item), limit).strip()
             if key.endswith("InstanceId") and not INSTANCE_ID_RE.match(candidate):
                 continue
             if candidate:
@@ -508,6 +532,7 @@ class AwsSsmAutomationPatchProvider(_AutomationBase):
         return PatchExecution(
             provider=self.name, provider_reference=provider_reference, status=status,
             dry_run=False, steps=steps,
+            report=_automation_report(execution, PATCH_REPORT_KEYS, 200),
             started_at=iso_utc(execution.get("ExecutionStartTime")),
             completed_at=iso_utc(execution.get("ExecutionEndTime")),
             error_code="AUTOMATION_FAILED" if failure else None,
@@ -618,6 +643,7 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
         return RestoreExecution(
             provider=self.name, provider_reference=provider_reference, status=status,
             dry_run=False, steps=steps,
+            report=_automation_report(execution, RESET_REPORT_KEYS, 200),
             new_instance_id=_automation_output(execution, "NewInstanceId"),
             restored_version=request.target_version if request else None,
             started_at=iso_utc(execution.get("ExecutionStartTime")),

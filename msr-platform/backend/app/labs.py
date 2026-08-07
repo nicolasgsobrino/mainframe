@@ -253,6 +253,6 @@ def default_lab_target(settings: Settings, logical_lab_id: str) -> LabTarget:
 
 def get_lab_resolver(settings: Settings, provider, repository=None):
     """Resolutor acorde al provider activo: AWS real o laboratorio simulado."""
-    if getattr(provider, "name", "") == PROVIDER_AWS_AUTOMATION:
+    if provider.name == PROVIDER_AWS_AUTOMATION:
         return AwsLabResolver(settings, provider)
     return MockLabResolver(settings, repository)

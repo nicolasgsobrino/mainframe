@@ -38,7 +38,9 @@ def test_lab_status_exposes_the_resolved_instance_and_mode(lab_client):
     assert body["releasever"] == "2023.12.20260706"
     assert body["expected_fixed_kernel"] == "6.1.176-220.358.amzn2023.x86_64"
     assert body["execution_mode"] == "mock"
-    assert body["vulnerable_state"] == "vulnerable_expected"
+    # Sin evidencia observada todavía, el estado no se declara ni vulnerable ni parcheado.
+    assert body["vulnerable_state"] == "unknown"
+    assert body["reconciliation"]["reconcile_on_startup"] is False
     assert body["required_tags"]["msr-lab-id"] == LAB_ID
 
 
@@ -53,7 +55,9 @@ def test_validate_is_read_only_and_starts_no_job(lab_client, lab_store):
 
     assert body["read_only"] is True
     assert any(c["check"] == "Instancia resuelta por tags" and c["ok"] for c in body["checks"])
-    assert body["advisory_confirmed"] is False  # sólo el precheck del runbook lo confirma
+    # La validación observa evidencia (simulada con el provider mock).
+    assert body["advisory_confirmed"] is True
+    assert body["evidence"]["source"] == "mock"
     assert len(lab_store.repo.list_jobs_for_task(lab_store._lab_task_id(LAB_ID))) == before
 
 
@@ -78,7 +82,7 @@ def test_reset_updates_the_instance_id_and_keeps_the_logical_id(lab_client, lab_
     assert lab["logical_lab_id"] == LAB_ID
     assert lab["current_instance_id"] != previous
     assert lab["last_reset_job_id"] == job_id
-    assert lab_store.lab_snapshot(LAB_ID)["vulnerable_state"] == "vulnerable_expected"
+    assert lab_store.lab_snapshot(LAB_ID)["vulnerable_state"] == "vulnerable"
 
 
 def test_reset_does_not_increment_rings_done_and_keeps_history(lab_client, lab_store):

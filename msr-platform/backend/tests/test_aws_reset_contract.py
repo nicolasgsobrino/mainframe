@@ -154,6 +154,35 @@ def test_reset_poll_ignores_an_output_that_is_not_an_instance_id(reset_settings,
     assert provider.poll(EXECUTION_ID, reset_request()).new_instance_id is None
 
 
+def test_reset_report_only_keeps_declared_and_sanitized_outputs(reset_settings, clients):
+    """Fase 2.6: el report es una allowlist; nada más llega al estado local."""
+    ssm, ec2, ssm_stub, _ec2_stub = clients
+    ssm_stub.add_response(
+        "get_automation_execution",
+        {"AutomationExecution": {"AutomationExecutionId": EXECUTION_ID,
+                                 "AutomationExecutionStatus": "Success",
+                                 "Outputs": {
+                                     "recreate.NewInstanceId": [NEW_INSTANCE],
+                                     "validate.VulnerableState": ["VULNERABLE"],
+                                     "validate.HealthState": ["HEALTHY"],
+                                     "validate.Commands": ["rm -rf /"],
+                                     "validate.DocumentName": ["AWS-RunShellScript"],
+                                 }}},
+        {"AutomationExecutionId": EXECUTION_ID})
+    ssm_stub.add_response(
+        "describe_automation_step_executions", {"StepExecutions": []},
+        {"AutomationExecutionId": EXECUTION_ID})
+    provider = AwsSsmAutomationRestoreProvider(reset_settings, ssm_client=ssm, ec2_client=ec2)
+
+    report = provider.poll(EXECUTION_ID, reset_request()).report
+
+    assert report["NewInstanceId"] == NEW_INSTANCE
+    assert report["VulnerableState"] == "VULNERABLE"
+    assert report["HealthState"] == "HEALTHY"
+    assert "Commands" not in report
+    assert "DocumentName" not in report
+
+
 @pytest.mark.parametrize("forbidden", ["Commands", "Command", "Script", "SourceInfo",
                                        "Parameters", "DocumentName", "Operation",
                                        "InstallOverrideList", "LogicalLabId",

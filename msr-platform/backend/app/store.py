@@ -30,7 +30,15 @@ from .jobs import (
     new_job_id,
     state_for_execution,
 )
-from .lab import RESTORE_KIND_RESET_LAB, LabTarget, synthetic_instance_id
+from .lab import (
+    LAB_STATE_PATCHED,
+    LAB_STATE_UNKNOWN,
+    LAB_STATE_VULNERABLE,
+    RESTORE_KIND_RESET_LAB,
+    LabTarget,
+    synthetic_instance_id,
+)
+from .lab_lifecycle import LabLifecycleManager
 from .labs import (
     LabInstance,
     LabResolutionError,
@@ -40,6 +48,7 @@ from .labs import (
     required_lab_tags,
 )
 from .policy import INSTANCE_ID_RE, evaluate_target, sanitize_text
+from .precheck import get_lab_precheck
 from .providers import get_patch_provider, get_restore_provider
 from .providers.base import (
     PatchRequest,
@@ -161,6 +170,10 @@ class Store:
         self.restore_provider = restore_provider or get_restore_provider(self.settings)
         # Resuelve el Instance ID del laboratorio por tags (nunca lo fija).
         self.lab_resolver = get_lab_resolver(self.settings, self.patch_provider, self.repo)
+        # Evidencia de sólo lectura del estado real del laboratorio.
+        self.lab_precheck = get_lab_precheck(self.settings, self.patch_provider, self.repo)
+        # Reconciliador del laboratorio, independiente del reconciliador de jobs.
+        self.lab_lifecycle = LabLifecycleManager(self)
         # Proyección en memoria ya aplicada (distinta del resultado persistido del
         # job): se reconstruye en cada rehidratación.
         self._projected: set[str] = set()
@@ -737,16 +750,22 @@ class Store:
         return []
 
     def _asset_target(self, asset: dict) -> Target:
-        """Los IDs de instancia nunca están hardcodeados en la CMDB: si el operador
-        define MSR_SANDBOX_INSTANCE_ID, se superpone al objetivo correspondiente."""
+        """Objetivo de un activo de la CMDB.
+
+        Los Instance ID no se fijan en ninguna variable de entorno ni en la CMDB:
+        el activo del laboratorio se resuelve dinámicamente por tags en AWS, y el
+        resto de activos son sintéticos (mock) y no tienen instancia real.
+        """
         logical_id = asset.get("logical_target_id") or asset["id"]
         instance_id = asset.get("instance_id")
         region = asset.get("region")
-        sandbox_id = self.settings.sandbox_instance_id
-        sandbox_logical = self.settings.sandbox_logical_target_id
-        if sandbox_id and (not sandbox_logical or sandbox_logical == logical_id):
-            instance_id = sandbox_id
-            region = self.settings.aws_region or region
+        if logical_id == self.settings.lab_logical_id:
+            try:
+                instance = self._resolve_lab_instance(logical_id)
+            except LabResolutionError as exc:
+                raise ValidationError(exc.message, code=exc.code) from exc
+            return instance.as_target(asset.get("environment")
+                                      or self.settings.lab_environment)
         return Target(
             logical_target_id=logical_id, instance_id=instance_id,
             account_id=asset.get("account_id"), region=region,
@@ -1024,6 +1043,9 @@ class Store:
             value = getattr(execution, key, None)
             if value:
                 job.result_payload[key] = value
+        if execution.report:
+            # Outputs declarados del runbook: evidencia auditable del resultado.
+            job.result_payload["report"] = dict(execution.report)
         warning_code = execution.warning_code
         if warning_code:
             message = (f"[{warning_code}] "
@@ -1237,6 +1259,7 @@ class Store:
             self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
                             "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy "
                                    f"({', '.join(executed) or 'sin objetivos'})."})
+            self._apply_lab_patch(job)
             if p["rings_done"] >= len(engine.RING_DEFS):
                 t["status"] = "remediated"
                 self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
@@ -1296,8 +1319,25 @@ class Store:
             # contrato de la IaC; el payload no puede sobreescribirlos.
             candidate_releasever=self.settings.patch_releasever or None,
             expected_fixed_kernel=self.settings.patch_expected_fixed_kernel or None,
-            required_tags=dict(payload.get("required_tags") or {}),
-            last_reset_job_id=(existing.last_reset_job_id if existing else None))
+            required_tags=dict(payload.get("required_tags") or {}))
+        if existing is not None:
+            # El registro describe el laboratorio; no borra el estado operativo
+            # ya reconciliado con AWS.
+            lab.last_reset_job_id = existing.last_reset_job_id
+            lab.previous_instance_id = existing.previous_instance_id
+            lab.lab_state = existing.lab_state
+            lab.current_kernel = existing.current_kernel
+            lab.advisory_applicable = existing.advisory_applicable
+            lab.ssm_state = existing.ssm_state
+            lab.health_state = existing.health_state
+            lab.evidence_source = existing.evidence_source
+            lab.last_patch_job_id = existing.last_patch_job_id
+            lab.last_patch_execution_id = existing.last_patch_execution_id
+            lab.last_reset_execution_id = existing.last_reset_execution_id
+            lab.reconciliation_state = existing.reconciliation_state
+            lab.last_reconciled_at = existing.last_reconciled_at
+            lab.last_reconciliation_error = existing.last_reconciliation_error
+            lab.last_correlation_id = existing.last_correlation_id
         return self.repo.upsert_lab_target(lab).as_dict()
 
     # --- resolución dinámica por identificador lógico -------------------
@@ -1327,23 +1367,35 @@ class Store:
             self.repo.upsert_lab_target(lab)
         return instance
 
-    def _lab_state(self, tid: str) -> dict:
-        """Estado vulnerable/parcheado derivado del histórico de jobs del laboratorio.
+    def _lab_state(self, logical_lab_id: str, tid: str) -> dict:
+        """Estado operativo del laboratorio según la evidencia persistida.
 
-        No se declara «parcheado» por antigüedad ni por la AMI: sólo cuenta un
-        patch job realmente confirmado como `succeeded` después del último reset.
+        La evidencia observada en AWS manda: el histórico de jobs sólo aporta las
+        referencias de los últimos jobs. Mientras no haya evidencia se declara
+        `unknown`, nunca «parcheado» ni «vulnerable confirmado».
         """
+        lab = self.repo.get_lab_target(logical_lab_id)
         last_patch = last_reset = None
         for job in self.repo.list_jobs_for_task_chronological(tid):
             if job.job_type is JobType.PATCH and job.state is JobState.SUCCEEDED:
                 last_patch = job
             elif job.job_type is JobType.RESET_LAB and job.state is JobState.RESTORED:
                 last_reset = job
-        patched = last_patch is not None and (
-            last_reset is None or last_patch.completed_at >= last_reset.completed_at)
+        state = lab.lab_state if lab else LAB_STATE_UNKNOWN
         return {
-            "vulnerable_state": "patched" if patched else "vulnerable_expected",
-            "advisory_confirmed": False,
+            "vulnerable_state": state,
+            "advisory_confirmed": bool(lab and lab.advisory_applicable is not None),
+            "advisory_applicable": lab.advisory_applicable if lab else None,
+            "current_kernel": lab.current_kernel if lab else None,
+            "health_state": lab.health_state if lab else None,
+            "ssm_state": lab.ssm_state if lab else None,
+            "evidence_source": lab.evidence_source if lab else None,
+            "reconciliation_state": lab.reconciliation_state if lab else None,
+            "last_reconciled_at": (lab.as_dict()["last_reconciled_at"] if lab else None),
+            "last_reconciliation_error": lab.last_reconciliation_error if lab else None,
+            "last_patch_execution_id": lab.last_patch_execution_id if lab else None,
+            "last_reset_execution_id": lab.last_reset_execution_id if lab else None,
+            "previous_instance_id": lab.previous_instance_id if lab else None,
             "last_patch_job_id": last_patch.id if last_patch else None,
             "last_reset_job_id": last_reset.id if last_reset else None,
         }
@@ -1378,7 +1430,8 @@ class Store:
             "patch_provider": self.patch_provider.name,
             "restore_provider": self.restore_provider.name,
             "active_job": active.as_dict() if active else None,
-            **self._lab_state(tid),
+            "reconciliation": self.lab_lifecycle.status(logical_lab_id),
+            **self._lab_state(logical_lab_id, tid),
         }
 
     def validate_lab(self, logical_lab_id: str) -> dict:
@@ -1396,6 +1449,7 @@ class Store:
             checks.append({"check": "Instancia resuelta por tags", "ok": False,
                            "detail": exc.message, "code": exc.code})
 
+        evidence = None
         if instance is not None:
             missing = check_lab_tags(instance.tags, self.settings, logical_lab_id)
             checks.append({"check": "Tags obligatorios", "ok": not missing,
@@ -1410,6 +1464,11 @@ class Store:
                 instance_state=instance.state, require_instance=True,
                 strict=self.settings.real_aws_execution())
             checks.extend(policy.checks)
+            # Evidencia de sólo lectura: es la que decide si el laboratorio está
+            # listo, y se persiste para que la UI no muestre un estado obsoleto.
+            evidence = self.lab_precheck.inspect(instance)
+            checks.extend(evidence.checks)
+            self.lab_lifecycle.record_observation(logical_lab_id, instance, evidence)
 
         for operation in (OPERATION_PATCH, OPERATION_RESET_LAB):
             try:
@@ -1427,13 +1486,14 @@ class Store:
             "allowed": all(c.get("ok") for c in checks),
             "checks": checks,
             "instance": instance.as_dict() if instance else None,
+            "evidence": evidence.as_dict() if evidence else None,
             "task_id": tid,
             "advisory_id": self.settings.patch_advisory_id,
             "releasever": self.settings.patch_releasever,
             "expected_fixed_kernel": self.settings.patch_expected_fixed_kernel,
             "note": ("La aplicabilidad real del advisory sólo se confirma con el precheck "
                      "del runbook; esta validación no ejecuta nada en la instancia."),
-            **self._lab_state(tid),
+            **self._lab_state(logical_lab_id, tid),
         }
 
     def lab_jobs(self, logical_lab_id: str) -> list[dict]:
@@ -1443,7 +1503,9 @@ class Store:
         return [job.as_dict() for job in self.list_task_jobs(tid)]
 
     def start_lab_reset_job(self, logical_lab_id: str,
-                            idempotency_key: str | None = None) -> PatchJob:
+                            idempotency_key: str | None = None, *,
+                            correlation_id: str | None = None,
+                            trigger: str = "lab_reset") -> PatchJob:
         """`reset_lab`: recreación deliberada de la instancia vulnerable.
 
         Distinto de `rollback` (recuperación de una ejecución fallida): no
@@ -1481,8 +1543,12 @@ class Store:
             state=JobState.RESTORE_QUEUED,
             idempotency_key=idempotency_key or f"auto:{job_id}",
             request_payload=_restore_request_payload(request))
+        # La reconciliación propaga su correlation ID para que el job, la
+        # Automation y el estado del laboratorio compartan la misma traza.
+        if correlation_id:
+            job.correlation_id = correlation_id
         job.request_payload.update({
-            "trigger": "lab_reset", "correlation_id": job.correlation_id,
+            "trigger": trigger, "correlation_id": job.correlation_id,
             "logical_lab_id": logical_lab_id,
             "previous_instance_id": instance.instance_id,
         })
@@ -1533,12 +1599,25 @@ class Store:
         """
         logical_lab_id = job.request_payload.get("logical_lab_id") or ""
         previous = job.request_payload.get("previous_instance_id")
-        new_instance_id = job.result_payload.get("new_instance_id")
+        report = job.result_payload.get("report") or {}
+        new_instance_id = self._rediscovered_instance_id(logical_lab_id, previous)
+        if new_instance_id is None and not self.settings.uses_aws():
+            # Sólo en modo simulado: sin AWS no hay dónde redescubrir la instancia.
+            new_instance_id = job.result_payload.get("new_instance_id")
         lab = self.repo.get_lab_target(logical_lab_id) if logical_lab_id else None
         if lab is not None:
-            if new_instance_id:
+            if new_instance_id and new_instance_id != previous:
+                lab.previous_instance_id = previous or lab.previous_instance_id
                 lab.current_instance_id = new_instance_id
             lab.last_reset_job_id = job.id
+            lab.last_reset_execution_id = job.provider_reference or lab.last_reset_execution_id
+            lab.last_correlation_id = job.correlation_id
+            lab.lab_state = LAB_STATE_VULNERABLE
+            lab.advisory_applicable = True
+            lab.current_kernel = report.get("RunningKernel") or None
+            lab.health_state = (report.get("HealthState") or "").lower() or lab.health_state
+            lab.last_patch_execution_id = None
+            lab.last_patch_job_id = None
             self.repo.upsert_lab_target(lab)
 
         p = self.pipelines[tid]
@@ -1554,6 +1633,63 @@ class Store:
                                f"(job {job.id}): instancia {previous or '-'} → "
                                f"{new_instance_id or 'pendiente de resolver'}. "
                                "El laboratorio vuelve a estado vulnerable."})
+
+    def _apply_lab_patch(self, job: PatchJob) -> None:
+        """Efecto de un parcheo confirmado sobre el estado del laboratorio.
+
+        El estado pasa a `patched` con la evidencia que devuelve el Automation
+        Report (kernel y salud), de modo que la UI deja de mostrar el estado
+        anterior en cuanto AWS confirma el parcheo.
+        """
+        logical_lab_id = self.settings.lab_logical_id
+        lab = self.repo.get_lab_target(logical_lab_id) if logical_lab_id else None
+        if lab is None:
+            return
+        instance_ids = {target.instance_id for target in job.targets if target.instance_id}
+        if lab.current_instance_id and lab.current_instance_id not in instance_ids:
+            return
+        report = job.result_payload.get("report") or {}
+        lab.lab_state = LAB_STATE_PATCHED
+        lab.last_patch_job_id = job.id
+        lab.last_patch_execution_id = job.provider_reference or lab.last_patch_execution_id
+        lab.last_correlation_id = job.correlation_id
+        lab.current_kernel = (report.get("CurrentKernel")
+                              or job.result_payload.get("to_version")
+                              or lab.expected_fixed_kernel)
+        lab.advisory_applicable = False
+        health = (report.get("HealthStatus") or "").lower()
+        lab.health_state = health or "healthy"
+        lab.evidence_source = job.provider
+        self.repo.upsert_lab_target(lab)
+
+    def _rediscovered_instance_id(self, logical_lab_id: str, previous: str | None) -> str | None:
+        """Instance ID redescubierto en AWS tras un reset (nunca el del provider).
+
+        La fuente de verdad es el descubrimiento por tags en AWS: el
+        `NewInstanceId` que devuelve la Automation nunca lo sustituye. Si el
+        descubrimiento devuelve la instancia anterior, no se acepta como
+        reemplazo.
+        """
+        if not logical_lab_id:
+            return None
+        try:
+            instance = self.lab_resolver.resolve(logical_lab_id)
+        except (LabResolutionError, ProviderError):
+            return None
+        if previous and instance.instance_id == previous:
+            return None
+        return instance.instance_id
+
+    # --- reconciliación del laboratorio (fase 2.6) ----------------------
+    def ensure_lab_ready(self, logical_lab_id: str | None = None, *,
+                         confirmed: bool = False, reason: str = "api") -> dict:
+        """`ensure_lab_ready`: deja el laboratorio listo para una nueva demostración."""
+        return self.lab_lifecycle.ensure_lab_ready(logical_lab_id, confirmed=confirmed,
+                                                   reason=reason)
+
+    def lab_reconciliation_status(self, logical_lab_id: str | None = None) -> dict:
+        """Estado del reconciliador de laboratorio (sin llamadas a AWS)."""
+        return self.lab_lifecycle.status(logical_lab_id)
 
     # ------------------------------------------------------------------
     def get_job(self, job_id: str) -> PatchJob:

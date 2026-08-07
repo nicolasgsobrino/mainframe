@@ -24,8 +24,24 @@ from .providers.base import (
 
 RESTORE_KINDS = (RESTORE_KIND_ROLLBACK, RESTORE_KIND_RESET_LAB)
 
+# Estado operativo observado en AWS (nunca inferido del histórico de jobs).
+LAB_STATE_UNKNOWN = "unknown"
+LAB_STATE_VULNERABLE = "vulnerable"
+LAB_STATE_PATCHED = "patched"
+
+# Estado del reconciliador de laboratorio, independiente del de los jobs.
+RECONCILE_IDLE = "idle"
+RECONCILE_RUNNING = "running"
+RECONCILE_READY = "ready"
+RECONCILE_RESETTING = "resetting"
+RECONCILE_FAILED = "failed"
+RECONCILE_SKIPPED = "skipped"
+
 __all__ = ["LabTarget", "RESTORE_KINDS", "RESTORE_KIND_RESET_LAB",
-           "RESTORE_KIND_ROLLBACK", "synthetic_instance_id"]
+           "RESTORE_KIND_ROLLBACK", "synthetic_instance_id",
+           "LAB_STATE_UNKNOWN", "LAB_STATE_VULNERABLE", "LAB_STATE_PATCHED",
+           "RECONCILE_IDLE", "RECONCILE_RUNNING", "RECONCILE_READY",
+           "RECONCILE_RESETTING", "RECONCILE_FAILED", "RECONCILE_SKIPPED"]
 
 
 @dataclass(slots=True)
@@ -49,6 +65,21 @@ class LabTarget:
     expected_fixed_kernel: str | None = None
     required_tags: dict[str, str] = field(default_factory=dict)
     last_reset_job_id: str | None = None
+    # --- Estado operativo reconciliado con AWS (fase 2.6) ---------------
+    previous_instance_id: str | None = None
+    lab_state: str = LAB_STATE_UNKNOWN
+    current_kernel: str | None = None
+    advisory_applicable: bool | None = None
+    ssm_state: str | None = None
+    health_state: str | None = None
+    evidence_source: str | None = None
+    last_patch_job_id: str | None = None
+    last_patch_execution_id: str | None = None
+    last_reset_execution_id: str | None = None
+    reconciliation_state: str = RECONCILE_IDLE
+    last_reconciled_at: object = None
+    last_reconciliation_error: str | None = None
+    last_correlation_id: str | None = None
     updated_at: object = field(default_factory=utcnow)
 
     def as_dict(self) -> dict:
@@ -67,5 +98,20 @@ class LabTarget:
             "expected_fixed_kernel": self.expected_fixed_kernel,
             "required_tags": dict(self.required_tags or {}),
             "last_reset_job_id": self.last_reset_job_id,
+            "previous_instance_id": self.previous_instance_id,
+            "lab_state": self.lab_state,
+            "current_kernel": self.current_kernel,
+            "advisory_applicable": self.advisory_applicable,
+            "ssm_state": self.ssm_state,
+            "health_state": self.health_state,
+            "evidence_source": self.evidence_source,
+            "last_patch_job_id": self.last_patch_job_id,
+            "last_patch_execution_id": self.last_patch_execution_id,
+            "last_reset_execution_id": self.last_reset_execution_id,
+            "reconciliation_state": self.reconciliation_state,
+            "last_reconciled_at": (iso_utc(self.last_reconciled_at)
+                                   if self.last_reconciled_at else None),
+            "last_reconciliation_error": self.last_reconciliation_error,
+            "last_correlation_id": self.last_correlation_id,
             "updated_at": iso_utc(self.updated_at) if self.updated_at else None,
         }

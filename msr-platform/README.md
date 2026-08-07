@@ -230,11 +230,32 @@ uvicorn app.main:app --port 8080
 | POST | `/api/lab-targets` | Registra o actualiza el laboratorio de la PoC |
 | GET | `/api/labs/{logical_lab_id}` | Estado del laboratorio: instancia resuelta por tags, AMI, advisory, SSM y vulnerable/parcheado |
 | POST | `/api/labs/{logical_lab_id}/validate` | Validación de **sólo lectura** (no inicia ninguna Automation) |
-| POST | `/api/labs/{logical_lab_id}/reset` | `202` + job `reset_lab`: recrea la instancia vulnerable |
+| POST | `/api/labs/{logical_lab_id}/reset` | `202` + job `reset_lab`: recrea la instancia vulnerable (en modo `aws-real` exige `{"confirmed": true}`) |
+| GET | `/api/labs/{logical_lab_id}/reconciliation` | Estado del reconciliador: modo, lock, estado del laboratorio y último resultado |
+| POST | `/api/labs/{logical_lab_id}/reconcile` | `ensure_lab_ready`: descubre la instancia por tags y deja el laboratorio listo |
 | GET | `/api/labs/{logical_lab_id}/jobs` | Historial completo de jobs del laboratorio |
 
 Los endpoints `/api/labs/*` no aceptan Instance IDs, comandos, documentos, advisories ni
-parámetros del cliente: sólo el identificador lógico de la ruta.
+parámetros del cliente: sólo el identificador lógico de la ruta y, en modo real, la
+confirmación explícita `{"confirmed": true}` de las operaciones destructivas.
+
+### Reconciliación del laboratorio (`ensure_lab_ready`)
+
+`LabLifecycleManager` deja el laboratorio en su línea base vulnerable sin fijar nunca un
+Instance ID: lo descubre por `msr-poc=true` + `msr-lab-id=<id>`, exige exactamente una
+instancia `running` en el ASG de la IaC, valida cuenta, región, tags, SSM `Online` y salud,
+y sólo recrea la instancia (`MSR-ResetLabInstance`) cuando la evidencia dice que ya está
+parcheada. Tras el reset redescubre el reemplazo en AWS —el `NewInstanceId` del runbook no
+sustituye al descubrimiento— y exige un Instance ID distinto, `VULNERABLE` y `HEALTHY`.
+
+```bash
+# Hook de despliegue de ejecución única (no se ejecuta en cada reinicio de worker)
+python -m app.lab_hook                 # mock / aws-dry-run: valida y no muta nada
+python -m app.lab_hook --confirm       # aws-real: autoriza la recreación de la instancia
+```
+
+`MSR_LAB_RECONCILE_ON_STARTUP=false` es el valor por defecto y el lock vive en SQLite, de
+modo que varias réplicas no pueden reconciliar a la vez.
 
 `POST /api/tasks/{id}/approve` acepta la cabecera `Idempotency-Key`: repetir la misma clave
 devuelve el job original en lugar de lanzar otro. En la fase de despliegue responde `202`
@@ -259,6 +280,9 @@ backend/app/
   runbooks.py   # contrato explícito de SSM Documents por operación
   lab.py        # LabTarget: laboratorio vulnerable reutilizable (reset_lab)
   labs.py       # resolución del Instance ID actual por tags (AWS y mock)
+  precheck.py   # evidencia de sólo lectura del laboratorio (kernel, advisory, salud)
+  lab_lifecycle.py # ensure_lab_ready: reconciliación con lock durable en SQLite
+  lab_hook.py   # hook de despliegue de ejecución única (python -m app.lab_hook)
   reconciler.py # reconciliador periódico de jobs activos (no ejecuta parches)
   providers/    # contrato + mock_patch / mock_restore / aws_ssm_automation
 backend/tests/  # pytest (contratos, estados, persistencia, API, AWS con Stubber)

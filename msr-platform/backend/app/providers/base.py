@@ -184,6 +184,9 @@ class PatchExecution:
     # invalida `status`, pero debe quedar registrada como evento auditable.
     warning_code: str | None = None
     warning_message: str | None = None
+    # Outputs declarados del runbook (Automation Report), ya saneados: son la
+    # evidencia real del estado del objetivo tras la ejecución.
+    report: dict[str, str] = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         data = asdict(self)
@@ -213,6 +216,7 @@ class RestoreExecution:
     detail: str = ""
     warning_code: str | None = None
     warning_message: str | None = None
+    report: dict[str, str] = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         data = asdict(self)

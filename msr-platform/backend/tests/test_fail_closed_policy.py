@@ -16,7 +16,7 @@ REQUIRED = (
     "MSR_REQUIRED_TARGET_TAG_KEY",
     "MSR_REQUIRED_TARGET_TAG_VALUE",
     "MSR_ALLOWED_RUNBOOKS",
-    "MSR_SANDBOX_INSTANCE_ID",
+    "MSR_LAB_LOGICAL_ID",
 )
 
 
@@ -32,7 +32,7 @@ def real_settings(**overrides) -> Settings:
         "allowed_account_ids": ["123456789012"],
         "allowed_regions": ["eu-west-1"],
         "allowed_environments": ["development"],
-        "sandbox_instance_id": "i-0123456789abcdef0",
+        "lab_logical_id": "linux-patching-01",
     }
     data.update(overrides)
     return Settings(**data)
@@ -95,23 +95,29 @@ def test_real_execution_does_not_require_an_application_role_to_assume():
 
 
 def test_real_execution_requires_some_resolvable_target_identity():
-    settings = real_settings(sandbox_instance_id="", sandbox_logical_target_id="",
-                             lab_logical_id="")
+    settings = real_settings(lab_logical_id="")
     with pytest.raises(ConfigurationError) as excinfo:
         settings.validate_for_providers()
-    assert "MSR_SANDBOX_INSTANCE_ID" in str(excinfo.value)
+    assert "MSR_LAB_LOGICAL_ID" in str(excinfo.value)
 
 
 def test_a_resolvable_logical_lab_id_replaces_a_fixed_instance_id():
     """El laboratorio cambia de Instance ID en cada reset: basta el ID lógico."""
-    settings = real_settings(sandbox_instance_id="", lab_logical_id="linux-patching-01")
+    settings = real_settings(lab_logical_id="linux-patching-01")
     settings.validate_for_providers()
     assert settings.real_aws_execution() is True
 
 
+def test_no_environment_variable_can_pin_a_lab_instance_id():
+    """El Instance ID sólo se resuelve en AWS por tags, nunca por configuración."""
+    fields = set(Settings.model_fields)
+    assert "sandbox_instance_id" not in fields
+    assert "sandbox_logical_target_id" not in fields
+
+
 def test_dry_run_is_less_restrictive_but_clearly_identified():
     settings = real_settings(dry_run=True, allowed_account_ids=[], allowed_regions=[],
-                             allowed_environments=[], sandbox_instance_id="")
+                             allowed_environments=[])
     settings.validate_for_providers()  # el dry-run no exige la allowlist completa
     assert settings.execution_mode() == "aws-dry-run"
     assert settings.real_aws_execution() is False

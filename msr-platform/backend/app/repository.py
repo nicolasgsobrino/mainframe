@@ -22,10 +22,10 @@ import sqlite3
 import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from .jobs import ACTIVE_STATES, JobEvent, JobState, JobType, PatchJob
-from .lab import LabTarget
+from .lab import LAB_STATE_UNKNOWN, RECONCILE_IDLE, LabTarget
 from .providers.base import Target
 
 MEMORY_PATH = ":memory:"
@@ -105,7 +105,33 @@ CREATE TABLE IF NOT EXISTS lab_targets (
     expected_fixed_kernel       TEXT,
     required_tags               TEXT NOT NULL DEFAULT '{}',
     last_reset_job_id           TEXT,
+    previous_instance_id        TEXT,
+    lab_state                   TEXT NOT NULL DEFAULT 'unknown',
+    current_kernel              TEXT,
+    advisory_applicable         INTEGER,
+    ssm_state                   TEXT,
+    health_state                TEXT,
+    evidence_source             TEXT,
+    last_patch_job_id           TEXT,
+    last_patch_execution_id     TEXT,
+    last_reset_execution_id     TEXT,
+    reconciliation_state        TEXT NOT NULL DEFAULT 'idle',
+    last_reconciled_at          TEXT,
+    last_reconciliation_error   TEXT,
+    last_correlation_id         TEXT,
     updated_at                  TEXT NOT NULL
+);
+
+-- Lock durable de reconciliación del laboratorio: impide que dos réplicas del
+-- backend ejecuten dos resets simultáneos. El lock caduca (`expires_at`) para
+-- que la caída de una réplica no bloquee el laboratorio de forma permanente.
+CREATE TABLE IF NOT EXISTS lab_locks (
+    logical_lab_id  TEXT PRIMARY KEY,
+    holder          TEXT NOT NULL,
+    correlation_id  TEXT NOT NULL,
+    reason          TEXT NOT NULL DEFAULT '',
+    acquired_at     TEXT NOT NULL,
+    expires_at      TEXT NOT NULL
 );
 """
 
@@ -161,9 +187,21 @@ class JobRepository:
         """Columnas añadidas después de la creación original del esquema."""
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(lab_targets)")}
         for column in ("autoscaling_group_name", "candidate_releasever",
-                       "expected_fixed_kernel"):
+                       "expected_fixed_kernel", "previous_instance_id", "current_kernel",
+                       "ssm_state", "health_state", "evidence_source", "last_patch_job_id",
+                       "last_patch_execution_id", "last_reset_execution_id",
+                       "last_reconciled_at", "last_reconciliation_error",
+                       "last_correlation_id"):
             if column not in columns:
                 conn.execute(f"ALTER TABLE lab_targets ADD COLUMN {column} TEXT")
+        if "advisory_applicable" not in columns:
+            conn.execute("ALTER TABLE lab_targets ADD COLUMN advisory_applicable INTEGER")
+        if "lab_state" not in columns:
+            conn.execute("ALTER TABLE lab_targets ADD COLUMN lab_state TEXT "
+                         "NOT NULL DEFAULT 'unknown'")
+        if "reconciliation_state" not in columns:
+            conn.execute("ALTER TABLE lab_targets ADD COLUMN reconciliation_state TEXT "
+                         "NOT NULL DEFAULT 'idle'")
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(
@@ -432,40 +470,52 @@ class JobRepository:
 
     @staticmethod
     def _upsert_lab(conn: sqlite3.Connection, lab: LabTarget) -> None:
+        values = {
+            "logical_lab_id": lab.logical_lab_id,
+            "current_instance_id": lab.current_instance_id,
+            "account_id": lab.account_id,
+            "region": lab.region,
+            "vulnerable_ami_id": lab.vulnerable_ami_id,
+            "launch_template_id": lab.launch_template_id,
+            "launch_template_version": lab.launch_template_version,
+            "autoscaling_group_name": lab.autoscaling_group_name,
+            "expected_vulnerable_package": lab.expected_vulnerable_package,
+            "expected_vulnerable_version": lab.expected_vulnerable_version,
+            "candidate_releasever": lab.candidate_releasever,
+            "expected_fixed_kernel": lab.expected_fixed_kernel,
+            "required_tags": json.dumps(lab.required_tags or {}, ensure_ascii=False),
+            "last_reset_job_id": lab.last_reset_job_id,
+            "previous_instance_id": lab.previous_instance_id,
+            "lab_state": lab.lab_state,
+            "current_kernel": lab.current_kernel,
+            "advisory_applicable": (None if lab.advisory_applicable is None
+                                    else int(lab.advisory_applicable)),
+            "ssm_state": lab.ssm_state,
+            "health_state": lab.health_state,
+            "evidence_source": lab.evidence_source,
+            "last_patch_job_id": lab.last_patch_job_id,
+            "last_patch_execution_id": lab.last_patch_execution_id,
+            "last_reset_execution_id": lab.last_reset_execution_id,
+            "reconciliation_state": lab.reconciliation_state,
+            "last_reconciled_at": _iso(lab.last_reconciled_at)
+            if isinstance(lab.last_reconciled_at, datetime) else lab.last_reconciled_at,
+            "last_reconciliation_error": lab.last_reconciliation_error,
+            "last_correlation_id": lab.last_correlation_id,
+            "updated_at": _iso(lab.updated_at) if isinstance(lab.updated_at, datetime)
+            else lab.updated_at,
+        }
+        columns = list(values)
+        updates = ", ".join(f"{column} = excluded.{column}"
+                            for column in columns if column != "logical_lab_id")
         conn.execute(
-            """INSERT INTO lab_targets (logical_lab_id, current_instance_id, account_id, region,
-                                        vulnerable_ami_id, launch_template_id,
-                                        launch_template_version, autoscaling_group_name,
-                                        expected_vulnerable_package,
-                                        expected_vulnerable_version, candidate_releasever,
-                                        expected_fixed_kernel, required_tags,
-                                        last_reset_job_id, updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-               ON CONFLICT(logical_lab_id) DO UPDATE SET
-                   current_instance_id = excluded.current_instance_id,
-                   account_id = excluded.account_id,
-                   region = excluded.region,
-                   vulnerable_ami_id = excluded.vulnerable_ami_id,
-                   launch_template_id = excluded.launch_template_id,
-                   launch_template_version = excluded.launch_template_version,
-                   autoscaling_group_name = excluded.autoscaling_group_name,
-                   expected_vulnerable_package = excluded.expected_vulnerable_package,
-                   expected_vulnerable_version = excluded.expected_vulnerable_version,
-                   candidate_releasever = excluded.candidate_releasever,
-                   expected_fixed_kernel = excluded.expected_fixed_kernel,
-                   required_tags = excluded.required_tags,
-                   last_reset_job_id = excluded.last_reset_job_id,
-                   updated_at = excluded.updated_at""",
-            (lab.logical_lab_id, lab.current_instance_id, lab.account_id, lab.region,
-             lab.vulnerable_ami_id, lab.launch_template_id, lab.launch_template_version,
-             lab.autoscaling_group_name, lab.expected_vulnerable_package,
-             lab.expected_vulnerable_version, lab.candidate_releasever,
-             lab.expected_fixed_kernel,
-             json.dumps(lab.required_tags or {}, ensure_ascii=False), lab.last_reset_job_id,
-             _iso(lab.updated_at)))
+            f"""INSERT INTO lab_targets ({", ".join(columns)})
+                VALUES ({", ".join("?" for _ in columns)})
+                ON CONFLICT(logical_lab_id) DO UPDATE SET {updates}""",
+            tuple(values[column] for column in columns))
 
     @staticmethod
     def _row_to_lab(row: sqlite3.Row) -> LabTarget:
+        applicable = row["advisory_applicable"]
         return LabTarget(
             logical_lab_id=row["logical_lab_id"],
             current_instance_id=row["current_instance_id"],
@@ -481,6 +531,20 @@ class JobRepository:
             expected_vulnerable_version=row["expected_vulnerable_version"],
             required_tags=json.loads(row["required_tags"] or "{}"),
             last_reset_job_id=row["last_reset_job_id"],
+            previous_instance_id=row["previous_instance_id"],
+            lab_state=row["lab_state"] or LAB_STATE_UNKNOWN,
+            current_kernel=row["current_kernel"],
+            advisory_applicable=None if applicable is None else bool(applicable),
+            ssm_state=row["ssm_state"],
+            health_state=row["health_state"],
+            evidence_source=row["evidence_source"],
+            last_patch_job_id=row["last_patch_job_id"],
+            last_patch_execution_id=row["last_patch_execution_id"],
+            last_reset_execution_id=row["last_reset_execution_id"],
+            reconciliation_state=row["reconciliation_state"] or RECONCILE_IDLE,
+            last_reconciled_at=_parse(row["last_reconciled_at"]),
+            last_reconciliation_error=row["last_reconciliation_error"],
+            last_correlation_id=row["last_correlation_id"],
             updated_at=_parse(row["updated_at"]))
 
     def get_lab_target(self, logical_lab_id: str) -> LabTarget | None:
@@ -505,6 +569,51 @@ class JobRepository:
             lab.updated_at = datetime.now(timezone.utc)
             self._upsert_lab(conn, lab)
         return lab
+
+    # --- lock durable de reconciliación --------------------------------
+    def acquire_lab_lock(self, logical_lab_id: str, holder: str, correlation_id: str,
+                         ttl_seconds: int, reason: str = "") -> bool:
+        """Toma el lock de reconciliación del laboratorio si está libre.
+
+        El lock vive en SQLite, así que lo respetan todas las réplicas que
+        comparten la base: dos procesos no pueden reconciliar (ni resetear) el
+        mismo laboratorio a la vez. Un lock caducado se puede reclamar.
+        """
+        now = datetime.now(timezone.utc)
+        with self.transaction() as conn:
+            row = conn.execute("SELECT * FROM lab_locks WHERE logical_lab_id = ?",
+                               (logical_lab_id,)).fetchone()
+            if row is not None:
+                expires = _parse(row["expires_at"])
+                if expires is not None and expires > now:
+                    return False
+                conn.execute("DELETE FROM lab_locks WHERE logical_lab_id = ?",
+                             (logical_lab_id,))
+            conn.execute(
+                """INSERT INTO lab_locks (logical_lab_id, holder, correlation_id, reason,
+                                          acquired_at, expires_at)
+                   VALUES (?,?,?,?,?,?)""",
+                (logical_lab_id, holder, correlation_id, reason, _iso(now),
+                 _iso(now + timedelta(seconds=max(1, ttl_seconds)))))
+        return True
+
+    def release_lab_lock(self, logical_lab_id: str, holder: str) -> bool:
+        """Libera el lock sólo si lo tiene el mismo `holder`."""
+        with self.transaction() as conn:
+            cursor = conn.execute(
+                "DELETE FROM lab_locks WHERE logical_lab_id = ? AND holder = ?",
+                (logical_lab_id, holder))
+            return cursor.rowcount > 0
+
+    def get_lab_lock(self, logical_lab_id: str) -> dict | None:
+        with self.connection() as conn:
+            row = conn.execute("SELECT * FROM lab_locks WHERE logical_lab_id = ?",
+                               (logical_lab_id,)).fetchone()
+        if row is None:
+            return None
+        return {"logical_lab_id": row["logical_lab_id"], "holder": row["holder"],
+                "correlation_id": row["correlation_id"], "reason": row["reason"],
+                "acquired_at": row["acquired_at"], "expires_at": row["expires_at"]}
 
     def clear(self) -> None:
         """Sólo para `POST /api/reset` y para los tests: vacía el histórico.
