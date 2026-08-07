@@ -143,11 +143,10 @@ output "required_backend_environment" {
     MSR_RESTORE_PROVIDER y MSR_DRY_RUN mantienen sus valores seguros por
     defecto y no se activan desde aquí.
   EOT
-  # Ambos ARNs quedan vacíos a propósito: el backend usa las credenciales del
-  # entorno y Automation las de la identidad que la inicia.
+  # El ARN queda vacío a propósito: el backend usa la identidad de workload de su
+  # runtime (ECS Task Role) y la Automation se ejecuta con esa misma identidad.
   value = merge(local.backend_environment, {
-    MSR_AWS_ROLE_ARN               = ""
-    MSR_AUTOMATION_ASSUME_ROLE_ARN = ""
+    MSR_AWS_ROLE_ARN = ""
   })
 }
 
@@ -168,5 +167,85 @@ output "estimated_resource_summary" {
       "aws_ssm_document.reset",
     ]
     ec2_instances = var.enable_real_resources ? 1 : 0
+  }
+}
+
+# --- Runtime del backend y su identidad de workload --------------------------
+
+output "backend_deployment_runtime" {
+  description = "Runtime de despliegue del backend."
+  value       = "ecs-fargate"
+}
+
+output "backend_task_role_arn" {
+  description = <<-EOT
+    ARN efectivo del ECS Task Role: el creado por Terraform o el preaprovisionado
+    por el equipo corporativo. Vacío significa despliegue no configurado.
+  EOT
+  value       = local.backend_task_role_arn
+}
+
+output "backend_execution_role_arn" {
+  description = "ARN efectivo del task execution role (agente de ECS)."
+  value       = local.backend_execution_role_arn
+}
+
+output "backend_task_role_is_managed_by_terraform" {
+  description = "true si Terraform crea el Task Role; false si se consume uno existente."
+  value       = var.create_backend_task_role
+}
+
+output "backend_task_role_trust_policy_json" {
+  description = <<-EOT
+    Trust policy exacta del Task Role. Si IAM no puede crearse desde aquí, es el
+    documento que debe aplicar el equipo de cloud, sin ampliaciones.
+  EOT
+  value       = jsonencode(local.backend_task_trust_policy)
+}
+
+output "backend_task_role_permission_policy_json" {
+  description = <<-EOT
+    Política de permisos exacta del Task Role: mínimo necesario para iniciar los
+    dos runbooks y para todos los pasos que ejecutan en el contexto del llamante.
+    No incluye iam:PassRole porque no existe service role de Automation.
+  EOT
+  value       = jsonencode(local.backend_task_permission_policy)
+}
+
+output "backend_task_environment" {
+  description = "Variables MSR_* de la task (sin secretos: no hay credenciales que inyectar)."
+  value       = local.backend_task_environment
+}
+
+output "backend_reconciliation_hook" {
+  description = <<-EOT
+    Invocación única del hook de reconciliación por release (RunTask con override
+    del comando), nunca en el arranque de cada réplica.
+  EOT
+  value = {
+    normal             = ["python", "-m", "app.lab_hook"]
+    authorized_restore = ["python", "-m", "app.lab_hook", "--confirm"]
+  }
+}
+
+output "backend_resource_summary" {
+  description = "Recursos del runtime que se crearían con enable_backend_service = true."
+  value = {
+    enabled = var.enable_backend_service
+    resources = concat([
+      "aws_cloudwatch_log_group.backend",
+      "aws_security_group.backend",
+      "aws_vpc_security_group_egress_rule.backend_https",
+      "aws_vpc_security_group_egress_rule.backend_dns_udp",
+      "aws_ecs_cluster.backend",
+      "aws_ecs_task_definition.backend",
+      "aws_ecs_service.backend",
+      ], var.create_backend_task_role ? [
+      "aws_iam_role.backend_task",
+      "aws_iam_role_policy.backend_task",
+      "aws_iam_role.backend_execution",
+      "aws_iam_role_policy_attachment.backend_execution",
+    ] : [])
+    requires_iam_permissions = var.create_backend_task_role
   }
 }

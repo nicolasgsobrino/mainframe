@@ -26,7 +26,6 @@ from app.runbooks import (
 INSTANCE = "i-0123456789abcdef0"
 NEW_INSTANCE = "i-0fedcba9876543210"
 EXECUTION_ID = "11111111-2222-3333-4444-555555555555"
-ASSUME_ROLE = "arn:aws:iam::123456789012:role/MSR-AutomationRole"
 LAUNCH_TEMPLATE = "lt-0123456789abcdef0"
 ASG_NAME = "msr-poc-linux-patching-01-asg"
 CLIENT_TOKEN = str(uuid.uuid5(uuid.NAMESPACE_URL, "msr-platform/key-reset"))
@@ -92,8 +91,7 @@ def test_reset_sends_exactly_the_declared_parameters(reset_settings, clients):
         {"DocumentName": DEFAULT_RESET_RUNBOOK,
          "Parameters": {"CurrentInstanceId": [INSTANCE],
                         "AutoScalingGroupName": [ASG_NAME],
-                        "CorrelationId": ["corr-reset"],
-                        "AutomationAssumeRole": [ASSUME_ROLE]},
+                        "CorrelationId": ["corr-reset"]},
          "Mode": "Auto", "ClientToken": CLIENT_TOKEN,
          "Tags": [{"Key": "msr:correlation-id", "Value": "corr-reset"},
                   {"Key": "msr:task-id", "Value": "RTASK900900"},
@@ -216,8 +214,7 @@ def test_reset_takes_the_autoscaling_group_from_configuration_only(reset_setting
         {"DocumentName": DEFAULT_RESET_RUNBOOK,
          "Parameters": {"CurrentInstanceId": [INSTANCE],
                         "AutoScalingGroupName": [ASG_NAME],
-                        "CorrelationId": ["corr-reset"],
-                        "AutomationAssumeRole": [ASSUME_ROLE]},
+                        "CorrelationId": ["corr-reset"]},
          "Mode": "Auto", "ClientToken": CLIENT_TOKEN,
          "Tags": [{"Key": "msr:correlation-id", "Value": "corr-reset"},
                   {"Key": "msr:task-id", "Value": "RTASK900900"},

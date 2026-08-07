@@ -80,11 +80,13 @@ def test_each_missing_requirement_blocks_real_execution(field, empty):
         settings.validate_for_providers()
 
 
-def test_real_execution_does_not_require_an_automation_service_role():
+def test_no_setting_can_configure_an_automation_service_role():
     """La cuenta no permite crear un service role: Automation usa al iniciador."""
-    settings = real_settings(automation_assume_role_arn="")
+    settings = real_settings()
     settings.validate_for_providers()
+
     assert settings.real_aws_execution() is True
+    assert "automation_assume_role_arn" not in type(settings).model_fields
 
 
 def test_real_execution_does_not_require_an_application_role_to_assume():

@@ -75,7 +75,7 @@ Los parámetros se derivan del contrato del runbook, nunca de valores genéricos
 - un job AWS representa **exactamente una** instancia: cero o varias devuelven `422 RING_TARGET_COUNT_UNSUPPORTED` (el mock mantiene el comportamiento multiactivo);
 - un timeout local **no** libera el objetivo: el job pasa a `timeout_pending_confirmation`, `stop_requested` o `remote_status_unknown` y sólo se cierra con confirmación remota o con `POST /api/patch-jobs/{id}/admin-resolve` (auditado);
 - con `MSR_DRY_RUN=false` la política es **fail-closed**: región, allowlists de cuenta/región/entorno, tag obligatorio, runbook permitido y objetivo de sandbox deben estar configurados. Una lista vacía nunca significa «permitir todo»;
-- las credenciales son las del entorno donde corre el backend y la Automation se ejecuta con las de la identidad que la inicia: `MSR_AWS_ROLE_ARN` y `MSR_AUTOMATION_ASSUME_ROLE_ARN` son opcionales y con valor vacío no se llama a STS ni se envía `AutomationAssumeRole`;
+- las credenciales son las de la identidad de workload del runtime (en el despliegue, el ECS Task Role) y la Automation se ejecuta con esa misma identidad: los runbooks **no** declaran `assumeRole`, `AutomationAssumeRole` es un parámetro prohibido y no existe ningún service role de Automation ni `iam:PassRole`. `MSR_AWS_ROLE_ARN` vacío significa cadena de credenciales del runtime sin llamar a STS;
 - si `MSR_AWS_ROLE_ARN` está configurado, los clientes EC2/SSM se crean con credenciales temporales de STS `AssumeRole` (`RoleSessionName` con el correlation ID sanitizado, nunca registradas) y **se reconstruyen** en cuanto la sesión se renueva: ninguna operación reutiliza un cliente con credenciales caducadas.
 
 Copia `.env.example` a `.env` para ajustar la configuración (`MSR_*`). Con los valores por
@@ -206,6 +206,40 @@ cd backend && source .venv/bin/activate
 uvicorn app.main:app --port 8080
 # abre http://localhost:8080
 ```
+
+## Despliegue (ECS Fargate)
+
+```text
+Internet/usuario → frontend (SPA servida por el backend)
+  → backend como task de ECS Fargate
+  → ECS Task Role → Systems Manager Automation → runbooks MSR → EC2 del laboratorio
+```
+
+Una sola imagen (`msr-platform/Dockerfile`) compila la SPA y la sirve desde el propio
+backend; el mismo artefacto ejecuta el servicio (`uvicorn`) y el hook
+(`python -m app.lab_hook`). El backend **no** se despliega en la EC2 del laboratorio: esa
+instancia se termina a propósito en cada reset.
+
+```bash
+docker build -t msr-platform:dev msr-platform      # el contexto es msr-platform/
+```
+
+Credenciales: en Fargate boto3 obtiene credenciales temporales del **ECS Task Role** a
+través del endpoint de metadatos del contenedor. No hay access keys, ni session tokens, ni
+`secrets` en la task definition, ni Secrets Manager, ni `aws login`, ni perfiles
+(`MSR_AWS_PROFILE=`) y sin `sts:AssumeRole` (`MSR_AWS_ROLE_ARN=`). Los runbooks no
+declaran `assumeRole`, así que ese rol es también la identidad efectiva de la Automation y
+no existe `iam:PassRole`. Si no hay un ARN de rol válido, el despliegue falla en un
+precondition de la task definition.
+
+Defaults desplegados hasta la validación real: `MSR_PATCH_PROVIDER=aws-automation`,
+`MSR_RESTORE_PROVIDER=aws-automation`, `MSR_DRY_RUN=true`,
+`MSR_LAB_RECONCILE_ON_STARTUP=false`.
+
+Release: `.github/workflows/msr-platform-deploy.yml` (sólo manual, credenciales por OIDC)
+publica la imagen, despliega el servicio y ejecuta **una** vez el hook con
+`scripts/release_lab_hook.sh` (`aws ecs run-task` con el comando sustituido). El reset
+destructivo requiere el input explícito `confirm_reset`, que añade `--confirm`.
 
 ## API principal
 

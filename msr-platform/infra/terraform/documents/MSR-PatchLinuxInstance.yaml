@@ -2,9 +2,14 @@
 #
 # Este fichero se procesa con `templatefile()`: los marcadores de plantilla los fija
 # Terraform (advisory, patch group, tags del laboratorio) y NUNCA el frontend.
-# Los únicos parámetros de entrada son InstanceId, AutomationAssumeRole y
-# CorrelationId: no se acepta nombre de paquete, comando, advisory, documento
-# ni URL desde el exterior.
+# Los únicos parámetros de entrada son InstanceId y CorrelationId: no se acepta
+# nombre de paquete, comando, advisory, documento ni URL desde el exterior.
+#
+# El runbook NO declara `assumeRole`: la cuenta no permite crear un service role
+# de Automation para la PoC, así que los pasos se ejecutan con los permisos de la
+# identidad que inicia la ejecución (el ECS Task Role del backend). No existe
+# ningún parámetro de rol, de modo que la identidad efectiva no es configurable
+# desde fuera.
 #
 # Systems Manager Automation sólo permite consumir el output de UNA acción
 # `aws:runCommand` por runbook. Por eso el precheck y el postcheck no usan
@@ -16,19 +21,10 @@ description: >-
   MSR PoC: aplica el advisory ${candidate_advisory_id} sobre la instancia del
   laboratorio ${lab_id} mediante AWS-RunPatchBaseline, con precheck y postcheck
   de solo lectura y verificación estricta de kernel y salud.
-assumeRole: '{{ AutomationAssumeRole }}'
 parameters:
   InstanceId:
     type: AWS::EC2::Instance::Id
     description: Instancia del laboratorio sobre la que se aplica el parche.
-  AutomationAssumeRole:
-    type: String
-    description: >-
-      Rol opcional que asume Systems Manager. Vacío por defecto: la ejecución
-      usa las credenciales de la identidad que inicia la Automation, porque la
-      cuenta no permite crear un service role propio para la PoC.
-    default: ''
-    allowedPattern: '^$|^arn:aws:iam::[0-9]{12}:role/[\w+=,.@/-]+$'
   CorrelationId:
     type: String
     description: Identificador de correlación del job de la plataforma.

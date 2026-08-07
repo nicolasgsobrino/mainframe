@@ -198,8 +198,7 @@ def test_real_start_uses_configured_runbook_and_client_token(aws_real_settings, 
     ssm_stub.add_response(
         "start_automation_execution", {"AutomationExecutionId": EXECUTION_ID},
         {"DocumentName": DEFAULT_PATCH_RUNBOOK,
-         "Parameters": {"InstanceId": [INSTANCE],
-                        "AutomationAssumeRole": [ASSUME_ROLE]},
+         "Parameters": {"InstanceId": [INSTANCE]},
          "Mode": "Auto",
          "ClientToken": CLIENT_TOKEN,
          "Tags": [{"Key": "msr:correlation-id", "Value": request.correlation_id},
@@ -291,10 +290,19 @@ def test_generic_operation_parameter_is_forbidden():
     assert excinfo.value.code == "PARAMETER_FORBIDDEN"
 
 
+def test_an_assume_role_parameter_is_forbidden():
+    """Nadie puede cambiar desde fuera la identidad con la que corre la Automation."""
+    contract = contract_for(OPERATION_PATCH)
+    with pytest.raises(RunbookContractError) as excinfo:
+        validate_parameters(contract, {"InstanceId": [INSTANCE],
+                                       "AutomationAssumeRole": [ASSUME_ROLE]})
+    assert excinfo.value.code == "PARAMETER_FORBIDDEN"
+
+
 def test_missing_required_parameter_is_rejected():
     contract = contract_for(OPERATION_PATCH)
     with pytest.raises(RunbookContractError) as excinfo:
-        validate_parameters(contract, {"AutomationAssumeRole": [ASSUME_ROLE]})
+        validate_parameters(contract, {"CorrelationId": ["job-1"]})
     assert excinfo.value.code == "PARAMETER_REQUIRED_MISSING"
 
 
@@ -362,10 +370,9 @@ def test_an_empty_role_arn_keeps_the_standard_boto3_credential_chain(aws_setting
         sts_stub.assert_no_pending_responses()
 
 
-def test_an_empty_automation_role_omits_the_parameter(aws_real_settings, clients):
-    """AutomationAssumeRole no puede enviarse como lista con la cadena vacía."""
+def test_the_automation_never_receives_an_assume_role_parameter(aws_real_settings, clients):
+    """Contexto del llamante: `AutomationAssumeRole` no se envía ni vacío ni con ARN."""
     ssm, ec2, ssm_stub, ec2_stub = clients
-    aws_real_settings.automation_assume_role_arn = ""
     stub_describe_instance(ec2_stub)
     stub_instance_information(ssm_stub)
     stub_describe_document(ssm_stub)

@@ -474,8 +474,6 @@ class AwsSsmAutomationPatchProvider(_AutomationBase):
         params: dict = {}
         if "InstanceId" in declared:
             params["InstanceId"] = [target.instance_id or ""]
-        if "AutomationAssumeRole" in declared and self._settings.automation_assume_role_arn:
-            params["AutomationAssumeRole"] = [self._settings.automation_assume_role_arn]
         if "CorrelationId" in declared and self._correlation_id:
             params["CorrelationId"] = [self._correlation_id]
         return params
@@ -488,10 +486,6 @@ class AwsSsmAutomationPatchProvider(_AutomationBase):
         if not policy.allowed:
             raise ProviderError(policy.error_code or "TARGET_NOT_ALLOWED", policy.message)
         resolved = policy.target or target
-        if (runbook.contract.requires_assume_role and not request.dry_run
-                and not self._settings.automation_assume_role_arn):
-            raise ProviderError("PROVIDER_MISCONFIGURED",
-                                "El runbook requiere MSR_AUTOMATION_ASSUME_ROLE_ARN para ejecutarse.")
         parameters = self._check_contract(runbook, request.spec.track, resolved,
                                          self._parameters(runbook, resolved))
 
@@ -587,8 +581,6 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
             params["AutoScalingGroupName"] = [self._settings.lab_autoscaling_group_name]
         if "CorrelationId" in declared and request.correlation_id:
             params["CorrelationId"] = [request.correlation_id]
-        if "AutomationAssumeRole" in declared and self._settings.automation_assume_role_arn:
-            params["AutomationAssumeRole"] = [self._settings.automation_assume_role_arn]
         # `TargetVersion`/`SnapshotId` sólo se envían si el runbook los declara.
         if "TargetVersion" in declared and request.target_version:
             params["TargetVersion"] = [request.target_version]

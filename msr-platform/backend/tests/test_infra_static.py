@@ -109,13 +109,31 @@ def test_patch_baseline_approves_only_the_candidate_advisory():
     assert "aws_ssm_patch_group" in patching
 
 
-def test_terraform_does_not_manage_any_iam_resource():
-    """La cuenta deniega iam:PutRolePolicy/AttachRolePolicy/UpdateAssumeRolePolicy."""
+def test_the_lab_manages_no_iam_resource():
+    """La cuenta deniega iam:PutRolePolicy/AttachRolePolicy/UpdateAssumeRolePolicy.
+
+    El único IAM declarado es el del runtime del backend (`backend_iam.tf`), y es
+    opcional: con `create_backend_task_role = false` no se planifica nada.
+    """
     assert not (INFRA / "iam.tf").exists()
     for path in INFRA.glob("*.tf"):
+        if path.name == "backend_iam.tf":
+            continue
         content = path.read_text(encoding="utf-8")
         assert not re.search(r'^resource "aws_iam_', content, re.M), path.name
         assert 'data "aws_iam_policy_document"' not in content, path.name
+
+
+def test_the_backend_iam_is_opt_in_and_never_touches_the_lab():
+    backend_iam = code("backend_iam.tf")
+
+    # Cada recurso IAM depende del interruptor, nunca del laboratorio.
+    for match in re.finditer(r'^resource "aws_iam_[^"]+" "([^"]+)" \{\n(.*?)^\}',
+                             backend_iam, re.M | re.S):
+        assert "count = local.backend_iam_enabled" in match.group(2), match.group(1)
+    assert "backend_iam_enabled = var.create_backend_task_role ? local.backend_enabled : 0" in backend_iam
+    # El instance profile corporativo del laboratorio sigue siendo sólo lectura.
+    assert "aws_iam_instance_profile" not in backend_iam
 
 
 def test_the_instance_reuses_the_existing_corporate_instance_profile():
@@ -205,7 +223,7 @@ def test_patch_runbook_installs_through_run_patch_baseline():
     steps = {step["name"]: step for step in doc["mainSteps"]}
 
     assert doc["schemaVersion"] == "0.3"
-    assert set(doc["parameters"]) == {"InstanceId", "AutomationAssumeRole", "CorrelationId"}
+    assert set(doc["parameters"]) == {"InstanceId", "CorrelationId"}
     install = steps["InstallPatchBaseline"]
     assert install["action"] == "aws:runCommand"
     assert install["inputs"]["DocumentName"] == "AWS-RunPatchBaseline"
@@ -278,7 +296,7 @@ def test_reset_runbook_validates_membership_before_replacing_the_instance():
     assert names.index("ValidateReplacementInstance") > terminate
     # LaunchTemplateId/Version ya no son parámetros públicos: son del ASG.
     assert set(doc["parameters"]) == {"CurrentInstanceId", "AutoScalingGroupName",
-                                      "AutomationAssumeRole", "CorrelationId"}
+                                      "CorrelationId"}
     assert doc["outputs"] == [
         "Report.OldInstanceId", "Report.NewInstanceId", "Report.LogicalLabId",
         "Report.VulnerableState", "Report.HealthState", "Report.CorrelationId"]
@@ -460,8 +478,9 @@ def test_the_outputs_describe_the_credential_model_without_roles():
         assert f'output "{added}"' in outputs
     assert 'value       = "ambient-caller"' in outputs
     assert 'value       = "caller-context"' in outputs
-    assert 'MSR_AWS_ROLE_ARN               = ""' in outputs
-    assert 'MSR_AUTOMATION_ASSUME_ROLE_ARN = ""' in outputs
+    assert 'MSR_AWS_ROLE_ARN = ""' in outputs
+    # Sin service role de Automation: la variable ya no existe en ninguna capa.
+    assert "MSR_AUTOMATION_ASSUME_ROLE_ARN" not in outputs
 
 
 def test_terraform_state_and_tfvars_are_not_versioned():
@@ -716,14 +735,13 @@ def test_no_execute_script_calls_aws_apis(name):
 
 @pytest.mark.parametrize("name", ["MSR-PatchLinuxInstance.yaml",
                                   "MSR-ResetLabInstance.yaml"])
-def test_the_assume_role_parameter_is_optional_and_empty_by_default(name):
+def test_the_runbooks_declare_no_assume_role_at_all(name):
+    """Contexto del llamante sin ambigüedad: ni `assumeRole` ni parámetro de rol."""
     doc = document(name)
-    parameter = doc["parameters"]["AutomationAssumeRole"]
 
-    assert parameter["default"] == ""
-    # El patrón acepta el valor vacío: la Automation usa las credenciales del
-    # iniciador cuando no hay rol configurado.
-    assert parameter["allowedPattern"].startswith("^$|")
+    assert "assumeRole" not in doc
+    assert "AutomationAssumeRole" not in doc["parameters"]
+    assert "AutomationAssumeRole" not in document_source(name)
 
 
 def test_the_reset_checks_advisory_and_kernel_not_only_the_ami():

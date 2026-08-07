@@ -171,7 +171,7 @@ run "the_enabled_configuration_plans_every_resource" {
   assert {
     condition = (
       output.required_backend_environment.MSR_AWS_ROLE_ARN == "" &&
-      output.required_backend_environment.MSR_AUTOMATION_ASSUME_ROLE_ARN == ""
+      !contains(keys(output.required_backend_environment), "MSR_AUTOMATION_ASSUME_ROLE_ARN")
     )
     error_message = "El entorno del backend no puede exigir ningún role ARN."
   }

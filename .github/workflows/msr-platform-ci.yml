@@ -81,6 +81,16 @@ jobs:
       - name: terraform test
         run: terraform test
 
+  # La imagen se construye pero NO se publica: sin credenciales y sin registro.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker build
+        run: docker build -t msr-platform:ci msr-platform
+      - name: El hook de reconciliación es ejecutable en la imagen
+        run: docker run --rm msr-platform:ci python -m app.lab_hook --help
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

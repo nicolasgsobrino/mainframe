@@ -51,3 +51,26 @@ allowed_ui_cidr = "10.0.0.0/8"
 
 # Interruptor maestro. Con `false` el plan queda vacío y no se crea nada.
 enable_real_resources = false
+
+# --- Runtime del backend (ECS Fargate) ---------------------------------------
+# Con `false` el plan contiene únicamente los recursos del laboratorio.
+enable_backend_service = false
+
+# A) Si la cuenta permite crear IAM, Terraform crea el Task Role y su política:
+#   create_backend_task_role = true
+#
+# B) Si la creación de IAM está denegada, el equipo corporativo de cloud
+#    aprovisiona los roles con los documentos exactos de los outputs
+#    backend_task_role_trust_policy_json y backend_task_role_permission_policy_json,
+#    y aquí sólo se consumen sus ARNs:
+#   create_backend_task_role   = false
+#   backend_task_role_arn      = "arn:aws:iam::133789123239:role/<rol-corporativo>"
+#   backend_execution_role_arn = "arn:aws:iam::133789123239:role/<rol-exec-corporativo>"
+create_backend_task_role = false
+
+# Imagen publicada en ECR y subnets privadas de la task (sin IP pública).
+# backend_image      = "133789123239.dkr.ecr.eu-north-1.amazonaws.com/msr-platform:0.1.0"
+# backend_subnet_ids = ["subnet-0bb97e6254e4f83e9"]
+
+# MSR_DRY_RUN en la task: se mantiene en true hasta la autorización explícita.
+backend_dry_run = true

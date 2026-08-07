@@ -1,0 +1,17 @@
+# Nada de estado local, dependencias ni secretos entra en la imagen.
+**/node_modules
+**/__pycache__
+**/*.pyc
+backend/.venv
+backend/static
+backend/tests
+frontend/dist
+data
+.env
+*.env
+!.env.example
+infra/terraform/.terraform
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/terraform.tfvars
+*.md

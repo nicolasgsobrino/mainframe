@@ -50,7 +50,6 @@ def aws_settings(tmp_path) -> Settings:
         reset_runbook_name=DEFAULT_RESET_RUNBOOK,
         allowed_runbooks=[DEFAULT_PATCH_RUNBOOK, DEFAULT_ROLLBACK_RUNBOOK,
                           DEFAULT_RESET_RUNBOOK],
-        automation_assume_role_arn="arn:aws:iam::123456789012:role/MSR-AutomationRole",
     )
 
 

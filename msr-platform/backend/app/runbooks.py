@@ -9,10 +9,10 @@ Cada operación declara su propio esquema de parámetros: el backend nunca enví
 parámetros genéricos (`Operation=Install`, `TargetVersion`, ...) a un runbook
 que no los declara.
 
-`AutomationAssumeRole` es opcional y sólo puede proceder de la configuración
-interna: cuando no está configurado se omite por completo de
-`StartAutomationExecution` y la ejecución hereda las credenciales de la
-identidad que la inicia.
+Los runbooks de la PoC no declaran `assumeRole` ni admiten
+`AutomationAssumeRole`: la cuenta no permite crear un service role de Automation,
+así que la ejecución usa siempre los permisos de la identidad que la inicia (el
+ECS Task Role del backend desplegado) y la identidad efectiva no es configurable.
 """
 from __future__ import annotations
 
@@ -61,7 +61,6 @@ class RunbookContract:
     forbidden_parameters: frozenset[str] = field(default_factory=frozenset)
     allowed_tracks: frozenset[str] = frozenset({"A"})
     allowed_operating_systems: frozenset[str] = frozenset({"linux"})
-    requires_assume_role: bool = True
     implemented: bool = True
 
     @property
@@ -77,33 +76,31 @@ class RunbookContract:
             "forbidden_parameters": sorted(self.forbidden_parameters),
             "allowed_tracks": sorted(self.allowed_tracks),
             "allowed_operating_systems": sorted(self.allowed_operating_systems),
-            "requires_assume_role": self.requires_assume_role,
             "implemented": self.implemented,
         }
 
 
 # Parámetros que ningún runbook de la PoC puede recibir: son la vía habitual
 # para inyectar comandos arbitrarios en un documento de Automation.
+# `AutomationAssumeRole` también está prohibido: permitiría cambiar desde fuera la
+# identidad con la que se ejecutan los pasos.
 _FORBIDDEN = frozenset({"Commands", "Command", "Script", "SourceInfo", "Parameters",
-                        "DocumentName", "Operation", "InstallOverrideList"})
+                        "DocumentName", "Operation", "InstallOverrideList",
+                        "AutomationAssumeRole"})
 
 CONTRACTS: dict[str, RunbookContract] = {
     OPERATION_PATCH: RunbookContract(
         operation=OPERATION_PATCH,
         required_parameters=frozenset({"InstanceId"}),
-        optional_parameters=frozenset({"AutomationAssumeRole", "CorrelationId"}),
+        optional_parameters=frozenset({"CorrelationId"}),
         forbidden_parameters=_FORBIDDEN | frozenset({"TargetVersion", "SnapshotId",
                                                      "RebootOption"}),
-        # La cuenta deniega la creación de un service role de Automation: la
-        # ejecución usa las credenciales de la identidad que la inicia.
-        requires_assume_role=False,
     ),
     OPERATION_ROLLBACK: RunbookContract(
         operation=OPERATION_ROLLBACK,
         required_parameters=frozenset({"InstanceId"}),
-        optional_parameters=frozenset({"AutomationAssumeRole", "TargetVersion", "SnapshotId"}),
+        optional_parameters=frozenset({"TargetVersion", "SnapshotId"}),
         forbidden_parameters=_FORBIDDEN,
-        requires_assume_role=False,
     ),
     # Reset del laboratorio: Auto Scaling sustituye la instancia actual dentro
     # del grupo de capacidad fija 1. El Launch Template y su versión son
@@ -111,12 +108,11 @@ CONTRACTS: dict[str, RunbookContract] = {
     OPERATION_RESET_LAB: RunbookContract(
         operation=OPERATION_RESET_LAB,
         required_parameters=frozenset({"CurrentInstanceId", "AutoScalingGroupName"}),
-        optional_parameters=frozenset({"AutomationAssumeRole", "CorrelationId"}),
+        optional_parameters=frozenset({"CorrelationId"}),
         forbidden_parameters=_FORBIDDEN | frozenset({"VulnerableAmiId", "TargetVersion",
                                                      "SnapshotId", "LogicalLabId",
                                                      "LaunchTemplateId",
                                                      "LaunchTemplateVersion"}),
-        requires_assume_role=False,
     ),
 }
 

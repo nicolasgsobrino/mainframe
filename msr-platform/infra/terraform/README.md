@@ -33,6 +33,8 @@ laboratorio deje de ser desechable habrá que mover el backend a S3 + DynamoDB.
 | `ec2.tf` | Launch Template + Auto Scaling Group (1/1/1) del laboratorio |
 | `patching.tf` | Patch baseline y patch group |
 | `automation-documents.tf` | Registro de los runbooks Automation |
+| `backend_ecs.tf` | Runtime del backend: cluster, task definition y servicio de ECS Fargate |
+| `backend_iam.tf` | Identidad de workload: ECS Task Role, trust policy y política mínima |
 | `documents/*.yaml` | Cuerpo de los runbooks (plantillas `templatefile`) |
 | `outputs.tf` | Salidas, incluida `required_backend_environment` |
 | `user-data.sh.tftpl` | Bootstrap: httpd, `/health`, `baseline.json` |
@@ -151,6 +153,44 @@ instancia con normalidad. Sólo `Launch` puede suspenderse: la variable no admit
 ningún otro proceso de Auto Scaling. Durante una recuperación se pone a `true` y
 **se vuelve a `false` únicamente mediante un plan revisado**, cuando el Launch
 Template, el instance profile y las etiquetas ya estén corregidos.
+
+## Runtime del backend y su identidad de workload
+
+```text
+Internet/usuario → frontend (SPA servida por el backend)
+  → backend como task de ECS Fargate
+  → ECS Task Role (credenciales temporales del endpoint de metadatos)
+  → Systems Manager Automation → runbooks MSR → EC2 del laboratorio
+```
+
+El backend **no** se despliega en la EC2 del laboratorio: esa instancia se termina a
+propósito en cada reset. Los runbooks no declaran `assumeRole` y no existe service role
+de Automation, así que **todos** los permisos que necesitan sus pasos viven en el Task
+Role y no hay `iam:PassRole`.
+
+Dos escenarios, según lo que permita la cuenta:
+
+```hcl
+# A) IAM permitido: Terraform crea el Task Role y su política mínima.
+enable_backend_service   = true
+create_backend_task_role = true
+
+# B) IAM denegado: se consume un rol preaprovisionado por el equipo de cloud.
+enable_backend_service     = true
+create_backend_task_role   = false
+backend_task_role_arn      = "arn:aws:iam::133789123239:role/..."
+backend_execution_role_arn = "arn:aws:iam::133789123239:role/..."
+```
+
+Sin un ARN de rol válido de la cuenta configurada, un precondition de
+`aws_ecs_task_definition.backend` **detiene el despliegue**: nunca se arranca una task que
+caería en credenciales indeterminadas. Los documentos exactos que debe crear el equipo de
+cloud en el escenario B se publican en los outputs `backend_task_role_trust_policy_json` y
+`backend_task_role_permission_policy_json`.
+
+La task no recibe IP pública, no lleva `secrets` ni variables de credenciales, y arranca
+con `MSR_DRY_RUN=true`, `MSR_LAB_RECONCILE_ON_STARTUP=false`, `MSR_AWS_PROFILE=` y
+`MSR_AWS_ROLE_ARN=` vacíos: boto3 usa exclusivamente el Task Role.
 
 ## Limitaciones conocidas
 

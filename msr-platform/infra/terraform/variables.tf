@@ -227,3 +227,113 @@ variable "reset_runbook_name" {
   type        = string
   default     = "MSR-ResetLabInstance"
 }
+
+# --- Runtime del backend (ECS Fargate) ---------------------------------------
+
+variable "enable_backend_service" {
+  description = <<-EOT
+    Despliega el backend como servicio de ECS Fargate. Con `false` (valor
+    predeterminado) el plan contiene únicamente los recursos del laboratorio.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "create_backend_task_role" {
+  description = <<-EOT
+    Terraform crea el ECS Task Role del backend y su política mínima. Con `false`
+    no se gestiona ningún recurso IAM y debe indicarse `backend_task_role_arn`
+    (rol preaprovisionado por el equipo corporativo de cloud).
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "backend_task_role_arn" {
+  description = <<-EOT
+    ARN del ECS Task Role preaprovisionado (identidad de workload del backend).
+    Sólo se usa cuando `create_backend_task_role = false`. Su trust policy y su
+    política de permisos exactas se publican en los outputs
+    `backend_task_role_trust_policy_json` y `backend_task_role_permission_policy_json`.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition = (
+      var.backend_task_role_arn == "" ||
+      can(regex("^arn:aws:iam::[0-9]{12}:role/[\\w+=,.@/-]+$", var.backend_task_role_arn))
+    )
+    error_message = "backend_task_role_arn debe ser el ARN de un rol IAM."
+  }
+}
+
+variable "backend_execution_role_arn" {
+  description = <<-EOT
+    ARN del task execution role preaprovisionado (lo usa el agente de ECS para
+    descargar la imagen y escribir logs; no es la identidad de la aplicación).
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition = (
+      var.backend_execution_role_arn == "" ||
+      can(regex("^arn:aws:iam::[0-9]{12}:role/[\\w+=,.@/-]+$", var.backend_execution_role_arn))
+    )
+    error_message = "backend_execution_role_arn debe ser el ARN de un rol IAM."
+  }
+}
+
+variable "backend_image" {
+  description = "Imagen del backend publicada en ECR (repositorio:tag o digest)."
+  type        = string
+  default     = ""
+}
+
+variable "backend_subnet_ids" {
+  description = <<-EOT
+    Subnets privadas con salida a Internet (NAT) o endpoints de VPC para
+    ssm/ec2/autoscaling/ecr/logs. La task nunca recibe IP pública.
+  EOT
+  type        = list(string)
+  default     = []
+}
+
+variable "backend_desired_count" {
+  description = "Réplicas del servicio. El hook de reconciliación no depende de este valor."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.backend_desired_count >= 1 && var.backend_desired_count <= 4
+    error_message = "backend_desired_count debe estar entre 1 y 4."
+  }
+}
+
+variable "backend_task_cpu" {
+  description = "CPU de la task Fargate (unidades)."
+  type        = string
+  default     = "512"
+}
+
+variable "backend_task_memory" {
+  description = "Memoria de la task Fargate (MiB)."
+  type        = string
+  default     = "1024"
+}
+
+variable "backend_dry_run" {
+  description = <<-EOT
+    Valor de `MSR_DRY_RUN` en la task. Se mantiene en `true` hasta que se
+    autorice explícitamente la validación real contra AWS.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "backend_log_retention_days" {
+  description = "Retención del grupo de logs del backend."
+  type        = number
+  default     = 30
+}
