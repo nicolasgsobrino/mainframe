@@ -207,34 +207,24 @@ uvicorn app.main:app --port 8080
 # abre http://localhost:8080
 ```
 
-## Despliegue (ECS Fargate)
+## Despliegue (fuera de AWS)
 
 ```text
-usuario → ALB → backend como task de ECS Fargate (:8080, SPA y /api)
-  → ECS Task Role → Systems Manager Automation → runbooks MSR → EC2 del laboratorio
+usuario → aplicación MSR alojada fuera de AWS (:8080, SPA y /api)
+  → rol IAM federado por OIDC → Systems Manager Automation → runbooks MSR → EC2 del laboratorio
 ```
 
-La imagen se publica en un repositorio ECR privado (escaneo, cifrado, tags inmutables y
-lifecycle policy de 5 imágenes) y la UI/API se expone tras un ALB con target group `ip`,
-health check `/api/health` y un security group que sólo admite tráfico del ALB. ECR, ALB y
-tabla de locks están desactivados por defecto en Terraform.
+AWS aloja únicamente el laboratorio (EC2/ASG, integración SSM, los dos runbooks y la tabla
+de locks) más la identidad que consume el backend externo. La arquitectura completa, la
+trust policy del rol federado, el modelo de persistencia y el flujo repetible de despliegue
+están en `ARCHITECTURE_REPORT_PHASE2_9.md`.
 
-El descubrimiento de red (`python -m app.net_discovery --vpc-id <vpc-id>`, sólo llamadas
-`Describe*`) mostró que la cuenta sólo tiene la VPC por defecto con tres subnets públicas,
-sin NAT, sin endpoints de VPC y sin conectividad corporativa, así que existen dos perfiles
-(detalle en `infra/terraform/README.md` y `PRE_APPLY_NETWORK_DISCOVERY.md`):
-
-- **PoC** (`backend_alb_internal = false`, `backend_assign_public_ip = true`): ALB
-  publicado pero restringido a los CIDR corporativos de `backend_alb_ingress_cidrs`
-  —obligatoria, sin valor por defecto y sin admitir ningún `/0`— y tasks con IP pública,
-  la única salida disponible en esa VPC. La task nunca acepta tráfico de Internet: sólo
-  `tcp/8080` desde el security group del ALB.
-- **Corporativo** (valor por defecto, futuro): VPN/TGW/peering → ALB interno → tasks
-  privadas → NAT o endpoints de VPC. Este Terraform no crea esa infraestructura de red.
-
-Sin certificado de ACM la exposición es HTTP, una limitación temporal de la PoC aceptable
-sólo con la lista de orígenes restringida; con `backend_alb_certificate_arn` el ALB pasa a
-HTTPS y el listener HTTP redirige.
+El runtime del backend en ECS Fargate con ECR y ALB (`backend_ecs.tf`, `backend_ecr.tf`,
+`backend_alb.tf`, `.github/workflows/msr-platform-deploy.yml` y
+`PRE_APPLY_POC_DEPLOYMENT_PROFILE.md`) queda **superseded**: se conserva como registro
+histórico, está desactivado por defecto y ningún despliegue objetivo depende de él. Con ello
+dejan de ser bloqueantes los CIDR de ingreso del ALB, sus subnets, las subnets de ECS,
+`assign_public_ip`, el Task Role/execution role de ECS y el certificado de ACM.
 
 Una sola imagen (`msr-platform/Dockerfile`) compila la SPA y la sirve desde el propio
 backend; el mismo artefacto ejecuta el servicio (`uvicorn`) y el hook
@@ -245,25 +235,23 @@ instancia se termina a propósito en cada reset.
 docker build -t msr-platform:dev msr-platform      # el contexto es msr-platform/
 ```
 
-Credenciales: en Fargate boto3 obtiene credenciales temporales del **ECS Task Role** a
-través del endpoint de metadatos del contenedor. No hay access keys, ni session tokens, ni
-`secrets` en la task definition, ni Secrets Manager, ni `aws login`, ni perfiles
-(`MSR_AWS_PROFILE=`) y sin `sts:AssumeRole` (`MSR_AWS_ROLE_ARN=`). Los runbooks no
-declaran `assumeRole`, así que ese rol es también la identidad efectiva de la Automation y
-no existe `iam:PassRole`. Terraform no crea roles de aplicación —la cuenta deniega adjuntar
-políticas a un rol—: el Task Role y el execution role los aprovisiona el equipo de cloud
-con los documentos exactos que publican los outputs `backend_task_role_*_json` y
-`backend_execution_role_*_json`, y sin ambos ARNs el despliegue falla en un precondition de
-la task definition.
+Credenciales: boto3 las obtiene de la cadena estándar a partir de la identidad de workload
+del runtime, federada por OIDC contra `MSRExternalBackendRole`. No hay access keys, ni
+session tokens copiados, ni `aws login`, ni perfiles (`MSR_AWS_PROFILE=`) y sin
+`sts:AssumeRole` explícito desde la aplicación (`MSR_AWS_ROLE_ARN=`). Los runbooks no
+declaran `assumeRole`, así que ese mismo rol es la identidad efectiva de la Automation y no
+existe `iam:PassRole`. Terraform no crea roles de aplicación —la cuenta deniega adjuntar
+políticas a un rol—: el rol lo aprovisiona el equipo de cloud con la política exacta que
+publica el output `backend_task_role_permission_policy_json`.
 
 Defaults desplegados hasta la validación real: `MSR_PATCH_PROVIDER=aws-automation`,
 `MSR_RESTORE_PROVIDER=aws-automation`, `MSR_DRY_RUN=true`,
 `MSR_LAB_RECONCILE_ON_STARTUP=false`.
 
-Release: `.github/workflows/msr-platform-deploy.yml` (sólo manual, credenciales por OIDC)
-publica la imagen, despliega el servicio y ejecuta **una** vez el hook con
-`scripts/release_lab_hook.sh` (`aws ecs run-task` con el comando sustituido). El reset
-destructivo requiere el input explícito `confirm_reset`, que añade `--confirm`.
+Release: cada despliegue ejecuta **una** sola vez `python -m app.lab_hook`, nunca en el
+arranque de cada proceso. El reset destructivo exige la invocación explícitamente
+autorizada `python -m app.lab_hook --confirm`, y el lock de DynamoDB impide que dos
+procesos muten el laboratorio a la vez.
 
 ## API principal
 

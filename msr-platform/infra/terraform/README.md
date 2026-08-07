@@ -13,6 +13,14 @@ identidad que la inicia.
 > predeterminado: el plan queda vacío y no se realiza ninguna llamada mutativa a
 > AWS. Ni esta fase ni el CI ejecutan `terraform plan`/`apply` contra la cuenta.
 
+> **Fase 2.9: la aplicación MSR se aloja fuera de AWS.** El runtime en ECS Fargate
+> con ECR y ALB (`backend_ecs.tf`, `backend_ecr.tf`, `backend_alb.tf`) queda
+> **superseded / no objetivo**: se conserva como registro histórico, sigue
+> desactivado por defecto y ningún despliegue objetivo depende de él. Lo que
+> permanece en AWS es el laboratorio, los runbooks, la tabla de locks y la
+> identidad que consume el backend externo. Ver
+> `../../ARCHITECTURE_REPORT_PHASE2_9.md`.
+
 ## Estado
 
 Estado **local** a propósito (PoC desechable). `terraform.tfstate`,
@@ -33,10 +41,10 @@ laboratorio deje de ser desechable habrá que mover el backend a S3 + DynamoDB.
 | `ec2.tf` | Launch Template + Auto Scaling Group (1/1/1) del laboratorio |
 | `patching.tf` | Patch baseline y patch group |
 | `automation-documents.tf` | Registro de los runbooks Automation |
-| `backend_ecs.tf` | Runtime del backend: cluster, task definition y servicio de ECS Fargate |
-| `backend_iam.tf` | Documentos exactos de los dos roles externos (no crea ningún recurso IAM) |
-| `backend_ecr.tf` | Repositorio ECR privado de la imagen (escaneo, cifrado, lifecycle policy) |
-| `backend_alb.tf` | Application Load Balancer, target group `ip`, listener y reglas de security group |
+| `backend_ecs.tf` | **SUPERSEDED** (fase 2.9): runtime en ECS Fargate; histórico y desactivado |
+| `backend_iam.tf` | Documentos exactos de los roles externos (no crea ningún recurso IAM); la política de permisos sigue vigente para el backend externo |
+| `backend_ecr.tf` | **SUPERSEDED** (fase 2.9): repositorio ECR de la imagen; histórico y desactivado |
+| `backend_alb.tf` | **SUPERSEDED** (fase 2.9): ALB, target group y listener; histórico y desactivado |
 | `backend_locks.tf` | Tabla DynamoDB del lock distribuido de operación del laboratorio |
 | `documents/*.yaml` | Cuerpo de los runbooks (plantillas `templatefile`) |
 | `outputs.tf` | Salidas, incluida `required_backend_environment` |

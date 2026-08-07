@@ -1,5 +1,11 @@
 # Identidad de workload del backend desplegado (opción B: contexto del llamante).
 #
+# PARCIALMENTE SUPERSEDED (fase 2.9): la política de permisos sigue vigente —las
+# llamadas a AWS no cambian—, pero el consumidor ya no es una task de ECS: la
+# aplicación se aloja fuera de AWS y la identidad pasa a ser un rol federado por
+# OIDC (`MSRExternalBackendRole`), sin execution role de ECS. Ver
+# ARCHITECTURE_REPORT_PHASE2_9.md.
+#
 # Los runbooks no declaran `assumeRole` y no existe service role de Automation:
 # por tanto TODOS los permisos que necesitan los pasos de la Automation deben
 # estar en el rol de la task de ECS que inicia la ejecución. No hay `iam:PassRole`.

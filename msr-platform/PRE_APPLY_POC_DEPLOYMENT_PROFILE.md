@@ -1,6 +1,14 @@
-# Perfil de despliegue PoC — informe pre-apply
+# Perfil de despliegue PoC en ECS/ALB — informe pre-apply (SUPERSEDED)
 
-Fase 2.9. **No se ha ejecutado ninguna mutación en AWS**: ni `terraform apply`, ni plan
+> **SUPERSEDED / NO OBJETIVO.** La arquitectura vigente aloja la aplicación MSR **fuera de
+> AWS**: ver `ARCHITECTURE_REPORT_PHASE2_9.md`. Este documento describe el perfil ECS
+> Fargate + ECR + ALB, que se conserva sólo como registro histórico. En particular, ya no
+> son bloqueantes ni se piden al equipo de red los CIDR de ingreso del ALB, sus subnets, la
+> selección de subnets de ECS, `assign_public_ip`, el Task Role/execution role de ECS ni un
+> certificado de ACM. La política de mínimo privilegio de §6.2 sí sigue vigente, ahora
+> asociada al rol federado del backend externo.
+
+Fase 2.8.1. **No se ha ejecutado ninguna mutación en AWS**: ni `terraform apply`, ni plan
 real, ni `destroy`, ni push a ECR, ni despliegue de ECS, ni creación de ALB, ni cambios de
 IAM, ni patch, ni reset. Todo lo que aparece aquí sale del código, de los tests nativos de
 Terraform con `mock_provider` y del descubrimiento de red de sólo lectura documentado en

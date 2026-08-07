@@ -1,3 +1,7 @@
+# SUPERSEDED / NO OBJETIVO (fase 2.9): la aplicación MSR ya no se aloja en AWS.
+# Se conserva por valor histórico, desactivado por defecto, y ningún despliegue
+# objetivo depende de él. Arquitectura vigente: ARCHITECTURE_REPORT_PHASE2_9.md.
+#
 # Runtime del backend: task de ECS Fargate.
 #
 # Internet/usuario → frontend (SPA servida por el propio backend)

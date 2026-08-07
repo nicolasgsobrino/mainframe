@@ -1,5 +1,10 @@
-name: msr-platform deploy (ECS Fargate)
+name: msr-platform deploy (ECS Fargate, SUPERSEDED)
 
+# SUPERSEDED / NO OBJETIVO (fase 2.9): la aplicación MSR ya no se aloja en AWS, así
+# que este pipeline de ECR/ECS no es el camino de despliegue objetivo. Se conserva
+# por valor histórico y sigue siendo manual, de modo que nunca se ejecuta solo.
+# Arquitectura vigente: msr-platform/ARCHITECTURE_REPORT_PHASE2_9.md.
+#
 # Despliegue manual y explícito: nunca se dispara por push ni por PR.
 #
 # El pipeline no usa claves estáticas: obtiene credenciales temporales por OIDC

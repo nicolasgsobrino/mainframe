@@ -1,3 +1,7 @@
+# SUPERSEDED / NO OBJETIVO (fase 2.9): la aplicación MSR ya no se aloja en AWS.
+# Se conserva por valor histórico, desactivado por defecto, y ningún despliegue
+# objetivo depende de él. Arquitectura vigente: ARCHITECTURE_REPORT_PHASE2_9.md.
+#
 # Exposición de la UI/API a través de un Application Load Balancer.
 #
 # cliente → ALB → ECS Fargate :8080

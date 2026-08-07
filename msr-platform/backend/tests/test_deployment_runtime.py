@@ -295,3 +295,33 @@ def test_the_release_pushes_to_ecr_with_oidc_and_no_static_credentials():
     assert "concurrency:" in workflow
     for marker in CREDENTIAL_MARKERS:
         assert marker not in workflow, marker
+
+
+# --- fase 2.9: la aplicación no se aloja en AWS -------------------------------
+
+@pytest.mark.parametrize("path", [ECS, INFRA / "backend_ecr.tf", INFRA / "backend_alb.tf"])
+def test_the_ecs_runtime_is_marked_as_superseded(path):
+    """El runtime en AWS es histórico: la aplicación se aloja fuera de la cuenta."""
+    assert "SUPERSEDED" in read(path), path.name
+
+
+def test_no_deployment_path_starts_the_superseded_runtime_on_its_own():
+    """Nada dispara ECS/ECR/ALB sin activarlo explícitamente."""
+    workflow = read(DEPLOY_WORKFLOW)
+
+    assert "SUPERSEDED" in workflow
+    triggers = workflow.split("on:")[1].split("jobs:")[0]
+    for automatic in ("push:", "pull_request:", "schedule:"):
+        assert automatic not in triggers, automatic
+
+
+def test_the_external_deployment_architecture_is_documented():
+    report = read(PLATFORM / "ARCHITECTURE_REPORT_PHASE2_9.md")
+
+    # Federación sin credenciales estáticas y lock compartido entre procesos.
+    assert "sts:AssumeRoleWithWebIdentity" in report
+    assert "MSRExternalBackendRole" in report
+    assert "msr-poc-lab-locks" in report
+    # El informe describe el fallback de claves, pero no contiene ninguna.
+    for marker in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"):
+        assert marker not in report, marker

@@ -4,9 +4,11 @@
 #   → lock en DynamoDB (escritura condicional)
 #   → exactamente una mutación del laboratorio a la vez
 #
-# El lock local en SQLite no basta en Fargate: la task del servicio y el RunTask
-# del hook tienen filesystems efímeros independientes. La tabla es el único punto
-# de serialización compartido; `desired_count = 1` no es un mecanismo de lock.
+# El lock local en SQLite no basta con varios procesos: el servicio web y el hook
+# de release no comparten filesystem, y el alojamiento externo puede ejecutar
+# varias instancias. La tabla es el único punto de serialización compartido; una
+# sola réplica no es un mecanismo de lock. Sigue vigente en la fase 2.9 aunque la
+# aplicación se aloje fuera de AWS (ver ARCHITECTURE_REPORT_PHASE2_9.md).
 #
 # `expires_at` es epoch numérico y actúa como TTL de DynamoDB, pero sólo para
 # limpiar locks abandonados: la adquisición vuelve a comparar la caducidad dentro
