@@ -56,21 +56,33 @@ enable_real_resources = false
 # Con `false` el plan contiene únicamente los recursos del laboratorio.
 enable_backend_service = false
 
-# A) Si la cuenta permite crear IAM, Terraform crea el Task Role y su política:
-#   create_backend_task_role = true
-#
-# B) Si la creación de IAM está denegada, el equipo corporativo de cloud
-#    aprovisiona los roles con los documentos exactos de los outputs
-#    backend_task_role_trust_policy_json y backend_task_role_permission_policy_json,
-#    y aquí sólo se consumen sus ARNs:
-#   create_backend_task_role   = false
-#   backend_task_role_arn      = "arn:aws:iam::133789123239:role/<rol-corporativo>"
-#   backend_execution_role_arn = "arn:aws:iam::133789123239:role/<rol-exec-corporativo>"
-create_backend_task_role = false
+# Este Terraform no crea roles de aplicación: la cuenta deniega adjuntar
+# políticas a un rol, así que el equipo corporativo de cloud aprovisiona los dos
+# roles con los documentos exactos de los outputs
+# backend_task_role_trust_policy_json, backend_task_role_permission_policy_json,
+# backend_execution_role_trust_policy_json y
+# backend_execution_role_permission_policy_json. Aquí sólo se consumen sus ARNs y
+# sin ellos el despliegue falla:
+# backend_task_role_arn      = "arn:aws:iam::133789123239:role/<rol-corporativo>"
+# backend_execution_role_arn = "arn:aws:iam::133789123239:role/<rol-exec-corporativo>"
 
-# Imagen publicada en ECR y subnets privadas de la task (sin IP pública).
+# Imagen publicada en ECR y subnets de la task, siempre dentro de las candidatas
+# del descubrimiento de red.
 # backend_image      = "133789123239.dkr.ecr.eu-north-1.amazonaws.com/msr-platform:0.1.0"
-# backend_subnet_ids = ["subnet-0bb97e6254e4f83e9"]
+# backend_subnet_ids = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
+
+# Subnets autorizadas (descubrimiento de sólo lectura de la VPC vpc-023864c0ca3c82eab):
+#   subnet-0bb97e6254e4f83e9  eu-north-1a  172.31.16.0/20
+#   subnet-0c14b617316ff3efa  eu-north-1b  172.31.32.0/20
+#   subnet-09e94d9e3b0e20b8e  eu-north-1c  172.31.0.0/20
+# backend_candidate_subnet_ids = [...]
+
+# IP pública de la task. El perfil corporativo usa false (subnets privadas con
+# NAT o endpoints de VPC). El perfil PoC necesita true porque la VPC por defecto
+# sólo tiene Internet Gateway: sin NAT y sin endpoints, la task no podría
+# descargar la imagen ni llamar a las APIs de AWS. No expone el backend: su única
+# entrada sigue siendo el security group del ALB.
+backend_assign_public_ip = false
 
 # MSR_DRY_RUN en la task: se mantiene en true hasta la autorización explícita.
 backend_dry_run = true
@@ -85,12 +97,21 @@ enable_backend_ecr = false
 # cliente → ALB → ECS Fargate :8080 (health check /api/health).
 # El backend sólo acepta tráfico del security group del ALB.
 enable_backend_alb = false
-# Interno por defecto: no se asume que la red corporativa permita un ALB público.
+# Interno por defecto (perfil corporativo futuro: VPN/TGW/peering → ALB interno →
+# tasks privadas → NAT o endpoints de VPC). El perfil PoC lo publica porque la
+# cuenta no tiene ni subnets privadas ni conectividad corporativa:
+#   backend_alb_internal     = false
+#   backend_assign_public_ip = true
 backend_alb_internal = true
-# Al menos dos subnets en zonas distintas (privadas si el ALB es interno).
-# backend_alb_subnet_ids = ["subnet-0bb97e6254e4f83e9", "subnet-0aa97e6254e4f83e0"]
-# Sin orígenes declarados no se crea ninguna regla de entrada.
-# backend_alb_ingress_cidrs = ["10.0.0.0/16"]
+# Al menos dos subnets de zonas distintas, elegidas entre las candidatas.
+# backend_alb_subnet_ids = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
+# Obligatoria y restringida: los CIDR reales de la red corporativa/VPN desde la
+# que se accede a la herramienta. Ningún prefijo /0 es admisible y sin valor el
+# apply se detiene. Pendiente del equipo de red: aquí no se inventa ningún rango.
+# backend_alb_ingress_cidrs = ["<CIDR corporativo>/32"]
+# Con certificado de ACM el tráfico pasa a HTTPS (443) y el listener HTTP
+# redirige. Sin él, la PoC queda en HTTP con los orígenes restringidos.
+# backend_alb_certificate_arn = "arn:aws:acm:eu-north-1:133789123239:certificate/<id>"
 
 # --- Lock distribuido del laboratorio (DynamoDB) -----------------------------
 # Obligatorio antes de la ejecución real: serializa patch, reset y la

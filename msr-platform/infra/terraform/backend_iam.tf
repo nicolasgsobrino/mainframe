@@ -4,37 +4,21 @@
 # por tanto TODOS los permisos que necesitan los pasos de la Automation deben
 # estar en el rol de la task de ECS que inicia la ejecución. No hay `iam:PassRole`.
 #
-# La creación de IAM es opcional porque la cuenta corporativa puede denegarla:
-#   create_backend_task_role = true   → Terraform crea el rol y su política.
-#   create_backend_task_role = false  → se consume backend_task_role_arn, ya
-#                                       aprovisionado por el equipo de cloud con
-#                                       las políticas publicadas en los outputs
-#                                       backend_task_role_trust_policy_json y
-#                                       backend_task_role_permission_policy_json.
+# Este Terraform NO crea roles de aplicación. El descubrimiento sobre la cuenta
+# demostró que adjuntar políticas a un rol está explícitamente denegado (ver
+# PRE_APPLY_NETWORK_DISCOVERY.md): un rol creado aquí nacería sin permisos y el
+# despliegue quedaría roto en tiempo de ejecución. Ambos roles los aprovisiona
+# el equipo de cloud y se consumen por ARN (`backend_task_role_arn`,
+# `backend_execution_role_arn`); los documentos exactos que deben aplicar se
+# publican como outputs y el despliegue falla si falta cualquiera de los dos.
 
 locals {
   backend_role_name           = "${local.name_prefix}-backend-task"
   backend_execution_role_name = "${local.name_prefix}-backend-exec"
 
-  # ARN determinista del rol creado por Terraform: permite resolver el ARN
-  # efectivo sin depender de un valor conocido sólo después del apply.
-  backend_task_role_arn_created = (
-    "arn:aws:iam::${var.aws_account_id}:role/${local.backend_role_name}"
-  )
-
-  # ARN efectivo: creado por Terraform o preaprovisionado. Nunca ambos.
-  backend_task_role_arn = (
-    var.create_backend_task_role
-    ? local.backend_task_role_arn_created
-    : var.backend_task_role_arn
-  )
-  backend_execution_role_arn = (
-    var.create_backend_task_role
-    ? "arn:aws:iam::${var.aws_account_id}:role/${local.backend_execution_role_name}"
-    : var.backend_execution_role_arn
-  )
-
-  backend_iam_enabled = var.create_backend_task_role ? local.backend_enabled : 0
+  # ARNs efectivos: siempre preaprovisionados, nunca gestionados aquí.
+  backend_task_role_arn      = var.backend_task_role_arn
+  backend_execution_role_arn = var.backend_execution_role_arn
 
   # --- Trust policy del Task Role -----------------------------------------
   # Sólo ECS puede asumirlo, sólo desde esta cuenta y sólo para tasks de esta
@@ -186,57 +170,44 @@ locals {
       },
     ]
   }
-}
 
-# --- Rol de la task (identidad de la aplicación) -----------------------------
-resource "aws_iam_role" "backend_task" {
-  count = local.backend_iam_enabled
+  # --- Documentos del task execution role ---------------------------------
+  # No es la identidad de la aplicación: lo usa el agente de ECS para descargar la
+  # imagen y publicar logs. El código nunca obtiene sus credenciales.
+  backend_execution_trust_policy = local.backend_task_trust_policy
 
-  name                 = local.backend_role_name
-  description          = "Identidad de workload del backend MSR en ECS Fargate (inicia la Automation)"
-  assume_role_policy   = jsonencode(local.backend_task_trust_policy)
-  max_session_duration = 3600
-
-  tags = merge(local.common_tags, { Name = local.backend_role_name })
-}
-
-resource "aws_iam_role_policy" "backend_task" {
-  count = local.backend_iam_enabled
-
-  name   = "${local.backend_role_name}-policy"
-  role   = aws_iam_role.backend_task[0].id
-  policy = jsonencode(local.backend_task_permission_policy)
-}
-
-# --- Rol de ejecución de la task (agente de ECS: imagen y logs) --------------
-# No es la identidad de la aplicación: lo usa el agente para descargar la imagen
-# de ECR y escribir en CloudWatch Logs. El código nunca obtiene sus credenciales.
-resource "aws_iam_role" "backend_execution" {
-  count = local.backend_iam_enabled
-
-  name        = local.backend_execution_role_name
-  description = "Task execution role del backend MSR (pull de ECR y CloudWatch Logs)"
-  assume_role_policy = jsonencode({
+  backend_execution_permission_policy = {
     Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "ecs-tasks.amazonaws.com" }
-      Action    = "sts:AssumeRole"
-      Condition = {
-        StringEquals = { "aws:SourceAccount" = var.aws_account_id }
-        ArnLike = {
-          "aws:SourceArn" = "arn:aws:ecs:${var.aws_region}:${var.aws_account_id}:*"
+    Statement = [
+      {
+        # `GetAuthorizationToken` no admite ARN de recurso.
+        Sid      = "AuthenticateAgainstEcr"
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
+        Resource = "*"
+        Condition = {
+          StringEquals = { "aws:RequestedRegion" = var.aws_region }
         }
-      }
-    }]
-  })
-
-  tags = merge(local.common_tags, { Name = local.backend_execution_role_name })
-}
-
-resource "aws_iam_role_policy_attachment" "backend_execution" {
-  count = local.backend_iam_enabled
-
-  role       = aws_iam_role.backend_execution[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+      },
+      {
+        Sid    = "PullOnlyTheMsrImage"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+        ]
+        Resource = local.backend_ecr_repository_arn
+      },
+      {
+        Sid    = "PublishTheContainerLogs"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+        ]
+        Resource = "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:${local.backend_log_group_name}:*"
+      },
+    ]
+  }
 }

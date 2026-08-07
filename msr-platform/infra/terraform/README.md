@@ -34,7 +34,7 @@ laboratorio deje de ser desechable habrá que mover el backend a S3 + DynamoDB.
 | `patching.tf` | Patch baseline y patch group |
 | `automation-documents.tf` | Registro de los runbooks Automation |
 | `backend_ecs.tf` | Runtime del backend: cluster, task definition y servicio de ECS Fargate |
-| `backend_iam.tf` | Identidad de workload: ECS Task Role, trust policy y política mínima |
+| `backend_iam.tf` | Documentos exactos de los dos roles externos (no crea ningún recurso IAM) |
 | `backend_ecr.tf` | Repositorio ECR privado de la imagen (escaneo, cifrado, lifecycle policy) |
 | `backend_alb.tf` | Application Load Balancer, target group `ip`, listener y reglas de security group |
 | `backend_locks.tf` | Tabla DynamoDB del lock distribuido de operación del laboratorio |
@@ -171,29 +171,29 @@ propósito en cada reset. Los runbooks no declaran `assumeRole` y no existe serv
 de Automation, así que **todos** los permisos que necesitan sus pasos viven en el Task
 Role y no hay `iam:PassRole`.
 
-Dos escenarios, según lo que permita la cuenta:
+Este Terraform **no crea ningún rol de aplicación**: el descubrimiento sobre la cuenta
+demostró que adjuntar políticas a un rol está explícitamente denegado, así que un rol
+creado aquí nacería sin permisos. Los dos roles los aprovisiona el equipo corporativo de
+cloud y aquí se consumen por ARN:
 
 ```hcl
-# A) IAM permitido: Terraform crea el Task Role y su política mínima.
-enable_backend_service   = true
-create_backend_task_role = true
-
-# B) IAM denegado: se consume un rol preaprovisionado por el equipo de cloud.
 enable_backend_service     = true
-create_backend_task_role   = false
 backend_task_role_arn      = "arn:aws:iam::133789123239:role/..."
 backend_execution_role_arn = "arn:aws:iam::133789123239:role/..."
 ```
 
-Sin un ARN de rol válido de la cuenta configurada, un precondition de
+Sin ambos ARNs (de la cuenta configurada), un precondition de
 `aws_ecs_task_definition.backend` **detiene el despliegue**: nunca se arranca una task que
-caería en credenciales indeterminadas. Los documentos exactos que debe crear el equipo de
-cloud en el escenario B se publican en los outputs `backend_task_role_trust_policy_json` y
-`backend_task_role_permission_policy_json`.
+caería en credenciales indeterminadas. Los cuatro documentos exactos que debe crear el
+equipo de cloud se publican en los outputs `backend_task_role_trust_policy_json`,
+`backend_task_role_permission_policy_json`, `backend_execution_role_trust_policy_json` y
+`backend_execution_role_permission_policy_json`. El execution role no usa la política
+gestionada `AmazonECSTaskExecutionRolePolicy`: queda acotado al repositorio ECR de la PoC
+y a su log group.
 
-La task no recibe IP pública, no lleva `secrets` ni variables de credenciales, y arranca
-con `MSR_DRY_RUN=true`, `MSR_LAB_RECONCILE_ON_STARTUP=false`, `MSR_AWS_PROFILE=` y
-`MSR_AWS_ROLE_ARN=` vacíos: boto3 usa exclusivamente el Task Role.
+La task no lleva `secrets` ni variables de credenciales, y arranca con `MSR_DRY_RUN=true`,
+`MSR_LAB_RECONCILE_ON_STARTUP=false`, `MSR_AWS_PROFILE=` y `MSR_AWS_ROLE_ARN=` vacíos:
+boto3 usa exclusivamente el Task Role.
 
 ## Imagen, exposición y lock distribuido
 
@@ -219,14 +219,17 @@ OIDC (`aws-actions/configure-aws-credentials@v4` + `amazon-ecr-login@v2`), const
 etiqueta y publica la imagen, registra una revisión nueva de la task definition y sólo
 después lanza el hook: no hay ninguna clave estática en el pipeline.
 
-**ALB.** `internal = true` por defecto: no se asume que la red corporativa permita un ALB
-público. Requiere al menos dos subnets en zonas distintas, y el listener sólo se abre a
-los orígenes de `backend_alb_ingress_cidrs` (sin valor no se crea ninguna regla de
-entrada). Un ALB público abierto a `0.0.0.0/0` está bloqueado por un precondition. El
-target group usa `target_type = "ip"` (obligatorio con `awsvpc`) contra el puerto 8080 y
-comprueba `/api/health`; el security group del backend sólo admite tráfico del security
-group del ALB, nunca CIDR. Su DNS se publica en `backend_alb_dns_name`. Sin CloudFront y
-sin túneles.
+**ALB.** `internal = true` por defecto (perfil corporativo). Requiere al menos dos subnets
+de zonas distintas y elegidas entre `backend_candidate_subnet_ids`, y el listener sólo se
+abre a los orígenes de `backend_alb_ingress_cidrs`: la lista es **obligatoria y no vacía**
+y ningún prefijo `/0` es admisible (lo rechazan la validación de la variable y un
+precondition de `aws_lb.backend`). El target group usa `target_type = "ip"` (obligatorio
+con `awsvpc`) contra el puerto 8080 y comprueba `/api/health`; el security group del
+backend sólo admite tráfico del security group del ALB, nunca CIDR. Con
+`backend_alb_certificate_arn` el tráfico pasa a HTTPS (443, política TLS 1.2/1.3) y el
+listener HTTP redirige; sin certificado la PoC queda en HTTP, una limitación temporal
+aceptable sólo con los orígenes restringidos, porque no se inventa DNS ni certificado. Su
+DNS se publica en `backend_alb_dns_name`. Sin CloudFront y sin túneles.
 
 **Lock.** Una sola tabla (`msr-poc-lab-locks`) con partition key `lab_id`, TTL sobre
 `expires_at`, cifrado y point-in-time recovery. El lock local en SQLite no sirve en
@@ -235,8 +238,8 @@ independientes; `desired_count = 1` tampoco es un mecanismo de lock. La adquisic
 escritura condicional que también trata el ítem caducado, así que no depende del borrado
 asíncrono del TTL, y sólo el owner puede liberar. El Task Role recibe exactamente
 `dynamodb:GetItem`, `dynamodb:PutItem` y `dynamodb:DeleteItem` sobre el ARN de esa tabla
-(`backend_lock_table.arn`): nunca `dynamodb:*` ni comodines de recurso. En el escenario B
-esos permisos forman parte del documento que aplica el equipo de cloud.
+(`backend_lock_table.arn`): nunca `dynamodb:*` ni comodines de recurso. Esos permisos
+forman parte del documento que aplica el equipo de cloud.
 
 ## Descubrimiento de red previo al primer apply
 
@@ -251,8 +254,41 @@ MSR_AWS_REGION=eu-north-1 .venv/bin/python -m app.net_discovery --vpc-id <vpc-id
 ```
 
 Sólo emite llamadas `Describe*` y no crea nada. El informe pre-apply, con la topología
-propuesta y las dependencias del equipo de red que siguen abiertas, está en
+descubierta y las dependencias del equipo de red que siguen abiertas, está en
 `../../PRE_APPLY_NETWORK_DISCOVERY.md`.
+
+## Dos perfiles de red
+
+El descubrimiento demostró que la cuenta sólo tiene la VPC por defecto
+(`vpc-023864c0ca3c82eab`, `172.31.0.0/16`) con tres subnets públicas, un Internet Gateway,
+cero NAT gateways, cero endpoints de VPC y ninguna conectividad corporativa. De ahí dos
+perfiles, y el módulo mantiene los dos:
+
+| | `poc-public` (autorizado para la PoC) | `corporate-private` (valor por defecto, futuro) |
+| --- | --- | --- |
+| `backend_alb_internal` | `false` | `true` |
+| Subnets | las públicas candidatas, dos AZs | privadas, dos AZs |
+| `backend_assign_public_ip` | `true` | `false` |
+| Salida de la task | Internet Gateway | NAT o endpoints de VPC |
+| Entrada | ALB restringido a CIDR corporativos | ALB interno tras VPN/TGW/peering |
+
+```hcl
+# Perfil PoC
+enable_backend_alb        = true
+backend_alb_internal      = false
+backend_assign_public_ip  = true
+backend_alb_subnet_ids    = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
+backend_subnet_ids        = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
+backend_alb_ingress_cidrs = ["<CIDR corporativo real>"]
+```
+
+La IP pública es la **única** salida disponible en esta VPC (sin ella la task no puede
+descargar la imagen de ECR, escribir en CloudWatch Logs ni llamar a SSM, EC2, Auto Scaling
+o DynamoDB) y no expone el backend: su security group sólo admite `tcp/8080` desde el
+security group del ALB, y su salida se limita a `tcp/443` y DNS. Este Terraform **no** crea
+VPN, Transit Gateway, NAT gateways, subnets privadas ni endpoints de VPC: el perfil
+corporativo depende de una autorización de red aparte. El perfil efectivo se publica en el
+output `backend_network_profile`.
 
 ## Limitaciones conocidas
 

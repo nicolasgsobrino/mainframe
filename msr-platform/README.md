@@ -215,14 +215,26 @@ usuario → ALB → backend como task de ECS Fargate (:8080, SPA y /api)
 ```
 
 La imagen se publica en un repositorio ECR privado (escaneo, cifrado, tags inmutables y
-lifecycle policy de 5 imágenes) y la UI/API se expone tras un ALB **interno por defecto**,
-con target group `ip`, health check `/api/health` y un security group que sólo admite
-tráfico del ALB. ECR, ALB y tabla de locks están desactivados por defecto en Terraform.
+lifecycle policy de 5 imágenes) y la UI/API se expone tras un ALB con target group `ip`,
+health check `/api/health` y un security group que sólo admite tráfico del ALB. ECR, ALB y
+tabla de locks están desactivados por defecto en Terraform.
 
-Las subnets del ALB y el rango de origen no tienen valor por defecto. Antes del primer
-apply, `python -m app.net_discovery --vpc-id <vpc-id>` (sólo llamadas `Describe*`) informa
-de subnets, AZs, routing, NAT y endpoints de VPC, y el informe pre-apply con las
-dependencias de red abiertas está en `PRE_APPLY_NETWORK_DISCOVERY.md`.
+El descubrimiento de red (`python -m app.net_discovery --vpc-id <vpc-id>`, sólo llamadas
+`Describe*`) mostró que la cuenta sólo tiene la VPC por defecto con tres subnets públicas,
+sin NAT, sin endpoints de VPC y sin conectividad corporativa, así que existen dos perfiles
+(detalle en `infra/terraform/README.md` y `PRE_APPLY_NETWORK_DISCOVERY.md`):
+
+- **PoC** (`backend_alb_internal = false`, `backend_assign_public_ip = true`): ALB
+  publicado pero restringido a los CIDR corporativos de `backend_alb_ingress_cidrs`
+  —obligatoria, sin valor por defecto y sin admitir ningún `/0`— y tasks con IP pública,
+  la única salida disponible en esa VPC. La task nunca acepta tráfico de Internet: sólo
+  `tcp/8080` desde el security group del ALB.
+- **Corporativo** (valor por defecto, futuro): VPN/TGW/peering → ALB interno → tasks
+  privadas → NAT o endpoints de VPC. Este Terraform no crea esa infraestructura de red.
+
+Sin certificado de ACM la exposición es HTTP, una limitación temporal de la PoC aceptable
+sólo con la lista de orígenes restringida; con `backend_alb_certificate_arn` el ALB pasa a
+HTTPS y el listener HTTP redirige.
 
 Una sola imagen (`msr-platform/Dockerfile`) compila la SPA y la sirve desde el propio
 backend; el mismo artefacto ejecuta el servicio (`uvicorn`) y el hook
@@ -238,8 +250,11 @@ través del endpoint de metadatos del contenedor. No hay access keys, ni session
 `secrets` en la task definition, ni Secrets Manager, ni `aws login`, ni perfiles
 (`MSR_AWS_PROFILE=`) y sin `sts:AssumeRole` (`MSR_AWS_ROLE_ARN=`). Los runbooks no
 declaran `assumeRole`, así que ese rol es también la identidad efectiva de la Automation y
-no existe `iam:PassRole`. Si no hay un ARN de rol válido, el despliegue falla en un
-precondition de la task definition.
+no existe `iam:PassRole`. Terraform no crea roles de aplicación —la cuenta deniega adjuntar
+políticas a un rol—: el Task Role y el execution role los aprovisiona el equipo de cloud
+con los documentos exactos que publican los outputs `backend_task_role_*_json` y
+`backend_execution_role_*_json`, y sin ambos ARNs el despliegue falla en un precondition de
+la task definition.
 
 Defaults desplegados hasta la validación real: `MSR_PATCH_PROVIDER=aws-automation`,
 `MSR_RESTORE_PROVIDER=aws-automation`, `MSR_DRY_RUN=true`,

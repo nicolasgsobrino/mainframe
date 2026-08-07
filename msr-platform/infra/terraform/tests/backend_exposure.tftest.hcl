@@ -62,6 +62,8 @@ variables {
   existing_instance_profile_role_name = "EC2SSMAgentProfile"
   backend_image                       = "133789123239.dkr.ecr.eu-north-1.amazonaws.com/msr-poc-platform:0.1.0"
   backend_subnet_ids                  = ["subnet-0bb97e6254e4f83e9"]
+  backend_task_role_arn               = "arn:aws:iam::133789123239:role/CorpMsrBackendTask"
+  backend_execution_role_arn          = "arn:aws:iam::133789123239:role/CorpMsrBackendExec"
 }
 
 run "nothing_new_is_planned_while_the_runtime_stays_disabled" {
@@ -141,12 +143,11 @@ run "the_alb_is_internal_and_reaches_the_backend_only_through_its_target_group" 
   command = plan
 
   variables {
-    enable_backend_service   = true
-    create_backend_task_role = true
-    enable_backend_alb       = true
-    backend_alb_subnet_ids   = ["subnet-0bb97e6254e4f83e9", "subnet-0aa97e6254e4f83e0"]
+    enable_backend_service = true
+    enable_backend_alb     = true
+    backend_alb_subnet_ids = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
     # Origen corporativo concreto: nunca 0.0.0.0/0 por omisión.
-    backend_alb_ingress_cidrs = ["10.0.0.0/16"]
+    backend_alb_ingress_cidrs = ["203.0.113.10/32"]
   }
 
   assert {
@@ -199,48 +200,164 @@ run "the_alb_is_internal_and_reaches_the_backend_only_through_its_target_group" 
   }
 }
 
-run "the_alb_ingress_is_closed_when_no_origin_is_declared" {
+run "the_alb_cannot_be_deployed_without_declared_origins" {
   command = plan
 
   variables {
-    enable_backend_service   = true
-    create_backend_task_role = true
-    enable_backend_alb       = true
-    backend_alb_subnet_ids   = ["subnet-0bb97e6254e4f83e9", "subnet-0aa97e6254e4f83e0"]
+    enable_backend_service = true
+    enable_backend_alb     = true
+    backend_alb_subnet_ids = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
   }
 
-  assert {
-    condition     = length(aws_vpc_security_group_ingress_rule.backend_alb) == 0
-    error_message = "Sin orígenes declarados no puede existir ninguna regla de entrada."
-  }
+  expect_failures = [aws_lb.backend]
 }
 
-run "a_public_alb_open_to_the_internet_is_rejected" {
+run "an_alb_open_to_the_internet_is_rejected" {
   command = plan
 
   variables {
     enable_backend_service    = true
-    create_backend_task_role  = true
     enable_backend_alb        = true
     backend_alb_internal      = false
-    backend_alb_subnet_ids    = ["subnet-0bb97e6254e4f83e9", "subnet-0aa97e6254e4f83e0"]
+    backend_alb_subnet_ids    = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
     backend_alb_ingress_cidrs = ["0.0.0.0/0"]
   }
 
-  expect_failures = [aws_lb.backend]
+  expect_failures = [var.backend_alb_ingress_cidrs]
 }
 
 run "the_alb_requires_two_availability_zones" {
   command = plan
 
   variables {
-    enable_backend_service   = true
-    create_backend_task_role = true
-    enable_backend_alb       = true
-    backend_alb_subnet_ids   = ["subnet-0bb97e6254e4f83e9"]
+    enable_backend_service    = true
+    enable_backend_alb        = true
+    backend_alb_subnet_ids    = ["subnet-0bb97e6254e4f83e9"]
+    backend_alb_ingress_cidrs = ["203.0.113.10/32"]
   }
 
   expect_failures = [aws_lb.backend]
+}
+
+run "the_alb_cannot_use_a_subnet_outside_the_discovered_candidates" {
+  command = plan
+
+  variables {
+    enable_backend_service    = true
+    enable_backend_alb        = true
+    backend_alb_subnet_ids    = ["subnet-0bb97e6254e4f83e9", "subnet-0aa97e6254e4f83e0"]
+    backend_alb_ingress_cidrs = ["203.0.113.10/32"]
+  }
+
+  expect_failures = [aws_lb.backend]
+}
+
+run "the_poc_profile_publishes_the_alb_only_to_the_allowlisted_origins" {
+  command = plan
+
+  variables {
+    enable_backend_service    = true
+    enable_backend_alb        = true
+    backend_alb_internal      = false
+    backend_assign_public_ip  = true
+    backend_alb_subnet_ids    = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
+    backend_alb_ingress_cidrs = ["203.0.113.10/32", "198.51.100.0/28"]
+  }
+
+  assert {
+    condition     = aws_lb.backend[0].internal == false
+    error_message = "El perfil PoC publica el ALB porque no existe conectividad corporativa."
+  }
+
+  assert {
+    condition = length(aws_vpc_security_group_ingress_rule.backend_alb) == 2 && alltrue([
+      for rule in values(aws_vpc_security_group_ingress_rule.backend_alb) :
+      contains(["203.0.113.10/32", "198.51.100.0/28"], rule.cidr_ipv4) && rule.from_port == 80
+    ])
+    error_message = "El listener sólo puede abrirse a los orígenes autorizados."
+  }
+
+  assert {
+    condition = (
+      output.backend_network_profile.profile == "poc-public" &&
+      output.backend_network_profile.listener_protocol == "HTTP" &&
+      output.backend_network_profile.assign_public_ip == true
+    )
+    error_message = "El perfil de red publicado debe describir la exposición real."
+  }
+}
+
+run "the_full_poc_profile_plans_exactly_the_expected_resources" {
+  command = plan
+
+  variables {
+    enable_backend_service    = true
+    enable_backend_ecr        = true
+    enable_backend_lock_table = true
+    enable_backend_alb        = true
+    backend_alb_internal      = false
+    backend_assign_public_ip  = true
+    backend_alb_subnet_ids    = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
+    backend_subnet_ids        = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
+    backend_alb_ingress_cidrs = ["203.0.113.10/32"]
+  }
+
+  # Diecisiete recursos del runtime sobre los diez del laboratorio, ninguno IAM.
+  assert {
+    condition = (
+      length(output.backend_resource_summary.resources) == 17 &&
+      length(output.estimated_resource_summary.resources) == 10
+    )
+    error_message = "El primer apply del perfil PoC debe crear exactamente 27 recursos."
+  }
+
+  assert {
+    condition = !anytrue([
+      for resource in output.backend_resource_summary.resources :
+      startswith(resource, "aws_iam_")
+    ])
+    error_message = "Ningún recurso IAM puede formar parte del plan."
+  }
+}
+
+run "a_certificate_moves_the_traffic_to_https_and_redirects_http" {
+  command = plan
+
+  variables {
+    enable_backend_service      = true
+    enable_backend_alb          = true
+    backend_alb_internal        = false
+    backend_assign_public_ip    = true
+    backend_alb_subnet_ids      = ["subnet-0bb97e6254e4f83e9", "subnet-0c14b617316ff3efa"]
+    backend_alb_ingress_cidrs   = ["203.0.113.10/32"]
+    backend_alb_certificate_arn = "arn:aws:acm:eu-north-1:133789123239:certificate/11111111-2222-3333-4444-555555555555"
+  }
+
+  assert {
+    condition = (
+      length(aws_lb_listener.backend_https) == 1 &&
+      aws_lb_listener.backend_https[0].port == 443 &&
+      aws_lb_listener.backend_https[0].protocol == "HTTPS"
+    )
+    error_message = "Con certificado debe existir el listener HTTPS."
+  }
+
+  assert {
+    condition     = aws_lb_listener.backend[0].default_action[0].type == "redirect"
+    error_message = "El listener HTTP debe redirigir a HTTPS en lugar de servir tráfico."
+  }
+
+  assert {
+    condition = length(aws_vpc_security_group_ingress_rule.backend_alb) == 2 && anytrue([
+      for rule in values(aws_vpc_security_group_ingress_rule.backend_alb) : rule.from_port == 443
+    ])
+    error_message = "El origen autorizado debe poder alcanzar también el puerto 443."
+  }
+
+  assert {
+    condition     = output.backend_network_profile.listener_protocol == "HTTPS"
+    error_message = "El perfil publicado debe reflejar HTTPS."
+  }
 }
 
 run "the_lock_table_serializes_lab_mutations" {
@@ -288,8 +405,7 @@ run "the_task_role_can_only_touch_the_lock_table_in_dynamodb" {
   command = plan
 
   variables {
-    enable_backend_service   = true
-    create_backend_task_role = true
+    enable_backend_service = true
   }
 
   assert {

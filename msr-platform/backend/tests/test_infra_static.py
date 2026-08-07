@@ -109,29 +109,24 @@ def test_patch_baseline_approves_only_the_candidate_advisory():
     assert "aws_ssm_patch_group" in patching
 
 
-def test_the_lab_manages_no_iam_resource():
-    """La cuenta deniega iam:PutRolePolicy/AttachRolePolicy/UpdateAssumeRolePolicy.
+def test_no_iam_resource_is_managed_anywhere():
+    """La cuenta deniega iam:PutRolePolicy e iam:AttachRolePolicy.
 
-    El único IAM declarado es el del runtime del backend (`backend_iam.tf`), y es
-    opcional: con `create_backend_task_role = false` no se planifica nada.
+    Ni el laboratorio ni el runtime crean roles: ambos roles del backend los
+    aprovisiona el equipo de cloud y se consumen por ARN.
     """
     assert not (INFRA / "iam.tf").exists()
     for path in INFRA.glob("*.tf"):
-        if path.name == "backend_iam.tf":
-            continue
         content = path.read_text(encoding="utf-8")
         assert not re.search(r'^resource "aws_iam_', content, re.M), path.name
         assert 'data "aws_iam_policy_document"' not in content, path.name
 
 
-def test_the_backend_iam_is_opt_in_and_never_touches_the_lab():
+def test_the_backend_roles_are_external_and_never_touch_the_lab():
     backend_iam = code("backend_iam.tf")
 
-    # Cada recurso IAM depende del interruptor, nunca del laboratorio.
-    for match in re.finditer(r'^resource "aws_iam_[^"]+" "([^"]+)" \{\n(.*?)^\}',
-                             backend_iam, re.M | re.S):
-        assert "count = local.backend_iam_enabled" in match.group(2), match.group(1)
-    assert "backend_iam_enabled = var.create_backend_task_role ? local.backend_enabled : 0" in backend_iam
+    assert "backend_task_role_arn      = var.backend_task_role_arn" in backend_iam
+    assert "backend_execution_role_arn = var.backend_execution_role_arn" in backend_iam
     # El instance profile corporativo del laboratorio sigue siendo sólo lectura.
     assert "aws_iam_instance_profile" not in backend_iam
 

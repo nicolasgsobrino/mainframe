@@ -102,7 +102,7 @@ def test_the_task_gets_its_credentials_only_from_the_task_role():
     # Nada que inyectar desde Secrets Manager o SSM Parameter Store.
     assert "secrets" not in ecs
     assert "aws_secretsmanager" not in ecs
-    assert "assign_public_ip = false" in ecs
+    assert "assign_public_ip = var.backend_assign_public_ip" in ecs
 
 
 def test_the_task_definition_fails_without_a_workload_role():
@@ -116,9 +116,44 @@ def test_the_task_definition_fails_without_a_workload_role():
 def test_the_runtime_is_disabled_by_default():
     variables = code(INFRA / "variables.tf")
 
-    for variable in ("enable_backend_service", "create_backend_task_role"):
+    for variable in ("enable_backend_service", "enable_backend_alb",
+                     "enable_backend_ecr", "enable_backend_lock_table",
+                     "backend_assign_public_ip"):
         block = variables.split(f'variable "{variable}"')[1].split("\nvariable ")[0]
         assert "default     = false" in block, variable
+
+
+def test_the_deployment_requires_both_external_roles():
+    """Escenario B exclusivo: sin ARN válido la task definition no se planifica."""
+    variables = code(INFRA / "variables.tf")
+
+    assert 'variable "create_backend_task_role"' not in variables
+    for variable in ("backend_task_role_arn", "backend_execution_role_arn"):
+        block = variables.split(f'variable "{variable}"')[1].split("\nvariable ")[0]
+        assert 'default     = ""' in block, variable
+
+
+def test_only_discovered_subnets_can_be_used():
+    ecs = code(ECS)
+    alb = code(INFRA / "backend_alb.tf")
+
+    for content in (ecs, alb):
+        assert "var.backend_candidate_subnet_ids" in content
+        assert "setsubtract" in content
+
+
+def test_the_alb_cannot_be_exposed_without_restricted_origins():
+    alb = code(INFRA / "backend_alb.tf")
+    variables = code(INFRA / "variables.tf")
+
+    # Sin orígenes declarados el apply se detiene, y ningún prefijo /0 es válido.
+    assert "length(var.backend_alb_ingress_cidrs) > 0" in alb
+    assert 'tonumber(split("/", cidr)[1]) > 0' in alb
+    block = variables.split('variable "backend_alb_ingress_cidrs"')[1].split("\nvariable ")[0]
+    assert 'tonumber(split("/", cidr)[1]) > 0' in block
+    # El ejemplo no propone ningún origen: el rango real lo aporta el equipo de red.
+    example = code(INFRA / "terraform.tfvars.example")
+    assert "backend_alb_ingress_cidrs =" not in example
 
 
 # --- identidad de workload ---------------------------------------------------

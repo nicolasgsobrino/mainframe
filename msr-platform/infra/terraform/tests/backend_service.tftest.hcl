@@ -62,6 +62,8 @@ variables {
   existing_instance_profile_role_name = "EC2SSMAgentProfile"
   backend_image                       = "133789123239.dkr.ecr.eu-north-1.amazonaws.com/msr-platform:0.1.0"
   backend_subnet_ids                  = ["subnet-0bb97e6254e4f83e9"]
+  backend_task_role_arn               = "arn:aws:iam::133789123239:role/CorpMsrBackendTask"
+  backend_execution_role_arn          = "arn:aws:iam::133789123239:role/CorpMsrBackendExec"
 }
 
 run "the_lab_plan_does_not_change_when_the_backend_is_disabled" {
@@ -71,9 +73,7 @@ run "the_lab_plan_does_not_change_when_the_backend_is_disabled" {
     condition = (
       length(aws_ecs_cluster.backend) == 0 &&
       length(aws_ecs_service.backend) == 0 &&
-      length(aws_ecs_task_definition.backend) == 0 &&
-      length(aws_iam_role.backend_task) == 0 &&
-      length(aws_iam_role.backend_execution) == 0
+      length(aws_ecs_task_definition.backend) == 0
     )
     error_message = "Sin enable_backend_service no puede planificarse ningún recurso del runtime."
   }
@@ -89,32 +89,19 @@ run "the_lab_plan_does_not_change_when_the_backend_is_disabled" {
   }
 }
 
-run "terraform_creates_the_task_role_when_iam_is_allowed" {
+run "the_role_documents_published_for_the_cloud_team_are_exact" {
   command = plan
 
   variables {
-    enable_backend_service   = true
-    create_backend_task_role = true
+    enable_backend_service = true
   }
 
   assert {
-    condition     = length(aws_iam_role.backend_task) == 1
-    error_message = "Con create_backend_task_role = true debe planificarse el Task Role."
-  }
-
-  assert {
-    condition     = output.backend_task_role_arn == "arn:aws:iam::133789123239:role/msr-poc-linux-patching-01-backend-task"
-    error_message = "El ARN efectivo debe ser el del rol creado por Terraform."
-  }
-
-  assert {
-    condition     = output.backend_task_role_is_managed_by_terraform == true
-    error_message = "El output debe declarar quién gestiona el rol."
-  }
-
-  assert {
-    condition     = output.backend_resource_summary.requires_iam_permissions == true
-    error_message = "Crear el rol exige permisos de IAM y debe anunciarse."
+    condition = (
+      output.backend_task_role_is_managed_by_terraform == false &&
+      output.backend_resource_summary.requires_iam_permissions == false
+    )
+    error_message = "Este Terraform no gestiona roles de aplicación: no exige permisos de IAM."
   }
 
   # --- trust policy exacta: sólo ECS, sólo esta cuenta, sólo esta región ---
@@ -203,25 +190,51 @@ run "terraform_creates_the_task_role_when_iam_is_allowed" {
     ]) == 0
     error_message = "El rol no puede terminar ni lanzar instancias, ni modificar documentos."
   }
-}
 
-run "the_deployment_consumes_a_preprovisioned_role_when_iam_is_denied" {
-  command = plan
-
-  variables {
-    enable_backend_service     = true
-    create_backend_task_role   = false
-    backend_task_role_arn      = "arn:aws:iam::133789123239:role/CorpMsrBackendTask"
-    backend_execution_role_arn = "arn:aws:iam::133789123239:role/CorpMsrBackendExec"
+  # --- task execution role: sólo la imagen MSR y su log group --------------
+  assert {
+    condition = (
+      jsondecode(output.backend_execution_role_trust_policy_json).Statement[0].Principal.Service ==
+      "ecs-tasks.amazonaws.com"
+    )
+    error_message = "El execution role sólo puede asumirlo ECS."
   }
 
   assert {
-    condition = (
-      length(aws_iam_role.backend_task) == 0 &&
-      length(aws_iam_role.backend_execution) == 0 &&
-      length(aws_iam_role_policy.backend_task) == 0
-    )
-    error_message = "Sin permisos de IAM Terraform no puede planificar ningún recurso IAM."
+    condition = alltrue([
+      for statement in jsondecode(output.backend_execution_role_permission_policy_json).Statement :
+      statement.Resource == "arn:aws:ecr:eu-north-1:133789123239:repository/msr-poc-platform"
+      if statement.Sid == "PullOnlyTheMsrImage"
+    ])
+    error_message = "El pull debe limitarse al repositorio ECR de la PoC."
+  }
+
+  assert {
+    condition = alltrue([
+      for statement in jsondecode(output.backend_execution_role_permission_policy_json).Statement :
+      statement.Resource == "arn:aws:logs:eu-north-1:133789123239:log-group:/aws/ecs/msr-poc-linux-patching-01-backend:*"
+      if statement.Sid == "PublishTheContainerLogs"
+    ])
+    error_message = "Los logs deben limitarse al log group del backend."
+  }
+
+  assert {
+    condition = length([
+      for statement in jsondecode(output.backend_execution_role_permission_policy_json).Statement :
+      statement if strcontains(jsonencode(statement.Action), "ecr:Put") ||
+      strcontains(jsonencode(statement.Action), "ecr:*") ||
+      strcontains(jsonencode(statement.Action), "logs:CreateLogGroup") ||
+      strcontains(jsonencode(statement.Action), "secretsmanager:")
+    ]) == 0
+    error_message = "El execution role no publica imágenes, no crea log groups y no lee secretos."
+  }
+}
+
+run "the_deployment_consumes_the_preprovisioned_roles" {
+  command = plan
+
+  variables {
+    enable_backend_service = true
   }
 
   assert {
@@ -246,20 +259,76 @@ run "the_deployment_fails_without_a_workload_role" {
   command = plan
 
   variables {
-    enable_backend_service   = true
-    create_backend_task_role = false
-    backend_task_role_arn    = ""
+    enable_backend_service = true
+    backend_task_role_arn  = ""
   }
 
   expect_failures = [aws_ecs_task_definition.backend]
+}
+
+run "the_deployment_fails_without_an_execution_role" {
+  command = plan
+
+  variables {
+    enable_backend_service     = true
+    backend_execution_role_arn = ""
+  }
+
+  expect_failures = [aws_ecs_task_definition.backend]
+}
+
+run "the_tasks_cannot_use_a_subnet_outside_the_discovered_candidates" {
+  command = plan
+
+  variables {
+    enable_backend_service = true
+    backend_subnet_ids     = ["subnet-0000000000000dead"]
+  }
+
+  expect_failures = [aws_ecs_task_definition.backend]
+}
+
+run "the_poc_profile_assigns_a_public_ip_without_exposing_the_task" {
+  command = plan
+
+  variables {
+    enable_backend_service   = true
+    backend_assign_public_ip = true
+    enable_backend_alb       = true
+    backend_alb_internal     = false
+    backend_alb_subnet_ids = [
+      "subnet-0bb97e6254e4f83e9",
+      "subnet-0c14b617316ff3efa",
+    ]
+    backend_alb_ingress_cidrs = ["203.0.113.10/32"]
+  }
+
+  assert {
+    condition     = aws_ecs_service.backend[0].network_configuration[0].assign_public_ip == true
+    error_message = "El perfil PoC necesita IP pública: la VPC no tiene NAT ni endpoints."
+  }
+
+  # La IP pública no abre la task: su única entrada sigue siendo el SG del ALB.
+  assert {
+    condition = (
+      length(aws_vpc_security_group_ingress_rule.backend_from_alb) == 1 &&
+      aws_vpc_security_group_ingress_rule.backend_from_alb[0].from_port == 8080 &&
+      aws_vpc_security_group_ingress_rule.backend_from_alb[0].cidr_ipv4 == null
+    )
+    error_message = "La task sólo admite 8080 desde el security group del ALB."
+  }
+
+  assert {
+    condition     = output.backend_network_profile.profile == "poc-public"
+    error_message = "El perfil de red efectivo debe declararse como poc-public."
+  }
 }
 
 run "the_task_runs_with_safe_defaults_and_no_credentials" {
   command = plan
 
   variables {
-    enable_backend_service   = true
-    create_backend_task_role = true
+    enable_backend_service = true
   }
 
   assert {
@@ -289,7 +358,7 @@ run "the_task_runs_with_safe_defaults_and_no_credentials" {
 
   assert {
     condition     = aws_ecs_service.backend[0].network_configuration[0].assign_public_ip == false
-    error_message = "La task no puede recibir IP pública."
+    error_message = "El valor predeterminado del perfil corporativo es sin IP pública."
   }
 
   assert {

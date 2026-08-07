@@ -13,6 +13,9 @@ locals {
   backend_ecr_repository_url = (
     "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.backend_ecr_repository_name}"
   )
+  backend_ecr_repository_arn = (
+    "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.backend_ecr_repository_name}"
+  )
 
   # Sólo se conservan las últimas imágenes de la PoC; el resto caduca.
   backend_ecr_lifecycle_policy = {

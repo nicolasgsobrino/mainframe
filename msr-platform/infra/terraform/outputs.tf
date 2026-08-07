@@ -179,28 +179,43 @@ output "backend_deployment_runtime" {
 
 output "backend_task_role_arn" {
   description = <<-EOT
-    ARN efectivo del ECS Task Role: el creado por Terraform o el preaprovisionado
-    por el equipo corporativo. Vacío significa despliegue no configurado.
+    ARN del ECS Task Role preaprovisionado por el equipo de cloud. Vacío significa
+    despliegue no configurado: la task no llega a planificarse.
   EOT
   value       = local.backend_task_role_arn
 }
 
 output "backend_execution_role_arn" {
-  description = "ARN efectivo del task execution role (agente de ECS)."
+  description = "ARN del task execution role preaprovisionado (agente de ECS)."
   value       = local.backend_execution_role_arn
 }
 
 output "backend_task_role_is_managed_by_terraform" {
-  description = "true si Terraform crea el Task Role; false si se consume uno existente."
-  value       = var.create_backend_task_role
+  description = "Siempre false: este Terraform no gestiona ningún rol de aplicación."
+  value       = false
 }
 
 output "backend_task_role_trust_policy_json" {
   description = <<-EOT
-    Trust policy exacta del Task Role. Si IAM no puede crearse desde aquí, es el
-    documento que debe aplicar el equipo de cloud, sin ampliaciones.
+    Trust policy exacta del Task Role que debe crear el equipo de cloud, sin
+    ampliaciones.
   EOT
   value       = jsonencode(local.backend_task_trust_policy)
+}
+
+output "backend_execution_role_trust_policy_json" {
+  description = "Trust policy exacta del task execution role (idéntica a la del Task Role)."
+  value       = jsonencode(local.backend_execution_trust_policy)
+}
+
+output "backend_execution_role_permission_policy_json" {
+  description = <<-EOT
+    Política exacta del task execution role: autenticarse en ECR, descargar
+    únicamente la imagen MSR y publicar en su log group. Nada más; en particular
+    no se usa la política gestionada AmazonECSTaskExecutionRolePolicy, que
+    autoriza cualquier repositorio y cualquier log group de la cuenta.
+  EOT
+  value       = jsonencode(local.backend_execution_permission_policy)
 }
 
 output "backend_task_role_permission_policy_json" {
@@ -248,18 +263,16 @@ output "backend_resource_summary" {
       "aws_lb.backend",
       "aws_lb_target_group.backend",
       "aws_lb_listener.backend",
+      ] : [], (var.enable_backend_alb && var.backend_alb_certificate_arn != "") ? [
+      "aws_lb_listener.backend_https",
       ] : [], var.enable_backend_ecr ? [
       "aws_ecr_repository.backend",
       "aws_ecr_lifecycle_policy.backend",
       ] : [], var.enable_backend_lock_table ? [
       "aws_dynamodb_table.lab_locks",
-      ] : [], var.create_backend_task_role ? [
-      "aws_iam_role.backend_task",
-      "aws_iam_role_policy.backend_task",
-      "aws_iam_role.backend_execution",
-      "aws_iam_role_policy_attachment.backend_execution",
     ] : [])
-    requires_iam_permissions = var.create_backend_task_role
+    # Ningún recurso IAM: ambos roles son externos.
+    requires_iam_permissions = false
   }
 }
 
@@ -281,6 +294,27 @@ output "backend_alb_dns_name" {
 output "backend_alb_is_internal" {
   description = "true si el ALB no está publicado en Internet."
   value       = var.backend_alb_internal
+}
+
+output "backend_network_profile" {
+  description = <<-EOT
+    Perfil de red efectivo. `poc-public` publica el ALB con orígenes restringidos
+    y tasks con IP pública (única salida disponible en la VPC por defecto);
+    `corporate-private` es el perfil futuro con ALB interno, subnets privadas y
+    salida por NAT o endpoints de VPC.
+  EOT
+  value = {
+    profile          = var.backend_alb_internal ? "corporate-private" : "poc-public"
+    alb_internal     = var.backend_alb_internal
+    alb_subnet_ids   = var.backend_alb_subnet_ids
+    task_subnet_ids  = var.backend_subnet_ids
+    assign_public_ip = var.backend_assign_public_ip
+    ingress_cidrs    = var.backend_alb_ingress_cidrs
+    listener_protocol = (
+      var.backend_alb_certificate_arn != "" ? "HTTPS" : "HTTP"
+    )
+    task_inbound = "tcp/8080 solo desde el security group del ALB"
+  }
 }
 
 output "backend_lock_table" {

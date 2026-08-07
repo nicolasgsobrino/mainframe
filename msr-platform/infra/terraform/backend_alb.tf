@@ -6,9 +6,10 @@
 # basta un target group con targets `ip` (obligatorio con `awsvpc`) y un listener.
 # Sin CloudFront y sin túneles: la exposición es un recurso gestionado.
 #
-# El valor predeterminado es un ALB interno. No se asume que la red corporativa
-# permita un ALB público: publicarlo exige `backend_alb_internal = false`,
-# subnets públicas y orígenes autorizados explícitos.
+# El valor predeterminado es un ALB interno (perfil corporativo futuro). El perfil
+# PoC lo publica con `backend_alb_internal = false` porque la cuenta no tiene
+# subnets privadas ni conectividad corporativa; a cambio, la lista de orígenes
+# autorizados es obligatoria y ningún prefijo `/0` es admisible.
 
 locals {
   backend_alb_enabled = (local.backend_enabled == 1 && var.enable_backend_alb) ? 1 : 0
@@ -17,6 +18,16 @@ locals {
   backend_alb_tg_name    = "${local.name_prefix}-tg"
   backend_health_path    = "/api/health"
   backend_container_port = 8080
+
+  # Con certificado el tráfico entra por 443 y el listener HTTP sólo redirige.
+  backend_alb_https_enabled = var.backend_alb_certificate_arn != "" ? 1 : 0
+  backend_alb_ingress_ports = (
+    var.backend_alb_certificate_arn != "" ? [var.backend_alb_port, 443] : [var.backend_alb_port]
+  )
+  backend_alb_ingress_rules = {
+    for pair in setproduct(var.backend_alb_ingress_cidrs, local.backend_alb_ingress_ports) :
+    "${pair[0]}-${pair[1]}" => { cidr = pair[0], port = pair[1] }
+  }
 }
 
 resource "aws_security_group" "backend_alb" {
@@ -29,17 +40,17 @@ resource "aws_security_group" "backend_alb" {
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-alb-sg" })
 }
 
-# Sin `backend_alb_ingress_cidrs` no se crea ninguna regla: el ALB queda sin
-# entrada permitida en lugar de abrirse por omisión.
+# Una regla por origen autorizado y puerto expuesto. Sin orígenes no se crea
+# ninguna: el ALB nunca se abre por omisión (y su precondition detiene el apply).
 resource "aws_vpc_security_group_ingress_rule" "backend_alb" {
-  count = local.backend_alb_enabled == 1 ? length(var.backend_alb_ingress_cidrs) : 0
+  for_each = local.backend_alb_enabled == 1 ? local.backend_alb_ingress_rules : {}
 
   security_group_id = aws_security_group.backend_alb[0].id
   description       = "Acceso a la UI/API de la PoC"
-  cidr_ipv4         = var.backend_alb_ingress_cidrs[count.index]
+  cidr_ipv4         = each.value.cidr
   ip_protocol       = "tcp"
-  from_port         = var.backend_alb_port
-  to_port           = var.backend_alb_port
+  from_port         = each.value.port
+  to_port           = each.value.port
 }
 
 resource "aws_vpc_security_group_egress_rule" "backend_alb_to_backend" {
@@ -85,13 +96,27 @@ resource "aws_lb" "backend" {
       error_message = "backend_alb_subnet_ids necesita al menos dos subnets en zonas distintas."
     }
 
-    # Un ALB público sólo puede existir si se declara explícitamente.
+    # Ninguna subnet ajena al descubrimiento de red autorizado.
     precondition {
-      condition = var.backend_alb_internal || !contains(var.backend_alb_ingress_cidrs, "0.0.0.0/0")
-      error_message = join(" ", [
-        "Un ALB publico abierto a 0.0.0.0/0 requiere aprobacion de red:",
-        "mantén backend_alb_internal = true o restringe backend_alb_ingress_cidrs.",
+      condition = length(setsubtract(
+        var.backend_alb_subnet_ids, var.backend_candidate_subnet_ids
+      )) == 0
+      error_message = "backend_alb_subnet_ids sólo admite subnets de backend_candidate_subnet_ids."
+    }
+
+    # Exponer el ALB sin orígenes autorizados dejaría un balanceador inalcanzable
+    # o, peor, invitaría a abrirlo después a mano.
+    precondition {
+      condition     = length(var.backend_alb_ingress_cidrs) > 0
+      error_message = "backend_alb_ingress_cidrs es obligatoria: declara los orígenes autorizados de la red corporativa."
+    }
+
+    # Ni siquiera un ALB público admite un prefijo /0.
+    precondition {
+      condition = alltrue([
+        for cidr in var.backend_alb_ingress_cidrs : tonumber(split("/", cidr)[1]) > 0
       ])
+      error_message = "Ningún origen puede ser 0.0.0.0/0: restringe backend_alb_ingress_cidrs a la red corporativa."
     }
   }
 }
@@ -128,10 +153,48 @@ resource "aws_lb_listener" "backend" {
   port              = var.backend_alb_port
   protocol          = "HTTP"
 
+  # Con certificado, el listener HTTP deja de servir tráfico y sólo redirige.
+  dynamic "default_action" {
+    for_each = local.backend_alb_https_enabled == 1 ? [] : [1]
+
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.backend[0].arn
+    }
+  }
+
+  dynamic "default_action" {
+    for_each = local.backend_alb_https_enabled == 1 ? [1] : []
+
+    content {
+      type = "redirect"
+
+      redirect {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+  }
+
+  tags = merge(local.common_tags, { Name = "${local.backend_alb_name}-listener" })
+}
+
+# HTTPS sólo cuando existe un certificado de ACM: no se inventa ni nombre DNS ni
+# certificado. Sin él, la PoC queda en HTTP con los orígenes restringidos.
+resource "aws_lb_listener" "backend_https" {
+  count = local.backend_alb_enabled * local.backend_alb_https_enabled
+
+  load_balancer_arn = aws_lb.backend[0].arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.backend_alb_certificate_arn
+
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.backend[0].arn
   }
 
-  tags = merge(local.common_tags, { Name = "${local.backend_alb_name}-listener" })
+  tags = merge(local.common_tags, { Name = "${local.backend_alb_name}-listener-https" })
 }

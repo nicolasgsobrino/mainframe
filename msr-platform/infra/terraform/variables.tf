@@ -239,22 +239,14 @@ variable "enable_backend_service" {
   default     = false
 }
 
-variable "create_backend_task_role" {
-  description = <<-EOT
-    Terraform crea el ECS Task Role del backend y su política mínima. Con `false`
-    no se gestiona ningún recurso IAM y debe indicarse `backend_task_role_arn`
-    (rol preaprovisionado por el equipo corporativo de cloud).
-  EOT
-  type        = bool
-  default     = false
-}
-
 variable "backend_task_role_arn" {
   description = <<-EOT
     ARN del ECS Task Role preaprovisionado (identidad de workload del backend).
-    Sólo se usa cuando `create_backend_task_role = false`. Su trust policy y su
-    política de permisos exactas se publican en los outputs
+    Este Terraform no crea roles de aplicación: la cuenta deniega explícitamente
+    `iam:PutRolePolicy` e `iam:AttachRolePolicy`, así que el rol lo aprovisiona el
+    equipo de cloud con la trust policy y la política publicadas en los outputs
     `backend_task_role_trust_policy_json` y `backend_task_role_permission_policy_json`.
+    Sin este ARN el despliegue falla.
   EOT
   type        = string
   default     = ""
@@ -272,6 +264,9 @@ variable "backend_execution_role_arn" {
   description = <<-EOT
     ARN del task execution role preaprovisionado (lo usa el agente de ECS para
     descargar la imagen y escribir logs; no es la identidad de la aplicación).
+    También lo crea el equipo de cloud, con los documentos publicados en los
+    outputs `backend_execution_role_trust_policy_json` y
+    `backend_execution_role_permission_policy_json`. Sin este ARN el despliegue falla.
   EOT
   type        = string
   default     = ""
@@ -293,11 +288,44 @@ variable "backend_image" {
 
 variable "backend_subnet_ids" {
   description = <<-EOT
-    Subnets privadas con salida a Internet (NAT) o endpoints de VPC para
-    ssm/ec2/autoscaling/ecr/logs. La task nunca recibe IP pública.
+    Subnets de las tasks, elegidas entre `backend_candidate_subnet_ids`. Perfil
+    corporativo: subnets privadas con NAT o endpoints de VPC y
+    `backend_assign_public_ip = false`. Perfil PoC: las subnets públicas de la
+    VPC por defecto con `backend_assign_public_ip = true`, porque esa VPC no tiene
+    NAT ni endpoints.
   EOT
   type        = list(string)
   default     = []
+}
+
+variable "backend_candidate_subnet_ids" {
+  description = <<-EOT
+    Subnets autorizadas de la VPC, obtenidas del descubrimiento de red de sólo
+    lectura (`python -m app.net_discovery`). Ni el ALB ni las tasks pueden usar
+    una subnet que no esté en esta lista: no se selecciona ninguna subnet por el
+    simple hecho de existir en la cuenta.
+  EOT
+  type        = list(string)
+  default = [
+    "subnet-0bb97e6254e4f83e9", # eu-north-1a
+    "subnet-0c14b617316ff3efa", # eu-north-1b
+    "subnet-09e94d9e3b0e20b8e", # eu-north-1c
+  ]
+}
+
+variable "backend_assign_public_ip" {
+  description = <<-EOT
+    Asigna IP pública a la ENI de la task. El valor predeterminado `false` es el
+    perfil corporativo (subnets privadas con NAT o endpoints de VPC).
+
+    El perfil PoC necesita `true` porque la VPC por defecto de la cuenta sólo
+    tiene un Internet Gateway: sin NAT y sin endpoints, una task sin IP pública
+    no puede descargar la imagen de ECR, escribir en CloudWatch Logs ni llamar a
+    SSM, EC2, Auto Scaling o DynamoDB. La IP pública no expone el backend: su
+    security group sólo admite entrada desde el security group del ALB.
+  EOT
+  type        = bool
+  default     = false
 }
 
 variable "backend_desired_count" {
@@ -380,9 +408,12 @@ variable "enable_backend_alb" {
 variable "backend_alb_internal" {
   description = <<-EOT
     ALB interno (`true`, valor predeterminado y más seguro): sólo alcanzable
-    desde la red corporativa/VPC. `false` publica el ALB en Internet y exige que
-    las subnets indicadas sean públicas; no se asume que la red corporativa lo
-    permita.
+    desde la red corporativa/VPC, el perfil de despliegue corporativo futuro.
+
+    El perfil PoC usa `false` porque la cuenta no tiene ni subnets privadas ni
+    conectividad corporativa (ni VPN, ni Transit Gateway, ni peering), así que un
+    ALB interno no sería alcanzable. Con `false` las subnets deben ser públicas y
+    `backend_alb_ingress_cidrs` es obligatoria y restringida.
   EOT
   type        = bool
   default     = true
@@ -390,9 +421,9 @@ variable "backend_alb_internal" {
 
 variable "backend_alb_subnet_ids" {
   description = <<-EOT
-    Subnets del ALB, en al menos dos zonas de disponibilidad. Con
-    `backend_alb_internal = true` deben ser privadas; con `false`, públicas con
-    Internet Gateway.
+    Subnets del ALB, al menos dos y elegidas entre `backend_candidate_subnet_ids`.
+    Con `backend_alb_internal = true` deben ser privadas; con `false`, públicas
+    con Internet Gateway.
   EOT
   type        = list(string)
   default     = []
@@ -400,12 +431,41 @@ variable "backend_alb_subnet_ids" {
 
 variable "backend_alb_ingress_cidrs" {
   description = <<-EOT
-    Orígenes autorizados a alcanzar el listener del ALB. Sin valor no se crea
-    ninguna regla de entrada: el acceso se concede explícitamente, nunca por
-    omisión, y `0.0.0.0/0` sólo es admisible con un ALB público aprobado.
+    Orígenes autorizados a alcanzar el listener del ALB. Obligatoria y no vacía
+    cuando el ALB está activado: el acceso se concede explícitamente, nunca por
+    omisión. No se admite ningún prefijo `/0`, ni siquiera con un ALB público.
   EOT
   type        = list(string)
   default     = []
+
+  validation {
+    condition = alltrue([
+      for cidr in var.backend_alb_ingress_cidrs :
+      can(cidrhost(cidr, 0)) && tonumber(split("/", cidr)[1]) > 0
+    ])
+    error_message = "backend_alb_ingress_cidrs sólo admite CIDRs válidos y ningún prefijo /0 (incluido 0.0.0.0/0)."
+  }
+}
+
+variable "backend_alb_certificate_arn" {
+  description = <<-EOT
+    Certificado de ACM del listener HTTPS. Con valor, el ALB escucha en 443 con
+    TLS y el listener HTTP redirige a HTTPS de forma permanente. Vacío (valor
+    predeterminado) deja sólo HTTP: es una limitación temporal de la PoC,
+    aceptable únicamente con la lista de orígenes restringida, porque no existe
+    ningún certificado ni nombre DNS corporativo que reutilizar y no se inventa
+    infraestructura de DNS.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition = (
+      var.backend_alb_certificate_arn == "" ||
+      can(regex("^arn:aws:acm:[a-z0-9-]+:[0-9]{12}:certificate/.+$", var.backend_alb_certificate_arn))
+    )
+    error_message = "backend_alb_certificate_arn debe ser el ARN de un certificado de ACM."
+  }
 }
 
 variable "backend_alb_port" {

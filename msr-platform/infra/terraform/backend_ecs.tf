@@ -156,7 +156,7 @@ resource "aws_ecs_task_definition" "backend" {
         "^arn:aws:iam::${var.aws_account_id}:role/[\\w+=,.@/-]+$",
         local.backend_task_role_arn
       ))
-      error_message = "Sin Task Role: define create_backend_task_role = true o backend_task_role_arn con un rol de la cuenta ${var.aws_account_id}."
+      error_message = "Sin Task Role: define backend_task_role_arn con el rol preaprovisionado de la cuenta ${var.aws_account_id}."
     }
 
     precondition {
@@ -164,7 +164,7 @@ resource "aws_ecs_task_definition" "backend" {
         "^arn:aws:iam::${var.aws_account_id}:role/[\\w+=,.@/-]+$",
         local.backend_execution_role_arn
       ))
-      error_message = "Sin task execution role: define create_backend_task_role = true o backend_execution_role_arn."
+      error_message = "Sin task execution role: define backend_execution_role_arn con el rol preaprovisionado."
     }
 
     precondition {
@@ -175,6 +175,14 @@ resource "aws_ecs_task_definition" "backend" {
     precondition {
       condition     = length(var.backend_subnet_ids) > 0
       error_message = "backend_subnet_ids no puede estar vacío."
+    }
+
+    # Ninguna subnet ajena al descubrimiento de red autorizado.
+    precondition {
+      condition = length(setsubtract(
+        var.backend_subnet_ids, var.backend_candidate_subnet_ids
+      )) == 0
+      error_message = "backend_subnet_ids sólo admite subnets de backend_candidate_subnet_ids."
     }
   }
 }
@@ -192,10 +200,14 @@ resource "aws_ecs_service" "backend" {
   enable_execute_command = false
   propagate_tags         = "SERVICE"
 
+  # La IP pública no expone el backend: la única entrada de su security group es el
+  # security group del ALB. En el perfil PoC es imprescindible porque la VPC por
+  # defecto no tiene NAT ni endpoints de VPC y, sin ella, la task no podría
+  # descargar la imagen de ECR, escribir logs ni llamar a las APIs de AWS.
   network_configuration {
     subnets          = var.backend_subnet_ids
     security_groups  = [aws_security_group.backend[0].id]
-    assign_public_ip = false
+    assign_public_ip = var.backend_assign_public_ip
   }
 
   dynamic "load_balancer" {
