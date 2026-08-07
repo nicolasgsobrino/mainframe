@@ -219,6 +219,11 @@ lifecycle policy de 5 imágenes) y la UI/API se expone tras un ALB **interno por
 con target group `ip`, health check `/api/health` y un security group que sólo admite
 tráfico del ALB. ECR, ALB y tabla de locks están desactivados por defecto en Terraform.
 
+Las subnets del ALB y el rango de origen no tienen valor por defecto. Antes del primer
+apply, `python -m app.net_discovery --vpc-id <vpc-id>` (sólo llamadas `Describe*`) informa
+de subnets, AZs, routing, NAT y endpoints de VPC, y el informe pre-apply con las
+dependencias de red abiertas está en `PRE_APPLY_NETWORK_DISCOVERY.md`.
+
 Una sola imagen (`msr-platform/Dockerfile`) compila la SPA y la sirve desde el propio
 backend; el mismo artefacto ejecuta el servicio (`uvicorn`) y el hook
 (`python -m app.lab_hook`). El backend **no** se despliega en la EC2 del laboratorio: esa

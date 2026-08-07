@@ -238,6 +238,22 @@ asíncrono del TTL, y sólo el owner puede liberar. El Task Role recibe exactame
 (`backend_lock_table.arn`): nunca `dynamodb:*` ni comodines de recurso. En el escenario B
 esos permisos forman parte del documento que aplica el equipo de cloud.
 
+## Descubrimiento de red previo al primer apply
+
+`backend_alb_subnet_ids` y `backend_alb_ingress_cidrs` **no tienen valor por defecto**: no se
+inventan subnets ni rangos de origen. Antes del primer apply se ejecuta un descubrimiento de
+sólo lectura que resuelve VPC, subnets, AZs, route tables, salida por defecto (IGW, NAT,
+TGW, VPN o ninguna), endpoints de VPC, NAT/Internet Gateways y DNS de la VPC:
+
+```bash
+cd ../../backend
+MSR_AWS_REGION=eu-north-1 .venv/bin/python -m app.net_discovery --vpc-id <vpc-id>
+```
+
+Sólo emite llamadas `Describe*` y no crea nada. El informe pre-apply, con la topología
+propuesta y las dependencias del equipo de red que siguen abiertas, está en
+`../../PRE_APPLY_NETWORK_DISCOVERY.md`.
+
 ## Limitaciones conocidas
 
 - Patch Manager no ofrece una API para comprobar que un advisory existe: si
