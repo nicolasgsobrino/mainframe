@@ -170,6 +170,20 @@ locals {
         Action   = ["autoscaling:TerminateInstanceInAutoScalingGroup"]
         Resource = local.backend_asg_arn
       },
+      {
+        # Lock de operación del laboratorio: sólo las acciones que el backend
+        # ejecuta realmente (tomar, leer y liberar) y sólo sobre la tabla de
+        # locks. Sin `dynamodb:UpdateItem` —la renovación reescribe el ítem
+        # completo con `PutItem` condicional— y nunca `dynamodb:*`.
+        Sid    = "SerializeLabMutationsWithTheLockTable"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+        ]
+        Resource = local.backend_lock_table_arn
+      },
     ]
   }
 }

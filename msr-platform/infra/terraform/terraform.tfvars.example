@@ -74,3 +74,26 @@ create_backend_task_role = false
 
 # MSR_DRY_RUN en la task: se mantiene en true hasta la autorización explícita.
 backend_dry_run = true
+
+# --- Registro de imágenes (ECR) ----------------------------------------------
+# Repositorio privado con escaneo, cifrado y lifecycle policy corta.
+enable_backend_ecr = false
+# backend_ecr_repository_name = "msr-poc-platform"
+# backend_ecr_retained_images = 5
+
+# --- Exposición de la UI/API (ALB) -------------------------------------------
+# cliente → ALB → ECS Fargate :8080 (health check /api/health).
+# El backend sólo acepta tráfico del security group del ALB.
+enable_backend_alb = false
+# Interno por defecto: no se asume que la red corporativa permita un ALB público.
+backend_alb_internal = true
+# Al menos dos subnets en zonas distintas (privadas si el ALB es interno).
+# backend_alb_subnet_ids = ["subnet-0bb97e6254e4f83e9", "subnet-0aa97e6254e4f83e0"]
+# Sin orígenes declarados no se crea ninguna regla de entrada.
+# backend_alb_ingress_cidrs = ["10.0.0.0/16"]
+
+# --- Lock distribuido del laboratorio (DynamoDB) -----------------------------
+# Obligatorio antes de la ejecución real: serializa patch, reset y la
+# reconciliación de release entre la task del servicio y el RunTask del hook.
+enable_backend_lock_table = false
+# backend_lock_table_name = "msr-poc-lab-locks"

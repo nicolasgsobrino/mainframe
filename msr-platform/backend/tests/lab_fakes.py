@@ -180,6 +180,64 @@ class FakeAutoscaling:
                            "HealthStatus": i.asg_health} for i in members]}]}
 
 
+class FakeConditionalCheckFailed(Exception):
+    """Misma clase de error que botocore para una condición no satisfecha."""
+
+
+FakeConditionalCheckFailed.__name__ = "ConditionalCheckFailedException"
+
+
+class FakeDynamoDb:
+    """Tabla de locks en memoria con la semántica condicional de DynamoDB.
+
+    Sólo implementa las tres operaciones que usa el lock y evalúa las mismas
+    condiciones: ítem inexistente, ítem caducado o mismo dueño para tomarlo, y
+    dueño coincidente para liberarlo. El TTL asíncrono de DynamoDB no se
+    simula a propósito: el lock no puede depender de él.
+    """
+
+    def __init__(self):
+        self.items: dict[str, dict] = {}
+        self.tables: list[str] = []
+        self.failure: Exception | None = None
+
+    def _guard(self) -> None:
+        if self.failure is not None:
+            raise self.failure
+
+    def put_item(self, TableName, Item, ConditionExpression="",  # noqa: N803
+                 ExpressionAttributeValues=None) -> dict:  # noqa: N803
+        self._guard()
+        self.tables.append(TableName)
+        key = Item["lab_id"]["S"]
+        values = ExpressionAttributeValues or {}
+        current = self.items.get(key)
+        if current is not None and ConditionExpression:
+            now = int(values[":now"]["N"])
+            expired = int(current["expires_at"]["N"]) <= now
+            same_owner = current["owner"]["S"] == values[":owner"]["S"]
+            if not (expired or same_owner):
+                raise FakeConditionalCheckFailed(key)
+        self.items[key] = dict(Item)
+        return {}
+
+    def delete_item(self, TableName, Key, ConditionExpression="",  # noqa: N803
+                    ExpressionAttributeValues=None) -> dict:  # noqa: N803
+        self._guard()
+        key = Key["lab_id"]["S"]
+        values = ExpressionAttributeValues or {}
+        current = self.items.get(key)
+        if current is None or current["owner"]["S"] != values[":owner"]["S"]:
+            raise FakeConditionalCheckFailed(key)
+        del self.items[key]
+        return {}
+
+    def get_item(self, TableName, Key, ConsistentRead=False) -> dict:  # noqa: N803
+        self._guard()
+        item = self.items.get(Key["lab_id"]["S"])
+        return {"Item": dict(item)} if item is not None else {}
+
+
 class FakeLabAwsProvider(FakeAwsProvider):
     """Provider AWS falso con los clientes de sólo lectura del laboratorio.
 
@@ -195,6 +253,7 @@ class FakeLabAwsProvider(FakeAwsProvider):
         self.ec2 = FakeEc2(world)
         self.ssm = FakeSsm(world)
         self.autoscaling = FakeAutoscaling(world)
+        self.dynamodb = FakeDynamoDb()
         self.reset_status = reset_status
         self.replaces = replaces
         self.replacement_patched = replacement_patched

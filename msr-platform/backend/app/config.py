@@ -78,9 +78,16 @@ class Settings(BaseSettings):
     # --- Ciclo de vida del laboratorio (fase 2.6) --------------------------
     # `ensure_lab_ready` reconcilia el laboratorio contra AWS. Nunca se ejecuta
     # en cada arranque de un worker: se activa explícitamente (hook de despliegue
-    # o endpoint) y se protege con un lock persistido en SQLite.
+    # o endpoint) y se protege con el lock de operación del laboratorio.
     lab_reconcile_on_startup: bool = False
     lab_reconcile_lock_ttl_seconds: int = 1800
+    # Lock de operación del laboratorio. `auto` usa DynamoDB sólo en `aws-real`:
+    # en Fargate la task del servicio y la del hook de release no comparten
+    # SQLite, así que un lock local no puede serializar patch, reset y
+    # reconciliación entre procesos.
+    lab_lock_backend: str = "auto"
+    lab_lock_table_name: str = "msr-poc-lab-locks"
+    lab_lock_ttl_seconds: int = 3600
     lab_reconcile_timeout_seconds: int = 1800
     lab_reconcile_poll_interval_seconds: int = 15
     lab_replacement_timeout_seconds: int = 900
@@ -120,6 +127,16 @@ class Settings(BaseSettings):
                 return value
             return [item.strip() for item in raw.split(",") if item.strip()]
         return value
+
+    @field_validator("lab_lock_backend")
+    @classmethod
+    def _known_lock_backend(cls, value: str) -> str:
+        allowed = ("auto", "sqlite", "dynamodb")
+        cleaned = (value or "auto").strip().lower()
+        if cleaned not in allowed:
+            raise ValueError(f"lab_lock_backend desconocido '{value}'; "
+                             f"permitidos: {', '.join(allowed)}")
+        return cleaned
 
     @field_validator("patch_provider", "restore_provider")
     @classmethod
@@ -218,6 +235,10 @@ class Settings(BaseSettings):
             missing.append("MSR_LAB_LOGICAL_ID")
         if self.lab_logical_id and not self.lab_tag_key:
             missing.append("MSR_LAB_TAG_KEY")
+        # Sin tabla de locks no hay exclusión entre procesos independientes
+        # (task del servicio y RunTask del hook): no se muta el laboratorio.
+        if not self.lab_lock_table_name:
+            missing.append("MSR_LAB_LOCK_TABLE_NAME")
         # El reset real sustituye la instancia dentro del ASG: sin el nombre del
         # grupo no hay reset posible (y nunca se acepta desde la API).
         if (self.restore_provider == PROVIDER_AWS_AUTOMATION

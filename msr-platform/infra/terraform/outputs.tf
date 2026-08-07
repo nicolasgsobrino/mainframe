@@ -240,12 +240,56 @@ output "backend_resource_summary" {
       "aws_ecs_cluster.backend",
       "aws_ecs_task_definition.backend",
       "aws_ecs_service.backend",
-      ], var.create_backend_task_role ? [
+      ], var.enable_backend_alb ? [
+      "aws_security_group.backend_alb",
+      "aws_vpc_security_group_ingress_rule.backend_alb",
+      "aws_vpc_security_group_egress_rule.backend_alb_to_backend",
+      "aws_vpc_security_group_ingress_rule.backend_from_alb",
+      "aws_lb.backend",
+      "aws_lb_target_group.backend",
+      "aws_lb_listener.backend",
+      ] : [], var.enable_backend_ecr ? [
+      "aws_ecr_repository.backend",
+      "aws_ecr_lifecycle_policy.backend",
+      ] : [], var.enable_backend_lock_table ? [
+      "aws_dynamodb_table.lab_locks",
+      ] : [], var.create_backend_task_role ? [
       "aws_iam_role.backend_task",
       "aws_iam_role_policy.backend_task",
       "aws_iam_role.backend_execution",
       "aws_iam_role_policy_attachment.backend_execution",
     ] : [])
     requires_iam_permissions = var.create_backend_task_role
+  }
+}
+
+# --- Registro de imágenes, exposición y lock ---------------------------------
+
+output "backend_ecr_repository_url" {
+  description = "URL del repositorio ECR privado donde se publica la imagen del backend."
+  value       = local.backend_ecr_repository_url
+}
+
+output "backend_alb_dns_name" {
+  description = <<-EOT
+    DNS del Application Load Balancer. Vacío mientras `enable_backend_alb = false`;
+    con un ALB interno sólo resuelve dentro de la red corporativa/VPC.
+  EOT
+  value       = try(aws_lb.backend[0].dns_name, "")
+}
+
+output "backend_alb_is_internal" {
+  description = "true si el ALB no está publicado en Internet."
+  value       = var.backend_alb_internal
+}
+
+output "backend_lock_table" {
+  description = "Tabla DynamoDB del lock de operación del laboratorio y su ARN exacto."
+  value = {
+    name          = var.backend_lock_table_name
+    arn           = local.backend_lock_table_arn
+    partition_key = "lab_id"
+    ttl_attribute = "expires_at"
+    managed       = var.enable_backend_lock_table
   }
 }

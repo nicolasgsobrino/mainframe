@@ -174,3 +174,89 @@ def test_the_hook_is_the_only_authorized_path_to_a_reset():
     assert 'MSR_LAB_RECONCILE_ON_STARTUP = "false"' in ecs
     assert '"app.lab_hook"' in outputs
     assert '"--confirm"' in outputs
+
+
+# --- registro de imágenes, exposición y lock ---------------------------------
+
+ECR = INFRA / "backend_ecr.tf"
+ALB = INFRA / "backend_alb.tf"
+LOCKS = INFRA / "backend_locks.tf"
+DEPLOY_WORKFLOW = PLATFORM.parent / ".github" / "workflows" / "msr-platform-deploy.yml"
+
+
+def test_the_image_registry_is_private_scanned_and_encrypted():
+    ecr = code(ECR)
+
+    assert "scan_on_push = true" in ecr
+    assert "encryption_configuration" in ecr
+    assert 'image_tag_mutability = "IMMUTABLE"' in ecr
+    assert "countType   = \"imageCountMoreThan\"" in ecr
+    # Nada público: ni repositorio público ni política de repositorio abierta.
+    assert "aws_ecrpublic" not in ecr
+    assert "aws_ecr_repository_policy" not in ecr
+
+
+def test_the_exposure_is_an_internal_alb_without_cloudfront_or_tunnels():
+    alb = code(ALB)
+    variables = code(INFRA / "variables.tf")
+
+    block = variables.split('variable "backend_alb_internal"')[1].split("\nvariable ")[0]
+    assert "default     = true" in block
+    assert 'target_type = "ip"' in alb
+    assert "path                = local.backend_health_path" in alb
+    assert 'backend_health_path    = "/api/health"' in alb
+    assert "aws_cloudfront" not in alb
+    assert "cloudflared" not in alb and "ngrok" not in alb
+
+
+def test_the_backend_accepts_traffic_only_from_the_load_balancer():
+    alb = code(ALB)
+
+    ingress = alb.split('resource "aws_vpc_security_group_ingress_rule" "backend_from_alb"')[1]
+    ingress = ingress.split("\nresource ")[0]
+    assert "referenced_security_group_id = aws_security_group.backend_alb[0].id" in ingress
+    assert "cidr_ipv4" not in ingress
+
+
+def test_the_lab_lock_lives_in_one_dynamodb_table_with_ttl():
+    locks = code(LOCKS)
+
+    assert 'hash_key     = "lab_id"' in locks
+    assert 'attribute_name = "expires_at"' in locks
+    assert "server_side_encryption" in locks
+    assert locks.count('resource "aws_dynamodb_table"') == 1
+
+
+def test_the_lock_permissions_are_scoped_to_the_lock_table():
+    iam = code(IAM)
+
+    for action in ("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"):
+        assert action in iam, action
+    assert "local.backend_lock_table_arn" in iam
+    for denied in ("dynamodb:*", "dynamodb:Scan", "dynamodb:DeleteTable",
+                   "dynamodb:UpdateItem", "dynamodb:UpdateTable"):
+        assert denied not in iam, denied
+
+
+def test_ecr_and_the_alb_and_the_lock_table_are_disabled_by_default():
+    variables = code(INFRA / "variables.tf")
+
+    for variable in ("enable_backend_ecr", "enable_backend_alb",
+                     "enable_backend_lock_table"):
+        block = variables.split(f'variable "{variable}"')[1].split("\nvariable ")[0]
+        assert "default     = false" in block, variable
+
+
+def test_the_release_pushes_to_ecr_with_oidc_and_no_static_credentials():
+    workflow = read(DEPLOY_WORKFLOW)
+
+    assert "id-token: write" in workflow
+    assert "aws-actions/configure-aws-credentials@v4" in workflow
+    assert "role-to-assume" in workflow
+    assert "aws-actions/amazon-ecr-login@v2" in workflow
+    assert "docker push" in workflow
+    assert "aws ecs register-task-definition" in workflow
+    # Serialización del release: un único despliegue y un único hook.
+    assert "concurrency:" in workflow
+    for marker in CREDENTIAL_MARKERS:
+        assert marker not in workflow, marker

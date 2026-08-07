@@ -156,12 +156,13 @@ class _AutomationBase:
     name = PROVIDER_AWS_AUTOMATION
 
     def __init__(self, settings: Settings, ssm_client=None, ec2_client=None, sts_client=None,
-                 autoscaling_client=None, now_fn=utcnow):
+                 autoscaling_client=None, dynamodb_client=None, now_fn=utcnow):
         self._settings = settings
         # Los clientes inyectados (tests) nunca se reemplazan automáticamente.
         self._injected_ssm = ssm_client
         self._injected_ec2 = ec2_client
         self._injected_autoscaling = autoscaling_client
+        self._injected_dynamodb = dynamodb_client
         self._sts = sts_client
         self._now = now_fn
         self._correlation_id = ""
@@ -280,6 +281,13 @@ class _AutomationBase:
         if self._injected_autoscaling is not None:
             return self._injected_autoscaling
         return self._service_client("autoscaling")
+
+    @property
+    def dynamodb(self):
+        """Cliente del lock distribuido del laboratorio (tabla única de locks)."""
+        if self._injected_dynamodb is not None:
+            return self._injected_dynamodb
+        return self._service_client("dynamodb")
 
     # -- validación (sólo lectura) --------------------------------------
     def _resolve_target(self, target: Target) -> tuple[Target, str | None]:

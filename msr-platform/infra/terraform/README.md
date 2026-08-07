@@ -35,6 +35,9 @@ laboratorio deje de ser desechable habrá que mover el backend a S3 + DynamoDB.
 | `automation-documents.tf` | Registro de los runbooks Automation |
 | `backend_ecs.tf` | Runtime del backend: cluster, task definition y servicio de ECS Fargate |
 | `backend_iam.tf` | Identidad de workload: ECS Task Role, trust policy y política mínima |
+| `backend_ecr.tf` | Repositorio ECR privado de la imagen (escaneo, cifrado, lifecycle policy) |
+| `backend_alb.tf` | Application Load Balancer, target group `ip`, listener y reglas de security group |
+| `backend_locks.tf` | Tabla DynamoDB del lock distribuido de operación del laboratorio |
 | `documents/*.yaml` | Cuerpo de los runbooks (plantillas `templatefile`) |
 | `outputs.tf` | Salidas, incluida `required_backend_environment` |
 | `user-data.sh.tftpl` | Bootstrap: httpd, `/health`, `baseline.json` |
@@ -191,6 +194,49 @@ cloud en el escenario B se publican en los outputs `backend_task_role_trust_poli
 La task no recibe IP pública, no lleva `secrets` ni variables de credenciales, y arranca
 con `MSR_DRY_RUN=true`, `MSR_LAB_RECONCILE_ON_STARTUP=false`, `MSR_AWS_PROFILE=` y
 `MSR_AWS_ROLE_ARN=` vacíos: boto3 usa exclusivamente el Task Role.
+
+## Imagen, exposición y lock distribuido
+
+```text
+usuario → ALB → ECS Fargate → Task Role → SSM Automation → EC2 del laboratorio
+```
+
+```text
+patch/reset desde la UI + reconciliación de release
+  → lock distribuido en DynamoDB
+  → exactamente una mutación del laboratorio a la vez
+```
+
+Los tres bloques están desactivados por defecto (`enable_backend_ecr`,
+`enable_backend_alb`, `enable_backend_lock_table` en `false`), igual que el resto del
+runtime.
+
+**ECR.** Repositorio privado dedicado con `scan_on_push`, cifrado `AES256`, tags
+inmutables y una lifecycle policy que expira todo lo que exceda las
+`backend_ecr_retained_images` (5) imágenes más recientes. La URL se publica en
+`backend_ecr_repository_url`. El workflow de release obtiene credenciales temporales por
+OIDC (`aws-actions/configure-aws-credentials@v4` + `amazon-ecr-login@v2`), construye,
+etiqueta y publica la imagen, registra una revisión nueva de la task definition y sólo
+después lanza el hook: no hay ninguna clave estática en el pipeline.
+
+**ALB.** `internal = true` por defecto: no se asume que la red corporativa permita un ALB
+público. Requiere al menos dos subnets en zonas distintas, y el listener sólo se abre a
+los orígenes de `backend_alb_ingress_cidrs` (sin valor no se crea ninguna regla de
+entrada). Un ALB público abierto a `0.0.0.0/0` está bloqueado por un precondition. El
+target group usa `target_type = "ip"` (obligatorio con `awsvpc`) contra el puerto 8080 y
+comprueba `/api/health`; el security group del backend sólo admite tráfico del security
+group del ALB, nunca CIDR. Su DNS se publica en `backend_alb_dns_name`. Sin CloudFront y
+sin túneles.
+
+**Lock.** Una sola tabla (`msr-poc-lab-locks`) con partition key `lab_id`, TTL sobre
+`expires_at`, cifrado y point-in-time recovery. El lock local en SQLite no sirve en
+Fargate porque la task del servicio y el `RunTask` del hook tienen filesystems efímeros
+independientes; `desired_count = 1` tampoco es un mecanismo de lock. La adquisición es una
+escritura condicional que también trata el ítem caducado, así que no depende del borrado
+asíncrono del TTL, y sólo el owner puede liberar. El Task Role recibe exactamente
+`dynamodb:GetItem`, `dynamodb:PutItem` y `dynamodb:DeleteItem` sobre el ARN de esa tabla
+(`backend_lock_table.arn`): nunca `dynamodb:*` ni comodines de recurso. En el escenario B
+esos permisos forman parte del documento que aplica el equipo de cloud.
 
 ## Limitaciones conocidas
 

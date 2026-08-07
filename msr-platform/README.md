@@ -210,10 +210,14 @@ uvicorn app.main:app --port 8080
 ## Despliegue (ECS Fargate)
 
 ```text
-Internet/usuario → frontend (SPA servida por el backend)
-  → backend como task de ECS Fargate
+usuario → ALB → backend como task de ECS Fargate (:8080, SPA y /api)
   → ECS Task Role → Systems Manager Automation → runbooks MSR → EC2 del laboratorio
 ```
+
+La imagen se publica en un repositorio ECR privado (escaneo, cifrado, tags inmutables y
+lifecycle policy de 5 imágenes) y la UI/API se expone tras un ALB **interno por defecto**,
+con target group `ip`, health check `/api/health` y un security group que sólo admite
+tráfico del ALB. ECR, ALB y tabla de locks están desactivados por defecto en Terraform.
 
 Una sola imagen (`msr-platform/Dockerfile`) compila la SPA y la sirve desde el propio
 backend; el mismo artefacto ejecuta el servicio (`uvicorn`) y el hook
@@ -288,8 +292,22 @@ python -m app.lab_hook                 # mock / aws-dry-run: valida y no muta na
 python -m app.lab_hook --confirm       # aws-real: autoriza la recreación de la instancia
 ```
 
-`MSR_LAB_RECONCILE_ON_STARTUP=false` es el valor por defecto y el lock vive en SQLite, de
-modo que varias réplicas no pueden reconciliar a la vez.
+`MSR_LAB_RECONCILE_ON_STARTUP=false` es el valor por defecto.
+
+```text
+patch/reset desde la UI + reconciliación de release
+  → lock distribuido en DynamoDB
+  → exactamente una mutación del laboratorio a la vez
+```
+
+Toda mutación del laboratorio —patch real, reset real y reconciliación destructiva— toma
+antes el lock de `MSR_LAB_LOCK_TABLE_NAME` (`msr-poc-lab-locks`, partition key `lab_id`,
+TTL sobre `expires_at`). La adquisición es una escritura condicional que trata también el
+ítem caducado, así que no depende del borrado asíncrono del TTL, y sólo el owner
+(`correlation_id`) puede liberar. En modo `mock` y en `aws-dry-run` basta el lock local en
+SQLite porque no hay ninguna mutación en AWS; en ejecución real el lock es DynamoDB, ya
+que la task del servicio y el `RunTask` del hook tienen filesystems efímeros
+independientes y `desired_count = 1` no es un mecanismo de lock.
 
 `POST /api/tasks/{id}/approve` acepta la cabecera `Idempotency-Key`: repetir la misma clave
 devuelve el job original en lugar de lanzar otro. En la fase de despliegue responde `202`
@@ -315,7 +333,8 @@ backend/app/
   lab.py        # LabTarget: laboratorio vulnerable reutilizable (reset_lab)
   labs.py       # resolución del Instance ID actual por tags (AWS y mock)
   precheck.py   # evidencia de sólo lectura del laboratorio (kernel, advisory, salud)
-  lab_lifecycle.py # ensure_lab_ready: reconciliación con lock durable en SQLite
+  lab_lifecycle.py # ensure_lab_ready: reconciliación bajo el lock del laboratorio
+  lab_locks.py  # lock de operación del laboratorio (SQLite en local, DynamoDB en real)
   lab_hook.py   # hook de despliegue de ejecución única (python -m app.lab_hook)
   reconciler.py # reconciliador periódico de jobs activos (no ejecuta parches)
   providers/    # contrato + mock_patch / mock_restore / aws_ssm_automation

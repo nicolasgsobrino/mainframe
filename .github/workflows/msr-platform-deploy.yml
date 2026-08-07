@@ -59,18 +59,37 @@ jobs:
       - uses: aws-actions/amazon-ecr-login@v2
         id: ecr
 
-      - name: Construir y publicar la imagen
+      # El repositorio ECR tiene tags inmutables: cada release publica un tag
+      # nuevo (por ejemplo el SHA del commit) y no reescribe ninguno anterior.
+      - name: Construir y publicar la imagen en ECR
         run: |
           image="${{ steps.ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.image_tag }}"
           docker build -t "$image" msr-platform
           docker push "$image"
           echo "image=$image" >> "$GITHUB_ENV"
 
+      # Nueva revisión con la imagen recién publicada: sin este paso el servicio
+      # seguiría arrancando la imagen de la revisión anterior.
+      - name: Registrar la revisión de la task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "$ECS_TASK_DEFINITION" \
+            --query taskDefinition > task-definition.json
+          jq --arg image "$image" '
+            .containerDefinitions[0].image = $image
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy)' \
+            task-definition.json > task-definition-new.json
+          revision=$(aws ecs register-task-definition \
+            --cli-input-json file://task-definition-new.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+          echo "revision=$revision" >> "$GITHUB_ENV"
+
       - name: Desplegar la revisión en el servicio
         run: |
           aws ecs update-service \
             --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" \
-            --force-new-deployment
+            --task-definition "$revision" --force-new-deployment
           aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"
 
       # Reconciliación de una sola ejecución por release: RunTask con el comando

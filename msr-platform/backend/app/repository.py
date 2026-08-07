@@ -122,14 +122,18 @@ CREATE TABLE IF NOT EXISTS lab_targets (
     updated_at                  TEXT NOT NULL
 );
 
--- Lock durable de reconciliación del laboratorio: impide que dos réplicas del
--- backend ejecuten dos resets simultáneos. El lock caduca (`expires_at`) para
--- que la caída de una réplica no bloquee el laboratorio de forma permanente.
+-- Lock local de operación del laboratorio (patch, reset o reconciliación) para
+-- los modos `mock` y `aws-dry-run`. En `aws-real` el lock equivalente vive en
+-- DynamoDB, porque las tasks de Fargate no comparten este fichero. El lock
+-- caduca (`expires_at`) para que la caída de un proceso no lo bloquee para
+-- siempre, y `owner` es el `correlation_id` de la operación: sólo su dueño lo
+-- libera.
 CREATE TABLE IF NOT EXISTS lab_locks (
     logical_lab_id  TEXT PRIMARY KEY,
     holder          TEXT NOT NULL,
     correlation_id  TEXT NOT NULL,
     reason          TEXT NOT NULL DEFAULT '',
+    operation       TEXT NOT NULL DEFAULT '',
     acquired_at     TEXT NOT NULL,
     expires_at      TEXT NOT NULL
 );
@@ -202,6 +206,9 @@ class JobRepository:
         if "reconciliation_state" not in columns:
             conn.execute("ALTER TABLE lab_targets ADD COLUMN reconciliation_state TEXT "
                          "NOT NULL DEFAULT 'idle'")
+        lock_columns = {row["name"] for row in conn.execute("PRAGMA table_info(lab_locks)")}
+        if "operation" not in lock_columns:
+            conn.execute("ALTER TABLE lab_locks ADD COLUMN operation TEXT NOT NULL DEFAULT ''")
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(
@@ -570,14 +577,14 @@ class JobRepository:
             self._upsert_lab(conn, lab)
         return lab
 
-    # --- lock durable de reconciliación --------------------------------
-    def acquire_lab_lock(self, logical_lab_id: str, holder: str, correlation_id: str,
-                         ttl_seconds: int, reason: str = "") -> bool:
-        """Toma el lock de reconciliación del laboratorio si está libre.
+    # --- lock local de operación del laboratorio ------------------------
+    def acquire_lab_lock(self, logical_lab_id: str, owner: str, holder: str,
+                         operation: str, ttl_seconds: int, reason: str = "") -> bool:
+        """Toma el lock local del laboratorio si está libre, caducado o es propio.
 
-        El lock vive en SQLite, así que lo respetan todas las réplicas que
-        comparten la base: dos procesos no pueden reconciliar (ni resetear) el
-        mismo laboratorio a la vez. Un lock caducado se puede reclamar.
+        Mismas reglas que el lock de DynamoDB: un lock caducado se reclama y el
+        mismo `owner` (el `correlation_id` de la operación) puede reentrar, de
+        forma que la reconciliación pueda lanzar su propio reset.
         """
         now = datetime.now(timezone.utc)
         with self.transaction() as conn:
@@ -585,24 +592,25 @@ class JobRepository:
                                (logical_lab_id,)).fetchone()
             if row is not None:
                 expires = _parse(row["expires_at"])
-                if expires is not None and expires > now:
+                fresh = expires is not None and expires > now
+                if fresh and row["correlation_id"] != owner:
                     return False
                 conn.execute("DELETE FROM lab_locks WHERE logical_lab_id = ?",
                              (logical_lab_id,))
             conn.execute(
                 """INSERT INTO lab_locks (logical_lab_id, holder, correlation_id, reason,
-                                          acquired_at, expires_at)
-                   VALUES (?,?,?,?,?,?)""",
-                (logical_lab_id, holder, correlation_id, reason, _iso(now),
+                                          operation, acquired_at, expires_at)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (logical_lab_id, holder, owner, reason, operation, _iso(now),
                  _iso(now + timedelta(seconds=max(1, ttl_seconds)))))
         return True
 
-    def release_lab_lock(self, logical_lab_id: str, holder: str) -> bool:
-        """Libera el lock sólo si lo tiene el mismo `holder`."""
+    def release_lab_lock(self, logical_lab_id: str, owner: str) -> bool:
+        """Libera el lock sólo si lo tiene el mismo `owner`."""
         with self.transaction() as conn:
             cursor = conn.execute(
-                "DELETE FROM lab_locks WHERE logical_lab_id = ? AND holder = ?",
-                (logical_lab_id, holder))
+                "DELETE FROM lab_locks WHERE logical_lab_id = ? AND correlation_id = ?",
+                (logical_lab_id, owner))
             return cursor.rowcount > 0
 
     def get_lab_lock(self, logical_lab_id: str) -> dict | None:
@@ -611,8 +619,10 @@ class JobRepository:
                                (logical_lab_id,)).fetchone()
         if row is None:
             return None
-        return {"logical_lab_id": row["logical_lab_id"], "holder": row["holder"],
+        return {"logical_lab_id": row["logical_lab_id"], "lab_id": row["logical_lab_id"],
+                "holder": row["holder"], "owner": row["correlation_id"],
                 "correlation_id": row["correlation_id"], "reason": row["reason"],
+                "operation": row["operation"],
                 "acquired_at": row["acquired_at"], "expires_at": row["expires_at"]}
 
     def clear(self) -> None:

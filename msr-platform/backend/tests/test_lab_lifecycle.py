@@ -294,9 +294,9 @@ def test_an_unhealthy_vulnerable_instance_is_not_recreated(lab_settings, world):
 # --- concurrencia ---------------------------------------------------------
 def test_a_second_replica_skips_a_reconciliation_already_in_progress(lab_settings, world):
     store, _provider, _clock = build(lab_settings, world)
-    other = LabLifecycleManager(store, holder="otra-replica:1")
-    assert store.repo.acquire_lab_lock(LAB_ID, other.holder, "corr-otra",
-                                       lab_settings.lab_reconcile_lock_ttl_seconds)
+    other = store.lab_locks.with_holder("otra-replica:1")
+    assert other.acquire(LAB_ID, "corr-otra", "reconcile",
+                         ttl_seconds=lab_settings.lab_reconcile_lock_ttl_seconds)
 
     result = store.ensure_lab_ready(LAB_ID)
 
@@ -310,7 +310,7 @@ def test_the_lock_is_released_after_a_reconciliation(lab_settings, world):
 
     store.ensure_lab_ready(LAB_ID)
 
-    assert store.repo.get_lab_lock(LAB_ID) is None
+    assert store.lab_locks.state(LAB_ID) is None
 
 
 # --- modos ---------------------------------------------------------------

@@ -25,8 +25,6 @@ Determinismo y política:
 from __future__ import annotations
 
 import logging
-import os
-import socket
 import time
 import uuid
 
@@ -43,6 +41,7 @@ from .lab import (
     RECONCILE_SKIPPED,
     LabTarget,
 )
+from .lab_locks import OPERATION_RECONCILE, default_holder
 from .labs import ERROR_NOT_FOUND, LabInstance, LabResolutionError
 from .policy import evaluate_target, sanitize_text
 from .precheck import LabEvidence
@@ -68,11 +67,6 @@ class LabReconciliationError(DomainError):
 
     http_status = 409
     code = "LAB_NOT_READY"
-
-
-def default_holder() -> str:
-    """Identidad del proceso que toma el lock (réplica + pid)."""
-    return f"{socket.gethostname()}:{os.getpid()}"
 
 
 class LabLifecycleManager:
@@ -103,10 +97,11 @@ class LabLifecycleManager:
         """Estado observado del reconciliador, sin llamar a AWS."""
         lab_id = self._lab_id(logical_lab_id)
         lab = self._store.repo.get_lab_target(lab_id) if lab_id else None
-        lock = self._store.repo.get_lab_lock(lab_id) if lab_id else None
+        lock = self._store.lab_locks.state(lab_id) if lab_id else None
         return {
             "logical_lab_id": lab_id,
             "execution_mode": self.settings.execution_mode(),
+            "lock_backend": self._store.lab_locks.backend_name,
             "credentials_source": self.settings.credentials_source(),
             "reconcile_on_startup": bool(self.settings.lab_reconcile_on_startup),
             "holder": self._holder,
@@ -149,21 +144,22 @@ class LabLifecycleManager:
             raise LabReconciliationError("No hay ningún laboratorio lógico configurado "
                                          "(MSR_LAB_LOGICAL_ID).", code=ERROR_TARGET_INVALID)
         correlation_id = f"lab-{uuid.uuid4().hex[:12]}"
-        if not self._store.repo.acquire_lab_lock(
-                lab_id, self._holder, correlation_id,
-                self.settings.lab_reconcile_lock_ttl_seconds, reason=reason):
-            held = self._store.repo.get_lab_lock(lab_id) or {}
+        if not self._store.lab_locks.acquire(
+                lab_id, correlation_id, OPERATION_RECONCILE, reason=reason,
+                ttl_seconds=self.settings.lab_reconcile_lock_ttl_seconds):
+            held = self._store.lab_locks.state(lab_id) or {}
             result = self._result(lab_id, RECONCILE_SKIPPED, ACTION_NONE,
                                   correlation_id=correlation_id, error_code=ERROR_LOCKED,
-                                  error=("Otra réplica ya está reconciliando el laboratorio "
-                                         f"(holder {held.get('holder') or 'desconocido'})."))
+                                  error=("Otro proceso ya tiene una operación del laboratorio en "
+                                         f"curso ({held.get('operation') or 'desconocida'}, "
+                                         f"holder {held.get('holder') or 'desconocido'})."))
             self.last_result = result
             return result
         try:
             return self._reconcile(lab_id, correlation_id, allow_reset=allow_reset,
                                    confirmed=confirmed, reason=reason)
         finally:
-            self._store.repo.release_lab_lock(lab_id, self._holder)
+            self._store.lab_locks.release(lab_id, correlation_id)
 
     # -- pasos ----------------------------------------------------------
     def _reconcile(self, lab_id: str, correlation_id: str, *, allow_reset: bool,

@@ -337,3 +337,97 @@ variable "backend_log_retention_days" {
   type        = number
   default     = 30
 }
+
+# --- Registro de imágenes (ECR) ----------------------------------------------
+
+variable "enable_backend_ecr" {
+  description = <<-EOT
+    Crea el repositorio ECR privado de la imagen MSR. Desactivado por defecto:
+    igual que el resto del runtime, no se crea hasta que se autorice.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "backend_ecr_repository_name" {
+  description = "Nombre del repositorio ECR privado de la imagen del backend."
+  type        = string
+  default     = "msr-poc-platform"
+}
+
+variable "backend_ecr_retained_images" {
+  description = "Imágenes recientes que conserva la lifecycle policy del repositorio."
+  type        = number
+  default     = 5
+
+  validation {
+    condition     = var.backend_ecr_retained_images >= 1 && var.backend_ecr_retained_images <= 20
+    error_message = "backend_ecr_retained_images debe estar entre 1 y 20."
+  }
+}
+
+# --- Exposición de la UI/API (Application Load Balancer) ---------------------
+
+variable "enable_backend_alb" {
+  description = <<-EOT
+    Publica el backend detrás de un Application Load Balancer. El servicio de ECS
+    sólo se une al target group cuando vale `true`.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "backend_alb_internal" {
+  description = <<-EOT
+    ALB interno (`true`, valor predeterminado y más seguro): sólo alcanzable
+    desde la red corporativa/VPC. `false` publica el ALB en Internet y exige que
+    las subnets indicadas sean públicas; no se asume que la red corporativa lo
+    permita.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "backend_alb_subnet_ids" {
+  description = <<-EOT
+    Subnets del ALB, en al menos dos zonas de disponibilidad. Con
+    `backend_alb_internal = true` deben ser privadas; con `false`, públicas con
+    Internet Gateway.
+  EOT
+  type        = list(string)
+  default     = []
+}
+
+variable "backend_alb_ingress_cidrs" {
+  description = <<-EOT
+    Orígenes autorizados a alcanzar el listener del ALB. Sin valor no se crea
+    ninguna regla de entrada: el acceso se concede explícitamente, nunca por
+    omisión, y `0.0.0.0/0` sólo es admisible con un ALB público aprobado.
+  EOT
+  type        = list(string)
+  default     = []
+}
+
+variable "backend_alb_port" {
+  description = "Puerto del listener del ALB."
+  type        = number
+  default     = 80
+}
+
+# --- Lock distribuido del laboratorio (DynamoDB) -----------------------------
+
+variable "enable_backend_lock_table" {
+  description = <<-EOT
+    Crea la tabla DynamoDB del lock de operación del laboratorio. Es obligatoria
+    para una ejecución real: garantiza una única mutación simultánea entre la
+    task del servicio, el hook de release y cualquier operación administrativa.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "backend_lock_table_name" {
+  description = "Tabla DynamoDB del lock del laboratorio (partition key `lab_id`)."
+  type        = string
+  default     = "msr-poc-lab-locks"
+}

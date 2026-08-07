@@ -39,6 +39,9 @@ from .lab import (
     synthetic_instance_id,
 )
 from .lab_lifecycle import LabLifecycleManager
+from .lab_locks import OPERATION_PATCH as LOCK_OPERATION_PATCH
+from .lab_locks import OPERATION_RESET as LOCK_OPERATION_RESET
+from .lab_locks import LabLockManager, default_holder, get_lab_lock_backend
 from .labs import (
     LabInstance,
     LabResolutionError,
@@ -172,6 +175,12 @@ class Store:
         self.lab_resolver = get_lab_resolver(self.settings, self.patch_provider, self.repo)
         # Evidencia de sólo lectura del estado real del laboratorio.
         self.lab_precheck = get_lab_precheck(self.settings, self.patch_provider, self.repo)
+        # Lock de operación del laboratorio: exactamente una mutación a la vez
+        # (patch, reset o reconciliación), también entre tasks independientes.
+        self.lab_locks = LabLockManager(
+            self.settings,
+            get_lab_lock_backend(self.settings, self.repo, self._dynamodb_client),
+            default_holder())
         # Reconciliador del laboratorio, independiente del reconciliador de jobs.
         self.lab_lifecycle = LabLifecycleManager(self)
         # Proyección en memoria ya aplicada (distinta del resultado persistido del
@@ -183,6 +192,15 @@ class Store:
                  self.settings.execution_mode(), self.patch_provider.name,
                  self.restore_provider.name)
         self.reset(clear_jobs=False)
+
+    def _dynamodb_client(self):
+        """Cliente DynamoDB del provider AWS, con sus mismas credenciales."""
+        provider = self.restore_provider
+        if provider.name != PROVIDER_AWS_AUTOMATION:
+            provider = self.patch_provider
+        if provider.name != PROVIDER_AWS_AUTOMATION:
+            return None
+        return provider.dynamodb
 
     def reset(self, clear_jobs: bool = True):
         if clear_jobs:
@@ -821,7 +839,47 @@ class Store:
                         else JobState.FAILED)
         job.transition_to(target_state, error_code=code, error_message=sanitize_text(message))
         self.repo.append_event(job.id, job.state, f"{code}: {sanitize_text(message, 500)}")
+        # Fallo controlado: el laboratorio queda libre para el siguiente intento.
+        self._release_lab_lock_for_job(job)
         return self.repo.save_job(job)
+
+    # --- lock de operación del laboratorio ------------------------------
+    def _lab_id_for_task(self, tid: str) -> str:
+        """Laboratorio asociado a la tarea, si la tarea es la del laboratorio."""
+        return str((self.tasks.get(tid) or {}).get("logical_lab_id") or "")
+
+    def _take_lab_lock(self, lab_id: str, owner: str, operation: str, reason: str) -> bool:
+        """Toma el lock del laboratorio. True si esta operación debe liberarlo.
+
+        Devuelve False cuando el lock ya es del mismo dueño: la reconciliación
+        propaga su `correlation_id` al reset que lanza, así que el reset reentra
+        sin apropiarse de la liberación.
+        """
+        if not lab_id:
+            return False
+        held = self.lab_locks.state(lab_id) or {}
+        if held.get("owner") == owner:
+            return False
+        self.lab_locks.acquire_or_conflict(lab_id, owner, operation, reason=reason)
+        return True
+
+    def _release_lab_lock_for_job(self, job: PatchJob, *, force: bool = False) -> None:
+        """Libera el lock del laboratorio cuando su job mutativo ya es terminal.
+
+        `force` cubre el caso en que el job ni siquiera llega a crearse: el lock
+        tomado un instante antes no puede quedarse retenido.
+        """
+        lock = job.request_payload.get("lab_lock")
+        if not isinstance(lock, dict) or lock.get("released"):
+            return
+        if not (force or job.terminal):
+            return
+        lab_id = str(lock.get("lab_id") or "")
+        owner = str(lock.get("owner") or "")
+        if not lab_id or not owner:
+            return
+        self.lab_locks.release(lab_id, owner)
+        job.request_payload["lab_lock"] = {**lock, "released": True}
 
     def _replay(self, idempotency_key: str | None) -> PatchJob | None:
         """Idempotencia: la misma clave devuelve el job original, nunca uno nuevo."""
@@ -900,14 +958,23 @@ class Store:
             idempotency_key=idempotency_key or f"auto:{request_job_id}",
             request_payload=_patch_request_payload(request))
         job.request_payload["correlation_id"] = job.correlation_id
+        # Parcheo del laboratorio: no puede empezar mientras un reset o una
+        # reconciliación tengan el laboratorio tomado (409 si lo tienen).
+        lab_id = self._lab_id_for_task(tid)
+        if self._take_lab_lock(lab_id, job.correlation_id, LOCK_OPERATION_PATCH,
+                               f"patch:{tid}:ring-{ring_no}"):
+            job.request_payload["lab_lock"] = {"lab_id": lab_id, "owner": job.correlation_id,
+                                               "operation": LOCK_OPERATION_PATCH}
         request = _patch_request_from_payload(job.request_payload)
 
         try:
             job, created = self.repo.create_job(job, scope="approve")
         except TargetBusyError as exc:
+            self._release_lab_lock_for_job(job, force=True)
             raise ConflictError(
                 f"El objetivo {exc.logical_target_id} ya tiene un job activo.") from exc
         if not created:
+            self._release_lab_lock_for_job(job, force=True)
             return job  # idempotencia: misma clave → mismo job
 
         self.repo.append_event(job.id, job.state,
@@ -1225,6 +1292,9 @@ class Store:
         proyección se controla en memoria (`_projected`), de modo que reiniciar
         el backend puede volver a reconstruirla desde SQLite.
         """
+        # El lock del laboratorio se libera con el estado terminal del job, no al
+        # arrancarlo: la Automation sigue viva mientras el job está activo.
+        self._release_lab_lock_for_job(job)
         if tid not in self.pipelines or job.id in self._projected:
             return
         self._projected.add(job.id)
@@ -1552,14 +1622,24 @@ class Store:
             "logical_lab_id": logical_lab_id,
             "previous_instance_id": instance.instance_id,
         })
+        # Reset del laboratorio: excluye cualquier otra mutación (parcheo desde
+        # la UI u otra reconciliación). Una reconciliación que ya tiene el lock
+        # reentra con el mismo dueño y conserva su responsabilidad de liberarlo.
+        if self._take_lab_lock(logical_lab_id, job.correlation_id, LOCK_OPERATION_RESET,
+                               f"reset:{trigger}"):
+            job.request_payload["lab_lock"] = {"lab_id": logical_lab_id,
+                                               "owner": job.correlation_id,
+                                               "operation": LOCK_OPERATION_RESET}
         request = _restore_request_from_payload(job.request_payload)
 
         try:
             job, created = self.repo.create_job(job, scope="lab_reset")
         except TargetBusyError as exc:
+            self._release_lab_lock_for_job(job, force=True)
             raise ConflictError(
                 f"El objetivo {exc.logical_target_id} ya tiene un job activo.") from exc
         if not created:
+            self._release_lab_lock_for_job(job, force=True)
             return job
         self.repo.record_lab_reset(logical_lab_id, job.id)
         self.repo.append_event(job.id, job.state,

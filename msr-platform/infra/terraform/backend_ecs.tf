@@ -29,6 +29,9 @@ locals {
     MSR_RESTORE_PROVIDER         = "aws-automation"
     MSR_DRY_RUN                  = tostring(var.backend_dry_run)
     MSR_LAB_RECONCILE_ON_STARTUP = "false"
+    # Lock distribuido: en ejecución real el backend serializa las mutaciones del
+    # laboratorio contra esta tabla, no contra su filesystem efímero.
+    MSR_LAB_LOCK_TABLE_NAME = var.backend_lock_table_name
     # Vacíos a propósito: boto3 usa exclusivamente el Task Role. Sin perfiles,
     # sin claves estáticas, sin sts:AssumeRole.
     MSR_AWS_PROFILE  = ""
@@ -77,14 +80,13 @@ resource "aws_cloudwatch_log_group" "backend" {
   tags = merge(local.common_tags, { Name = local.backend_log_group_name })
 }
 
-# Red: la task sale por HTTPS hacia los endpoints de SSM/EC2/Auto Scaling y no
-# acepta ninguna conexión entrante. La exposición de la UI (ALB, CloudFront o
-# túnel corporativo) queda fuera de esta fase y se decide con el equipo de red.
+# Red: la task sale por HTTPS hacia los endpoints de SSM/EC2/Auto Scaling/DynamoDB
+# y su única entrada permitida es el security group del ALB (ver backend_alb.tf).
 resource "aws_security_group" "backend" {
   count = local.backend_enabled
 
   name        = "${local.name_prefix}-backend-sg"
-  description = "MSR PoC backend: sin ingress; egress HTTPS/DNS hacia las APIs de AWS"
+  description = "MSR PoC backend: ingress solo desde el ALB; egress HTTPS/DNS hacia las APIs de AWS"
   vpc_id      = var.vpc_id
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-backend-sg" })
@@ -94,7 +96,7 @@ resource "aws_vpc_security_group_egress_rule" "backend_https" {
   count = local.backend_enabled
 
   security_group_id = aws_security_group.backend[0].id
-  description       = "HTTPS hacia las APIs de AWS (SSM, EC2, Auto Scaling, ECR, Logs)"
+  description       = "HTTPS hacia las APIs de AWS (SSM, EC2, Auto Scaling, DynamoDB, ECR, Logs)"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "tcp"
   from_port         = 443
@@ -195,6 +197,19 @@ resource "aws_ecs_service" "backend" {
     security_groups  = [aws_security_group.backend[0].id]
     assign_public_ip = false
   }
+
+  dynamic "load_balancer" {
+    for_each = local.backend_alb_enabled == 1 ? [1] : []
+
+    content {
+      target_group_arn = aws_lb_target_group.backend[0].arn
+      container_name   = local.backend_container_name
+      container_port   = local.backend_container_port
+    }
+  }
+
+  # El target group debe existir con su listener antes de registrar la task.
+  depends_on = [aws_lb_listener.backend]
 
   deployment_circuit_breaker {
     enable   = true
