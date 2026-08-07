@@ -5,11 +5,13 @@ aplicación arranca y funciona sin ninguna configuración de AWS.
 """
 from __future__ import annotations
 
+import json
 import os
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 from .runbooks import (
     DEFAULT_PATCH_RUNBOOK,
@@ -93,10 +95,13 @@ class Settings(BaseSettings):
     lab_replacement_timeout_seconds: int = 900
 
     # --- Política de objetivos --------------------------------------------
-    allowed_account_ids: list[str] = Field(default_factory=list)
-    allowed_regions: list[str] = Field(default_factory=list)
-    allowed_environments: list[str] = Field(default_factory=list)
-    allowed_runbooks: list[str] = Field(
+    # `NoDecode`: el valor del entorno lo interpreta `_split_csv` (CSV o JSON) y no
+    # el decodificador de pydantic-settings, que exigiría JSON incluso para un
+    # único elemento (`MSR_ALLOWED_REGIONS=eu-north-1`).
+    allowed_account_ids: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    allowed_regions: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    allowed_environments: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    allowed_runbooks: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: [DEFAULT_PATCH_RUNBOOK, DEFAULT_ROLLBACK_RUNBOOK,
                                  DEFAULT_RESET_RUNBOOK])
     required_target_tag_key: str = "msr-poc"
@@ -113,7 +118,7 @@ class Settings(BaseSettings):
     max_output_chars: int = 2000
 
     # --- API ---------------------------------------------------------------
-    cors_allow_origins: list[str] = Field(
+    cors_allow_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"])
 
     @field_validator("allowed_account_ids", "allowed_regions", "allowed_environments",
@@ -124,7 +129,7 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             raw = value.strip()
             if raw.startswith("["):
-                return value
+                return json.loads(raw)
             return [item.strip() for item in raw.split(",") if item.strip()]
         return value
 

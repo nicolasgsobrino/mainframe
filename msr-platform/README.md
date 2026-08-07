@@ -207,17 +207,32 @@ uvicorn app.main:app --port 8080
 # abre http://localhost:8080
 ```
 
-## Despliegue (fuera de AWS)
+## Ejecución de la PoC (en la sesión de Devin)
 
 ```text
-usuario → aplicación MSR alojada fuera de AWS (:8080, SPA y /api)
-  → rol IAM federado por OIDC → Systems Manager Automation → runbooks MSR → EC2 del laboratorio
+usuario autorizado → sesión de Devin → VM de la sesión → MSR (:8080, SPA y /api)
+  → identidad OIDC de la sesión → MSRExternalBackendRole → Systems Manager Automation
+  → runbooks MSR → EC2 del laboratorio
 ```
 
+Un único comando idempotente, repetible tras dormir o reiniciar la sesión:
+
+```bash
+./scripts/start_poc.sh          # deps + build + :8080 + identidad AWS + laboratorio (no destructivo)
+MSR_POC_MODE=mock ./scripts/start_poc.sh   # demo simulada
+MSR_POC_MODE=aws  ./scripts/start_poc.sh   # exige identidad de AWS (falla si no la hay)
+```
+
+La demo se opera en el navegador de la VM (`http://localhost:8080`) desde la pestaña Desktop
+de la sesión: no hay URL pública. El usuario no necesita instalar nada, ni `aws login`, ni
+perfil, ni claves, ni conocer el Instance ID, ni un `.env`.
+
 AWS aloja únicamente el laboratorio (EC2/ASG, integración SSM, los dos runbooks y la tabla
-de locks) más la identidad que consume el backend externo. La arquitectura completa, la
-trust policy del rol federado, el modelo de persistencia y el flujo repetible de despliegue
-están en `ARCHITECTURE_REPORT_PHASE2_9.md`.
+de locks) más `MSRExternalBackendRole` y el proveedor OIDC que lo federa. El bootstrap único
+de AWS, la trust policy literal, el blueprint y el detalle del arranque están en
+`ARCHITECTURE_REPORT_PHASE2_11.md`; el análisis de viabilidad del runtime de la sesión, en
+`ARCHITECTURE_REPORT_PHASE2_10.md`, y el alojamiento externo (Fly.io, reserva) en
+`ARCHITECTURE_REPORT_PHASE2_9.md`.
 
 El runtime del backend en ECS Fargate con ECR y ALB (`backend_ecs.tf`, `backend_ecr.tf`,
 `backend_alb.tf`, `.github/workflows/msr-platform-deploy.yml` y
@@ -236,7 +251,7 @@ docker build -t msr-platform:dev msr-platform      # el contexto es msr-platform
 ```
 
 Credenciales: boto3 las obtiene de la cadena estándar a partir de la identidad de workload
-del runtime, federada por OIDC contra `MSRExternalBackendRole`. No hay access keys, ni
+de la sesión de Devin, federada por OIDC contra `MSRExternalBackendRole`. No hay access keys, ni
 session tokens copiados, ni `aws login`, ni perfiles (`MSR_AWS_PROFILE=`) y sin
 `sts:AssumeRole` explícito desde la aplicación (`MSR_AWS_ROLE_ARN=`). Los runbooks no
 declaran `assumeRole`, así que ese mismo rol es la identidad efectiva de la Automation y no
