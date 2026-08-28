@@ -1,23 +1,59 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import type { Task } from "../types";
 import { PHASE_META, Priority, Track, Risk, LaneTag, LANE_META, SlaTag } from "../ui";
 
 const LANE_KEYS = ["all", "critical", "accelerated", "standard"] as const;
 
+/** Filtros de drill-down: los KPIs del Overview enlazan aquí con estos parámetros. */
+const FILTER_LABELS: Record<string, Record<string, string>> = {
+  status: { in_flight: "En curso", remediated: "Remediadas" },
+  sla: { overdue: "Fuera de SLA", due_soon: "En riesgo de SLA" },
+  kev: { "1": "KEV (explotadas)" },
+};
+
+function matchesStatus(task: Task, status: string | null) {
+  if (status === "remediated") return task.status === "remediated";
+  if (status === "in_flight") return task.status !== "remediated";
+  return true;
+}
+
+function matchesSla(task: Task, sla: string | null) {
+  if (sla === "overdue") return Boolean(task.sla?.overdue);
+  if (sla === "due_soon") return Boolean(task.sla?.due_soon);
+  return true;
+}
+
 export default function Tasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [lane, setLane] = useState<string>("all");
-  const [q, setQ] = useState("");
+  const [params, setParams] = useSearchParams();
   const nav = useNavigate();
+
+  const lane = params.get("lane") ?? "all";
+  const q = params.get("q") ?? "";
+  const status = params.get("status");
+  const sla = params.get("sla");
+  const kev = params.get("kev") === "1";
+
+  const setFilter = (key: string, value: string | null) => {
+    const updated = new URLSearchParams(params);
+    if (value && value !== "all") updated.set(key, value);
+    else updated.delete(key);
+    setParams(updated, { replace: true });
+  };
 
   useEffect(() => { api.tasks().then(setTasks); }, []);
 
   const filtered = useMemo(() => tasks.filter((t) =>
     (lane === "all" || t.lane === lane) &&
+    matchesStatus(t, status) && matchesSla(t, sla) && (!kev || t.kev) &&
     (q === "" || (t.cve + t.ci_name + t.title).toLowerCase().includes(q.toLowerCase()))
-  ), [tasks, lane, q]);
+  ), [tasks, lane, q, status, sla, kev]);
+
+  const chips = (["status", "sla", "kev"] as const)
+    .map((key) => ({ key, value: params.get(key) ?? "" }))
+    .filter((f) => f.value !== "");
 
   return (
     <div className="p-6 space-y-4 max-w-[1400px]">
@@ -29,13 +65,13 @@ export default function Tasks() {
 
       <div className="flex items-center gap-3">
         <input
-          value={q} onChange={(e) => setQ(e.target.value)}
+          value={q} onChange={(e) => setFilter("q", e.target.value)}
           placeholder="Buscar por CVE, activo…"
           className="bg-ink-soft border border-line rounded-lg px-3 py-2 text-sm w-72 outline-none focus:border-brand"
         />
         <div className="flex gap-1">
           {LANE_KEYS.map((t) => (
-            <button key={t} onClick={() => setLane(t)}
+            <button key={t} onClick={() => setFilter("lane", t)}
               className={`btn text-xs ${lane === t ? "btn-brand" : "btn-ghost"}`}>
               {t === "all" ? "Todos" : `Carril ${LANE_META[t].label}`}
             </button>
@@ -43,6 +79,18 @@ export default function Tasks() {
         </div>
         <span className="text-xs text-gray-500 ml-auto">{filtered.length} tareas</span>
       </div>
+
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-gray-500">Filtros:</span>
+          {chips.map((f) => (
+            <button key={f.key} type="button" onClick={() => setFilter(f.key, null)}
+              className="chip border border-brand/40 bg-brand/10 text-brand">
+              {FILTER_LABELS[f.key]?.[f.value] ?? f.value} ✕
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="card overflow-hidden">
         <table className="w-full text-sm">

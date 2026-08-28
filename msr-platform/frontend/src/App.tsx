@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-do
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import TaskDetail from "./pages/TaskDetail";
+import Analytics from "./pages/Analytics";
 import Cmdb from "./pages/Cmdb";
 import Catalog from "./pages/Catalog";
 import Integrations from "./pages/Integrations";
@@ -10,6 +11,7 @@ import { ViewProvider, RoleToggle, useView, ROLE_META } from "./view";
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
   { to: "/tasks", label: "Remediation Tasks", icon: "◈" },
+  { to: "/analytics", label: "Analítica", icon: "◧" },
   { to: "/cmdb", label: "CMDB · Impact Graph", icon: "⧉" },
   { to: "/catalog", label: "Catálogo de pruebas", icon: "☰" },
   { to: "/integrations", label: "Integraciones", icon: "⇄" },
@@ -73,6 +75,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/tasks/:id" element={<TaskDetail />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/cmdb" element={<Cmdb />} />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/integrations" element={<Integrations />} />

@@ -432,15 +432,9 @@ class Store:
                             if engine.PHASE_IDS[p["phase_index"]] == "deployment")
         cmdb = self.cmdb_summary()
         return {
-            "funnel": [
-                {"label": "Hallazgos totales", "value": 100000},
-                {"label": "Relevantes", "value": 8000},
-                {"label": "Explotables", "value": 500},
-                {"label": "Críticos para banca", "value": 80},
-                {"label": "Remediación inmediata", "value": 20},
-            ],
+            "funnel": self._funnel(tasks),
             "kpis": {
-                "open_findings": len(self.findings) * 420,
+                "open_findings": len(self.findings),
                 "vulnerable_items": len(self.vulnerable_items),
                 "remediation_tasks": len(tasks),
                 "kev_count": kev,
@@ -465,6 +459,17 @@ class Store:
             "cmdb": cmdb,
             "sla": self._sla_overview(tasks),
         }
+
+    def _funnel(self, tasks):
+        """Embudo de curación derivado de los datos reales, de ruido a acción."""
+        active = [t for t in tasks if t.get("status") != "remediated"]
+        return [
+            {"label": "Hallazgos de los escáneres", "value": len(self.findings)},
+            {"label": "Activos afectados", "value": len({f["ci_id"] for f in self.findings})},
+            {"label": "CVE distintas", "value": len({f["cve"] for f in self.findings})},
+            {"label": "Vulnerable Items curados", "value": len(self.vulnerable_items)},
+            {"label": "Remediation Tasks activas", "value": len(active)},
+        ]
 
     def _journey_summary(self, task):
         """Proyección de las 8 fases del journey sobre el pipeline de la tarea."""
@@ -572,6 +577,7 @@ class Store:
                 "phase_index": p["phase_index"],
                 "phase_status": p["statuses"][engine.PHASE_IDS[p["phase_index"]]],
                 "affected_count": p["artifacts"]["impact"]["affected_count"],
+                "kev": self.vulnerable_items[t["vulnerable_item_id"]]["kev"],
                 "sla": sla_state(t.get("sla_due", "")),
                 "journey": self._journey_summary(t),
             })

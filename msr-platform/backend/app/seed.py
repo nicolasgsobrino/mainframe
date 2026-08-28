@@ -632,6 +632,17 @@ def _risk_score(cvss, epss, kev, exposed, criticality, env):
     return round(min(100, max(0, tech + exploit + business + exposure + env_factor)))
 
 
+# Días de plazo restantes que debe tener cada postura de SLA. `on_track` se
+# limita al propio plazo: con SLA de 3 días (KEV) el margen máximo es de 3 días.
+SLA_POSTURES = {"overdue": -3, "due_soon": 1, "on_track": 8}
+
+
+def _detected_at(sla_days: int, posture: str) -> datetime:
+    """Fecha de detección que deja el plazo en la postura de cumplimiento pedida."""
+    days_left = min(SLA_POSTURES[posture], sla_days)
+    return NOW - timedelta(days=sla_days - days_left)
+
+
 def build_records(cis, edges):
     servers = [c for c in cis if c["ci_class"] == "server"]
     apps = [c for c in cis if c["ci_class"] == "application"]
@@ -656,20 +667,22 @@ def build_records(cis, edges):
 
     # Conjunto reducido de escenarios de demo (4-5 vulnerabilidades pequeñas,
     # blast radius acotado ≤ 10 CIs). Cada uno cubre un dominio técnico distinto.
+    # `sla_posture` fija la fecha de detección respecto al plazo de cada escenario
+    # para que el reparto de cumplimiento sea legible y estable (ver _detected_at).
     scenarios = [
-        # (cve_index, ci_id preferido o None, exposed)
-        (0, "APP-1001", True),   # Log4Shell en payments-api (dominio B, crítico)
-        (14, None, True),        # regreSSHion OpenSSH (dominio A, infra)
-        (10, "APP-1004", False), # runc Container Escape en retail-bff (dominio C)
-        (1, "APP-1005", True),   # Spring4Shell en mobile-gateway (dominio B)
-        (4, None, True),         # HTTP/2 Rapid Reset nginx (dominio A)
+        # (cve_index, ci_id preferido o None, exposed, sla_posture)
+        (0, "APP-1001", True, "overdue"),    # Log4Shell en payments-api (dominio B, crítico)
+        (14, None, True, "on_track"),        # regreSSHion OpenSSH (dominio A, infra)
+        (10, "APP-1004", False, "on_track"), # runc Container Escape en retail-bff (dominio C)
+        (1, "APP-1005", True, "on_track"),   # Spring4Shell en mobile-gateway (dominio B)
+        (4, None, True, "on_track"),         # HTTP/2 Rapid Reset nginx (dominio A)
     ]
 
     vitems = []
     tasks = []
     vid = 700000
     tid = 900000
-    for idx, (cve_i, pref_ci, exposed) in enumerate(scenarios):
+    for idx, (cve_i, pref_ci, exposed, sla_posture) in enumerate(scenarios):
         cve = CVE_CATALOG[cve_i]
         track = cve[6]
         if pref_ci:
@@ -687,12 +700,6 @@ def build_records(cis, edges):
             "ci_class": ci["ci_class"], "exposed": exposed, "criticality": crit,
             "environment": env, "owner": ci.get("owner", RNG.choice(OWNERS)),
         }
-        detected_days = RNG.randint(1, 22)
-        detected_dt = NOW - timedelta(days=detected_days)
-        vitem["risk_score"] = risk
-        vitem["sources"] = RNG.sample(SCANNERS, RNG.randint(1, 3))
-        vitem["status"] = "open"
-        vitem["detected_at"] = iso(detected_dt)
         # SLA por severidad/KEV
         if cve[4] or cve[2] >= 9:
             sla_days = 3
@@ -700,10 +707,14 @@ def build_records(cis, edges):
             sla_days = 15
         else:
             sla_days = 30
+        detected_dt = _detected_at(sla_days, sla_posture)
+        vitem["risk_score"] = risk
+        vitem["sources"] = RNG.sample(SCANNERS, RNG.randint(1, 3))
+        vitem["status"] = "open"
+        vitem["detected_at"] = iso(detected_dt)
         vitem["sla_days"] = sla_days
         lane = assign_lane(risk, cve[4], cve[5], exposed, crit)
         vitem["lane"] = lane
-        # Vencimiento = detección + SLA (así hay VI dentro y fuera de plazo, como en real).
         vitem["sla_due"] = iso(detected_dt + timedelta(days=sla_days))
         vitems.append(vitem)
 
@@ -722,7 +733,8 @@ def build_records(cis, edges):
             "ci_id": ci["id"], "ci_name": ci["name"], "owner": vitem["owner"],
             "criticality": crit, "environment": env, "sla_due": vitem["sla_due"],
             "change_type": change_type, "exposed": exposed, "component": cve[7],
-            "vulnerable_version": cve[8], "created_at": iso(NOW - timedelta(days=RNG.randint(0, 8))),
+            # La tarea nace del hallazgo: nunca puede ser posterior a su vencimiento.
+            "vulnerable_version": cve[8], "created_at": iso(detected_dt),
         })
 
     return findings, vitems, tasks

@@ -50,15 +50,31 @@ function ResourceProgress({ resources }: { resources: JourneyResources }) {
 
 function RingStrip({ rings }: { rings: JourneyRing[] }) {
   return (
-    <div className="flex gap-1.5">
-      {rings.map((r) => (
-        <div key={r.ring} className="flex-1 min-w-0" title={`${r.label} · ${r.status} · ${r.assets} activos`}>
-          <div className="h-1.5 rounded" style={{ background: RING_STATUS_COLOR[r.status] || "#475569" }} />
-          <div className="text-[10px] text-gray-500 mt-1 truncate">{r.label.replace("Anillo ", "A")}</div>
-        </div>
-      ))}
+    <div>
+      <div className="text-xs text-gray-400 mb-1.5">Anillos de despliegue</div>
+      <div className="flex gap-2">
+        {rings.map((r) => {
+          const color = RING_STATUS_COLOR[r.status] || "#475569";
+          return (
+            <div key={r.ring} className="flex-1 min-w-0" title={`${r.label} · ${r.status} · ${r.assets} activos`}>
+              <div className="h-1.5 rounded" style={{ background: color }} />
+              <div className="text-[11px] mt-1 leading-tight" style={{ color }}>{r.label}</div>
+              <div className="text-[10px] text-gray-500">{r.assets} activos</div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+/** Acción natural según lo que bloquea o toca hacer ahora en la tarea. */
+function nextAction(blockers: string[], ringLabel: string | null): string {
+  if (blockers.includes("awaiting_approval")) return `Aprobar ${ringLabel ?? "el anillo"}`;
+  if (blockers.includes("job_failed")) return "Revisar la ejecución fallida";
+  if (blockers.includes("job_unconfirmed")) return "Confirmar el estado del job";
+  if (blockers.includes("rollback")) return "Revisar el rollback";
+  return "Abrir la Remediation Task completa";
 }
 
 /** Vista detallada: el journey de una vulnerabilidad con las mismas 8 fases. */
@@ -78,7 +94,7 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
   const impact = detail.artifacts.impact;
 
   return (
-    <div className="card p-5 space-y-4">
+    <div className="card p-5 space-y-4 xl:sticky xl:top-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="font-mono text-xs text-gray-400">{j.cve}</div>
@@ -95,74 +111,84 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
         {j.blockers.map((b) => <BlockerChip key={b} id={b} />)}
       </div>
 
-      <ol className="space-y-1.5">
-        {j.phases.map((p) => {
-          const color = JOURNEY_BAND_COLOR[p.band];
-          const done = p.status === "completed";
-          const current = p.status === "current";
-          return (
-            <li key={p.id} className="flex items-start gap-2">
-              <span
-                className="mt-0.5 w-4 h-4 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold"
-                style={{
-                  background: done ? color : current ? color + "33" : "#1b1f27",
-                  color: done ? "#0b0d11" : current ? color : "#64748b",
-                  border: `1px solid ${done || current ? color : "#2b313d"}`,
-                }}
-              >
-                {done ? "✓" : p.index}
-              </span>
-              <div className="min-w-0">
-                <div className={`text-xs leading-snug ${current ? "text-gray-100 font-semibold" : done ? "text-gray-300" : "text-gray-500"}`}>
-                  {p.label}
-                  {current && p.ring !== null && (
-                    <span className="ml-2 text-[10px] text-gray-400">· {j.ring_label}</span>
-                  )}
+      <Link to={`/tasks/${j.task_id}`}
+            className="btn btn-brand w-full justify-center text-xs">
+        {nextAction(j.blockers, j.ring_label)} →
+      </Link>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <ol className="space-y-1.5">
+          {j.phases.map((p) => {
+            const color = JOURNEY_BAND_COLOR[p.band];
+            const done = p.status === "completed";
+            const current = p.status === "current";
+            return (
+              <li key={p.id} className="flex items-start gap-2">
+                <span
+                  className="mt-0.5 w-4 h-4 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold"
+                  style={{
+                    background: done ? color : current ? color + "33" : "#1b1f27",
+                    color: done ? "#0b0d11" : current ? color : "#64748b",
+                    border: `1px solid ${done || current ? color : "#2b313d"}`,
+                  }}
+                >
+                  {done ? "✓" : p.index}
+                </span>
+                <div className="min-w-0">
+                  <div className={`text-xs leading-snug ${current ? "text-gray-100 font-semibold" : done ? "text-gray-300" : "text-gray-500"}`}>
+                    {p.label}
+                    {current && p.ring !== null && (
+                      <span className="ml-2 text-[10px] text-gray-400">· {j.ring_label}</span>
+                    )}
+                  </div>
+                  {current && <div className="text-[10px] text-gray-500">en curso</div>}
                 </div>
-                {current && <div className="text-[10px] text-gray-500">en curso</div>}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+              </li>
+            );
+          })}
+        </ol>
 
-      <ResourceProgress resources={j.resources} />
-      <RingStrip rings={j.rings} />
-
-      <div className="grid grid-cols-2 gap-3 text-[11px]">
-        <div className="rounded-lg bg-ink p-2.5">
-          <div className="text-gray-500">Blast radius</div>
-          <div className="text-gray-200 font-semibold mt-0.5">
-            {impact.impacted_count} de {impact.affected_count} CIs
-          </div>
-          <div className="text-gray-500 mt-1 leading-snug">
-            {impact.downtime_required ? "Con parada → se propaga a dependientes" : "Sin parada → no se propaga"}
-          </div>
-        </div>
-        <div className="rounded-lg bg-ink p-2.5">
-          <div className="text-gray-500">Cambio {j.change.number}</div>
-          <div className="text-gray-200 font-semibold mt-0.5">{j.change.type}</div>
-          <div className="text-gray-500 mt-1 leading-snug">{j.change.state}</div>
-        </div>
-        <div className="rounded-lg bg-ink p-2.5">
-          <div className="text-gray-500">Evidencias</div>
-          <div className="text-gray-200 font-semibold mt-0.5">{j.evidence.evidences_count}</div>
-          <div className="text-gray-500 mt-1">{j.evidence.report_id}</div>
-        </div>
-        <div className="rounded-lg bg-ink p-2.5">
-          <div className="text-gray-500">Rollback</div>
-          <div className="text-gray-200 font-semibold mt-0.5">
-            {j.rollback.triggered ? "Ejecutado" : j.rollback.status || "armado"}
-          </div>
-          <div className="text-gray-500 mt-1">
-            {j.resources.rings_done}/{j.resources.rings_total} anillos
-          </div>
+        <div className="space-y-4">
+          <ResourceProgress resources={j.resources} />
+          <RingStrip rings={j.rings} />
         </div>
       </div>
 
-      <Link to={`/tasks/${j.task_id}`} className="text-xs text-brand font-semibold">
-        Abrir la Remediation Task completa →
-      </Link>
+      <details className="group">
+        <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-200 select-none">
+          Contexto · blast radius, cambio, evidencias y rollback
+        </summary>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-[11px] mt-3">
+          <div className="rounded-lg bg-ink p-2.5">
+            <div className="text-gray-500">Blast radius</div>
+            <div className="text-gray-200 font-semibold mt-0.5">
+              {impact.impacted_count} de {impact.affected_count} CIs
+            </div>
+            <div className="text-gray-500 mt-1 leading-snug">
+              {impact.downtime_required ? "Con parada → se propaga a dependientes" : "Sin parada → no se propaga"}
+            </div>
+          </div>
+          <div className="rounded-lg bg-ink p-2.5">
+            <div className="text-gray-500">Cambio {j.change.number}</div>
+            <div className="text-gray-200 font-semibold mt-0.5">{j.change.type}</div>
+            <div className="text-gray-500 mt-1 leading-snug">{j.change.state}</div>
+          </div>
+          <div className="rounded-lg bg-ink p-2.5">
+            <div className="text-gray-500">Evidencias</div>
+            <div className="text-gray-200 font-semibold mt-0.5">{j.evidence.evidences_count}</div>
+            <div className="text-gray-500 mt-1">{j.evidence.report_id}</div>
+          </div>
+          <div className="rounded-lg bg-ink p-2.5">
+            <div className="text-gray-500">Rollback</div>
+            <div className="text-gray-200 font-semibold mt-0.5">
+              {j.rollback.triggered ? "Ejecutado" : j.rollback.status || "armado"}
+            </div>
+            <div className="text-gray-500 mt-1">
+              {j.resources.rings_done}/{j.resources.rings_total} anillos
+            </div>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }

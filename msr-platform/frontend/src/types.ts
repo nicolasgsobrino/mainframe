@@ -96,7 +96,7 @@ export interface Task {
   environment: string; sla_due: string; change_type: string; exposed: boolean;
   component: string; vulnerable_version: string; created_at: string; status?: string;
   phase: string; phase_label: string; phase_index: number; phase_status: string;
-  affected_count: number; sla?: SlaState; journey: JourneySummary;
+  affected_count: number; kev: boolean; sla?: SlaState; journey: JourneySummary;
   /** Sólo en la tarea del laboratorio EC2 reutilizable de la PoC. */
   logical_lab_id?: string; lab_target?: boolean; advisory_id?: string;
 }
