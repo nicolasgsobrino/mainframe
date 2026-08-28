@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie,
 } from "recharts";
 import { api } from "../api";
 import type { Overview, Task, LogEntry } from "../types";
 import { PHASE_META, Priority, Track, Risk, TRACK_META, LANE_META, LaneTag } from "../ui";
+import JourneyBoard, { BlockerChip, JOURNEY_BAND_COLOR } from "../components/journey/JourneyBoard";
+import VulnJourneyPanel from "../components/journey/VulnJourneyPanel";
 
 const CRIT_COLOR: Record<string, string> = { critical: "#ef4444", high: "#f97316", medium: "#f59e0b", low: "#0ea5e9" };
 
@@ -25,6 +27,18 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activity, setActivity] = useState<LogEntry[]>([]);
   const nav = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const phaseFilter = params.get("phase");
+  const selectedTask = params.get("vuln");
+
+  const selectJourney = (next: { phase?: string | null; vuln?: string | null }) => {
+    const updated = new URLSearchParams(params);
+    for (const [key, value] of Object.entries(next)) {
+      if (value) updated.set(key, value);
+      else updated.delete(key);
+    }
+    setParams(updated, { replace: true });
+  };
 
   useEffect(() => {
     api.overview().then(setOv);
@@ -35,6 +49,8 @@ export default function Dashboard() {
   if (!ov) return <div className="p-8 text-gray-500">Cargando…</div>;
 
   const funnelMax = ov.funnel[0].value;
+  const journeyTasks = tasks.filter((t) => !phaseFilter || t.journey.phase === phaseFilter);
+  const phaseMeta = ov.journey.phases.find((p) => p.id === phaseFilter);
   const phaseData = PHASE_ORDER.map((p) => ({ name: PHASE_META[p].label, value: ov.by_phase[p] || 0, color: PHASE_META[p].color }));
   const priData = Object.entries(ov.by_priority).map(([k, v]) => ({ name: k, value: v }));
   const PRI_COLOR: Record<string, string> = { critical: "#ef4444", high: "#f97316", medium: "#f59e0b", low: "#0ea5e9" };
@@ -71,6 +87,81 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Patching Journey: vista global (8 fases) + detalle de una vulnerabilidad */}
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold">Patching Journey</div>
+            <div className="text-xs text-gray-500">
+              Distribución de las {ov.journey.total} vulnerabilidades a lo largo de las 8 fases del modelo ·
+              las fases 4-7 se repiten en cada anillo de despliegue
+            </div>
+          </div>
+          {phaseFilter && (
+            <button className="text-xs text-brand font-semibold"
+                    onClick={() => selectJourney({ phase: null, vuln: null })}>
+              Quitar filtro ✕
+            </button>
+          )}
+        </div>
+
+        <JourneyBoard
+          journey={ov.journey}
+          selected={phaseFilter}
+          onSelect={(id) => selectJourney({ phase: id, vuln: null })}
+        />
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="card overflow-hidden xl:col-span-2">
+            <div className="px-4 py-3 border-b border-line text-sm font-semibold">
+              {phaseMeta
+                ? <>Fase {phaseMeta.index} · {phaseMeta.label} <span className="text-gray-500 font-normal">({journeyTasks.length})</span></>
+                : <>Todas las vulnerabilidades <span className="text-gray-500 font-normal">({journeyTasks.length})</span></>}
+              <div className="text-xs text-gray-500 font-normal mt-0.5">
+                {phaseMeta ? phaseMeta.label_en : "Selecciona una fase para filtrar, y una vulnerabilidad para ver su journey"}
+              </div>
+            </div>
+            <div className="divide-y divide-line/50 max-h-[420px] overflow-y-auto">
+              {journeyTasks.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => selectJourney({ vuln: t.id })}
+                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-ink-panel ${
+                    selectedTask === t.id ? "bg-ink-panel" : ""}`}
+                >
+                  <Risk score={t.risk_score} />
+                  <span className="font-mono text-xs text-gray-300 w-36 shrink-0">{t.cve}</span>
+                  <span className="text-sm text-gray-300 truncate flex-1">{t.ci_name}</span>
+                  <span className="chip shrink-0"
+                        style={{ background: JOURNEY_BAND_COLOR[t.journey.band] + "22",
+                                 color: JOURNEY_BAND_COLOR[t.journey.band] }}>
+                    {t.journey.phase_index} · {t.journey.phase_label}
+                    {t.journey.ring !== null && ` · A${t.journey.ring}`}
+                  </span>
+                  <span className="text-xs text-gray-400 font-mono shrink-0">
+                    {t.journey.resources.patched}/{t.journey.resources.total}
+                  </span>
+                  {t.journey.blockers.slice(0, 1).map((b) => <BlockerChip key={b} id={b} />)}
+                </button>
+              ))}
+              {journeyTasks.length === 0 && (
+                <div className="px-4 py-6 text-xs text-gray-600">Ninguna vulnerabilidad en esta fase ahora mismo.</div>
+              )}
+            </div>
+          </div>
+
+          {selectedTask
+            ? <VulnJourneyPanel taskId={selectedTask} onClose={() => selectJourney({ vuln: null })} />
+            : (
+              <div className="card p-5 text-xs text-gray-500 leading-relaxed">
+                Selecciona una vulnerabilidad para ver su journey detallado: fases completadas, fase actual,
+                recursos parcheados/pendientes/fallidos, anillos, rollback y evidencias.
+              </div>
+            )}
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Funnel */}
         <div className="card p-5 xl:col-span-1">
@@ -98,7 +189,7 @@ export default function Dashboard() {
         {/* Phase distribution */}
         <div className="card p-5">
           <div className="text-sm font-semibold mb-1">Tareas por fase del ciclo</div>
-          <div className="text-xs text-gray-500 mb-3">Pipeline de remediación (6 fases)</div>
+          <div className="text-xs text-gray-500 mb-3">Pipeline de remediación (6 fases con aprobación HITL)</div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={phaseData} margin={{ left: -20 }}>
               <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={50} />

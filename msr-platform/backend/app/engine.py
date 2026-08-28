@@ -92,6 +92,32 @@ def _build_adjacency(edges):
     return adj
 
 
+# Perfil de remediación: determina si la mitigación provoca caída del activo y,
+# por tanto, si el blast radius se propaga a los sistemas dependientes. Una
+# actualización de dependencia se despliega en rolling y el servicio no cae, de
+# modo que el impacto queda acotado al propio activo aunque otros dependan de él.
+REMEDIATION_PROFILES = {
+    "patch": {
+        "restart_scope": "instance",
+        "downtime_required": True,
+        "rationale": ("El parche de sistema operativo exige reiniciar la instancia: "
+                      "los sistemas dependientes sí sufren la ventana de indisponibilidad."),
+    },
+    "dependency": {
+        "restart_scope": "service",
+        "downtime_required": False,
+        "rationale": ("La actualización de la dependencia se despliega en rolling sin "
+                      "caída del servicio: los dependientes no se ven afectados."),
+    },
+}
+
+
+def remediation_profile(task):
+    """Tipo de remediación previsto y si implica caída (mismo criterio que el MVT)."""
+    rtype = {"A": "patch", "B": "dependency", "C": "dependency"}.get(task["track"], "patch")
+    return {"remediation_type": rtype, **REMEDIATION_PROFILES[rtype]}
+
+
 def build_impact_graph(task, cis, edges, adj=None, max_nodes=10):
     ci_by_id = {c["id"]: c for c in cis}
     if adj is None:
@@ -137,6 +163,8 @@ def build_impact_graph(task, cis, edges, adj=None, max_nodes=10):
         depth += 1
 
     affected_layers = sorted({n["ci_class"] for n in nodes.values()})
+    profile = remediation_profile(task)
+    propagates = profile["downtime_required"]
     return {
         "nodes": list(nodes.values()),
         "edges": [{"source": e["source"], "target": e["target"], "type": e["type"]}
@@ -144,6 +172,14 @@ def build_impact_graph(task, cis, edges, adj=None, max_nodes=10):
         "affected_layers": affected_layers,
         "affected_count": len(nodes),
         "business_services": [n["name"] for n in nodes.values() if n["ci_class"] == "business_service"],
+        # El alcance del blast radius depende de la mitigación: sin caída del
+        # activo, el impacto no se propaga a quienes dependen de él.
+        "remediation_type": profile["remediation_type"],
+        "downtime_required": propagates,
+        "restart_scope": profile["restart_scope"],
+        "blast_scope": "propagated" if propagates else "local",
+        "impacted_count": len(nodes) if propagates else 1,
+        "blast_rationale": profile["rationale"],
     }
 
 
@@ -161,7 +197,7 @@ def build_mvt(task, impact, catalog):
     layers = set(impact["affected_layers"])
     exposed = task.get("exposed")
     track = task["track"]
-    remediation_type = {"A": "patch", "B": "dependency", "C": "dependency"}.get(track, "patch")
+    remediation_type = remediation_profile(task)["remediation_type"]
 
     selected, excluded = [], []
     for tc in catalog:

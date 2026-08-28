@@ -19,11 +19,56 @@ export interface FlowStep {
 }
 export interface LaneFlow { shared: FlowStep[]; steps: FlowStep[]; }
 
+// Patching Journey: proyección de las 8 fases del modelo sobre el pipeline de 6.
+export type JourneyBandId = "demand_risk" | "change_planning" | "execution_closure";
+export type JourneyPhaseStatus = "completed" | "current" | "pending";
+
+export interface JourneyPhaseMeta {
+  id: string; index: number; label: string; label_en: string;
+  band: JourneyBandId; band_label: string; per_ring: boolean;
+}
+export interface JourneyResources {
+  total: number; patched: number; pending: number; failed: number; excluded: number;
+  rolled_back?: number; rings_done?: number; rings_total?: number;
+}
+export interface JourneySummary {
+  task_id: string; cve: string; title: string; ci_name: string;
+  lane: Lane; priority: string; risk_score: number;
+  phase: string; phase_index: number; phase_label: string; band: JourneyBandId;
+  ring: number | null; ring_label: string | null; pipeline_phase: string;
+  blockers: string[];
+  resources: JourneyResources;
+  rollback: { status?: string; triggered?: boolean };
+  evidence: { report_id: string; evidences_count: number; closed: boolean };
+  change: { number: string; type: string; state: string; requires_human: boolean };
+}
+export interface JourneyPhaseAggregate extends JourneyPhaseMeta {
+  count: number;
+  by_lane: Record<string, number>;
+  blockers: Record<string, number>;
+  resources: JourneyResources;
+  rings: number[];
+}
+export interface JourneyOverview {
+  phases: JourneyPhaseAggregate[];
+  bands: { id: JourneyBandId; label: string }[];
+  total: number;
+}
+export interface JourneyRing {
+  ring: number; label: string; status: string; environment?: string;
+  assets: number; result: string; preapproved: boolean;
+}
+export interface JourneyDetail extends JourneySummary {
+  phases: (JourneyPhaseMeta & { status: JourneyPhaseStatus; ring: number | null })[];
+  rings: JourneyRing[];
+}
+
 export interface Overview {
   funnel: { label: string; value: number }[];
   kpis: Kpis;
   by_priority: Record<string, number>;
   by_phase: Record<string, number>;
+  journey: JourneyOverview;
   by_track: Record<string, number>;
   by_lane: Record<string, number>;
   by_criticality: Record<string, number>;
@@ -51,7 +96,7 @@ export interface Task {
   environment: string; sla_due: string; change_type: string; exposed: boolean;
   component: string; vulnerable_version: string; created_at: string; status?: string;
   phase: string; phase_label: string; phase_index: number; phase_status: string;
-  affected_count: number; sla?: SlaState;
+  affected_count: number; sla?: SlaState; journey: JourneySummary;
   /** Sólo en la tarea del laboratorio EC2 reutilizable de la PoC. */
   logical_lab_id?: string; lab_target?: boolean; advisory_id?: string;
 }
@@ -232,6 +277,13 @@ export interface ImpactGraph {
   affected_layers: string[];
   affected_count: number;
   business_services: string[];
+  /** El alcance depende de la mitigación: sin caída no se propaga a dependientes. */
+  remediation_type: string;
+  downtime_required: boolean;
+  restart_scope: string;
+  blast_scope: "propagated" | "local";
+  impacted_count: number;
+  blast_rationale: string;
 }
 
 export interface TestCase {
@@ -330,7 +382,7 @@ export interface VulnerableItem {
 export interface TaskDetail {
   task: Task; vulnerable_item: VulnerableItem; phase_index: number;
   phases: { id: string; label: string; index: number; status: string; automation: Automation }[];
-  lane: Lane; lane_meta: LaneMeta; lane_flow: LaneFlow;
+  lane: Lane; lane_meta: LaneMeta; lane_flow: LaneFlow; journey: JourneyDetail;
   artifacts: { impact: ImpactGraph; mvt: Mvt; lab: LabResults; prototype: Prototype; deployment: Deployment; audit: Audit };
   logs: LogEntry[]; rings_done: number; sla?: SlaState;
   active_job?: PatchJob | null; jobs?: PatchJob[]; execution?: ExecutionConfig;

@@ -13,7 +13,7 @@ import threading
 import zlib
 from datetime import datetime
 
-from . import engine, seed
+from . import engine, journey, seed
 from .config import PROVIDER_AWS_AUTOMATION, PROVIDER_MOCK, Settings, get_settings
 from .errors import (
     ConflictError,
@@ -411,6 +411,7 @@ class Store:
         for p in self.pipelines.values():
             pid = engine.PHASE_IDS[p["phase_index"]]
             by_phase[pid] = by_phase.get(pid, 0) + 1
+        journey_summaries = [self._journey_summary(t) for t in tasks]
         by_track = {"A": 0, "B": 0, "C": 0}
         for t in tasks:
             by_track[t["track"]] = by_track.get(t["track"], 0) + 1
@@ -450,6 +451,7 @@ class Store:
             },
             "by_priority": by_priority,
             "by_phase": by_phase,
+            "journey": journey.aggregate(journey_summaries),
             "by_track": by_track,
             "by_lane": by_lane,
             "by_criticality": by_criticality,
@@ -463,6 +465,15 @@ class Store:
             "cmdb": cmdb,
             "sla": self._sla_overview(tasks),
         }
+
+    def _journey_summary(self, task):
+        """Proyección de las 8 fases del journey sobre el pipeline de la tarea."""
+        summary = journey.summary(task, self.pipelines[task["id"]],
+                                  sla_state(task.get("sla_due", "")))
+        return {**summary, "task_id": task["id"], "cve": task["cve"],
+                "title": task["title"], "ci_name": task["ci_name"],
+                "lane": task.get("lane", "standard"), "priority": task["priority"],
+                "risk_score": task["risk_score"]}
 
     def _sla_overview(self, tasks):
         active = [t for t in tasks if t.get("status") != "remediated"]
@@ -562,6 +573,7 @@ class Store:
                 "phase_status": p["statuses"][engine.PHASE_IDS[p["phase_index"]]],
                 "affected_count": p["artifacts"]["impact"]["affected_count"],
                 "sla": sla_state(t.get("sla_due", "")),
+                "journey": self._journey_summary(t),
             })
         return sorted(out, key=lambda x: -x["risk_score"])
 
@@ -588,6 +600,11 @@ class Store:
             "phase_index": p["phase_index"],
             "phases": phases,
             "lane": lane,
+            "journey": {
+                **self._journey_summary(t),
+                "phases": journey.phase_states(t, p),
+                "rings": journey.ring_states(p),
+            },
             "lane_meta": seed.LANE_META.get(lane, seed.LANE_META["standard"]),
             "lane_flow": engine.lane_flow(lane),
             "artifacts": p["artifacts"],
