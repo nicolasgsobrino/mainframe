@@ -1524,6 +1524,12 @@ class Store:
     def lab_snapshot(self, logical_lab_id: str) -> dict:
         """Vista de sólo lectura del laboratorio para la UI (`GET /api/labs/{id}`)."""
         lab = self._lab_or_404(logical_lab_id)
+        # El ASG es contrato de la IaC (`MSR_LAB_AUTOSCALING_GROUP_NAME`): manda
+        # la configuración, no lo que se persistió cuando se registró el lab.
+        asg = self.settings.lab_autoscaling_group_name or None
+        if asg is not None and lab.autoscaling_group_name != asg:
+            lab.autoscaling_group_name = asg
+            self.repo.upsert_lab_target(lab)
         tid = self._lab_task_id(logical_lab_id)
         instance: dict | None = None
         resolution_error: dict | None = None
