@@ -1455,12 +1455,38 @@ class Store:
         instance = self.lab_resolver.resolve(logical_lab_id)
         lab = self.repo.get_lab_target(logical_lab_id)
         if lab is not None and lab.current_instance_id != instance.instance_id:
+            # El Auto Scaling Group ha sustituido la instancia (reset manual o
+            # sustitución por salud): la evidencia del kernel, el advisory y la
+            # salud pertenecían a la instancia anterior y deja de ser válida.
+            lab.previous_instance_id = lab.current_instance_id
             lab.current_instance_id = instance.instance_id
             lab.account_id = instance.account_id or lab.account_id
             lab.region = instance.region or lab.region
             lab.vulnerable_ami_id = instance.image_id or lab.vulnerable_ami_id
+            lab.lab_state = LAB_STATE_UNKNOWN
+            lab.current_kernel = None
+            lab.advisory_applicable = None
+            lab.health_state = None
+            lab.ssm_state = instance.ping_status
+            lab.evidence_source = None
+            lab.last_patch_execution_id = None
             self.repo.upsert_lab_target(lab)
+            self._observe_lab(logical_lab_id, instance)
         return instance
+
+    def _observe_lab(self, logical_lab_id: str, instance: LabInstance) -> None:
+        """Reobserva el laboratorio en AWS (sólo lectura) y persiste la evidencia.
+
+        Si la observación falla, el laboratorio queda en `unknown`: fail-closed,
+        nunca se hereda el estado de la instancia anterior.
+        """
+        try:
+            evidence = self.lab_precheck.inspect(instance)
+        except (ProviderError, LabResolutionError) as exc:
+            log.warning("No se pudo reobservar el laboratorio %s tras el cambio de "
+                        "instancia: %s", logical_lab_id, exc)
+            return
+        self.lab_lifecycle.record_observation(logical_lab_id, instance, evidence)
 
     def _lab_state(self, logical_lab_id: str, tid: str) -> dict:
         """Estado operativo del laboratorio según la evidencia persistida.

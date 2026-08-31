@@ -6,9 +6,20 @@ from fastapi.testclient import TestClient
 
 from app import main
 from app.jobs import JobState, JobType
+from app.labs import LabInstance
 from app.store import Store
 
 LAB_ID = "linux-patching-01"
+
+
+class _StaticLabResolver:
+    """Resolutor que devuelve la instancia que el ASG acaba de lanzar."""
+
+    def __init__(self, instance: LabInstance):
+        self._instance = instance
+
+    def resolve(self, _logical_lab_id: str) -> LabInstance:
+        return self._instance
 
 
 @pytest.fixture
@@ -160,3 +171,31 @@ def test_the_frontend_cannot_change_the_advisory_or_the_releasever(lab_client, l
     assert body["advisory_id"] == "ALAS2023-2026-1924"
     assert body["lab"]["candidate_releasever"] == "2023.12.20260706"
     assert body["lab"]["expected_fixed_kernel"] == "6.1.176-220.358.amzn2023.x86_64"
+
+
+def test_asg_replacement_is_detected_and_invalidates_the_previous_evidence(lab_client, lab_store):
+    """Reset manual: el ASG sustituye la instancia y la tool reobserva la nueva.
+
+    La evidencia (kernel, advisory, salud) es de la instancia anterior y no puede
+    heredarse: al detectar el cambio se reobserva y se registra la instancia previa.
+    """
+    lab_client.post(f"/api/labs/{LAB_ID}/validate")
+    lab = lab_store.repo.get_lab_target(LAB_ID)
+    old_instance_id = lab.current_instance_id
+    lab.lab_state = "patched"
+    lab.current_kernel = "6.1.176-220.358.amzn2023.x86_64"
+    lab_store.repo.upsert_lab_target(lab)
+    replacement = LabInstance(
+        instance_id="i-0aaaabbbbccccdddd", state="running", logical_lab_id=LAB_ID,
+        account_id="133789123239", region="eu-north-1", image_id="ami-0b2ab3a97a77bd35e",
+        tags={"msr-poc": "true", "msr-lab-id": LAB_ID, "msr-environment": "sandbox"},
+        ssm_managed=True, ping_status="Online")
+    lab_store.lab_resolver = _StaticLabResolver(replacement)
+
+    body = lab_client.get(f"/api/labs/{LAB_ID}").json()
+
+    assert body["instance"]["instance_id"] == replacement.instance_id
+    assert body["previous_instance_id"] == old_instance_id
+    # La instancia nueva nace de la AMI base: vulnerable, nunca «parcheada».
+    assert body["vulnerable_state"] == "vulnerable"
+    assert body["current_kernel"] != "6.1.176-220.358.amzn2023.x86_64"
