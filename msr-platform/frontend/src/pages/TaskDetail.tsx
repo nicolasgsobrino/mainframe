@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ApiError, api, releaseIdempotencyKey } from "../api";
-import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob, LabPatchEvidence } from "../types";
+import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob, LabPatchEvidence,
+  ExecutionMode } from "../types";
 import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 import LabPanel from "../components/LabPanel";
@@ -201,7 +202,7 @@ export default function TaskDetail() {
         />
       )}
 
-      {labPatch && <PatchConfirmed evidence={labPatch} />}
+      {labPatch && <PatchConfirmed evidence={labPatch} mode={d.execution?.mode ?? "mock"} />}
 
       {d.sla?.overdue && !done && (
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm text-red-300 flex items-center gap-2">
@@ -428,12 +429,13 @@ export default function TaskDetail() {
   );
 }
 
-/** Parcheo ya confirmado por AWS: estado del objetivo, no de un intento. */
-function PatchConfirmed({ evidence }: { evidence: LabPatchEvidence }) {
+/** Parcheo ya confirmado sobre el objetivo: estado del recurso, no de un intento. */
+function PatchConfirmed({ evidence, mode }: { evidence: LabPatchEvidence; mode: ExecutionMode }) {
+  const source = mode === "mock" ? "la simulaci\u00f3n (mock)" : "AWS Systems Manager";
   return (
     <div className="rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-300">
       <div className="font-semibold flex items-center gap-2">
-        <span className="text-lg">✓</span> Parcheo confirmado por AWS Systems Manager
+        <span className="text-lg">✓</span> Parcheo confirmado por {source}
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-xs text-gray-300">
         <Meta k="Kernel actual" v={evidence.kernel ?? "—"} />
