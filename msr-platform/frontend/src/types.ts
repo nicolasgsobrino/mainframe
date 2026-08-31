@@ -1,0 +1,400 @@
+export interface Kpis {
+  open_findings: number; vulnerable_items: number; remediation_tasks: number;
+  kev_count: number; remediated: number; in_flight: number; cis: number; avg_risk: number;
+}
+export interface CmdbSummary {
+  total: number; edges: number; source: string;
+  by_class: Record<string, number>;
+  by_track: Record<string, number>;
+  by_criticality: Record<string, number>;
+  by_environment: Record<string, number>;
+}
+export type Lane = "critical" | "accelerated" | "standard";
+export interface LaneMeta {
+  label: string; sla: string; color: string; automation: string; flow: string;
+}
+export type Automation = "agentable" | "ai_assisted" | "human";
+export interface FlowStep {
+  name: string; detail: string; automation: Automation; mode: string; sla: string;
+}
+export interface LaneFlow { shared: FlowStep[]; steps: FlowStep[]; }
+
+// Patching Journey: proyección de las 8 fases del modelo sobre el pipeline de 6.
+export type JourneyBandId = "demand_risk" | "change_planning" | "execution_closure";
+export type JourneyPhaseStatus = "completed" | "current" | "pending";
+
+export interface JourneyPhaseMeta {
+  id: string; index: number; label: string; label_en: string;
+  band: JourneyBandId; band_label: string; per_ring: boolean;
+}
+export interface JourneyResources {
+  total: number; patched: number; pending: number; failed: number; excluded: number;
+  rolled_back?: number; rings_done?: number; rings_total?: number;
+}
+export interface JourneySummary {
+  task_id: string; cve: string; title: string; ci_name: string;
+  lane: Lane; priority: string; risk_score: number;
+  phase: string; phase_index: number; phase_label: string; band: JourneyBandId;
+  ring: number | null; ring_label: string | null; pipeline_phase: string;
+  blockers: string[];
+  resources: JourneyResources;
+  rollback: { status?: string; triggered?: boolean };
+  evidence: { report_id: string; evidences_count: number; closed: boolean };
+  change: { number: string; type: string; state: string; requires_human: boolean };
+}
+export interface JourneyPhaseAggregate extends JourneyPhaseMeta {
+  count: number;
+  by_lane: Record<string, number>;
+  blockers: Record<string, number>;
+  resources: JourneyResources;
+  rings: number[];
+}
+export interface JourneyOverview {
+  phases: JourneyPhaseAggregate[];
+  bands: { id: JourneyBandId; label: string }[];
+  total: number;
+}
+export interface JourneyRing {
+  ring: number; label: string; status: string; environment?: string;
+  assets: number; result: string; preapproved: boolean;
+}
+export interface JourneyDetail extends JourneySummary {
+  phases: (JourneyPhaseMeta & { status: JourneyPhaseStatus; ring: number | null })[];
+  rings: JourneyRing[];
+}
+
+export interface Overview {
+  funnel: { label: string; value: number }[];
+  kpis: Kpis;
+  by_priority: Record<string, number>;
+  by_phase: Record<string, number>;
+  journey: JourneyOverview;
+  by_track: Record<string, number>;
+  by_lane: Record<string, number>;
+  by_criticality: Record<string, number>;
+  tracks: Record<string, string>;
+  lanes: Record<string, LaneMeta>;
+  deployment: { rings_deployed: number; rollbacks: number; in_deployment: number };
+  cmdb: CmdbSummary;
+  sla: { at_risk: number; on_track: number; overdue: number; due_soon: number };
+}
+
+export interface SlaState {
+  due: string; days_left: number | null; overdue: boolean;
+  days_overdue: number; due_soon?: boolean;
+}
+export interface CmdbTables {
+  source: string; instance?: string; generated_at?: string;
+  total_cis: number; total_relationships?: number;
+  tables: { table: string; file?: string; records: number }[];
+}
+
+export interface Task {
+  id: string; vulnerable_item_id: string; cve: string; title: string;
+  track: "A" | "B" | "C"; lane: Lane; risk_score: number; priority: string;
+  ci_id: string; ci_name: string; owner: string; criticality: string;
+  environment: string; sla_due: string; change_type: string; exposed: boolean;
+  component: string; vulnerable_version: string; created_at: string; status?: string;
+  phase: string; phase_label: string; phase_index: number; phase_status: string;
+  affected_count: number; kev: boolean; sla?: SlaState; journey: JourneySummary;
+  /** Sólo en la tarea del laboratorio EC2 reutilizable de la PoC. */
+  logical_lab_id?: string; lab_target?: boolean; advisory_id?: string;
+}
+
+export type JobState =
+  | "queued" | "validating" | "dry_run" | "starting" | "running" | "verifying"
+  | "succeeded" | "failed" | "cancelling" | "cancelled"
+  | "restore_queued" | "restoring" | "restored" | "restore_failed" | "timed_out"
+  // Estados no confirmados: la ejecución remota puede seguir viva y el objetivo
+  // permanece bloqueado hasta que AWS confirme un estado terminal.
+  | "timeout_pending_confirmation" | "remote_status_unknown" | "stop_requested";
+export type ExecutionMode = "mock" | "aws-dry-run" | "aws-real";
+export type JobType = "patch" | "rollback" | "reset_lab";
+export type ProviderName = "mock" | "aws-automation" | string;
+
+export interface JobTarget {
+  logical_target_id: string; instance_id: string | null; account_id: string | null;
+  region: string | null; tags: Record<string, string>;
+  operating_system: string | null; environment: string | null;
+  ssm_managed?: boolean; name?: string | null;
+}
+export interface JobStep {
+  seq: number; actor: string; tool: string; command: string; output: string;
+  status: string; why?: string; duration_s?: number;
+  started_at?: string | null; ended_at?: string | null;
+}
+export interface JobEvent { ts: string; state: JobState; message: string; }
+export interface PatchJob {
+  id: string; job_type: JobType; task_id: string; ring_number: number | null;
+  provider: ProviderName; provider_reference: string | null;
+  state: JobState; terminal: boolean; unconfirmed?: boolean;
+  dry_run: boolean; correlation_id: string;
+  created_at: string; updated_at: string;
+  started_at: string | null; completed_at: string | null;
+  error_code: string | null; error_message: string | null;
+  targets: JobTarget[]; steps: JobStep[]; events?: JobEvent[];
+}
+export interface ExecutionConfig {
+  patch_provider: ProviderName; restore_provider: ProviderName;
+  dry_run: boolean; poll_interval_seconds: number; region?: string | null;
+  mode: ExecutionMode; strict_policy: boolean;
+  reconciler?: {
+    enabled: boolean; running: boolean; interval_seconds: number;
+    ticks: number; last_reconciled: number; last_error: string | null;
+    consecutive_failures?: number;
+  };
+}
+/** Laboratorio EC2 reutilizable: el Instance ID se resuelve por tags, nunca se fija. */
+export interface LabTarget {
+  logical_lab_id: string; current_instance_id: string | null;
+  account_id: string | null; region: string | null; vulnerable_ami_id: string | null;
+  launch_template_id: string | null; launch_template_version: string | null;
+  /** Sólo lectura: lo fija la IaC; la UI nunca lo envía. */
+  autoscaling_group_name: string | null;
+  expected_vulnerable_package: string | null; expected_vulnerable_version: string | null;
+  /** Sólo lectura: advisory, releasever y kernel corregido los fija la IaC. */
+  candidate_releasever: string | null; expected_fixed_kernel: string | null;
+  required_tags: Record<string, string>; last_reset_job_id: string | null;
+  /** Estado operativo reconciliado con AWS (fase 2.6). */
+  previous_instance_id: string | null; lab_state: LabState;
+  current_kernel: string | null; advisory_applicable: boolean | null;
+  ssm_state: string | null; health_state: string | null; evidence_source: string | null;
+  last_patch_job_id: string | null;
+  last_patch_execution_id: string | null; last_reset_execution_id: string | null;
+  reconciliation_state: ReconciliationState; last_reconciled_at: string | null;
+  last_reconciliation_error: string | null; last_correlation_id: string | null;
+  updated_at: string;
+}
+export interface LabInstance {
+  instance_id: string; logical_lab_id: string; account_id: string | null;
+  region: string | null; state: string; image_id: string | null;
+  ssm_managed: boolean; ping_status: string | null;
+  tags: Record<string, string>; source: string;
+}
+export interface LabResolutionError {
+  code: string; message: string; candidates: string[];
+}
+export type LabState = "unknown" | "vulnerable" | "patched";
+export type ReconciliationState =
+  "idle" | "running" | "ready" | "resetting" | "failed" | "skipped";
+
+/** Evidencia de sólo lectura observada en AWS (o simulada en modo mock). */
+export interface LabEvidence {
+  vulnerable_state: LabState; health_state: string; ssm_state: string | null;
+  current_kernel: string | null; expected_fixed_kernel: string | null;
+  advisory_id: string | null; advisory_applicable: boolean | null;
+  source: string; detail: string; ready: boolean; checks: LabCheck[];
+}
+
+/** Estado del reconciliador (`ensure_lab_ready`). */
+export interface LabReconciliation {
+  logical_lab_id: string; execution_mode: ExecutionMode; credentials_source: string;
+  reconcile_on_startup: boolean; holder: string;
+  lock: { holder: string; correlation_id: string; reason: string; expires_at: string } | null;
+  reconciliation_state: ReconciliationState | null; lab_state: LabState | null;
+  current_instance_id: string | null; previous_instance_id: string | null;
+  last_reconciled_at: string | null; last_reconciliation_error: string | null;
+  last_correlation_id: string | null; last_result: LabReconcileResult | null;
+}
+
+export interface LabReconcileResult {
+  logical_lab_id: string; state: ReconciliationState; action: "none" | "reset";
+  ready: boolean; execution_mode: ExecutionMode; dry_run: boolean;
+  account_id: string | null; region: string | null;
+  autoscaling_group_name: string | null;
+  instance_id: string | null; previous_instance_id: string | null;
+  evidence: LabEvidence | null; correlation_id: string;
+  error_code: string | null; error: string | null; detail: string;
+  holder: string; observed_at: string;
+}
+
+/** Estado operativo del laboratorio proyectado en las vistas del backend. */
+export interface LabOperationalState {
+  vulnerable_state: LabState; advisory_confirmed: boolean;
+  advisory_applicable: boolean | null; current_kernel: string | null;
+  health_state: string | null; ssm_state: string | null; evidence_source: string | null;
+  reconciliation_state: ReconciliationState | null; last_reconciled_at: string | null;
+  last_reconciliation_error: string | null;
+  last_patch_execution_id: string | null; last_reset_execution_id: string | null;
+  previous_instance_id: string | null;
+  last_patch_job_id: string | null; last_reset_job_id: string | null;
+}
+
+export interface LabSnapshot extends LabOperationalState {
+  lab: LabTarget | null; instance: LabInstance | null;
+  resolution_error: LabResolutionError | null;
+  task_id: string; advisory_id: string; package_family: string; environment: string;
+  /** Sólo lectura: la UI los muestra, nunca los envía. */
+  releasever: string; expected_fixed_kernel: string;
+  required_tags: Record<string, string>;
+  execution_mode: ExecutionMode; dry_run: boolean;
+  patch_provider: ProviderName; restore_provider: ProviderName;
+  active_job: PatchJob | null;
+  reconciliation: LabReconciliation;
+}
+/** `ok: null` = comprobación no concluyente (AWS no aporta evidencia). */
+export interface LabCheck { check: string; ok: boolean | null; detail: string; code?: string }
+export interface LabValidation extends LabOperationalState {
+  logical_lab_id: string; read_only: true; allowed: boolean; checks: LabCheck[];
+  inconclusive: string[];
+  instance: LabInstance | null; evidence: LabEvidence | null;
+  task_id: string; advisory_id: string;
+  releasever: string; expected_fixed_kernel: string; note: string;
+}
+export interface LabResetResponse { job: PatchJob; lab: LabTarget }
+
+/** Sobre de error uniforme del backend. */
+export interface ApiErrorBody {
+  error: { code: string; message: string; correlation_id: string };
+}
+
+export interface CI {
+  id: string; name: string; ci_class: string; criticality: string;
+  environment?: string; owner?: string; version?: string; os?: string;
+  tech?: string; track?: string; repo?: string; dora_relevant?: boolean;
+  engine?: string; maintenance_window?: string;
+  sys_class_name?: string; install_status?: string; business_criticality?: string;
+  cmdb_source?: string; support_group?: string; image?: string; cloud?: string;
+  logical_target_id?: string; instance_id?: string | null; account_id?: string | null;
+  region?: string | null; tags?: Record<string, string>; ssm_managed?: boolean;
+}
+export interface Edge { source: string; target: string; type: string; }
+
+export interface CmdbFieldMap {
+  servicenow: string; type: string; internal: string; note: string;
+}
+export interface CmdbCiRaw {
+  ci_id: string;
+  table: string;
+  endpoint: string;
+  source: string;
+  servicenow_record: Record<string, unknown>;
+  normalized: CI;
+  field_map: CmdbFieldMap[];
+}
+
+export interface ImpactGraph {
+  nodes: { id: string; name: string; ci_class: string; criticality: string; environment: string; is_root: boolean }[];
+  edges: Edge[];
+  affected_layers: string[];
+  affected_count: number;
+  business_services: string[];
+  /** El alcance depende de la mitigación: sin caída no se propaga a dependientes. */
+  remediation_type: string;
+  downtime_required: boolean;
+  restart_scope: string;
+  blast_scope: "propagated" | "local";
+  impacted_count: number;
+  blast_rationale: string;
+}
+
+export interface TestCase {
+  id: string; name: string; layer: string; applies_to: string;
+  remediation_type: string; criticality: string; tool: string; evidence: string;
+  reason?: string;
+}
+export interface Mvt {
+  selected: TestCase[]; excluded: TestCase[]; remediation_type: string;
+  confidence: number; rationale: string;
+}
+export interface LabResults {
+  results: { test_id: string; name: string; layer: string; tool: string; status: string; duration_s: number; evidence: string }[];
+  passed: number; total: number; verdict: string;
+  patch_tests: any[]; app_tests: any[];
+}
+export interface Prototype {
+  approach: string; lab_blueprint: { type: string; tool: string; spec: string }[];
+  provision_tool: string; metrics: Record<string, number>; verdict: string; teardown: string;
+}
+export interface RingAction {
+  seq: number; actor: string; tool: string; command: string;
+  output: string; status: string; duration_s: number; why?: string;
+}
+export interface RingAsset {
+  id: string; name: string; ci_class: string; criticality: string;
+  environment: string; reason: string; excluded: boolean; is_root?: boolean;
+}
+export interface RingDependency {
+  id: string; name: string; ci_class: string; criticality: string;
+  relation: string; of: string;
+}
+export interface RingApproval {
+  required: string; preapproved: boolean;
+  approver: string | null; ts: string | null; note: string | null;
+}
+export interface RingPlan {
+  ring: number; label: string; band: string; target_population: string;
+  environment?: string; kind?: string; is_replica?: boolean; runs_tests?: boolean;
+  pct?: number; purpose?: string;
+  window: string; canary_pct: number; assets_count: number; selected_count: number;
+  selection_rationale: string;
+  selection_criteria: { factor: string; detail: string }[];
+  assets: RingAsset[];
+  dependencies: RingDependency[];
+  graph: { nodes: ImpactGraph["nodes"]; edges: Edge[] };
+  entry_criteria: { check: string; ok: boolean }[];
+  approval: RingApproval;
+}
+export interface Ring {
+  ring: number; label: string; assets: number; status: string; post_checks: string[]; result: string;
+  simulated?: boolean;
+  actions: { steps: RingAction[]; from_version: string; to_version: string } | null;
+  job?: PatchJob | null;
+  plan: RingPlan;
+  health: { error_rate_pct: number; p95_latency_ms: number; availability_pct: number } | null;
+}
+export interface RollbackPlan {
+  strategy: string; snapshot_ref: string; target_version: string; from_version: string;
+  rto_minutes: number; auto_trigger: string; tested_in_lab: boolean;
+  steps: { actor: string; tool: string; command: string; desc: string }[];
+}
+export interface RollbackState {
+  status: string; triggered: boolean; trigger_type?: string; reason?: string;
+  ring?: number; ts?: string; restored_version?: string; verdict?: string;
+}
+export interface ItsmPhase { key: string; label: string; approval: boolean; included: boolean; }
+export interface ItsmCtask { name: string; role: string; auto: boolean; }
+export interface ItsmChange {
+  system: string; number: string; type: string; type_label: string;
+  state: string; risk: string; approval: string; requires_human: boolean;
+  detail: string; short_description: string; assignment_group: string;
+  phases: ItsmPhase[]; ctasks: ItsmCtask[];
+  four_eyes: boolean; gxp: boolean; impact_level: string;
+  affected_cis: number; affected_services: string[];
+  environment: string; patch: string; vulnerability: string;
+}
+export interface Deployment {
+  executor: string; total_assets: number; rings: Ring[];
+  exceptions: { asset: string; reason: string; owner: string; expires: string; compensating_control: string }[];
+  pr_url: string | null; strategy: string; itsm?: ItsmChange;
+  rollback_plan: RollbackPlan; rollback: RollbackState;
+}
+export interface Audit {
+  report_id: string; generated_at: string;
+  trace: { step: string; ref: string; detail: string }[];
+  dora_relevant: boolean; evidences_count: number;
+}
+export interface LogEntry { actor: string; phase: string; msg: string; ts?: string; task_id?: string; }
+export interface VulnerableItem {
+  id: string; cve: string; title: string; cvss: number; epss: number; kev: boolean;
+  exploit_available: boolean; track: string; component: string; vulnerable_version: string;
+  ci_id: string; ci_name: string; ci_class: string; exposed: boolean; criticality: string;
+  environment: string; owner: string; risk_score: number; sources: string[]; status: string;
+  detected_at: string; sla_days: number; sla_due: string;
+}
+export interface TaskDetail {
+  task: Task; vulnerable_item: VulnerableItem; phase_index: number;
+  phases: { id: string; label: string; index: number; status: string; automation: Automation }[];
+  lane: Lane; lane_meta: LaneMeta; lane_flow: LaneFlow; journey: JourneyDetail;
+  artifacts: { impact: ImpactGraph; mvt: Mvt; lab: LabResults; prototype: Prototype; deployment: Deployment; audit: Audit };
+  logs: LogEntry[]; rings_done: number; sla?: SlaState;
+  lab_patch?: LabPatchEvidence | null;
+  active_job?: PatchJob | null; jobs?: PatchJob[]; execution?: ExecutionConfig;
+}
+/** Evidencia durable de un parcheo ya confirmado por AWS Systems Manager. */
+export interface LabPatchEvidence {
+  logical_lab_id: string; instance_id: string | null; kernel: string | null;
+  execution_id: string; job_id: string | null; patched_at: string | null;
+  health_state: string | null;
+}
+export interface Service { name: string; role: string; status: string; type: string; detail: string; }

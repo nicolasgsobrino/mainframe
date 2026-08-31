@@ -1,0 +1,38 @@
+# Ejemplo de allowlist de objetivos para el parcheo automatizado.
+# NO contiene datos reales: es una plantilla para el propietario de la cuenta AWS.
+# Equivale a las variables MSR_ALLOWED_* / MSR_REQUIRED_TARGET_TAG_* de .env.
+#
+# Nota: la política efectiva se evalúa en backend/app/policy.py. Este fichero
+# documenta el formato acordado para cuando la allowlist se externalice.
+
+accounts:
+  - id: "000000000000"          # cuenta sandbox de la PoC
+    name: sandbox-msr-poc
+
+regions:
+  - eu-west-1
+
+environments:
+  - development
+
+required_tags:
+  msr-poc: "true"
+
+# Sólo documentos PROPIOS de tipo Automation: un documento de tipo Command
+# (AWS-RunPatchBaseline) no puede iniciarse con StartAutomationExecution y el
+# runbook propio lo invoca internamente con aws:runCommand.
+runbooks:
+  patch:
+    - MSR-PatchLinuxInstance
+  restore:
+    - MSR-RollbackLinuxInstance
+  reset_lab:
+    - MSR-ResetLabInstance
+
+targets:
+  # Sólo instancias EC2 Linux de sandbox; los IDs se resuelven en ejecución y
+  # deben cumplir el patrón i-xxxxxxxxxxxxxxxxx (nunca IDs sintéticos de CMDB).
+  - logical_target_id: SRV-EXAMPLE
+    instance_id: "i-0000000000000000"
+    operating_system: linux
+    notes: sustituir por la instancia real de sandbox

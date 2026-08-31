@@ -1,0 +1,1253 @@
+{
+  "table": "cmdb_ci_app_server",
+  "records": [
+    {
+      "sys_id": "88f98b3d1e28e5adb468f8efa5848253",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "IIS 10",
+      "sys_created_on": "2024-10-14 09:00:00",
+      "sys_updated_on": "2026-07-04 19:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "IIS 10",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3001",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "2bee76d0bb981b0ab2cd890b22a8d045",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Oracle WebLogic 14",
+      "sys_created_on": "2024-11-10 09:00:00",
+      "sys_updated_on": "2026-07-05 01:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Oracle WebLogic 14",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3004",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "0f52cc7a7031a410812f24e0d0d40dcc",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Oracle WebLogic 14",
+      "sys_created_on": "2024-02-03 09:00:00",
+      "sys_updated_on": "2026-07-05 15:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "9777d39e155b6f661855d8d7a1147bc3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9777d39e155b6f661855d8d7a1147bc3"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Oracle WebLogic 14",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3007",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "9aa6b68f23a5b5b99a98afb724601bb9",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache Tomcat 9",
+      "sys_created_on": "2026-03-06 09:00:00",
+      "sys_updated_on": "2026-07-04 20:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Apache Tomcat 9",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3010",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "7a6bfa74b776b33584eaec3059cff745",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache Tomcat 9",
+      "sys_created_on": "2024-09-03 09:00:00",
+      "sys_updated_on": "2026-07-03 19:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Network",
+        "value": "1ccc176421730573bbd8d84ae15959d0",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1ccc176421730573bbd8d84ae15959d0"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Apache Tomcat 9",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3013",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "d9ca9aef01c564551969853c989b126f",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache Tomcat 9",
+      "sys_created_on": "2025-04-13 09:00:00",
+      "sys_updated_on": "2026-07-05 08:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Apache Tomcat 9",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3016",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "28a4ca60eae506f0d2b1c205e9b096de",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Nginx 1.24",
+      "sys_created_on": "2026-01-23 09:00:00",
+      "sys_updated_on": "2026-07-04 16:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Endpoint",
+        "value": "f522b576bbfd6e7ca8b8d1718494d063",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/f522b576bbfd6e7ca8b8d1718494d063"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Nginx 1.24",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3019",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "f94a4ba0b7a0147d8b6714323d7ee91f",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Oracle WebLogic 14",
+      "sys_created_on": "2025-02-06 09:00:00",
+      "sys_updated_on": "2026-07-05 13:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Network",
+        "value": "1ccc176421730573bbd8d84ae15959d0",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1ccc176421730573bbd8d84ae15959d0"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Oracle WebLogic 14",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3022",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "a1b0dd22efbe59bcc5dff34b50e85504",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache HTTPD 2.4",
+      "sys_created_on": "2025-11-26 09:00:00",
+      "sys_updated_on": "2026-07-04 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Payments",
+        "value": "1431adb121142b03d20752aaf90458b1",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1431adb121142b03d20752aaf90458b1"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Apache HTTPD 2.4",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3025",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "864f13bd6257deaa32f70f06e590f281",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Oracle WebLogic 14",
+      "sys_created_on": "2024-02-28 09:00:00",
+      "sys_updated_on": "2026-07-05 14:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Oracle WebLogic 14",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3028",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "c037e1dce721da18d56a2d847be8192c",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache Tomcat 9",
+      "sys_created_on": "2024-06-08 09:00:00",
+      "sys_updated_on": "2026-07-04 06:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Apache Tomcat 9",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3031",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "a9e983c2ec8a0469f221944bf0cdfc5e",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache Tomcat 9",
+      "sys_created_on": "2025-02-12 09:00:00",
+      "sys_updated_on": "2026-07-04 16:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Apache Tomcat 9",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3034",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "065d1a53476c07256dd690f348f74c0d",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Nginx 1.24",
+      "sys_created_on": "2025-07-11 09:00:00",
+      "sys_updated_on": "2026-07-04 20:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Retail",
+        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Nginx 1.24",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3037",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "53a3b2dae6aeab6dc51e5ecb0e7724de",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache HTTPD 2.4",
+      "sys_created_on": "2024-01-20 09:00:00",
+      "sys_updated_on": "2026-07-05 20:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Endpoint",
+        "value": "f522b576bbfd6e7ca8b8d1718494d063",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/f522b576bbfd6e7ca8b8d1718494d063"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Apache HTTPD 2.4",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3040",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "23064a1088cf7b5549d002e095d8555b",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Nginx 1.24",
+      "sys_created_on": "2025-04-10 09:00:00",
+      "sys_updated_on": "2026-07-06 01:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Nginx 1.24",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3043",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "fc7528af0c26ad830b88abf68186581e",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "IIS 10",
+      "sys_created_on": "2024-09-11 09:00:00",
+      "sys_updated_on": "2026-07-04 04:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Endpoint",
+        "value": "f522b576bbfd6e7ca8b8d1718494d063",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/f522b576bbfd6e7ca8b8d1718494d063"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "IIS 10",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3046",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "3940fb0046351f8d2cc9803ed1f8091b",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Nginx 1.24",
+      "sys_created_on": "2024-06-12 09:00:00",
+      "sys_updated_on": "2026-07-05 02:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "-",
+        "value": "493e09ac9132b68afec15a55c4c80e81",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/493e09ac9132b68afec15a55c4c80e81"
+      },
+      "u_environment": "production",
+      "version": "Nginx 1.24",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-3049",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "908c2f149b208b21f009e4617bbfdc73",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Oracle WebLogic 14",
+      "sys_created_on": "2024-07-31 09:00:00",
+      "sys_updated_on": "2026-07-04 11:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Windows",
+        "value": "09109b7f11ecf41417ced1cdc7ec51e3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/09109b7f11ecf41417ced1cdc7ec51e3"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40002",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "4993a23b9f79db30cdff2913dcd2acfb",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache Tomcat 9",
+      "sys_created_on": "2026-02-14 09:00:00",
+      "sys_updated_on": "2026-07-04 06:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "1 - most critical",
+        "value": "1"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40005",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "91b467630d2118cd4f0f73d30ab45b95",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache HTTPD 2.4",
+      "sys_created_on": "2025-05-19 09:00:00",
+      "sys_updated_on": "2026-07-05 03:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Retail",
+        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40009",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "6a89d740fae4dbec128595c0ef50f754",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Oracle WebLogic 14",
+      "sys_created_on": "2025-10-24 09:00:00",
+      "sys_updated_on": "2026-07-03 11:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Retail",
+        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40022",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "3ed5673c33abb3ce83f9c587db1623a9",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Nginx 1.24",
+      "sys_created_on": "2025-12-06 09:00:00",
+      "sys_updated_on": "2026-07-04 06:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "9777d39e155b6f661855d8d7a1147bc3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9777d39e155b6f661855d8d7a1147bc3"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40033",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "76dbe4ac8133384baca390fb01bb65fe",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Oracle WebLogic 14",
+      "sys_created_on": "2024-06-12 09:00:00",
+      "sys_updated_on": "2026-07-03 09:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Platform-K8s",
+        "value": "25e27d30f7aa79018c689ff9a959a9b9",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/25e27d30f7aa79018c689ff9a959a9b9"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "DC-Barcelona",
+        "value": "5bdd5c3ef2c7466a02d3a72fe150d7a5",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/5bdd5c3ef2c7466a02d3a72fe150d7a5"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40042",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "02f5d65d4494d7e254e01cb8b38921ce",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "IIS 10",
+      "sys_created_on": "2024-05-14 09:00:00",
+      "sys_updated_on": "2026-07-06 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "9777d39e155b6f661855d8d7a1147bc3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9777d39e155b6f661855d8d7a1147bc3"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40044",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "0a853fe05f5a1bba079ded98c020f67f",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "IIS 10",
+      "sys_created_on": "2024-05-13 09:00:00",
+      "sys_updated_on": "2026-07-04 04:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-Platform-K8s",
+        "value": "25e27d30f7aa79018c689ff9a959a9b9",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/25e27d30f7aa79018c689ff9a959a9b9"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40047",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "f2b44158fc0118d9f2f7e32705706b32",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Oracle WebLogic 14",
+      "sys_created_on": "2025-05-01 09:00:00",
+      "sys_updated_on": "2026-07-03 17:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-DBA",
+        "value": "562a67569229420deb4cba3cd8034d22",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/562a67569229420deb4cba3cd8034d22"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40050",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "57103192ce514ee1df01191e4a76e1d5",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Nginx 1.24",
+      "sys_created_on": "2024-04-21 09:00:00",
+      "sys_updated_on": "2026-07-03 11:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "4 - not critical",
+        "value": "4"
+      },
+      "assignment_group": {
+        "display_value": "SG-AppSec",
+        "value": "1335f3ac9842e8a21dbcfb383bb400ba",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1335f3ac9842e8a21dbcfb383bb400ba"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "development",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40055",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "ea80e9bd78515caed85bc6d65c6a31c5",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache HTTPD 2.4",
+      "sys_created_on": "2024-10-23 09:00:00",
+      "sys_updated_on": "2026-07-04 04:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Cloud-FinOps",
+        "value": "9777d39e155b6f661855d8d7a1147bc3",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9777d39e155b6f661855d8d7a1147bc3"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "Azure West Europe",
+        "value": "426f552cbde473a678e6016ca2ce88e0",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/426f552cbde473a678e6016ca2ce88e0"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40058",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "cd58d4fa24ba1be594cc6961fcdc6f41",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "IIS 10",
+      "sys_created_on": "2025-07-29 09:00:00",
+      "sys_updated_on": "2026-07-04 00:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Infra-Linux",
+        "value": "1c69abe3c86e9c35be47471e14d26ffe",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1c69abe3c86e9c35be47471e14d26ffe"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "pre-production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40061",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "c7c3b41e993456b210a42fb5cdb0d01c",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "IIS 10",
+      "sys_created_on": "2026-01-05 09:00:00",
+      "sys_updated_on": "2026-07-04 06:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "2 - somewhat critical",
+        "value": "2"
+      },
+      "assignment_group": {
+        "display_value": "SG-Platform-K8s",
+        "value": "25e27d30f7aa79018c689ff9a959a9b9",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/25e27d30f7aa79018c689ff9a959a9b9"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "pre-production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40066",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "4cea378f4a779076736bd813ea93c373",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Nginx 1.24",
+      "sys_created_on": "2024-08-07 09:00:00",
+      "sys_updated_on": "2026-07-05 06:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Payments",
+        "value": "1431adb121142b03d20752aaf90458b1",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/1431adb121142b03d20752aaf90458b1"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "DC-Madrid",
+        "value": "df8530aa9b2a7a2d3dfca9846c1587ab",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/df8530aa9b2a7a2d3dfca9846c1587ab"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40073",
+      "u_track": "A"
+    },
+    {
+      "sys_id": "e42e20b760d40976bca1a448bef84843",
+      "sys_class_name": "cmdb_ci_app_server",
+      "name": "Apache HTTPD 2.4",
+      "sys_created_on": "2025-06-10 09:00:00",
+      "sys_updated_on": "2026-07-06 02:00:00",
+      "install_status": {
+        "display_value": "Installed",
+        "value": "1"
+      },
+      "operational_status": {
+        "display_value": "Operational",
+        "value": "1"
+      },
+      "business_criticality": {
+        "display_value": "3 - less critical",
+        "value": "3"
+      },
+      "assignment_group": {
+        "display_value": "SG-Retail",
+        "value": "9fc3b9e711cf56730f259a4a8e84c35e",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user_group/9fc3b9e711cf56730f259a4a8e84c35e"
+      },
+      "managed_by": {
+        "display_value": "platform-team@bank.example",
+        "value": "5e3e4d2fdba3293684d40498ce942f80",
+        "link": "https://bankdev.service-now.com/api/now/table/sys_user/5e3e4d2fdba3293684d40498ce942f80"
+      },
+      "location": {
+        "display_value": "AWS eu-west-1",
+        "value": "b0eb55ba60f01b5c19a57a0094f32273",
+        "link": "https://bankdev.service-now.com/api/now/table/cmn_location/b0eb55ba60f01b5c19a57a0094f32273"
+      },
+      "u_environment": "production",
+      "version": "-",
+      "discovery_source": "ServiceNow CMDB (CSDM 4.0)",
+      "u_correlation_id": "MW-40086",
+      "u_track": "A"
+    }
+  ]
+}

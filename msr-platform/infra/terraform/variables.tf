@@ -1,0 +1,535 @@
+variable "aws_account_id" {
+  description = "Cuenta AWS de la PoC. Cualquier otra cuenta es rechazada."
+  type        = string
+  default     = "133789123239"
+
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.aws_account_id))
+    error_message = "aws_account_id debe ser un identificador de cuenta de 12 dígitos."
+  }
+}
+
+variable "aws_region" {
+  description = "Región de la PoC."
+  type        = string
+  default     = "eu-north-1"
+}
+
+variable "vpc_id" {
+  description = "VPC del laboratorio."
+  type        = string
+  default     = "vpc-023864c0ca3c82eab"
+}
+
+variable "subnet_id" {
+  description = "Subnet del laboratorio (debe pertenecer a vpc_id)."
+  type        = string
+  default     = "subnet-0bb97e6254e4f83e9"
+}
+
+variable "lab_id" {
+  description = "Identificador lógico del laboratorio (tag msr-lab-id)."
+  type        = string
+  default     = "linux-patching-01"
+}
+
+variable "source_ami_id" {
+  description = "AMI base vulnerable del laboratorio (Amazon Linux 2023, x86_64)."
+  type        = string
+  default     = "ami-0b2ab3a97a77bd35e"
+}
+
+variable "instance_type" {
+  description = "Tipo de instancia del laboratorio."
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "candidate_advisory_id" {
+  description = "Advisory candidato de Amazon Linux aprobado por el patch baseline."
+  type        = string
+  default     = "ALAS2023-2026-1924"
+
+  validation {
+    condition     = can(regex("^ALAS2023-[0-9]{4}-[0-9]+$", var.candidate_advisory_id))
+    error_message = "candidate_advisory_id debe tener el formato ALAS2023-AAAA-NNNN."
+  }
+}
+
+# La AMI base fija el repositorio de Amazon Linux 2023 en su propia release, por
+# lo que un advisory posterior no se ve sin consultar explícitamente el
+# releasever donde se publicó la corrección.
+variable "candidate_releasever" {
+  description = "Release de Amazon Linux 2023 que contiene la corrección del advisory candidato."
+  type        = string
+  default     = "2023.12.20260706"
+
+  validation {
+    condition     = can(regex("^[0-9]{4}\\.[0-9]{2}\\.[0-9]{8}$", var.candidate_releasever))
+    error_message = "candidate_releasever debe tener el formato YYYY.NN.YYYYMMDD."
+  }
+}
+
+variable "expected_fixed_kernel" {
+  description = "Versión mínima del kernel que debe quedar en ejecución tras el parcheo."
+  type        = string
+  default     = "6.1.176-220.358.amzn2023.x86_64"
+
+  validation {
+    condition     = can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+-[0-9.]+\\.amzn2023\\.[a-z0-9_]+$", var.expected_fixed_kernel))
+    error_message = "expected_fixed_kernel debe ser una versión de kernel de Amazon Linux 2023."
+  }
+}
+
+variable "source_ami_release" {
+  description = "Release de Amazon Linux 2023 de la AMI base; debe ser anterior a candidate_releasever."
+  type        = string
+  default     = "2023.11.20260509.0"
+
+  validation {
+    condition     = can(regex("^[0-9]{4}\\.[0-9]{2}\\.[0-9]{8}\\.[0-9]+$", var.source_ami_release))
+    error_message = "source_ami_release debe tener el formato YYYY.NN.YYYYMMDD.N."
+  }
+}
+
+variable "candidate_package_family" {
+  description = "Familia de paquetes afectada por el advisory candidato."
+  type        = string
+  default     = "kernel"
+}
+
+variable "allowed_ui_cidr" {
+  description = <<-EOT
+    CIDR autorizado a alcanzar la instancia desde fuera. La PoC no abre ningún
+    puerto de entrada, pero el valor se valida para impedir que una futura regla
+    de ingress se cree abierta a Internet.
+  EOT
+  type        = string
+  default     = "10.0.0.0/8"
+
+  validation {
+    condition     = var.allowed_ui_cidr != "0.0.0.0/0" && can(cidrhost(var.allowed_ui_cidr, 0))
+    error_message = "allowed_ui_cidr debe ser un CIDR válido y no puede ser 0.0.0.0/0."
+  }
+}
+
+variable "enable_real_resources" {
+  description = <<-EOT
+    Interruptor maestro. Con `false` (valor predeterminado) Terraform no crea
+    ningún recurso mutativo: el plan queda vacío y sirve como revisión estática.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "root_volume_size_gib" {
+  description = "Tamaño del volumen raíz (gp3, cifrado)."
+  type        = number
+  default     = 8
+
+  validation {
+    condition     = var.root_volume_size_gib >= 8
+    error_message = "El volumen raíz debe tener al menos 8 GiB."
+  }
+}
+
+variable "asg_health_check_grace_period_seconds" {
+  description = "Margen antes de que el ASG evalúe la salud de una instancia nueva."
+  type        = number
+  default     = 300
+
+  validation {
+    condition     = var.asg_health_check_grace_period_seconds >= 60
+    error_message = "El periodo de gracia debe permitir el bootstrap (>= 60 s)."
+  }
+}
+
+variable "externally_managed_tag_keys" {
+  type        = list(string)
+  description = "Claves de etiquetas administradas por sistemas externos y excluidas de la gestión del proveedor AWS."
+  default     = []
+
+  validation {
+    condition = (
+      length(var.externally_managed_tag_keys) ==
+      length(distinct(var.externally_managed_tag_keys))
+    )
+    error_message = "externally_managed_tag_keys no puede contener duplicados."
+  }
+
+  validation {
+    condition = alltrue([
+      for key in var.externally_managed_tag_keys :
+      key != "Name" &&
+      key != "PatchGroup" &&
+      !startswith(key, "msr-")
+    ])
+    error_message = "No se pueden ignorar Name, PatchGroup ni etiquetas operativas msr-*."
+  }
+}
+
+variable "asg_launch_suspended" {
+  type        = bool
+  description = "Mantiene suspendido el proceso Launch del ASG durante una recuperación controlada."
+  default     = false
+}
+
+variable "existing_instance_profile_name" {
+  type        = string
+  description = "Instance profile corporativo existente utilizado por la EC2."
+  default     = ""
+}
+
+variable "existing_instance_profile_role_name" {
+  type        = string
+  description = "Rol que debe contener el instance profile corporativo."
+  default     = ""
+}
+
+variable "patch_group" {
+  description = "Valor del tag `PatchGroup` que asocia la instancia al baseline."
+  type        = string
+  default     = "msr-poc-linux"
+}
+
+variable "environment_tag" {
+  description = "Valor del tag msr-environment."
+  type        = string
+  default     = "sandbox"
+}
+
+variable "cost_center" {
+  description = "Centro de coste (tag de coste configurable)."
+  type        = string
+  default     = "msr-poc"
+}
+
+variable "owner" {
+  description = "Propietario responsable del laboratorio (tag configurable)."
+  type        = string
+  default     = "msr-poc-team"
+}
+
+variable "extra_tags" {
+  description = "Tags adicionales aplicados a todos los recursos."
+  type        = map(string)
+  default     = {}
+}
+
+variable "patch_runbook_name" {
+  description = "Nombre del runbook Automation de parcheo."
+  type        = string
+  default     = "MSR-PatchLinuxInstance"
+}
+
+variable "reset_runbook_name" {
+  description = "Nombre del runbook Automation de reset del laboratorio."
+  type        = string
+  default     = "MSR-ResetLabInstance"
+}
+
+# --- Runtime del backend (ECS Fargate) ---------------------------------------
+
+variable "enable_backend_service" {
+  description = <<-EOT
+    Despliega el backend como servicio de ECS Fargate. Con `false` (valor
+    predeterminado) el plan contiene únicamente los recursos del laboratorio.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "backend_task_role_arn" {
+  description = <<-EOT
+    ARN del ECS Task Role preaprovisionado (identidad de workload del backend).
+    Este Terraform no crea roles de aplicación: la cuenta deniega explícitamente
+    `iam:PutRolePolicy` e `iam:AttachRolePolicy`, así que el rol lo aprovisiona el
+    equipo de cloud con la trust policy y la política publicadas en los outputs
+    `backend_task_role_trust_policy_json` y `backend_task_role_permission_policy_json`.
+    Sin este ARN el despliegue falla.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition = (
+      var.backend_task_role_arn == "" ||
+      can(regex("^arn:aws:iam::[0-9]{12}:role/[\\w+=,.@/-]+$", var.backend_task_role_arn))
+    )
+    error_message = "backend_task_role_arn debe ser el ARN de un rol IAM."
+  }
+}
+
+variable "backend_execution_role_arn" {
+  description = <<-EOT
+    ARN del task execution role preaprovisionado (lo usa el agente de ECS para
+    descargar la imagen y escribir logs; no es la identidad de la aplicación).
+    También lo crea el equipo de cloud, con los documentos publicados en los
+    outputs `backend_execution_role_trust_policy_json` y
+    `backend_execution_role_permission_policy_json`. Sin este ARN el despliegue falla.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition = (
+      var.backend_execution_role_arn == "" ||
+      can(regex("^arn:aws:iam::[0-9]{12}:role/[\\w+=,.@/-]+$", var.backend_execution_role_arn))
+    )
+    error_message = "backend_execution_role_arn debe ser el ARN de un rol IAM."
+  }
+}
+
+variable "backend_image" {
+  description = "Imagen del backend publicada en ECR (repositorio:tag o digest)."
+  type        = string
+  default     = ""
+}
+
+variable "backend_subnet_ids" {
+  description = <<-EOT
+    Subnets de las tasks, elegidas entre `backend_candidate_subnet_ids`. Perfil
+    corporativo: subnets privadas con NAT o endpoints de VPC y
+    `backend_assign_public_ip = false`. Perfil PoC: las subnets públicas de la
+    VPC por defecto con `backend_assign_public_ip = true`, porque esa VPC no tiene
+    NAT ni endpoints.
+  EOT
+  type        = list(string)
+  default     = []
+}
+
+variable "backend_candidate_subnet_ids" {
+  description = <<-EOT
+    Subnets autorizadas de la VPC, obtenidas del descubrimiento de red de sólo
+    lectura (`python -m app.net_discovery`). Ni el ALB ni las tasks pueden usar
+    una subnet que no esté en esta lista: no se selecciona ninguna subnet por el
+    simple hecho de existir en la cuenta.
+  EOT
+  type        = list(string)
+  default = [
+    "subnet-0bb97e6254e4f83e9", # eu-north-1a
+    "subnet-0c14b617316ff3efa", # eu-north-1b
+    "subnet-09e94d9e3b0e20b8e", # eu-north-1c
+  ]
+}
+
+variable "backend_assign_public_ip" {
+  description = <<-EOT
+    Asigna IP pública a la ENI de la task. El valor predeterminado `false` es el
+    perfil corporativo (subnets privadas con NAT o endpoints de VPC).
+
+    El perfil PoC necesita `true` porque la VPC por defecto de la cuenta sólo
+    tiene un Internet Gateway: sin NAT y sin endpoints, una task sin IP pública
+    no puede descargar la imagen de ECR, escribir en CloudWatch Logs ni llamar a
+    SSM, EC2, Auto Scaling o DynamoDB. La IP pública no expone el backend: su
+    security group sólo admite entrada desde el security group del ALB.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "backend_desired_count" {
+  description = "Réplicas del servicio. El hook de reconciliación no depende de este valor."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.backend_desired_count >= 1 && var.backend_desired_count <= 4
+    error_message = "backend_desired_count debe estar entre 1 y 4."
+  }
+}
+
+variable "backend_task_cpu" {
+  description = "CPU de la task Fargate (unidades)."
+  type        = string
+  default     = "512"
+}
+
+variable "backend_task_memory" {
+  description = "Memoria de la task Fargate (MiB)."
+  type        = string
+  default     = "1024"
+}
+
+variable "backend_dry_run" {
+  description = <<-EOT
+    Valor de `MSR_DRY_RUN` en la task. Se mantiene en `true` hasta que se
+    autorice explícitamente la validación real contra AWS.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "backend_log_retention_days" {
+  description = "Retención del grupo de logs del backend."
+  type        = number
+  default     = 30
+}
+
+# --- Registro de imágenes (ECR) ----------------------------------------------
+
+variable "enable_backend_ecr" {
+  description = <<-EOT
+    Crea el repositorio ECR privado de la imagen MSR. Desactivado por defecto:
+    igual que el resto del runtime, no se crea hasta que se autorice.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "backend_ecr_repository_name" {
+  description = "Nombre del repositorio ECR privado de la imagen del backend."
+  type        = string
+  default     = "msr-poc-platform"
+}
+
+variable "backend_ecr_retained_images" {
+  description = "Imágenes recientes que conserva la lifecycle policy del repositorio."
+  type        = number
+  default     = 5
+
+  validation {
+    condition     = var.backend_ecr_retained_images >= 1 && var.backend_ecr_retained_images <= 20
+    error_message = "backend_ecr_retained_images debe estar entre 1 y 20."
+  }
+}
+
+# --- Exposición de la UI/API (Application Load Balancer) ---------------------
+
+variable "enable_backend_alb" {
+  description = <<-EOT
+    Publica el backend detrás de un Application Load Balancer. El servicio de ECS
+    sólo se une al target group cuando vale `true`.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "backend_alb_internal" {
+  description = <<-EOT
+    ALB interno (`true`, valor predeterminado y más seguro): sólo alcanzable
+    desde la red corporativa/VPC, el perfil de despliegue corporativo futuro.
+
+    El perfil PoC usa `false` porque la cuenta no tiene ni subnets privadas ni
+    conectividad corporativa (ni VPN, ni Transit Gateway, ni peering), así que un
+    ALB interno no sería alcanzable. Con `false` las subnets deben ser públicas y
+    `backend_alb_ingress_cidrs` es obligatoria y restringida.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "backend_alb_subnet_ids" {
+  description = <<-EOT
+    Subnets del ALB, al menos dos y elegidas entre `backend_candidate_subnet_ids`.
+    Con `backend_alb_internal = true` deben ser privadas; con `false`, públicas
+    con Internet Gateway.
+  EOT
+  type        = list(string)
+  default     = []
+}
+
+variable "backend_alb_ingress_cidrs" {
+  description = <<-EOT
+    Orígenes autorizados a alcanzar el listener del ALB. Obligatoria y no vacía
+    cuando el ALB está activado: el acceso se concede explícitamente, nunca por
+    omisión. No se admite ningún prefijo `/0`, ni siquiera con un ALB público.
+  EOT
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for cidr in var.backend_alb_ingress_cidrs :
+      can(cidrhost(cidr, 0)) && tonumber(split("/", cidr)[1]) > 0
+    ])
+    error_message = "backend_alb_ingress_cidrs sólo admite CIDRs válidos y ningún prefijo /0 (incluido 0.0.0.0/0)."
+  }
+}
+
+variable "backend_alb_certificate_arn" {
+  description = <<-EOT
+    Certificado de ACM del listener HTTPS. Con valor, el ALB escucha en 443 con
+    TLS y el listener HTTP redirige a HTTPS de forma permanente. Vacío (valor
+    predeterminado) deja sólo HTTP: es una limitación temporal de la PoC,
+    aceptable únicamente con la lista de orígenes restringida, porque no existe
+    ningún certificado ni nombre DNS corporativo que reutilizar y no se inventa
+    infraestructura de DNS.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition = (
+      var.backend_alb_certificate_arn == "" ||
+      can(regex("^arn:aws:acm:[a-z0-9-]+:[0-9]{12}:certificate/.+$", var.backend_alb_certificate_arn))
+    )
+    error_message = "backend_alb_certificate_arn debe ser el ARN de un certificado de ACM."
+  }
+}
+
+variable "backend_alb_port" {
+  description = "Puerto del listener del ALB."
+  type        = number
+  default     = 80
+}
+
+# --- Lock distribuido del laboratorio (DynamoDB) -----------------------------
+
+variable "enable_backend_lock_table" {
+  description = <<-EOT
+    Crea la tabla DynamoDB del lock de operación del laboratorio. Es obligatoria
+    para una ejecución real: garantiza una única mutación simultánea entre la
+    task del servicio, el hook de release y cualquier operación administrativa.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "backend_lock_table_name" {
+  description = "Tabla DynamoDB del lock del laboratorio (partition key `lab_id`)."
+  type        = string
+  default     = "msr-poc-lab-locks"
+}
+
+# --- Identidad federada del backend externo (OIDC de la sesión de Devin) -----
+
+variable "devin_oidc_issuer_host" {
+  description = <<-EOT
+    Host del emisor OIDC de este despliegue de Devin, sin esquema: es el nombre
+    del proveedor OIDC de IAM y el prefijo de las claves de condición.
+  EOT
+  type        = string
+  default     = "deloitte-es.devinenterprise.com"
+
+  validation {
+    condition     = !can(regex("^https?://", var.devin_oidc_issuer_host))
+    error_message = "devin_oidc_issuer_host es un host, sin https://."
+  }
+}
+
+variable "devin_oidc_audience" {
+  description = "Audiencia del token intercambiado y client ID del proveedor OIDC."
+  type        = string
+  default     = "sts.amazonaws.com"
+}
+
+variable "devin_oidc_subject" {
+  description = <<-EOT
+    `sub` exacto verificado en el token de esta organización. Restringe el rol a
+    las sesiones de Devin de la organización: nunca debe ser un comodín.
+  EOT
+  type        = string
+  default     = "org_id:org-4793cba689a54a11b8fe70ed031524c4"
+
+  validation {
+    condition     = can(regex("^org_id:org-[0-9a-f]{32}$", var.devin_oidc_subject))
+    error_message = "devin_oidc_subject debe tener la forma org_id:org-<32 hex>."
+  }
+}
+
+variable "backend_external_role_name" {
+  description = "Rol federado que asume el backend de MSR desde la sesión de Devin."
+  type        = string
+  default     = "MSRExternalBackendRole"
+}

@@ -1,0 +1,154 @@
+"""Proyección de las 8 fases del Patching Journey sobre el pipeline de 6 fases."""
+import copy
+
+from app import engine, journey
+
+
+def _first(store):
+    """Primera tarea y su pipeline."""
+    task = next(iter(store.tasks.values()))
+    return task, store.pipelines[task["id"]]
+
+
+def test_catalog_matches_the_model():
+    catalog = journey.phase_catalog()
+    assert [p["id"] for p in catalog] == [
+        "cyber_trigger", "asset_identification", "applicability_assessment",
+        "blast_radius", "change_planning", "ring_execution", "gate_validation",
+        "evidence_closure"]
+    assert [p["band"] for p in catalog] == (
+        ["demand_risk"] * 4 + ["change_planning"] + ["execution_closure"] * 3)
+
+
+def test_pipeline_phases_project_onto_journey_phases(store):
+    task, pipeline = _first(store)
+    pipeline = copy.deepcopy(pipeline)
+
+    expected = {
+        "detection": "cyber_trigger",
+        "prioritization": "applicability_assessment",
+        "pre_implementation": "blast_radius",
+        "lab_testing": "ring_execution",
+        "prototype": "gate_validation",
+    }
+    for pipeline_phase, journey_phase in expected.items():
+        pipeline["phase_index"] = engine.PHASE_IDS.index(pipeline_phase)
+        assert journey.position(task, pipeline)["phase"] == journey_phase
+
+    # El laboratorio es el anillo 1 en ambos casos.
+    pipeline["phase_index"] = engine.PHASE_IDS.index("lab_testing")
+    assert journey.position(task, pipeline)["ring"] == 1
+
+
+def test_deployment_cycles_through_planning_execution_and_closure(store):
+    task, pipeline = _first(store)
+    pipeline = copy.deepcopy(pipeline)
+    pipeline["phase_index"] = engine.PHASE_IDS.index("deployment")
+    rings = pipeline["artifacts"]["deployment"]["rings"]
+    active = next(r for r in rings if r["status"] == "in_progress")
+
+    active["job"] = None
+    active["plan"]["approval"]["preapproved"] = False
+    pos = journey.position(task, pipeline)
+    assert pos["phase"] == "change_planning"
+    assert pos["blockers"] == ["awaiting_approval"]
+
+    active["plan"]["approval"]["preapproved"] = True
+    assert journey.position(task, pipeline)["phase"] == "ring_execution"
+
+    active["job"] = {"state": "running", "terminal": False}
+    assert journey.position(task, pipeline)["phase"] == "ring_execution"
+
+    active["job"] = {"state": "failed", "terminal": True, "targets": ["i-1"]}
+    pos = journey.position(task, pipeline)
+    assert pos["phase"] == "gate_validation"
+    assert pos["blockers"] == ["job_failed"]
+
+    for ring in rings:
+        ring["status"] = "completed"
+    assert journey.position(task, pipeline)["phase"] == "evidence_closure"
+
+
+def test_rollback_sends_the_vulnerability_back_to_the_gate(store):
+    task, pipeline = _first(store)
+    pipeline = copy.deepcopy(pipeline)
+    pipeline["phase_index"] = engine.PHASE_IDS.index("deployment")
+    pipeline["rollback"] = {"triggered": True, "status": "executed"}
+    pipeline["artifacts"]["deployment"]["rings"][1]["status"] = "rolled_back"
+
+    pos = journey.position(task, pipeline)
+    assert pos["phase"] == "gate_validation"
+    assert pos["blockers"] == ["rollback"]
+    assert pos["ring"] == 2
+
+
+def test_a_remediated_task_is_closed_whatever_the_pipeline_says(store):
+    original, pipeline = _first(store)
+    task = dict(original, status="remediated")
+
+    assert journey.position(task, pipeline)["phase"] == "evidence_closure"
+    assert {p["status"] for p in journey.phase_states(task, pipeline)} == {"completed"}
+
+
+def test_phase_states_split_completed_current_and_pending(store):
+    task, pipeline = _first(store)
+    states = journey.phase_states(task, pipeline)
+    current = next(s for s in states if s["status"] == "current")
+
+    assert [s["status"] for s in states[:current["index"]]] == ["completed"] * current["index"]
+    assert all(s["status"] == "pending" for s in states[current["index"] + 1:])
+
+
+def test_resource_rollup_only_counts_productive_rings(store):
+    task, pipeline = _first(store)
+    pipeline = copy.deepcopy(pipeline)
+    for ring in pipeline["artifacts"]["deployment"]["rings"]:
+        ring["status"] = "pending"
+        ring["job"] = None
+
+    rollup = journey.resource_rollup(pipeline)
+    assert rollup["patched"] == 0
+    assert rollup["pending"] + rollup["excluded"] == rollup["total"]
+
+    # El anillo 1 es una réplica de laboratorio: no parchea activos reales.
+    pipeline["artifacts"]["deployment"]["rings"][0]["status"] = "completed"
+    assert journey.resource_rollup(pipeline)["patched"] == 0
+
+    productive = next(r for r in pipeline["artifacts"]["deployment"]["rings"]
+                      if engine.RING_STAGES[r["ring"]]["prod"])
+    productive["status"] = "completed"
+    rollup = journey.resource_rollup(pipeline)
+    assert rollup["patched"] == productive["assets"]
+    assert rollup["patched"] + rollup["pending"] + rollup["excluded"] == rollup["total"]
+
+
+def test_overview_journey_counts_every_task_exactly_once(store):
+    ov = store.overview()
+    phases = ov["journey"]["phases"]
+
+    assert len(phases) == 8
+    assert sum(p["count"] for p in phases) == ov["journey"]["total"] == len(store.tasks)
+    assert all(p["count"] >= 0 for p in phases)
+
+
+def test_task_detail_exposes_the_journey_with_rings(store):
+    detail = store.task_detail(next(iter(store.tasks)))
+    journey_block = detail["journey"]
+
+    assert len(journey_block["phases"]) == 8
+    assert [r["ring"] for r in journey_block["rings"]] == [1, 2, 3, 4, 5]
+    assert journey_block["resources"]["total"] >= 1
+
+
+def test_blast_radius_does_not_propagate_without_downtime(store):
+    for task in store.tasks.values():
+        impact = store.pipelines[task["id"]]["artifacts"]["impact"]
+        if task["track"] == "A":
+            assert impact["downtime_required"] is True
+            assert impact["blast_scope"] == "propagated"
+            assert impact["impacted_count"] == impact["affected_count"]
+        else:
+            assert impact["downtime_required"] is False
+            assert impact["blast_scope"] == "local"
+            assert impact["impacted_count"] == 1
+        assert impact["affected_count"] >= impact["impacted_count"]

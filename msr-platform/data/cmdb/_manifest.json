@@ -1,0 +1,150 @@
+{
+  "source": "ServiceNow CMDB (CSDM 4.0)",
+  "instance": "https://bankdev.service-now.com",
+  "generated_at": "2026-07-06 09:00:00",
+  "total_cis": 180,
+  "total_relationships": 138,
+  "tables": [
+    {
+      "table": "cmdb_ci_app_server",
+      "file": "cmdb_ci_app_server.json",
+      "records": 32
+    },
+    {
+      "table": "cmdb_ci_appl",
+      "file": "cmdb_ci_appl.json",
+      "records": 18
+    },
+    {
+      "table": "cmdb_ci_cloud_resource",
+      "file": "cmdb_ci_cloud_resource.json",
+      "records": 8
+    },
+    {
+      "table": "cmdb_ci_computer",
+      "file": "cmdb_ci_computer.json",
+      "records": 9
+    },
+    {
+      "table": "cmdb_ci_database",
+      "file": "cmdb_ci_database.json",
+      "records": 7
+    },
+    {
+      "table": "cmdb_ci_docker_container",
+      "file": "cmdb_ci_docker_container.json",
+      "records": 12
+    },
+    {
+      "table": "cmdb_ci_netgear",
+      "file": "cmdb_ci_netgear.json",
+      "records": 3
+    },
+    {
+      "table": "cmdb_ci_runtime",
+      "file": "cmdb_ci_runtime.json",
+      "records": 27
+    },
+    {
+      "table": "cmdb_ci_server",
+      "file": "cmdb_ci_server.json",
+      "records": 54
+    },
+    {
+      "table": "cmdb_ci_service",
+      "file": "cmdb_ci_service.json",
+      "records": 10
+    },
+    {
+      "table": "cmdb_rel_ci",
+      "file": "cmdb_rel_ci.json",
+      "records": 138
+    }
+  ],
+  "field_map": [
+    {
+      "servicenow": "sys_id",
+      "type": "GUID",
+      "internal": "id",
+      "note": "clave primaria (32 hex); la plataforma conserva también el número funcional"
+    },
+    {
+      "servicenow": "sys_class_name",
+      "type": "String",
+      "internal": "ci_class",
+      "note": "clase CSDM (cmdb_ci_server, cmdb_ci_appl, ...) → clase interna"
+    },
+    {
+      "servicenow": "name",
+      "type": "String",
+      "internal": "name",
+      "note": "nombre del CI"
+    },
+    {
+      "servicenow": "install_status",
+      "type": "Choice",
+      "internal": "install_status",
+      "note": "código numérico (1=Installed, 7=Retired)"
+    },
+    {
+      "servicenow": "operational_status",
+      "type": "Choice",
+      "internal": "—",
+      "note": "estado operativo (1=Operational)"
+    },
+    {
+      "servicenow": "business_criticality",
+      "type": "Choice",
+      "internal": "criticality",
+      "note": "1..4 → critical/high/medium/low para el triage"
+    },
+    {
+      "servicenow": "assignment_group",
+      "type": "Reference",
+      "internal": "support_group",
+      "note": "sys_user_group responsable de la remediación"
+    },
+    {
+      "servicenow": "managed_by",
+      "type": "Reference",
+      "internal": "owner",
+      "note": "sys_user propietario técnico"
+    },
+    {
+      "servicenow": "location",
+      "type": "Reference",
+      "internal": "location",
+      "note": "cmn_location (DC / región cloud)"
+    },
+    {
+      "servicenow": "u_environment",
+      "type": "String",
+      "internal": "environment",
+      "note": "entorno (production/pre-production/development)"
+    },
+    {
+      "servicenow": "version",
+      "type": "String",
+      "internal": "version",
+      "note": "versión / release del CI"
+    },
+    {
+      "servicenow": "discovery_source",
+      "type": "String",
+      "internal": "cmdb_source",
+      "note": "fuente de descubrimiento / CMDB"
+    },
+    {
+      "servicenow": "u_track",
+      "type": "String",
+      "internal": "track",
+      "note": "dominio técnico A/B/C (atributo custom); define ejecutor y rollback"
+    },
+    {
+      "servicenow": "u_dora_relevant",
+      "type": "Boolean",
+      "internal": "dora_relevant",
+      "note": "activo dentro del perímetro DORA"
+    }
+  ]
+}

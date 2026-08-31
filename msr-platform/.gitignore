@@ -1,0 +1,26 @@
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+.DS_Store
+*.egg-info/
+.env
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.log
+# SPA compilada por scripts/build.sh para servirla desde FastAPI.
+backend/static/
+.pytest_cache/
+.ruff_cache/
+
+# Terraform: el estado local puede contener valores sensibles y nunca se versiona.
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+crash.log
+crash.*.log
