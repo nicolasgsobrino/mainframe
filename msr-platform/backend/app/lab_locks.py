@@ -170,7 +170,10 @@ class DynamoDbLabLockBackend:
                 TableName=self._table,
                 Item=item,
                 ConditionExpression=("attribute_not_exists(lab_id) OR expires_at <= :now "
-                                     "OR owner = :owner"),
+                                     "OR #owner = :owner"),
+                # `owner` es palabra reservada de DynamoDB: sólo es utilizable
+                # en una expresión a través de un alias.
+                ExpressionAttributeNames={"#owner": "owner"},
                 ExpressionAttributeValues={
                     ":now": {"N": str(int(now.timestamp()))},
                     ":owner": {"S": owner},
@@ -187,7 +190,8 @@ class DynamoDbLabLockBackend:
             self._client.delete_item(
                 TableName=self._table,
                 Key={"lab_id": {"S": lab_id}},
-                ConditionExpression="owner = :owner",
+                ConditionExpression="#owner = :owner",
+                ExpressionAttributeNames={"#owner": "owner"},
                 ExpressionAttributeValues={":owner": {"S": owner}},
             )
         except Exception as exc:

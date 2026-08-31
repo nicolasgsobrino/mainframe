@@ -8,6 +8,7 @@ vulnerable, SSM caído, cero instancias, instancias duplicadas, etc.
 from __future__ import annotations
 
 import itertools
+import re
 
 from fakes import EXECUTION_REFERENCE, FakeAwsProvider
 
@@ -187,6 +188,25 @@ class FakeConditionalCheckFailed(Exception):
 FakeConditionalCheckFailed.__name__ = "ConditionalCheckFailedException"
 
 
+class FakeValidationException(Exception):
+    """Mismo error que DynamoDB ante una expresión inválida."""
+
+
+FakeValidationException.__name__ = "ValidationException"
+
+# Palabras reservadas que aparecen en los ítems del lock: en una expresión sólo
+# son utilizables mediante un alias de `ExpressionAttributeNames`.
+RESERVED_WORDS = ("owner", "operation", "timestamp")
+
+
+def _reject_reserved_words(expression: str) -> None:
+    for word in RESERVED_WORDS:
+        if re.search(rf"(?<![#:\w]){word}\b", expression, re.IGNORECASE):
+            raise FakeValidationException(
+                "Invalid ConditionExpression: Attribute name is a reserved "
+                f"keyword; reserved keyword: {word}")
+
+
 class FakeDynamoDb:
     """Tabla de locks en memoria con la semántica condicional de DynamoDB.
 
@@ -206,8 +226,10 @@ class FakeDynamoDb:
             raise self.failure
 
     def put_item(self, TableName, Item, ConditionExpression="",  # noqa: N803
+                 ExpressionAttributeNames=None,  # noqa: N803
                  ExpressionAttributeValues=None) -> dict:  # noqa: N803
         self._guard()
+        _reject_reserved_words(ConditionExpression)
         self.tables.append(TableName)
         key = Item["lab_id"]["S"]
         values = ExpressionAttributeValues or {}
@@ -222,8 +244,10 @@ class FakeDynamoDb:
         return {}
 
     def delete_item(self, TableName, Key, ConditionExpression="",  # noqa: N803
+                    ExpressionAttributeNames=None,  # noqa: N803
                     ExpressionAttributeValues=None) -> dict:  # noqa: N803
         self._guard()
+        _reject_reserved_words(ConditionExpression)
         key = Key["lab_id"]["S"]
         values = ExpressionAttributeValues or {}
         current = self.items.get(key)
