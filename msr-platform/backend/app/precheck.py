@@ -212,7 +212,8 @@ class AwsLabPrecheck:
         entry = entries[0]
         lifecycle = entry.get("LifecycleState") or ""
         health = entry.get("HealthStatus") or ""
-        ok = lifecycle == "InService" and health == "Healthy"
+        # DescribeAutoScalingInstances devuelve «HEALTHY»; DescribeAutoScalingGroups, «Healthy».
+        ok = lifecycle == "InService" and health.lower() == "healthy"
         return ok, f"Auto Scaling: LifecycleState={lifecycle or '-'}, HealthStatus={health or '-'}."
 
     # -- resultado -------------------------------------------------------

@@ -279,6 +279,17 @@ def test_missing_asg_health_evidence_is_not_treated_as_healthy(lab_settings, wor
     assert provider.reset_requests == []
 
 
+def test_asg_health_is_read_regardless_of_its_casing(lab_settings, world):
+    """DescribeAutoScalingInstances devuelve «HEALTHY»; los grupos, «Healthy»."""
+    for casing in ("HEALTHY", "Healthy", "healthy"):
+        world.instances[0].asg_health = casing
+        store, _provider, _clock = build(lab_settings, world)
+
+        result = store.ensure_lab_ready(LAB_ID)
+
+        assert result["evidence"]["health_state"] == "healthy", casing
+
+
 def test_an_unhealthy_vulnerable_instance_is_not_recreated(lab_settings, world):
     world.instances[0].ec2_ok = False
     lab_settings.dry_run = False

@@ -7,10 +7,21 @@ from fakes import FakeAwsProvider
 
 from app import engine
 from app.errors import ValidationError
+from app.labs import LabInstance
 from app.repository import JobRepository
 from app.store import Store
 
 INSTANCE = "i-0123456789abcdef0"
+
+
+class FakeLabResolver:
+    """Resolutor de laboratorio que devuelve una instancia ya descubierta."""
+
+    def __init__(self, instance: LabInstance):
+        self._instance = instance
+
+    def resolve(self, _logical_lab_id: str) -> LabInstance:
+        return self._instance
 
 
 @pytest.fixture
@@ -119,3 +130,21 @@ def test_aws_job_reports_only_the_executed_instance(aws_store):
     assert len(job.targets) == 1
     # La versión corregida la determina el runbook, no el store.
     assert job.request_payload["spec"]["to_version"] == ""
+
+
+def test_lab_target_environment_comes_from_the_instance_tag(aws_store):
+    """El anillo se llama «Laboratorio», pero el entorno lo fija msr-environment.
+
+    La allowlist `MSR_ALLOWED_ENVIRONMENTS` se compara contra el entorno real del
+    activo; usar la etiqueta de la etapa del anillo denegaba siempre el objetivo.
+    """
+    lab_id = aws_store.settings.lab_logical_id
+    aws_store.lab_resolver = FakeLabResolver(LabInstance(
+        instance_id=INSTANCE, state="running", logical_lab_id=lab_id,
+        tags={"msr-poc": "true", "msr-lab-id": lab_id, "msr-environment": "sandbox"},
+        ssm_managed=True))
+
+    target = aws_store._asset_target(
+        {"id": lab_id, "logical_target_id": lab_id, "environment": "Laboratorio"})
+
+    assert target.environment == "sandbox"

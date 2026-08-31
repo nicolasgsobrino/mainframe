@@ -805,8 +805,10 @@ class Store:
                 instance = self._resolve_lab_instance(logical_id)
             except LabResolutionError as exc:
                 raise ValidationError(exc.message, code=exc.code) from exc
-            return instance.as_target(asset.get("environment")
-                                      or self.settings.lab_environment)
+            # El entorno del laboratorio es el del activo real (tag msr-environment),
+            # no el del anillo («Laboratorio»), que es el nombre de una etapa del
+            # despliegue y nunca coincide con la allowlist de entornos.
+            return instance.as_target()
         return Target(
             logical_target_id=logical_id, instance_id=instance_id,
             account_id=asset.get("account_id"), region=region,

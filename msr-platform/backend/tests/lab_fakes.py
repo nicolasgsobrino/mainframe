@@ -33,7 +33,7 @@ class FakeLabInstance:
 
     def __init__(self, instance_id: str, logical_lab_id: str, *, state: str = "running",
                  patched: bool = False, ping: str = "Online", asg_name: str = ASG_NAME,
-                 lifecycle: str = "InService", asg_health: str = "Healthy",
+                 lifecycle: str = "InService", asg_health: str = "HEALTHY",
                  ec2_ok: bool = True, tags: dict | None = None):
         version, release = FIXED_KERNEL if patched else VULNERABLE_KERNEL
         self.instance_id = instance_id
