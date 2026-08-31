@@ -89,7 +89,11 @@ dependen de dónde se aloje la aplicación). Sin `iam:PassRole` —los runbooks 
     {
       "Sid": "ControlAndReadOwnAutomationExecutions",
       "Effect": "Allow",
-      "Action": ["ssm:StopAutomationExecution", "ssm:GetAutomationExecution"],
+      "Action": [
+        "ssm:StopAutomationExecution",
+        "ssm:GetAutomationExecution",
+        "ssm:AddTagsToResource"
+      ],
       "Resource": "arn:aws:ssm:eu-north-1:133789123239:automation-execution/*"
     },
     {

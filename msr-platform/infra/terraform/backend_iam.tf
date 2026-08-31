@@ -102,9 +102,15 @@ locals {
         Resource = local.backend_runbook_arns
       },
       {
-        Sid      = "ControlAndReadOwnAutomationExecutions"
-        Effect   = "Allow"
-        Action   = ["ssm:StopAutomationExecution", "ssm:GetAutomationExecution"]
+        # `StartAutomationExecution` con `Tags` etiqueta la ejecución que crea,
+        # y esa llamada exige además `ssm:AddTagsToResource`.
+        Sid    = "ControlAndReadOwnAutomationExecutions"
+        Effect = "Allow"
+        Action = [
+          "ssm:StopAutomationExecution",
+          "ssm:GetAutomationExecution",
+          "ssm:AddTagsToResource",
+        ]
         Resource = local.backend_automation_execution_arn
       },
       {
