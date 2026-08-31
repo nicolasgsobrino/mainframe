@@ -141,8 +141,15 @@ class AwsLabPrecheck:
         if self._repo is None or not logical_lab_id:
             return None
         lab = self._repo.get_lab_target(logical_lab_id)
-        moment = lab.last_patch_at if lab is not None else None
-        return moment if isinstance(moment, datetime) else None
+        if lab is None:
+            return None
+        if isinstance(lab.last_patch_at, datetime):
+            return lab.last_patch_at
+        # Laboratorios parcheados antes de registrar el instante: el job durable
+        # que lo aplicó conserva cuándo terminó.
+        job = self._repo.get_job(lab.last_patch_job_id) if lab.last_patch_job_id else None
+        completed = job.completed_at if job is not None else None
+        return completed if isinstance(completed, datetime) else None
 
     def _inventory_kernel(self, instance_id: str,
                           patched_since: datetime | None) -> tuple[str | None, str]:

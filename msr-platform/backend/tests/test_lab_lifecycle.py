@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 from lab_fakes import ASG_NAME, FIXED_KERNEL, FakeLabAwsProvider, FakeLabWorld
 
+from app.jobs import JobState, JobType, PatchJob
 from app.lab import (
     LAB_STATE_PATCHED,
     LAB_STATE_VULNERABLE,
@@ -308,6 +309,26 @@ def test_an_inventory_older_than_the_patch_does_not_return_the_lab_to_vulnerable
     lab = store.repo.get_lab_target(LAB_ID)
     assert lab.lab_state == LAB_STATE_PATCHED
     assert lab.current_kernel == fixed
+
+
+def test_the_patch_job_dates_the_evidence_when_the_lab_predates_last_patch_at(
+        lab_settings, world):
+    """Laboratorios parcheados antes de registrar el instante del parcheo."""
+    instance = world.instances[0]
+    instance.patched = True
+    store, _provider, _clock = build(lab_settings, world)
+    job = PatchJob(id="job-anterior", job_type=JobType.PATCH, task_id="RTASK900900",
+                   ring_number=1, provider="aws-automation", state=JobState.SUCCEEDED,
+                   dry_run=False, completed_at=utcnow())
+    store.repo.create_job(job)
+    fixed = f"{FIXED_KERNEL[0]}-{FIXED_KERNEL[1]}.x86_64"
+    store.repo.upsert_lab_target(LabTarget(
+        logical_lab_id=LAB_ID, current_instance_id=instance.instance_id,
+        lab_state=LAB_STATE_PATCHED, current_kernel=fixed, last_patch_job_id=job.id))
+
+    result = store.ensure_lab_ready(LAB_ID)
+
+    assert result["evidence"]["vulnerable_state"] == LAB_STATE_PATCHED
 
 
 def test_an_unhealthy_vulnerable_instance_is_not_recreated(lab_settings, world):

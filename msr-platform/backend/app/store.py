@@ -1801,7 +1801,9 @@ class Store:
                               or job.result_payload.get("to_version")
                               or lab.expected_fixed_kernel)
         lab.advisory_applicable = False
-        lab.last_patch_at = utcnow()
+        # El instante del job, no el de este cálculo: la rehidratación reaplica
+        # el efecto de un job ya terminado y no debe rejuvenecer la evidencia.
+        lab.last_patch_at = job.completed_at or utcnow()
         health = (report.get("HealthStatus") or "").lower()
         lab.health_state = health or "healthy"
         lab.evidence_source = job.provider
