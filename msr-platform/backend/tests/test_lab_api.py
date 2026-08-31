@@ -1,6 +1,8 @@
 """Endpoints `/api/labs/*`: estado, validación read-only, reset e historial."""
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -199,3 +201,30 @@ def test_asg_replacement_is_detected_and_invalidates_the_previous_evidence(lab_c
     # La instancia nueva nace de la AMI base: vulnerable, nunca «parcheada».
     assert body["vulnerable_state"] == "vulnerable"
     assert body["current_kernel"] != "6.1.176-220.358.amzn2023.x86_64"
+
+
+def test_an_inconclusive_check_does_not_block_the_patch(lab_client, lab_store, monkeypatch):
+    """`ok: None` es «sin evidencia», no un incumplimiento.
+
+    Sin escaneo de Patch Manager no se puede confirmar la aplicabilidad del
+    advisory; el precheck del runbook la vuelve a comprobar antes de tocar la
+    instancia, así que la validación no puede bloquear el parcheo por ello.
+    """
+    lab_store.settings.patch_runbook_name = "MSR-PatchLinuxInstance"
+    lab_store.settings.reset_runbook_name = "MSR-ResetLabInstance"
+    lab_store.settings.allowed_runbooks = ["MSR-PatchLinuxInstance", "MSR-ResetLabInstance"]
+    original = type(lab_store.lab_precheck).inspect
+
+    def inspect(instance):
+        evidence = original(lab_store.lab_precheck, instance)
+        return replace(evidence, advisory_applicable=None, checks=(
+            *evidence.checks,
+            {"check": "Advisory aplicable", "ok": None,
+             "detail": "No hay ningún escaneo de Patch Manager."}))
+
+    monkeypatch.setattr(lab_store.lab_precheck, "inspect", inspect)
+
+    body = lab_client.post(f"/api/labs/{LAB_ID}/validate").json()
+
+    assert body["allowed"] is True
+    assert body["inconclusive"] == ["Advisory aplicable"]

@@ -36,6 +36,15 @@ def test_compliant_target_is_allowed(aws_settings):
     assert result.allowed, result.violations
 
 
+def test_a_passing_check_does_not_publish_the_failure_message(aws_settings):
+    """Un check en verde no puede mostrar el texto del incumplimiento."""
+    result = evaluate_target(aws_target(), aws_settings, instance_state="running")
+
+    details = {c["check"]: c["detail"] for c in result.checks if c["ok"]}
+    assert "y la región configurada es" not in details["Región permitida"]
+    assert "no aparece como managed node" not in details["Nodo gestionado por SSM"]
+
+
 def test_missing_required_tag_is_rejected(aws_settings):
     result = evaluate_target(aws_target(tags={}), aws_settings, instance_state="running")
     assert not result.allowed

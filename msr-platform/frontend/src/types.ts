@@ -232,9 +232,11 @@ export interface LabSnapshot extends LabOperationalState {
   active_job: PatchJob | null;
   reconciliation: LabReconciliation;
 }
-export interface LabCheck { check: string; ok: boolean; detail: string; code?: string }
+/** `ok: null` = comprobación no concluyente (AWS no aporta evidencia). */
+export interface LabCheck { check: string; ok: boolean | null; detail: string; code?: string }
 export interface LabValidation extends LabOperationalState {
   logical_lab_id: string; read_only: true; allowed: boolean; checks: LabCheck[];
+  inconclusive: string[];
   instance: LabInstance | null; evidence: LabEvidence | null;
   task_id: string; advisory_id: string;
   releasever: string; expected_fixed_kernel: string; note: string;

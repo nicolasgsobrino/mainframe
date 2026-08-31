@@ -88,6 +88,7 @@ export default function TaskDetail() {
   const selPhaseId = PHASE_IDS[sel];
   const phaseLogs = d.logs.filter((l) => l.phase === selPhaseId);
   const jobRunning = !!activeJob && !activeJob.terminal;
+  const lastJob = activeJob ?? d.jobs?.[0] ?? null;
   const locked = busy || jobRunning;
 
   const run = async (action: () => Promise<TD>) => {
@@ -368,6 +369,13 @@ export default function TaskDetail() {
                 )}
                 {jobRunning && (
                   <div className="text-xs text-amber-300 mb-2">⏳ Job {activeJob!.id} en curso ({JOB_STATE_LABEL[activeJob!.state] ?? activeJob!.state}). Las acciones mutativas están bloqueadas hasta que finalice.</div>
+                )}
+                {lastJob?.terminal && lastJob.dry_run && (
+                  <div className="text-xs text-sky-300 mb-2">
+                    ⓘ Job {lastJob.id} terminado en <b>dry-run</b>: se ha validado el objetivo y
+                    planificado la Automation, pero no se ha aplicado nada ni ha avanzado el anillo.
+                    El detalle está arriba, en «Ejecución del parche».
+                  </div>
                 )}
                 <button disabled={locked || !canApprove} onClick={approve}
                   className={`btn w-full justify-center ${canApprove && !locked ? "btn-brand" : "btn-ghost opacity-50 cursor-not-allowed"}`}>

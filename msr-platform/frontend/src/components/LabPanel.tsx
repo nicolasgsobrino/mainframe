@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, releaseIdempotencyKey } from "../api";
-import type { LabReconcileResult, LabSnapshot, LabValidation, PatchJob } from "../types";
+import type { LabCheck, LabReconcileResult, LabSnapshot, LabValidation, PatchJob } from "../types";
 
 /** Modo de ejecución: mock, dry-run o AWS real. Nunca se confunden en la UI. */
 const MODE_META: Record<string, { label: string; cls: string }> = {
@@ -34,6 +34,19 @@ const toError = (e: unknown) =>
   e instanceof ApiError
     ? { code: e.code, message: e.message }
     : { code: "NETWORK_ERROR", message: e instanceof Error ? e.message : String(e) };
+
+/** Una comprobación: verde si cumple, roja si falla, gris si no es concluyente. */
+function Check({ c }: { c: LabCheck }) {
+  const [icon, cls] = c.ok === null ? ["?", "text-gray-400"]
+    : c.ok ? ["\u2713", "text-green-400"] : ["\u2717", "text-red-400"];
+  return (
+    <div className="text-xs flex gap-2">
+      <span className={cls}>{icon}</span>
+      <span className="text-gray-300">{c.check}</span>
+      <span className="text-gray-500">{c.detail}</span>
+    </div>
+  );
+}
 
 function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
@@ -255,13 +268,7 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked }:
           {reconcile.error && (
             <div className="text-xs text-red-300">{reconcile.error_code}: {reconcile.error}</div>
           )}
-          {reconcile.evidence?.checks.map((c) => (
-            <div key={c.check} className="text-xs flex gap-2">
-              <span className={c.ok ? "text-green-400" : "text-red-400"}>{c.ok ? "✓" : "✗"}</span>
-              <span className="text-gray-300">{c.check}</span>
-              <span className="text-gray-500">{c.detail}</span>
-            </div>
-          ))}
+          {reconcile.evidence?.checks.map((c) => <Check key={c.check} c={c} />)}
         </div>
       )}
 
@@ -270,13 +277,13 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked }:
           <div className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">
             Validación de sólo lectura
           </div>
-          {validation.checks.map((c) => (
-            <div key={c.check} className="text-xs flex gap-2">
-              <span className={c.ok ? "text-green-400" : "text-red-400"}>{c.ok ? "✓" : "✗"}</span>
-              <span className="text-gray-300">{c.check}</span>
-              <span className="text-gray-500">{c.detail}</span>
+          {validation.checks.map((c) => <Check key={c.check} c={c} />)}
+          {validation.inconclusive.length > 0 && (
+            <div className="text-[11px] text-gray-400">
+              No concluyentes (no bloquean; el precheck del runbook las repite):{" "}
+              {validation.inconclusive.join(", ")}.
             </div>
-          ))}
+          )}
           <div className="text-[11px] text-gray-500">{validation.note}</div>
         </div>
       )}

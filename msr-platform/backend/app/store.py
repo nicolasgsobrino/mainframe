@@ -1610,7 +1610,11 @@ class Store:
         return {
             "logical_lab_id": logical_lab_id,
             "read_only": True,
-            "allowed": all(c.get("ok") for c in checks),
+            # Sólo un check en rojo bloquea: `ok: None` es «no concluyente»
+            # (p. ej. sin escaneo de Patch Manager que confirme el advisory) y
+            # el precheck del runbook vuelve a comprobarlo antes de tocar nada.
+            "allowed": not any(c.get("ok") is False for c in checks),
+            "inconclusive": [c["check"] for c in checks if c.get("ok") is None],
             "checks": checks,
             "instance": instance.as_dict() if instance else None,
             "evidence": evidence.as_dict() if evidence else None,
