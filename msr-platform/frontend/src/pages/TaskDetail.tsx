@@ -69,6 +69,13 @@ export default function TaskDetail() {
     apply(await api.task(id!));
   }, [id, apply]);
 
+  // Recarga sin perder la fase seleccionada: la usa el panel del laboratorio
+  // cuando el recurso cambia (reset → otra instancia, parcheo confirmado).
+  const refresh = useCallback(() => {
+    keepSelection.current = true;
+    api.task(id!).then(apply).catch((e) => setError(toError(e)));
+  }, [id, apply]);
+
   useEffect(() => { load().catch((e) => setError(toError(e))); }, [load]);
 
   // Polling del job activo: se reanuda tras un reload porque `active_job` viene
@@ -190,6 +197,7 @@ export default function TaskDetail() {
                 : jobRunning ? "Hay un job activo sobre el laboratorio."
                   : "La fase actual no permite todavía ejecutar el parcheo."}
           locked={locked}
+          onLabChange={refresh}
         />
       )}
 

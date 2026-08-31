@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api, releaseIdempotencyKey } from "../api";
 import type { LabCheck, LabReconcileResult, LabSnapshot, LabValidation, PatchJob } from "../types";
 
@@ -61,11 +61,14 @@ function Field({ label, value, mono = false }: { label: string; value: string; m
  *
  * No acepta Instance IDs, comandos, documentos ni parámetros: sólo dispara
  * las tres operaciones cerradas del backend sobre el identificador lógico. */
-export default function LabPanel({ labId, onPatch, patchBlockedReason, locked }: {
+export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, onLabChange }: {
   labId: string;
   onPatch: () => void;
   patchBlockedReason: string | null;
   locked: boolean;
+  /** El recurso ha cambiado (reset → otra instancia, parcheo): quien contiene
+   *  el panel debe recargar lo que muestre evidencia de ese recurso. */
+  onLabChange?: () => void;
 }) {
   const [snapshot, setSnapshot] = useState<LabSnapshot | null>(null);
   const [validation, setValidation] = useState<LabValidation | null>(null);
@@ -93,6 +96,17 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked }:
     }, 2000);
     return () => window.clearInterval(timer);
   }, [activeJob, load]);
+
+  // Un reset recrea la instancia y borra la evidencia del parcheo: el resto de
+  // la pantalla no puede seguir mostrando el estado anterior hasta que alguien
+  // recargue el navegador.
+  const labSignature = `${snapshot?.instance?.instance_id ?? ""}:${snapshot?.vulnerable_state ?? ""}`;
+  const lastSignature = useRef<string | null>(null);
+  useEffect(() => {
+    if (!snapshot) return;
+    if (lastSignature.current !== null && lastSignature.current !== labSignature) onLabChange?.();
+    lastSignature.current = labSignature;
+  }, [snapshot, labSignature, onLabChange]);
 
   if (!snapshot) {
     return (
