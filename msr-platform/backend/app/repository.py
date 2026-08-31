@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS lab_targets (
     evidence_source             TEXT,
     last_patch_job_id           TEXT,
     last_patch_execution_id     TEXT,
+    last_patch_at               TEXT,
     last_reset_execution_id     TEXT,
     reconciliation_state        TEXT NOT NULL DEFAULT 'idle',
     last_reconciled_at          TEXT,
@@ -193,7 +194,8 @@ class JobRepository:
         for column in ("autoscaling_group_name", "candidate_releasever",
                        "expected_fixed_kernel", "previous_instance_id", "current_kernel",
                        "ssm_state", "health_state", "evidence_source", "last_patch_job_id",
-                       "last_patch_execution_id", "last_reset_execution_id",
+                       "last_patch_execution_id", "last_patch_at",
+                       "last_reset_execution_id",
                        "last_reconciled_at", "last_reconciliation_error",
                        "last_correlation_id"):
             if column not in columns:
@@ -502,6 +504,8 @@ class JobRepository:
             "evidence_source": lab.evidence_source,
             "last_patch_job_id": lab.last_patch_job_id,
             "last_patch_execution_id": lab.last_patch_execution_id,
+            "last_patch_at": _iso(lab.last_patch_at)
+            if isinstance(lab.last_patch_at, datetime) else lab.last_patch_at,
             "last_reset_execution_id": lab.last_reset_execution_id,
             "reconciliation_state": lab.reconciliation_state,
             "last_reconciled_at": _iso(lab.last_reconciled_at)
@@ -547,6 +551,7 @@ class JobRepository:
             evidence_source=row["evidence_source"],
             last_patch_job_id=row["last_patch_job_id"],
             last_patch_execution_id=row["last_patch_execution_id"],
+            last_patch_at=_parse(row["last_patch_at"]),
             last_reset_execution_id=row["last_reset_execution_id"],
             reconciliation_state=row["reconciliation_state"] or RECONCILE_IDLE,
             last_reconciled_at=_parse(row["last_reconciled_at"]),

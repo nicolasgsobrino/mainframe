@@ -373,7 +373,9 @@ class LabLifecycleManager:
             lab.ssm_state = instance.ping_status or lab.ssm_state
         if evidence is not None:
             lab.lab_state = evidence.vulnerable_state
-            lab.current_kernel = evidence.current_kernel
+            # Una observación sin kernel (inventario obsoleto o inaccesible) no
+            # borra el que confirmó la Automation.
+            lab.current_kernel = evidence.current_kernel or lab.current_kernel
             lab.advisory_applicable = evidence.advisory_applicable
             lab.health_state = evidence.health_state
             lab.ssm_state = evidence.ssm_state or lab.ssm_state

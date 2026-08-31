@@ -75,6 +75,10 @@ class LabTarget:
     evidence_source: str | None = None
     last_patch_job_id: str | None = None
     last_patch_execution_id: str | None = None
+    # Instante en que AWS confirmó el parcheo. El inventario de Systems Manager
+    # se refresca por asociación y puede ser anterior: esa evidencia no debe
+    # devolver el laboratorio a `vulnerable`.
+    last_patch_at: object = None
     last_reset_execution_id: str | None = None
     reconciliation_state: str = RECONCILE_IDLE
     last_reconciled_at: object = None
@@ -107,6 +111,7 @@ class LabTarget:
             "evidence_source": self.evidence_source,
             "last_patch_job_id": self.last_patch_job_id,
             "last_patch_execution_id": self.last_patch_execution_id,
+            "last_patch_at": iso_utc(self.last_patch_at) if self.last_patch_at else None,
             "last_reset_execution_id": self.last_reset_execution_id,
             "reconciliation_state": self.reconciliation_state,
             "last_reconciled_at": (iso_utc(self.last_reconciled_at)

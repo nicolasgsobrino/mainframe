@@ -1428,6 +1428,7 @@ class Store:
             lab.evidence_source = existing.evidence_source
             lab.last_patch_job_id = existing.last_patch_job_id
             lab.last_patch_execution_id = existing.last_patch_execution_id
+            lab.last_patch_at = existing.last_patch_at
             lab.last_reset_execution_id = existing.last_reset_execution_id
             lab.reconciliation_state = existing.reconciliation_state
             lab.last_reconciled_at = existing.last_reconciled_at
@@ -1470,6 +1471,7 @@ class Store:
             lab.ssm_state = instance.ping_status
             lab.evidence_source = None
             lab.last_patch_execution_id = None
+            lab.last_patch_at = None
             self.repo.upsert_lab_target(lab)
             self._observe_lab(logical_lab_id, instance)
         return instance
@@ -1759,6 +1761,7 @@ class Store:
             lab.health_state = (report.get("HealthState") or "").lower() or lab.health_state
             lab.last_patch_execution_id = None
             lab.last_patch_job_id = None
+            lab.last_patch_at = None
             self.repo.upsert_lab_target(lab)
 
         p = self.pipelines[tid]
@@ -1798,6 +1801,7 @@ class Store:
                               or job.result_payload.get("to_version")
                               or lab.expected_fixed_kernel)
         lab.advisory_applicable = False
+        lab.last_patch_at = utcnow()
         health = (report.get("HealthStatus") or "").lower()
         lab.health_state = health or "healthy"
         lab.evidence_source = job.provider

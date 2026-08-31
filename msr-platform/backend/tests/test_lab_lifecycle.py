@@ -7,7 +7,7 @@ deterministas.
 from __future__ import annotations
 
 import pytest
-from lab_fakes import ASG_NAME, FakeLabAwsProvider, FakeLabWorld
+from lab_fakes import ASG_NAME, FIXED_KERNEL, FakeLabAwsProvider, FakeLabWorld
 
 from app.lab import (
     LAB_STATE_PATCHED,
@@ -15,6 +15,7 @@ from app.lab import (
     RECONCILE_FAILED,
     RECONCILE_READY,
     RECONCILE_SKIPPED,
+    LabTarget,
 )
 from app.lab_lifecycle import (
     ACTION_NONE,
@@ -27,7 +28,7 @@ from app.lab_lifecycle import (
     ERROR_UNCHANGED,
     LabLifecycleManager,
 )
-from app.providers.base import ExecutionStatus
+from app.providers.base import ExecutionStatus, utcnow
 from app.repository import JobRepository
 from app.store import Store
 
@@ -288,6 +289,25 @@ def test_asg_health_is_read_regardless_of_its_casing(lab_settings, world):
         result = store.ensure_lab_ready(LAB_ID)
 
         assert result["evidence"]["health_state"] == "healthy", casing
+
+
+def test_an_inventory_older_than_the_patch_does_not_return_the_lab_to_vulnerable(
+        lab_settings, world):
+    """El inventario de SSM se refresca por asociación y va por detrás del parcheo."""
+    instance = world.instances[0]
+    instance.patched = True  # Patch Manager ya no lista el advisory
+    store, _provider, _clock = build(lab_settings, world)
+    fixed = f"{FIXED_KERNEL[0]}-{FIXED_KERNEL[1]}.x86_64"
+    store.repo.upsert_lab_target(LabTarget(
+        logical_lab_id=LAB_ID, current_instance_id=instance.instance_id,
+        lab_state=LAB_STATE_PATCHED, current_kernel=fixed, last_patch_at=utcnow()))
+
+    result = store.ensure_lab_ready(LAB_ID)
+
+    assert result["evidence"]["vulnerable_state"] == LAB_STATE_PATCHED
+    lab = store.repo.get_lab_target(LAB_ID)
+    assert lab.lab_state == LAB_STATE_PATCHED
+    assert lab.current_kernel == fixed
 
 
 def test_an_unhealthy_vulnerable_instance_is_not_recreated(lab_settings, world):

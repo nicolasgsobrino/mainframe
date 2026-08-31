@@ -27,6 +27,7 @@ ASG_NAME = "msr-poc-linux-patching-01-asg"
 VULNERABLE_KERNEL = ("6.1.147", "180.264.amzn2023")
 FIXED_KERNEL = ("6.1.176", "220.358.amzn2023")
 ADVISORY = "ALAS2023-2026-1924"
+INVENTORY_CAPTURE_TIME = "2026-01-01T00:00:00Z"
 
 
 class FakeLabInstance:
@@ -47,6 +48,9 @@ class FakeLabInstance:
         self.patched = patched
         self.kernel_version = version
         self.kernel_release = release
+        # Momento de la última captura del inventario de Systems Manager: una
+        # asociación periódica la refresca, así que puede quedar obsoleta.
+        self.inventory_capture_time = INVENTORY_CAPTURE_TIME
         self.scanned = True
         self.tags = tags if tags is not None else {
             "msr-poc": "true",
@@ -139,7 +143,8 @@ class FakeSsm:
         instance = self.world.get(InstanceId or "")
         if instance is None:
             return {"Entries": []}
-        return {"Entries": [{"Name": "kernel", "Version": instance.kernel_version,
+        return {"CaptureTime": instance.inventory_capture_time,
+                "Entries": [{"Name": "kernel", "Version": instance.kernel_version,
                              "Release": instance.kernel_release, "Architecture": "x86_64"}]}
 
     def describe_instance_patches(self, InstanceId=None, Filters=None) -> dict:  # noqa: N803

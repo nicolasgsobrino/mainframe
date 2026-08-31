@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
 from .config import PROVIDER_AWS_AUTOMATION, Settings
 from .labs import LabInstance
@@ -54,6 +55,20 @@ def kernel_is_older(current: str | None, expected_fixed: str | None) -> bool | N
     if left is None or right is None:
         return None
     return left < right
+
+
+def _capture_time(value: object) -> datetime | None:
+    """`CaptureTime` del inventario, que boto3 devuelve como texto ISO."""
+    if isinstance(value, datetime):
+        moment = value
+    elif isinstance(value, str) and value.strip():
+        try:
+            moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,12 +130,22 @@ class AwsLabPrecheck:
 
     source = SOURCE_AWS
 
-    def __init__(self, settings: Settings, provider):
+    def __init__(self, settings: Settings, provider, repository=None):
         self._settings = settings
         self._provider = provider
+        self._repo = repository
 
     # -- fuentes de evidencia -------------------------------------------
-    def _inventory_kernel(self, instance_id: str) -> tuple[str | None, str]:
+    def _patched_since(self, logical_lab_id: str) -> datetime | None:
+        """Momento en que AWS confirmó el último parcheo de este laboratorio."""
+        if self._repo is None or not logical_lab_id:
+            return None
+        lab = self._repo.get_lab_target(logical_lab_id)
+        moment = lab.last_patch_at if lab is not None else None
+        return moment if isinstance(moment, datetime) else None
+
+    def _inventory_kernel(self, instance_id: str,
+                          patched_since: datetime | None) -> tuple[str | None, str]:
         package = self._settings.patch_package_family or "kernel"
         try:
             response = self._provider.ssm.list_inventory_entries(
@@ -148,6 +173,15 @@ class AwsLabPrecheck:
         versions.sort()
         # La instancia arranca con el kernel más reciente instalado.
         latest = versions[-1][1]
+        captured = _capture_time(response.get("CaptureTime"))
+        if patched_since is not None and (captured is None or captured <= patched_since):
+            # El inventario lo refresca una asociación periódica: si no se ha
+            # recapturado desde el parcheo, la versión que publica es anterior
+            # y no puede contradecir al informe de la Automation.
+            return None, (
+                "El inventario no se ha recapturado desde el último parcheo "
+                f"(captura: {captured.isoformat() if captured else 'desconocida'}); "
+                f"la versión que publica ({latest}) es anterior.")
         return latest, f"Kernel instalado más reciente según el inventario: {latest}."
 
     def _advisory_applicable(self, instance_id: str) -> tuple[bool | None, str]:
@@ -226,7 +260,8 @@ class AwsLabPrecheck:
         checks.add("Nodo gestionado por SSM Online", ssm_state == "Online",
                    f"PingStatus={ssm_state}.")
 
-        kernel, kernel_detail = self._inventory_kernel(instance.instance_id)
+        kernel, kernel_detail = self._inventory_kernel(
+            instance.instance_id, self._patched_since(instance.logical_lab_id))
         checks.add("Kernel instalado conocido", kernel is not None, kernel_detail)
         older = kernel_is_older(kernel, expected)
         if older is not None:
@@ -308,5 +343,5 @@ class MockLabPrecheck:
 def get_lab_precheck(settings: Settings, provider, repository=None):
     """Precheck acorde al provider activo (AWS de sólo lectura o simulado)."""
     if provider.name == PROVIDER_AWS_AUTOMATION:
-        return AwsLabPrecheck(settings, provider)
+        return AwsLabPrecheck(settings, provider, repository)
     return MockLabPrecheck(settings, repository)
