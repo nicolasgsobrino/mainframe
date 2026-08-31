@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ApiError, api, releaseIdempotencyKey } from "../api";
-import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob } from "../types";
+import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob, LabPatchEvidence } from "../types";
 import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 import LabPanel from "../components/LabPanel";
@@ -20,6 +20,9 @@ const JOB_STATE_LABEL: Record<string, string> = {
   remote_status_unknown: "Estado remoto desconocido",
   stop_requested: "Parada solicitada a AWS",
 };
+/** El runbook aborta con este error cuando el objetivo ya estaba parcheado. */
+const alreadyFixed = (job: PatchJob) => !!job.error_message?.includes("KERNEL_ALREADY_FIXED");
+
 const JOB_STATE_TONE: Record<string, string> = {
   succeeded: "bg-green-500/15 text-green-400", restored: "bg-green-500/15 text-green-400",
   failed: "bg-red-500/15 text-red-400", restore_failed: "bg-red-500/15 text-red-400",
@@ -126,7 +129,9 @@ export default function TaskDetail() {
 
   const nextRing = a.deployment.rings[d.rings_done];
   const nextRingPreapproved = !!nextRing?.plan.approval.preapproved;
-  const canApprove = !done && !jobRunning && (
+  // Objetivo ya parcheado y confirmado por AWS: no se ofrece volver a parchear.
+  const labPatch = d.lab_patch ?? null;
+  const canApprove = !done && !jobRunning && !labPatch && (
     currentPhaseId === "deployment"
       ? nextRingPreapproved
       : (currentPhaseId !== "lab_testing" || a.lab.verdict === "pass")
@@ -177,12 +182,17 @@ export default function TaskDetail() {
           labId={task.logical_lab_id}
           onPatch={approve}
           patchBlockedReason={canApprove ? null
-            : (done ? "La tarea ya está remediada."
-              : jobRunning ? "Hay un job activo sobre el laboratorio."
-                : "La fase actual no permite todavía ejecutar el parcheo.")}
+            : (labPatch
+              ? `Parcheo ya confirmado (kernel ${labPatch.kernel ?? "—"}, ejecución ${labPatch.execution_id}). `
+                + "Para repetirlo hay que resetear antes el laboratorio."
+              : done ? "La tarea ya está remediada."
+                : jobRunning ? "Hay un job activo sobre el laboratorio."
+                  : "La fase actual no permite todavía ejecutar el parcheo.")}
           locked={locked}
         />
       )}
+
+      {labPatch && <PatchConfirmed evidence={labPatch} />}
 
       {d.sla?.overdue && !done && (
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm text-red-300 flex items-center gap-2">
@@ -364,7 +374,13 @@ export default function TaskDetail() {
                 {!canApprove && currentPhaseId === "lab_testing" && (
                   <div className="text-xs text-red-400 mb-2">⚠ El MVT ha fallado en laboratorio. ServiceNow bloquea el avance (rollback / análisis).</div>
                 )}
-                {!nextRingPreapproved && currentPhaseId === "deployment" && nextRing && (
+                {labPatch && (
+                  <div className="text-xs text-green-400 mb-2">
+                    ✓ El objetivo ya está parcheado y verificado; el despliegue de este
+                    laboratorio no tiene nada pendiente.
+                  </div>
+                )}
+                {!labPatch && !nextRingPreapproved && currentPhaseId === "deployment" && nextRing && (
                   <div className="text-xs text-amber-300 mb-2">⚠ El anillo {nextRing.ring} requiere revisión y <b>pre-aprobación Human-Driven</b> de su informe pre-anillo (arriba, en Fase 6) antes de desplegar.</div>
                 )}
                 {jobRunning && (
@@ -398,6 +414,27 @@ export default function TaskDetail() {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Parcheo ya confirmado por AWS: estado del objetivo, no de un intento. */
+function PatchConfirmed({ evidence }: { evidence: LabPatchEvidence }) {
+  return (
+    <div className="rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+      <div className="font-semibold flex items-center gap-2">
+        <span className="text-lg">✓</span> Parcheo confirmado por AWS Systems Manager
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-xs text-gray-300">
+        <Meta k="Kernel actual" v={evidence.kernel ?? "—"} />
+        <Meta k="Instancia" v={evidence.instance_id ?? "—"} />
+        <Meta k="Automation" v={evidence.execution_id} />
+        <Meta k="Confirmado" v={evidence.patched_at ? new Date(evidence.patched_at).toLocaleString("es-ES") : "—"} />
+      </div>
+      <div className="text-[11px] text-green-200/80 mt-2">
+        No quedan fases de parcheo pendientes para este objetivo. Para repetir el ciclo hay que
+        resetear el laboratorio, que recrea la instancia desde la AMI vulnerable.
       </div>
     </div>
   );
@@ -450,6 +487,12 @@ function JobCard({ job, execution, busy, onCancel }: {
           <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-red-300">
             <b>{job.error_code}</b> — {job.error_message}
             <div className="font-mono text-[10px] text-red-400/70">{job.correlation_id}</div>
+            {alreadyFixed(job) && (
+              <div className="text-[11px] text-amber-200 mt-1">
+                El runbook abortó porque la instancia <b>ya tenía el kernel corregido</b>: es un
+                intento rechazado sobre un objetivo ya parcheado, no un parcheo fallido.
+              </div>
+            )}
           </div>
         )}
         {job.steps.length > 0 && (

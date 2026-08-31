@@ -387,6 +387,13 @@ export interface TaskDetail {
   lane: Lane; lane_meta: LaneMeta; lane_flow: LaneFlow; journey: JourneyDetail;
   artifacts: { impact: ImpactGraph; mvt: Mvt; lab: LabResults; prototype: Prototype; deployment: Deployment; audit: Audit };
   logs: LogEntry[]; rings_done: number; sla?: SlaState;
+  lab_patch?: LabPatchEvidence | null;
   active_job?: PatchJob | null; jobs?: PatchJob[]; execution?: ExecutionConfig;
+}
+/** Evidencia durable de un parcheo ya confirmado por AWS Systems Manager. */
+export interface LabPatchEvidence {
+  logical_lab_id: string; instance_id: string | null; kernel: string | null;
+  execution_id: string; job_id: string | null; patched_at: string | null;
+  health_state: string | null;
 }
 export interface Service { name: string; role: string; status: string; type: string; detail: string; }

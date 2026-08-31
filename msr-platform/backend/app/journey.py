@@ -78,6 +78,10 @@ def _ring_label(ring: int | None) -> str | None:
     return dict(engine.RING_DEFS).get(ring)
 
 
+def _single_ring(pipeline: dict) -> bool:
+    return bool(pipeline.get("single_ring", False))
+
+
 def _deployment_position(task: dict, pipeline: dict) -> tuple[str, int | None, list[str]]:
     """Posición dentro del ciclo 4→7, que se repite en cada anillo."""
     deploy = pipeline["artifacts"]["deployment"]
@@ -148,14 +152,17 @@ def resource_rollup(pipeline: dict) -> dict:
     rolled_back = 0
     failed = 0
     for ring in deploy["rings"]:
-        stage = engine.RING_STAGES[ring["ring"]]
+        stage = engine.ring_stage(ring["ring"], _single_ring(pipeline))
         if not stage["prod"]:
             continue
         count = ring.get("executed_assets")
         count = ring["assets"] if count is None else int(count)
         if ring["status"] == "completed":
             patched = max(patched, count)
-        elif ring["status"] == "rolled_back":
+            # Un intento posterior fallido sobre un anillo ya desplegado no
+            # devuelve sus activos a «fallidos»: la evidencia del despliegue manda.
+            continue
+        if ring["status"] == "rolled_back":
             rolled_back = max(rolled_back, count)
         job = ring.get("job") or {}
         if job.get("state") in _FAILED_JOB_STATES:
@@ -171,7 +178,7 @@ def resource_rollup(pipeline: dict) -> dict:
         "excluded": min(excluded, total),
         "rolled_back": min(rolled_back, total),
         "rings_done": pipeline["rings_done"],
-        "rings_total": len(engine.RING_DEFS),
+        "rings_total": len(engine.ring_defs(_single_ring(pipeline))),
     }
 
 

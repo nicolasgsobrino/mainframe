@@ -351,6 +351,26 @@ RING_STAGES = {
 }
 CANARY_PCT = [100, 10, 100, 50, 100]
 
+# Etapa del anillo de laboratorio cuando el objetivo es la EC2 real de la PoC:
+# no es una réplica efímera, es el activo que se parchea y del que se cuenta la
+# evidencia.
+REAL_LAB_STAGE = {**RING_STAGES[1], "kind": "real", "prod": True,
+                  "env": "Laboratorio · EC2 real",
+                  "purpose": "Instancia EC2 real del laboratorio: se aplica el fix con "
+                             "Systems Manager Automation y se verifica el kernel y la salud."}
+
+
+def ring_defs(single_ring: bool = False) -> list[tuple[int, str]]:
+    """Anillos del despliegue; con un único activo real sólo existe el primero."""
+    return [RING_DEFS[0]] if single_ring else list(RING_DEFS)
+
+
+def ring_stage(ring_no: int, single_ring: bool = False) -> dict:
+    if single_ring and ring_no == RING_DEFS[0][0]:
+        return REAL_LAB_STAGE
+    return RING_STAGES[ring_no]
+
+
 # Orden de despliegue por dependencia: de la infraestructura (dependencia) hacia
 # el servicio de negocio (dependiente). A igualdad, de menor a mayor criticidad.
 CLASS_ORDER = {
@@ -379,11 +399,12 @@ def _scope_nodes(ordered, scope):
     return list(ordered)  # "all" (réplica) / "all_real"
 
 
-def assign_impact_to_rings(impact):
+def assign_impact_to_rings(impact, single_ring: bool = False):
     """Cada anillo recibe su alcance de CIs impactados (ordenados por dependencia).
     Lab/Pre-productivo = réplica del 100%; Canary/Prod = despliegue progresivo real."""
     ordered = order_by_dependency(impact)
-    return {rn: _scope_nodes(ordered, RING_STAGES[rn]["scope"]) for rn, _ in RING_DEFS}
+    return {rn: _scope_nodes(ordered, ring_stage(rn, single_ring)["scope"])
+            for rn, _ in ring_defs(single_ring)}
 
 
 def _asset_reason(stage: dict, ci_class: str, crit: str, is_root: bool) -> str:
@@ -396,12 +417,12 @@ def _asset_reason(stage: dict, ci_class: str, crit: str, is_root: bool) -> str:
 
 
 def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nodes,
-                    exclusions=None, preapproval=None):
+                    exclusions=None, preapproval=None, single_ring: bool = False):
     """Informe pre-anillo por ETAPA/entorno: los CIs impactados de esta etapa
     (réplica o reales), sus dependencias (subgrafo del Impact Graph), criterios de
     entrada, ventana y estado de pre-aprobación (auditoría Human-Driven)."""
     rng = _rng(task["id"] + f"plan{ring_no}")
-    stage = RING_STAGES[ring_no]
+    stage = ring_stage(ring_no, single_ring)
     is_replica = stage["kind"] == "replica"
     excluded = set(exclusions or [])
     node_by_id = {n["id"]: n for n in impact["nodes"]}
@@ -636,7 +657,8 @@ def build_itsm_change(task, impact, rng):
 
 
 def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_back_rings=None,
-                     preapprovals=None, exclusions=None, evidence=None, active_jobs=None):
+                     preapprovals=None, exclusions=None, evidence=None, active_jobs=None,
+                     single_ring: bool = False):
     """`evidence` contiene, por anillo, las acciones REALES ejecutadas por el
     provider (job). Si existe, prevalece sobre la simulación regenerada, de modo
     que reconstruir el despliegue nunca sobrescribe la evidencia del job."""
@@ -646,14 +668,16 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
     rolled_back_rings = set(rolled_back_rings or [])
     preapprovals = preapprovals or {}
     exclusions = exclusions or {}
-    assignment = assign_impact_to_rings(impact)
-    total_assets = impact["affected_count"]
+    assignment = assign_impact_to_rings(impact, single_ring)
+    # Con un único activo real el alcance del despliegue es esa instancia, no el
+    # blast radius completo de la simulación.
+    total_assets = 1 if single_ring else impact["affected_count"]
     executor = _deploy_executor(task, rng)
     rings = []
     ts_base = 0
-    for i, (rn, label) in enumerate(RING_DEFS):
+    for i, (rn, label) in enumerate(ring_defs(single_ring)):
         ring_nodes = assignment.get(rn, [])
-        assets = len(ring_nodes)
+        assets = 1 if single_ring else len(ring_nodes)
         if rn in rolled_back_rings:
             status = "rolled_back"
         elif i < progress_rings:
@@ -673,7 +697,8 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
         else:
             actions = None
         plan = build_ring_plan(task, impact, rn, label, CANARY_PCT[min(i, 4)], executor, ring_nodes,
-                               exclusions=exclusions.get(rn), preapproval=preapprovals.get(rn))
+                               exclusions=exclusions.get(rn), preapproval=preapprovals.get(rn),
+                               single_ring=single_ring)
         if executed_assets is not None and status in ("completed", "rolled_back"):
             assets = int(executed_assets)
         rings.append({
@@ -691,7 +716,8 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
             } if status == "completed" else None,
         })
     exceptions = []
-    if rng.random() > 0.5:
+    # Con un único activo real no hay activos exceptuados que simular.
+    if not single_ring and rng.random() > 0.5:
         exceptions.append({
             "asset": f"{task['ci_name']}-legacy-{rng.randint(1,9):02d}",
             "reason": rng.choice(["Sin ventana disponible", "Congelado por cambio", "Dependencia de proveedor", "Apagado"]),
