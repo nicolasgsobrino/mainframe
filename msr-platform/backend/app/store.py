@@ -251,19 +251,8 @@ class Store:
         self.repo.upsert_lab_target(lab)
 
     # ------------------------------------------------------------------
-    def _single_ring(self, tid: str) -> bool:
-        """La tarea del laboratorio contra AWS tiene un único activo real: su
-        despliegue es un solo anillo, no la promoción simulada de cinco entornos."""
-        if self.patch_provider.name != PROVIDER_AWS_AUTOMATION:
-            return False
-        return bool(self._lab_id_for_task(tid))
-
-    def _ring_defs(self, tid: str) -> list[tuple[int, str]]:
-        return engine.ring_defs(self.pipelines[tid].get("single_ring", False))
-
     def _init_pipeline(self, tid, phase_index):
         task = self.tasks[tid]
-        single_ring = self._single_ring(tid)
         impact = engine.build_impact_graph(task, self.cis, self.edges, adj=self.adj)
         mvt = engine.build_mvt(task, impact, self.catalog)
         # si la tarea ya avanzó más allá de la fase de laboratorio, el lab pasó
@@ -271,9 +260,7 @@ class Store:
         proto = engine.build_prototype(task, impact)
         # anillos completados si estamos en fase de despliegue
         rings_done = 0
-        # El laboratorio real no arrastra histórico ficticio: su único anillo se
-        # da por desplegado sólo cuando una Automation lo confirma.
-        if phase_index >= 5 and not single_ring:
+        if phase_index >= 5:
             # crc32 en lugar de hash(): estable entre procesos, de modo que la
             # rehidratación parte siempre del mismo histórico de demo.
             rings_done = random.Random(zlib.crc32(tid.encode()) & 0xFFFF).randint(1, 3)
@@ -287,8 +274,7 @@ class Store:
                 "approver": task.get("owner", "owner@bank.example"),
                 "ts": iso(NOW), "note": "Pre-aprobación histórica del despliegue."}
         deploy = engine.build_deployment(task, impact, rings_done,
-                                         preapprovals=ring_preapprovals, exclusions=ring_exclusions,
-                                         single_ring=single_ring)
+                                         preapprovals=ring_preapprovals, exclusions=ring_exclusions)
         audit = engine.build_audit(task, impact, mvt, lab, proto, deploy)
 
         # estado por fase
@@ -308,7 +294,6 @@ class Store:
         self.pipelines[tid] = {
             "task_id": tid, "phase_index": phase_index,
             "statuses": statuses, "rings_done": rings_done,
-            "single_ring": single_ring,
             "rolled_back_rings": [],
             "ring_preapprovals": ring_preapprovals,
             "ring_exclusions": ring_exclusions,
@@ -327,7 +312,7 @@ class Store:
                 "vi_status": self.vulnerable_items[task["vulnerable_item_id"]]["status"],
             },
         }
-        if phase_index >= 5 and rings_done >= len(engine.ring_defs(single_ring)):
+        if phase_index >= 5 and rings_done >= len(engine.RING_DEFS):
             self.tasks[tid]["status"] = "remediated"
 
     # ------------------------------------------------------------------
@@ -728,8 +713,7 @@ class Store:
             t, a["impact"], p["rings_done"],
             rollback=p["rollback"], rolled_back_rings=p["rolled_back_rings"],
             preapprovals=p.get("ring_preapprovals"), exclusions=p.get("ring_exclusions"),
-            evidence=p.get("ring_evidence"), active_jobs=self._jobs_by_ring(tid),
-            single_ring=p.get("single_ring", False))
+            evidence=p.get("ring_evidence"), active_jobs=self._jobs_by_ring(tid))
         a["deployment"] = deploy
         a["audit"] = engine.build_audit(t, a["impact"], a["mvt"], a["lab"], a["prototype"], deploy)
         return deploy
@@ -790,7 +774,7 @@ class Store:
         p = self.pipelines[tid]
         if p["rings_done"] <= 0:
             return self.task_detail(tid)
-        ring_no = self._ring_defs(tid)[p["rings_done"] - 1][0]
+        ring_no = engine.RING_DEFS[p["rings_done"] - 1][0]
         self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
                         "msg": f"⚠ Anomalía detectada en anillo {ring_no}: error rate 4.7% (SLO 1%), p95 1.8s. Post-check FAILED → disparando rollback automático."})
         return self.rollback(tid, reason="Post-check falló: error rate 4.7% > SLO, p95 1.8s", trigger="auto")
@@ -800,12 +784,9 @@ class Store:
     # ==================================================================
     def _jobs_by_ring(self, tid) -> dict:
         """Job más reciente por anillo, para adjuntarlo al artefacto de deployment."""
-        last_ring = self._ring_defs(tid)[-1][0]
         by_ring: dict[int, dict] = {}
         for job in self.repo.list_jobs_for_task(tid, limit=20):
-            # Los jobs de un plan de anillos anterior se muestran en el último
-            # anillo vigente en vez de desaparecer del despliegue.
-            by_ring.setdefault(min(job.ring_number, last_ring), job.as_dict())
+            by_ring.setdefault(job.ring_number, job.as_dict())
         return by_ring
 
     def _ring_assets(self, tid, ring_no) -> list[dict]:
@@ -973,20 +954,10 @@ class Store:
         if engine.PHASE_IDS[p["phase_index"]] != "deployment":
             raise ValidationError("La tarea no está en la fase de despliegue.",
                                   code="PHASE_NOT_DEPLOYMENT")
-        # Con el objetivo ya parcheado y confirmado no se arranca otra Automation
-        # (el runbook abortaría con KERNEL_ALREADY_FIXED).
-        patched = self._lab_patch_evidence(tid)
-        if patched is not None:
-            raise ValidationError(
-                f"El laboratorio ya está parcheado (kernel {patched['kernel']}, ejecución "
-                f"{patched['execution_id']}). Para repetir el parcheo hay que resetear "
-                "primero el laboratorio.",
-                code="LAB_ALREADY_PATCHED")
-        ring_defs = self._ring_defs(tid)
-        if p["rings_done"] >= len(ring_defs):
+        if p["rings_done"] >= len(engine.RING_DEFS):
             raise ValidationError("El despliegue ya ha completado todos los anillos.",
                                   code="DEPLOYMENT_COMPLETED")
-        ring_no = ring_defs[p["rings_done"]][0]
+        ring_no = engine.RING_DEFS[p["rings_done"]][0]
         preapproval = p.get("ring_preapprovals", {}).get(ring_no)
         if not (preapproval and preapproval.get("preapproved")):
             self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
@@ -1014,6 +985,14 @@ class Store:
         else:
             target = self._resolve_target(tid, ring_no)
             assets_count = max(1, ring["assets"])
+        # Idempotencia sobre el objetivo, no sobre el despliegue: los anillos
+        # posteriores de la promoción resuelven la misma instancia real, que ya
+        # está en la versión corregida. Se aprueban y se cierran con la evidencia
+        # del parcheo, sin relanzar la Automation (abortaría con
+        # KERNEL_ALREADY_FIXED).
+        patched = self._lab_patch_evidence(tid)
+        already_compliant = (patched is not None
+                             and target.instance_id == patched["instance_id"])
         busy = self.repo.active_job_for_target(target.logical_target_id)
         if busy is not None and busy.active:
             raise ConflictError(
@@ -1068,6 +1047,8 @@ class Store:
 
         job.transition_to(JobState.VALIDATING)
         self.repo.save_job(job)
+        if already_compliant and patched is not None:
+            return self._complete_compliant_ring(tid, job, ring, patched)
         try:
             policy = self.patch_provider.validate_target(request)
         except ProviderError as exc:
@@ -1096,6 +1077,31 @@ class Store:
             self._apply_job_outcome(tid, job)
         return job
 
+    def _complete_compliant_ring(self, tid, job: PatchJob, ring: dict,
+                                 evidence: dict) -> PatchJob:
+        """Cierra un anillo cuyo objetivo ya está en la versión corregida.
+
+        No es un parcheo nuevo: el anillo se da por desplegado con la evidencia
+        del parcheo que ya confirmó AWS, y el job queda en el histórico como
+        ejecución idempotente sin cambios en la instancia.
+        """
+        job.result_payload["already_compliant"] = dict(evidence)
+        job.result_payload["report"] = {"CurrentKernel": evidence["kernel"],
+                                        "HealthStatus": evidence["health_state"] or "healthy"}
+        job.provider_reference = evidence["execution_id"]
+        job.transition_to(JobState.STARTING)
+        job.transition_to(JobState.SUCCEEDED)
+        detail = (f"La instancia {evidence['instance_id']} ya está en la versión corregida "
+                  f"(kernel {evidence['kernel']}, ejecución {evidence['execution_id']}): "
+                  "el anillo se cierra sin relanzar la Automation.")
+        self.repo.append_event(job.id, job.state, detail)
+        self._release_lab_lock_for_job(job)
+        self.repo.save_job(job)
+        self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                        "msg": f"{ring['label']}: {detail}"})
+        self._apply_job_outcome(tid, job)
+        return job
+
     # ------------------------------------------------------------------
     def start_restore_job(self, tid, reason=None, trigger="manual",
                           idempotency_key: str | None = None,
@@ -1119,7 +1125,7 @@ class Store:
                     f"La tarea {tid} ya tiene un job activo ({active.id}).",
                     correlation_id=active.correlation_id)
 
-        ring_no = self._ring_defs(tid)[p["rings_done"] - 1][0]
+        ring_no = engine.RING_DEFS[p["rings_done"] - 1][0]
         plan = p["artifacts"]["deployment"]["rollback_plan"]
         reason = reason or ("Fallo de post-checks / breach de health-check" if trigger == "auto"
                            else "Rollback solicitado por el owner")
@@ -1390,12 +1396,8 @@ class Store:
                                    f"no se ha aplicado ningún cambio y el anillo {job.ring_number} "
                                    "no avanza."})
         elif job.job_type is JobType.PATCH and job.state is JobState.SUCCEEDED:
-            ring_defs = self._ring_defs(tid)
-            # Un job creado con otro plan de anillos (histórico) se proyecta sobre
-            # el último anillo existente en lugar de perderse.
-            ring_no = min(job.ring_number, ring_defs[-1][0])
-            ring_index = next(i for i, (rn, _) in enumerate(ring_defs) if rn == ring_no)
-            p["rings_done"] = max(p["rings_done"], ring_index + 1)
+            ring_no = job.ring_number
+            p["rings_done"] = max(p["rings_done"], ring_no)
             # Sólo se declaran desplegados los objetivos realmente ejecutados.
             executed = [tg.instance_id or tg.logical_target_id for tg in job.targets]
             p["ring_evidence"][ring_no] = {
@@ -1416,7 +1418,7 @@ class Store:
                             "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy "
                                    f"({', '.join(executed) or 'sin objetivos'})."})
             self._apply_lab_patch(job)
-            if p["rings_done"] >= len(ring_defs):
+            if p["rings_done"] >= len(engine.RING_DEFS):
                 t["status"] = "remediated"
                 # La fase de despliegue la cierra la evidencia del último anillo,
                 # no una aprobación adicional que ya no tiene nada que aprobar.
@@ -1854,6 +1856,10 @@ class Store:
         logical_lab_id = self.settings.lab_logical_id
         lab = self.repo.get_lab_target(logical_lab_id) if logical_lab_id else None
         if lab is None:
+            return
+        if job.result_payload.get("already_compliant"):
+            # Anillo cerrado sobre un objetivo ya parcheado: manda la evidencia
+            # del parcheo original, no la de esta ejecución sin cambios.
             return
         instance_ids = {target.instance_id for target in job.targets if target.instance_id}
         if lab.current_instance_id and lab.current_instance_id not in instance_ids:

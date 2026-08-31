@@ -129,9 +129,10 @@ export default function TaskDetail() {
 
   const nextRing = a.deployment.rings[d.rings_done];
   const nextRingPreapproved = !!nextRing?.plan.approval.preapproved;
-  // Objetivo ya parcheado y confirmado por AWS: no se ofrece volver a parchear.
+  // Evidencia del parcheo ya confirmado por AWS sobre la instancia del lab: los
+  // anillos siguientes se aprueban igual, pero no relanzan la Automation.
   const labPatch = d.lab_patch ?? null;
-  const canApprove = !done && !jobRunning && !labPatch && (
+  const canApprove = !done && !jobRunning && (
     currentPhaseId === "deployment"
       ? nextRingPreapproved
       : (currentPhaseId !== "lab_testing" || a.lab.verdict === "pass")
@@ -181,13 +182,13 @@ export default function TaskDetail() {
         <LabPanel
           labId={task.logical_lab_id}
           onPatch={approve}
-          patchBlockedReason={canApprove ? null
-            : (labPatch
-              ? `Parcheo ya confirmado (kernel ${labPatch.kernel ?? "—"}, ejecución ${labPatch.execution_id}). `
-                + "Para repetirlo hay que resetear antes el laboratorio."
+          patchBlockedReason={labPatch
+            ? `Parcheo ya confirmado (kernel ${labPatch.kernel ?? "—"}, ejecución ${labPatch.execution_id}). `
+              + "Para repetirlo hay que resetear antes el laboratorio."
+            : canApprove ? null
               : done ? "La tarea ya está remediada."
                 : jobRunning ? "Hay un job activo sobre el laboratorio."
-                  : "La fase actual no permite todavía ejecutar el parcheo.")}
+                  : "La fase actual no permite todavía ejecutar el parcheo."}
           locked={locked}
         />
       )}
@@ -374,13 +375,13 @@ export default function TaskDetail() {
                 {!canApprove && currentPhaseId === "lab_testing" && (
                   <div className="text-xs text-red-400 mb-2">⚠ El MVT ha fallado en laboratorio. ServiceNow bloquea el avance (rollback / análisis).</div>
                 )}
-                {labPatch && (
+                {labPatch && currentPhaseId === "deployment" && !done && (
                   <div className="text-xs text-green-400 mb-2">
-                    ✓ El objetivo ya está parcheado y verificado; el despliegue de este
-                    laboratorio no tiene nada pendiente.
+                    ✓ La instancia ya está parcheada y verificada: los anillos restantes se
+                    aprueban y se cierran con esa evidencia, sin relanzar la Automation.
                   </div>
                 )}
-                {!labPatch && !nextRingPreapproved && currentPhaseId === "deployment" && nextRing && (
+                {!nextRingPreapproved && currentPhaseId === "deployment" && nextRing && (
                   <div className="text-xs text-amber-300 mb-2">⚠ El anillo {nextRing.ring} requiere revisión y <b>pre-aprobación Human-Driven</b> de su informe pre-anillo (arriba, en Fase 6) antes de desplegar.</div>
                 )}
                 {jobRunning && (
@@ -433,8 +434,10 @@ function PatchConfirmed({ evidence }: { evidence: LabPatchEvidence }) {
         <Meta k="Confirmado" v={evidence.patched_at ? new Date(evidence.patched_at).toLocaleString("es-ES") : "—"} />
       </div>
       <div className="text-[11px] text-green-200/80 mt-2">
-        No quedan fases de parcheo pendientes para este objetivo. Para repetir el ciclo hay que
-        resetear el laboratorio, que recrea la instancia desde la AMI vulnerable.
+        La instancia está en la versión corregida: los anillos que aún queden por aprobar la
+        resuelven como objetivo y se cierran con esta evidencia, sin relanzar la Automation. Para
+        repetir el parcheo hay que resetear el laboratorio, que recrea la instancia desde la AMI
+        vulnerable.
       </div>
     </div>
   );

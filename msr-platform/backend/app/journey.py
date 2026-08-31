@@ -78,10 +78,6 @@ def _ring_label(ring: int | None) -> str | None:
     return dict(engine.RING_DEFS).get(ring)
 
 
-def _single_ring(pipeline: dict) -> bool:
-    return bool(pipeline.get("single_ring", False))
-
-
 def _deployment_position(task: dict, pipeline: dict) -> tuple[str, int | None, list[str]]:
     """Posición dentro del ciclo 4→7, que se repite en cada anillo."""
     deploy = pipeline["artifacts"]["deployment"]
@@ -152,7 +148,7 @@ def resource_rollup(pipeline: dict) -> dict:
     rolled_back = 0
     failed = 0
     for ring in deploy["rings"]:
-        stage = engine.ring_stage(ring["ring"], _single_ring(pipeline))
+        stage = engine.RING_STAGES[ring["ring"]]
         if not stage["prod"]:
             continue
         count = ring.get("executed_assets")
@@ -178,7 +174,7 @@ def resource_rollup(pipeline: dict) -> dict:
         "excluded": min(excluded, total),
         "rolled_back": min(rolled_back, total),
         "rings_done": pipeline["rings_done"],
-        "rings_total": len(engine.ring_defs(_single_ring(pipeline))),
+        "rings_total": len(engine.RING_DEFS),
     }
 
 
