@@ -6,6 +6,7 @@ from datetime import timedelta
 import pytest
 from conftest import deployment_task
 
+from app import engine
 from app.errors import ConflictError, TargetNotAllowedError, ValidationError
 from app.jobs import JobState, JobType
 from app.providers.base import (
@@ -123,7 +124,8 @@ def test_failed_job_does_not_advance_the_ring(settings, repo):
     assert store.pipelines[tid]["rings_done"] == before
 
 
-def test_dry_run_job_does_not_advance_the_ring(settings, repo):
+def test_dry_run_job_does_not_advance_the_ring_when_rehearsal_is_disabled(settings, repo):
+    settings.dry_run_advances_pipeline = False
     store = Store(settings=settings, repository=repo, patch_provider=DryRunPatchProvider())
     tid = deployment_task(store)
     preapprove_next_ring(store, tid)
@@ -135,6 +137,39 @@ def test_dry_run_job_does_not_advance_the_ring(settings, repo):
     assert job.terminal
     assert store.pipelines[tid]["rings_done"] == before
     assert any("dry-run" in entry["msg"].lower() for entry in store.pipelines[tid]["logs"])
+
+
+def test_dry_run_rehearsal_advances_the_ring_but_marks_it_simulated(settings, repo):
+    settings.dry_run_advances_pipeline = True
+    store = Store(settings=settings, repository=repo, patch_provider=DryRunPatchProvider())
+    tid = deployment_task(store)
+    preapprove_next_ring(store, tid)
+    before = store.pipelines[tid]["rings_done"]
+
+    job = store.start_ring_patch_job(tid, "key-1")
+
+    assert job.state is JobState.DRY_RUN
+    assert store.pipelines[tid]["rings_done"] == before + 1
+    assert store.pipelines[tid]["ring_evidence"][job.ring_number]["simulated"] is True
+    deploy = store.pipelines[tid]["artifacts"]["deployment"]
+    ring = next(r for r in deploy["rings"] if r["ring"] == job.ring_number)
+    assert ring["simulated"] is True
+
+
+def test_dry_run_rehearsal_never_declares_the_vulnerability_fixed(settings, repo):
+    settings.dry_run_advances_pipeline = True
+    store = Store(settings=settings, repository=repo, patch_provider=DryRunPatchProvider())
+    tid = deployment_task(store)
+    i = 0
+    while store.pipelines[tid]["rings_done"] < len(engine.RING_DEFS):
+        preapprove_next_ring(store, tid)
+        store.start_ring_patch_job(tid, f"key-{i}")
+        i += 1
+
+    task = store.tasks[tid]
+    assert store.pipelines[tid]["rings_done"] == len(engine.RING_DEFS)
+    assert task.get("status") != "remediated"
+    assert store.vulnerable_items[task["vulnerable_item_id"]]["status"] == "open"
 
 
 def test_rejected_target_fails_the_job_and_raises(settings, repo):

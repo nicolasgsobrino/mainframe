@@ -337,6 +337,7 @@ export interface RingPlan {
 }
 export interface Ring {
   ring: number; label: string; assets: number; status: string; post_checks: string[]; result: string;
+  simulated?: boolean;
   actions: { steps: RingAction[]; from_version: string; to_version: string } | null;
   job?: PatchJob | null;
   plan: RingPlan;

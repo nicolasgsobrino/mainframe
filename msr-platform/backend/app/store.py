@@ -1387,45 +1387,11 @@ class Store:
             return
         self._projected.add(job.id)
         job.result_payload["outcome_applied"] = True
-        p = self.pipelines[tid]
-        t = self.tasks[tid]
 
         if job.state is JobState.DRY_RUN:
-            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                            "msg": f"Dry-run completado (job {job.id}, provider {job.provider}): "
-                                   f"no se ha aplicado ningún cambio y el anillo {job.ring_number} "
-                                   "no avanza."})
+            self._apply_dry_run(tid, job)
         elif job.job_type is JobType.PATCH and job.state is JobState.SUCCEEDED:
-            ring_no = job.ring_number
-            p["rings_done"] = max(p["rings_done"], ring_no)
-            # Sólo se declaran desplegados los objetivos realmente ejecutados.
-            executed = [tg.instance_id or tg.logical_target_id for tg in job.targets]
-            p["ring_evidence"][ring_no] = {
-                "steps": job.steps(),
-                "from_version": job.result_payload.get("from_version"),
-                "to_version": job.result_payload.get("to_version"),
-                "job_id": job.id, "provider": job.provider,
-                "executed_assets": job.request_payload.get("assets_count") or len(executed),
-                "executed_targets": executed,
-            }
-            deploy = self._rebuild_deploy(tid)
-            ring = next(r for r in deploy["rings"] if r["ring"] == ring_no)
-            for step in job.steps():
-                self._log(tid, {"actor": step.get("actor", "Devin"), "phase": "deployment",
-                                "msg": f"$ {step.get('command')} → {step.get('output')} "
-                                       f"({step.get('duration_s', 0)}s)"})
-            self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                            "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy "
-                                   f"({', '.join(executed) or 'sin objetivos'})."})
-            self._apply_lab_patch(job)
-            if p["rings_done"] >= len(engine.RING_DEFS):
-                t["status"] = "remediated"
-                # La fase de despliegue la cierra la evidencia del último anillo,
-                # no una aprobación adicional que ya no tiene nada que aprobar.
-                p["statuses"]["deployment"] = "approved"
-                self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
-                self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                                "msg": "Reescaneo verificado. Vulnerable Item → FIXED. Informe de auditoría generado."})
+            self._project_ring_deployed(tid, job)
         elif job.job_type is JobType.RESET_LAB and job.state is JobState.RESTORED:
             self._apply_lab_reset(tid, job)
         elif job.job_type is not JobType.PATCH and job.state is JobState.RESTORED:
@@ -1440,6 +1406,98 @@ class Store:
             self._rebuild_deploy(tid)
         if persist:
             self.repo.save_job(job)
+
+    def _apply_dry_run(self, tid: str, job: PatchJob) -> None:
+        """Efecto de un job de dry-run: ensayo del recorrido, nunca evidencia real.
+
+        Con `MSR_DRY_RUN_ADVANCES_PIPELINE` el anillo avanza (o el reset reabre el
+        ciclo) para poder recorrer las cinco aprobaciones sin tocar AWS. El estado
+        del laboratorio no se toca: sigue siendo el que AWS reporta.
+        """
+        if not self.settings.dry_run_advances_pipeline:
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": f"Dry-run completado (job {job.id}, provider {job.provider}): "
+                                   f"no se ha aplicado ningún cambio y el anillo {job.ring_number} "
+                                   "no avanza."})
+            return
+        if job.job_type is JobType.PATCH:
+            self._project_ring_deployed(tid, job, simulated=True)
+        elif job.job_type is JobType.RESET_LAB:
+            self._reopen_pipeline(tid)
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": f"↺ Reset simulado (job {job.id}): el ciclo de anillos vuelve "
+                                   "a empezar. La instancia real no se ha recreado."})
+        else:
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": f"Dry-run completado (job {job.id}): sin cambios reales."})
+
+    def _reopen_pipeline(self, tid: str) -> None:
+        """Devuelve el despliegue a su línea base para repetir el ciclo completo."""
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        p["rings_done"] = 0
+        p["ring_evidence"] = {}
+        p["rolled_back_rings"] = []
+        if p["statuses"].get("deployment") == "approved":
+            p["statuses"]["deployment"] = "awaiting_approval"
+        if t.get("status") == "remediated":
+            t["status"] = "in_flight"
+        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "open"
+        self._rebuild_deploy(tid)
+
+    def _project_ring_deployed(self, tid: str, job: PatchJob, *,
+                               simulated: bool = False) -> None:
+        """Proyecta un anillo desplegado sobre el pipeline.
+
+        `simulated` marca la evidencia de un ensayo en dry-run: el anillo avanza
+        para poder recorrer las aprobaciones, pero no se registra evidencia de
+        parcheo sobre el laboratorio ni se declara corregido el Vulnerable Item.
+        """
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        ring_no = job.ring_number
+        p["rings_done"] = max(p["rings_done"], ring_no)
+        # Sólo se declaran desplegados los objetivos realmente ejecutados.
+        executed = [tg.instance_id or tg.logical_target_id for tg in job.targets]
+        p["ring_evidence"][ring_no] = {
+            "steps": job.steps(),
+            "from_version": job.result_payload.get("from_version"),
+            "to_version": job.result_payload.get("to_version"),
+            "job_id": job.id, "provider": job.provider,
+            "executed_assets": job.request_payload.get("assets_count") or len(executed),
+            "executed_targets": executed,
+            "simulated": simulated,
+        }
+        deploy = self._rebuild_deploy(tid)
+        ring = next(r for r in deploy["rings"] if r["ring"] == ring_no)
+        for step in job.steps():
+            self._log(tid, {"actor": step.get("actor", "Devin"), "phase": "deployment",
+                            "msg": f"$ {step.get('command')} → {step.get('output')} "
+                                   f"({step.get('duration_s', 0)}s)"})
+        if simulated:
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": f"{ring['label']}: anillo completado en dry-run (job {job.id}). "
+                                   "Ensayo del recorrido: no se ha aplicado ningún parche."})
+        else:
+            self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
+                            "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy "
+                                   f"({', '.join(executed) or 'sin objetivos'})."})
+            self._apply_lab_patch(job)
+        if p["rings_done"] < len(engine.RING_DEFS):
+            return
+        # La fase de despliegue la cierra la evidencia del último anillo, no una
+        # aprobación adicional que ya no tiene nada que aprobar.
+        p["statuses"]["deployment"] = "approved"
+        if simulated:
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": "Recorrido completo ensayado en dry-run: el Vulnerable Item sigue "
+                                   "abierto porque no se ha aplicado ningún parche."})
+            return
+        t["status"] = "remediated"
+        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
+        self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
+                        "msg": "Reescaneo verificado. Vulnerable Item → FIXED. "
+                               "Informe de auditoría generado."})
 
     # ------------------------------------------------------------------
     # Laboratorio reutilizable (modelo persistente; sin operaciones EC2)

@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     patch_provider: str = PROVIDER_MOCK
     restore_provider: str = PROVIDER_MOCK
     dry_run: bool = True
+    # Ensayo del recorrido completo sin tocar AWS: un job de dry-run avanza el
+    # anillo con evidencia marcada como simulada. Nunca altera el estado
+    # observado del laboratorio, que sigue siendo el que AWS reporta.
+    dry_run_advances_pipeline: bool = True
 
     # --- Persistencia de jobs ---------------------------------------------
     jobs_db_path: str = "./data/msr_jobs.db"

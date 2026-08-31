@@ -679,16 +679,18 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
         rings.append({
             "ring": rn, "label": label, "assets": assets, "status": status,
             "executed_assets": executed_assets,
+            "simulated": bool(ring_evidence.get("simulated")),
             "post_checks": ["version-assert", "health-check", "smoke-test", "synthetic-probe"] if status in ("completed", "rolled_back") else [],
             "result": {"completed": "healthy", "rolled_back": "reverted", "in_progress": "-", "pending": "-"}[status],
             "actions": actions,
             "plan": plan,
             "job": active_jobs.get(rn),
+            # Un anillo ensayado en dry-run no tiene telemetría que mostrar.
             "health": {
                 "error_rate_pct": round(rng.uniform(0.0, 0.3), 2),
                 "p95_latency_ms": rng.randint(120, 420),
                 "availability_pct": round(rng.uniform(99.9, 100.0), 2),
-            } if status == "completed" else None,
+            } if status == "completed" and not ring_evidence.get("simulated") else None,
         })
     exceptions = []
     if rng.random() > 0.5:

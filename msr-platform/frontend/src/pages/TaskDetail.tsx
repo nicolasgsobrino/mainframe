@@ -399,8 +399,9 @@ export default function TaskDetail() {
                 {lastJob?.terminal && lastJob.dry_run && (
                   <div className="text-xs text-sky-300 mb-2">
                     ⓘ Job {lastJob.id} terminado en <b>dry-run</b>: se ha validado el objetivo y
-                    planificado la Automation, pero no se ha aplicado nada ni ha avanzado el anillo.
-                    El detalle está arriba, en «Ejecución del parche».
+                    planificado la Automation, pero no se ha aplicado nada. El anillo avanza como
+                    ensayo del recorrido y queda marcado «simulado». El detalle está arriba, en
+                    «Ejecución del parche».
                   </div>
                 )}
                 <button disabled={locked || !canApprove} onClick={approve}
@@ -1044,7 +1045,7 @@ function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
             : r.status === "rolled_back" ? "#f59e0b"
             : r.status === "in_progress" ? "#38bdf8" : "#3f4756";
           const stLabel =
-            r.status === "completed" ? "Desplegado"
+            r.status === "completed" ? (r.simulated ? "Simulado" : "Desplegado")
             : r.status === "rolled_back" ? "Revertido"
             : r.status === "in_progress" ? "En curso" : "Pendiente";
           const envKey = ringEnvKey(i);
@@ -1065,6 +1066,11 @@ function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
                 <div>{r.plan.runs_tests
                   ? <span className="text-green-400">✓ pruebas en entorno</span>
                   : <span className="text-gray-500">validación por telemetría</span>}</div>
+                {r.simulated && (
+                  <div className="text-amber-300" title="Ensayo en dry-run: no se ha aplicado ningún parche">
+                    ⚑ dry-run · sin cambios reales
+                  </div>
+                )}
                 {r.status === "completed" && r.health && (
                   <div className="text-gray-500">salud: {r.health.availability_pct}% avail · err {r.health.error_rate_pct}%</div>
                 )}
