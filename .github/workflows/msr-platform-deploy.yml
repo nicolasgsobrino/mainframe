@@ -1,0 +1,114 @@
+name: msr-platform deploy (ECS Fargate, SUPERSEDED)
+
+# SUPERSEDED / NO OBJETIVO (fase 2.9): la aplicación MSR ya no se aloja en AWS, así
+# que este pipeline de ECR/ECS no es el camino de despliegue objetivo. Se conserva
+# por valor histórico y sigue siendo manual, de modo que nunca se ejecuta solo.
+# Arquitectura vigente: msr-platform/ARCHITECTURE_REPORT_PHASE2_9.md.
+#
+# Despliegue manual y explícito: nunca se dispara por push ni por PR.
+#
+# El pipeline no usa claves estáticas: obtiene credenciales temporales por OIDC
+# (`role-to-assume`) y la aplicación desplegada usa su ECS Task Role. Mientras las
+# variables/secretos del entorno `msr-poc` no estén configurados, el workflow no
+# puede tocar la cuenta.
+#
+# Ciclo de release:
+#   build+push de la imagen
+#     → nueva revisión de la task definition y despliegue del servicio
+#     → UNA ejecución de `python -m app.lab_hook`
+#     → si el laboratorio ya es vulnerable y sano: action=none y READY
+#     → si está parcheado: reset_required y el release queda en no-listo
+#   Sólo un release explícitamente autorizado (confirm_reset = true) ejecuta
+#   `python -m app.lab_hook --confirm`, que sí puede resetear el laboratorio.
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag de la imagen a publicar y desplegar"
+        required: true
+        type: string
+      confirm_reset:
+        description: "Autoriza el reset destructivo del laboratorio si está parcheado"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  # Un solo release a la vez: el hook de reconciliación no puede solaparse.
+  group: msr-platform-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: msr-poc
+    env:
+      AWS_REGION: ${{ vars.MSR_AWS_REGION }}
+      ECR_REPOSITORY: ${{ vars.MSR_ECR_REPOSITORY }}
+      ECS_CLUSTER: ${{ vars.MSR_ECS_CLUSTER }}
+      ECS_SERVICE: ${{ vars.MSR_ECS_SERVICE }}
+      ECS_TASK_DEFINITION: ${{ vars.MSR_ECS_TASK_DEFINITION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Credenciales temporales por OIDC (sin claves estáticas)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.MSR_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      # El repositorio ECR tiene tags inmutables: cada release publica un tag
+      # nuevo (por ejemplo el SHA del commit) y no reescribe ninguno anterior.
+      - name: Construir y publicar la imagen en ECR
+        run: |
+          image="${{ steps.ecr.outputs.registry }}/${ECR_REPOSITORY}:${{ inputs.image_tag }}"
+          docker build -t "$image" msr-platform
+          docker push "$image"
+          echo "image=$image" >> "$GITHUB_ENV"
+
+      # Nueva revisión con la imagen recién publicada: sin este paso el servicio
+      # seguiría arrancando la imagen de la revisión anterior.
+      - name: Registrar la revisión de la task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "$ECS_TASK_DEFINITION" \
+            --query taskDefinition > task-definition.json
+          jq --arg image "$image" '
+            .containerDefinitions[0].image = $image
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy)' \
+            task-definition.json > task-definition-new.json
+          revision=$(aws ecs register-task-definition \
+            --cli-input-json file://task-definition-new.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+          echo "revision=$revision" >> "$GITHUB_ENV"
+
+      - name: Desplegar la revisión en el servicio
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" \
+            --task-definition "$revision" --force-new-deployment
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"
+
+      # Reconciliación de una sola ejecución por release: RunTask con el comando
+      # sustituido. Las réplicas del servicio nunca la ejecutan.
+      - name: Hook de reconciliación del laboratorio
+        env:
+          MSR_ECS_CLUSTER: ${{ env.ECS_CLUSTER }}
+          MSR_ECS_TASK_DEFINITION: ${{ env.ECS_TASK_DEFINITION }}
+          MSR_ECS_SUBNETS: ${{ vars.MSR_ECS_SUBNETS }}
+          MSR_ECS_SECURITY_GROUPS: ${{ vars.MSR_ECS_SECURITY_GROUPS }}
+          MSR_AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          if [ "${{ inputs.confirm_reset }}" = "true" ]; then
+            ./msr-platform/scripts/release_lab_hook.sh --confirm
+          else
+            ./msr-platform/scripts/release_lab_hook.sh
+          fi

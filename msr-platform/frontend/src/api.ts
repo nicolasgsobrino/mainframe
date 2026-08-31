@@ -1,4 +1,4 @@
-import type { Overview, Task, TaskDetail, CI, Edge, TestCase, VulnerableItem, Service, CmdbSummary, CmdbCiRaw, CmdbTables, ApiErrorBody, ExecutionConfig, PatchJob } from "./types";
+import type { Overview, Task, TaskDetail, CI, Edge, TestCase, VulnerableItem, Service, CmdbSummary, CmdbCiRaw, CmdbTables, ApiErrorBody, ExecutionConfig, PatchJob, LabSnapshot, LabValidation, LabResetResponse, LabReconciliation, LabReconcileResult } from "./types";
 
 /** Error de API con el sobre uniforme del backend (`error.code`/`correlation_id`). */
 export class ApiError extends Error {
@@ -78,6 +78,22 @@ export const api = {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ excluded }),
     }).then(j),
+  // Laboratorio EC2: el backend resuelve la instancia por tags. Ninguna de
+  // estas llamadas envía Instance IDs, comandos, documentos ni parámetros.
+  lab: (labId: string): Promise<LabSnapshot> => fetch(`/api/labs/${labId}`).then(j),
+  validateLab: (labId: string): Promise<LabValidation> =>
+    fetch(`/api/labs/${labId}/validate`, { method: "POST" }).then(j),
+  // El reset real termina la instancia: el backend exige `confirmed` explícito.
+  resetLab: (labId: string, confirmed = false): Promise<LabResetResponse> =>
+    mutate(`/api/labs/${labId}/reset`, `lab-reset:${labId}`, { confirmed }),
+  labReconciliation: (labId: string): Promise<LabReconciliation> =>
+    fetch(`/api/labs/${labId}/reconciliation`).then(j),
+  reconcileLab: (labId: string, confirmed = false): Promise<LabReconcileResult> =>
+    fetch(`/api/labs/${labId}/reconcile`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmed }),
+    }).then(j),
+  labJobs: (labId: string): Promise<PatchJob[]> => fetch(`/api/labs/${labId}/jobs`).then(j),
   cmdb: (): Promise<{ summary: CmdbSummary; services: CI[] }> => fetch("/api/cmdb").then(j),
   cmdbCis: (params: { cls?: string; track?: string; crit?: string; q?: string; limit?: number; offset?: number } = {}): Promise<{ total: number; items: CI[] }> => {
     const qs = new URLSearchParams();

@@ -1,0 +1,538 @@
+# Runbook de reset del laboratorio MSR.
+#
+# Procesado con `templatefile()`: los tags obligatorios, la cuenta, la región, la
+# AMI base, el Launch Template esperado y el nombre del Auto Scaling Group los
+# fija Terraform. El reset NO es un rollback: sustituye deliberadamente la
+# instancia vulnerable para poder repetir la PoC.
+#
+# La sustitución la hace Auto Scaling (TerminateInstanceInAutoScalingGroup con
+# ShouldDecrementDesiredCapacity=false): el runbook nunca llama a
+# ec2:TerminateInstances ni a ec2:RunInstances, de modo que Terraform conserva el
+# control del laboratorio y no aparece deriva de estado.
+#
+# El runbook NO declara `assumeRole`: la cuenta no permite crear un service role
+# de Automation para la PoC, así que los pasos se ejecutan con los permisos de la
+# identidad que inicia la ejecución (el ECS Task Role del backend). No existe
+# ningún parámetro de rol, de modo que la identidad efectiva no es configurable
+# desde fuera.
+schemaVersion: '0.3'
+description: >-
+  MSR PoC: sustituye la instancia etiquetada del laboratorio ${lab_id} dentro de
+  su Auto Scaling Group, dejándola de nuevo vulnerable a ${candidate_advisory_id}.
+parameters:
+  CurrentInstanceId:
+    type: AWS::EC2::Instance::Id
+    description: Instancia actual del laboratorio que se va a reemplazar.
+  AutoScalingGroupName:
+    type: String
+    description: >-
+      Auto Scaling Group del laboratorio. El valor esperado lo fija la IaC y el
+      runbook lo valida: no puede utilizarse un ASG arbitrario.
+    default: '${autoscaling_group_name}'
+    allowedPattern: '^[\w+=,.@-]{1,255}$'
+  CorrelationId:
+    type: String
+    description: Identificador de correlación del job de la plataforma.
+    default: 'manual'
+    allowedPattern: '^[\w.:-]{1,64}$'
+outputs:
+  - Report.OldInstanceId
+  - Report.NewInstanceId
+  - Report.LogicalLabId
+  - Report.VulnerableState
+  - Report.HealthState
+  - Report.CorrelationId
+mainSteps:
+  # 1-2) Identidad y tags de la instancia actual (incluido msr-resettable=true).
+  - name: DescribeCurrentInstance
+    action: aws:executeAwsApi
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ CurrentInstanceId }}'
+    outputs:
+      - Name: OwnerId
+        Selector: '$.Reservations[0].OwnerId'
+        Type: String
+      - Name: AvailabilityZone
+        Selector: '$.Reservations[0].Instances[0].Placement.AvailabilityZone'
+        Type: String
+      - Name: State
+        Selector: '$.Reservations[0].Instances[0].State.Name'
+        Type: String
+      - Name: ImageId
+        Selector: '$.Reservations[0].Instances[0].ImageId'
+        Type: String
+      - Name: Tags
+        Selector: '$.Reservations[0].Instances[0].Tags'
+        Type: MapList
+
+  - name: ValidateResettableTarget
+    action: aws:executeScript
+    timeoutSeconds: 120
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        owner_id: '{{ DescribeCurrentInstance.OwnerId }}'
+        availability_zone: '{{ DescribeCurrentInstance.AvailabilityZone }}'
+        state: '{{ DescribeCurrentInstance.State }}'
+        image_id: '{{ DescribeCurrentInstance.ImageId }}'
+        tags: '{{ DescribeCurrentInstance.Tags }}'
+      Script: |
+        EXPECTED_ACCOUNT = "${aws_account_id}"
+        EXPECTED_REGION = "${aws_region}"
+        REQUIRED_TAGS = ${required_tags_json}
+
+        def handler(events, context):
+            # Ninguna instancia se sustituye si le falta un solo tag obligatorio.
+            tags = {t["Key"]: t["Value"] for t in events["tags"] or []}
+            missing = [k for k, v in REQUIRED_TAGS.items() if tags.get(k) != v]
+            if missing:
+                raise Exception("RESET_TARGET_TAGS_INVALID:" + ",".join(sorted(missing)))
+            if tags.get("msr-resettable") != "true":
+                raise Exception("RESET_TARGET_NOT_RESETTABLE")
+            if events["owner_id"] != EXPECTED_ACCOUNT:
+                raise Exception("TARGET_ACCOUNT_NOT_ALLOWED")
+            if events["availability_zone"][:-1] != EXPECTED_REGION:
+                raise Exception("TARGET_REGION_NOT_ALLOWED")
+            return {
+                "recorded_state": events["state"],
+                "recorded_image_id": events["image_id"],
+            }
+    outputs:
+      - Name: RecordedState
+        Selector: '$.Payload.recorded_state'
+        Type: String
+      - Name: RecordedImageId
+        Selector: '$.Payload.recorded_image_id'
+        Type: String
+
+  # 3-4) La instancia tiene que pertenecer EXACTAMENTE al ASG configurado.
+  - name: DescribeAutoScalingMembership
+    action: aws:executeAwsApi
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Service: autoscaling
+      Api: DescribeAutoScalingInstances
+      InstanceIds:
+        - '{{ CurrentInstanceId }}'
+    outputs:
+      - Name: GroupName
+        Selector: '$.AutoScalingInstances[0].AutoScalingGroupName'
+        Type: String
+      - Name: LifecycleState
+        Selector: '$.AutoScalingInstances[0].LifecycleState'
+        Type: String
+
+  # 5-6) Y el ASG tiene que ser el de la PoC, con capacidad fija 1 y el Launch
+  #      Template y la versión esperados.
+  - name: DescribeAutoScalingGroup
+    action: aws:executeAwsApi
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Service: autoscaling
+      Api: DescribeAutoScalingGroups
+      AutoScalingGroupNames:
+        - '{{ AutoScalingGroupName }}'
+    outputs:
+      - Name: MinSize
+        Selector: '$.AutoScalingGroups[0].MinSize'
+        Type: Integer
+      - Name: MaxSize
+        Selector: '$.AutoScalingGroups[0].MaxSize'
+        Type: Integer
+      - Name: DesiredCapacity
+        Selector: '$.AutoScalingGroups[0].DesiredCapacity'
+        Type: Integer
+      - Name: LaunchTemplateId
+        Selector: '$.AutoScalingGroups[0].LaunchTemplate.LaunchTemplateId'
+        Type: String
+      - Name: LaunchTemplateVersion
+        Selector: '$.AutoScalingGroups[0].LaunchTemplate.Version'
+        Type: String
+      - Name: Instances
+        Selector: '$.AutoScalingGroups[0].Instances'
+        Type: MapList
+
+  - name: ValidateAutoScalingGroup
+    action: aws:executeScript
+    timeoutSeconds: 120
+    onFailure: 'step:FailTargetInvalid'
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        requested_group: '{{ AutoScalingGroupName }}'
+        membership_group: '{{ DescribeAutoScalingMembership.GroupName }}'
+        lifecycle_state: '{{ DescribeAutoScalingMembership.LifecycleState }}'
+        min_size: '{{ DescribeAutoScalingGroup.MinSize }}'
+        max_size: '{{ DescribeAutoScalingGroup.MaxSize }}'
+        desired_capacity: '{{ DescribeAutoScalingGroup.DesiredCapacity }}'
+        launch_template_id: '{{ DescribeAutoScalingGroup.LaunchTemplateId }}'
+        launch_template_version: '{{ DescribeAutoScalingGroup.LaunchTemplateVersion }}'
+        instances: '{{ DescribeAutoScalingGroup.Instances }}'
+      Script: |
+        EXPECTED_GROUP = "${autoscaling_group_name}"
+        EXPECTED_LT_ID = "${launch_template_id}"
+        EXPECTED_LT_VERSION = "${launch_template_version}"
+
+        def handler(events, context):
+            # El nombre del ASG lo fija la IaC: un ASG arbitrario se rechaza.
+            if events["requested_group"] != EXPECTED_GROUP:
+                raise Exception("RESET_ASG_NOT_ALLOWED:" + events["requested_group"])
+            if events["membership_group"] != EXPECTED_GROUP:
+                raise Exception("RESET_INSTANCE_NOT_IN_ASG:" + str(events["membership_group"]))
+            if events["lifecycle_state"] != "InService":
+                raise Exception("RESET_INSTANCE_NOT_IN_SERVICE:" + str(events["lifecycle_state"]))
+            if not (int(events["min_size"]) == int(events["max_size"]) == int(events["desired_capacity"]) == 1):
+                raise Exception("RESET_ASG_CAPACITY_UNEXPECTED")
+            if events["launch_template_id"] != EXPECTED_LT_ID:
+                raise Exception("RESET_ASG_LAUNCH_TEMPLATE_UNEXPECTED:" + str(events["launch_template_id"]))
+            if str(events["launch_template_version"]) != EXPECTED_LT_VERSION:
+                raise Exception(
+                    "RESET_ASG_LAUNCH_TEMPLATE_VERSION_UNEXPECTED:"
+                    + str(events["launch_template_version"])
+                )
+            in_service = [
+                i for i in events["instances"] or []
+                if i.get("LifecycleState") == "InService"
+            ]
+            if len(in_service) != 1:
+                raise Exception("RESET_ASG_INSTANCE_COUNT_UNEXPECTED:" + str(len(in_service)))
+            return {"group_name": EXPECTED_GROUP}
+    outputs:
+      - Name: GroupName
+        Selector: '$.Payload.group_name'
+        Type: String
+
+  # 7) Sustitución vía Auto Scaling: sin decrementar la capacidad deseada, para
+  #    que el grupo cree inmediatamente el reemplazo.
+  - name: TerminateInstanceInAutoScalingGroup
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: autoscaling
+      Api: TerminateInstanceInAutoScalingGroup
+      InstanceId: '{{ CurrentInstanceId }}'
+      ShouldDecrementDesiredCapacity: false
+
+  # 8-9) La instancia antigua deja de estar operativa y el ASG crea otra distinta.
+  - name: WaitForOldInstanceTerminated
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 900
+    onFailure: Abort
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ CurrentInstanceId }}'
+      PropertySelector: '$.Reservations[0].Instances[0].State.Name'
+      DesiredValues:
+        - terminated
+
+  # La espera larga es nativa: `aws:executeScript` está limitado a 600 s por AWS,
+  # así que el sondeo lo hace Automation, no un bucle dentro de un script.
+  - name: WaitForReplacementInService
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1800
+    onFailure: Abort
+    inputs:
+      Service: autoscaling
+      Api: DescribeAutoScalingGroups
+      AutoScalingGroupNames:
+        - '{{ AutoScalingGroupName }}'
+      PropertySelector: '$.AutoScalingGroups[0].Instances[0].LifecycleState'
+      DesiredValues:
+        - InService
+
+  - name: WaitForReplacementHealthy
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 900
+    onFailure: Abort
+    inputs:
+      Service: autoscaling
+      Api: DescribeAutoScalingGroups
+      AutoScalingGroupNames:
+        - '{{ AutoScalingGroupName }}'
+      PropertySelector: '$.AutoScalingGroups[0].Instances[0].HealthStatus'
+      DesiredValues:
+        - Healthy
+
+  - name: DescribeReplacementInstance
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: autoscaling
+      Api: DescribeAutoScalingGroups
+      AutoScalingGroupNames:
+        - '{{ AutoScalingGroupName }}'
+    outputs:
+      - Name: Instances
+        Selector: '$.AutoScalingGroups[0].Instances'
+        Type: MapList
+
+  # Validación corta y sin sondeo: el estado ya lo garantizaron las esperas.
+  - name: ValidateReplacementInstance
+    action: aws:executeScript
+    timeoutSeconds: 120
+    onFailure: Abort
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        old_instance_id: '{{ CurrentInstanceId }}'
+        instances: '{{ DescribeReplacementInstance.Instances }}'
+      Script: |
+        TERMINAL = (
+            "Terminating",
+            "Terminating:Wait",
+            "Terminating:Proceed",
+            "Terminated",
+        )
+
+        def handler(events, context):
+            old = events["old_instance_id"]
+            active = [
+                i for i in events["instances"] or []
+                if i.get("LifecycleState") not in TERMINAL
+            ]
+            if len(active) != 1:
+                raise Exception("RESET_ASG_INSTANCE_COUNT_UNEXPECTED:" + str(len(active)))
+            new = active[0]
+            if new["InstanceId"] == old:
+                raise Exception("RESET_REPLACEMENT_NOT_CREATED:" + old)
+            if new.get("LifecycleState") != "InService":
+                raise Exception(
+                    "RESET_REPLACEMENT_NOT_IN_SERVICE:" + str(new.get("LifecycleState"))
+                )
+            if new.get("HealthStatus") != "Healthy":
+                raise Exception(
+                    "RESET_REPLACEMENT_NOT_HEALTHY:" + str(new.get("HealthStatus"))
+                )
+            return {"new_instance_id": new["InstanceId"]}
+    outputs:
+      - Name: NewInstanceId
+        Selector: '$.Payload.new_instance_id'
+        Type: String
+
+  # 10) La nueva instancia arranca y se registra en Systems Manager.
+  - name: WaitForNewInstanceRunning
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 900
+    onFailure: Abort
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ ValidateReplacementInstance.NewInstanceId }}'
+      PropertySelector: '$.Reservations[0].Instances[0].State.Name'
+      DesiredValues:
+        - running
+
+  - name: WaitForNewManagedNode
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    onFailure: Abort
+    inputs:
+      Service: ssm
+      Api: DescribeInstanceInformation
+      Filters:
+        - Key: InstanceIds
+          Values:
+            - '{{ ValidateReplacementInstance.NewInstanceId }}'
+      PropertySelector: '$.InstanceInformationList[0].PingStatus'
+      DesiredValues:
+        - Online
+
+  # 11) Readiness: bootstrap terminado, AMI base, advisory aplicable y salud.
+  #     Mismo patrón SendCommand + GetCommandInvocation que el runbook de parcheo.
+  - name: SendReadinessCommand
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: ssm
+      Api: SendCommand
+      DocumentName: AWS-RunShellScript
+      InstanceIds:
+        - '{{ ValidateReplacementInstance.NewInstanceId }}'
+      TimeoutSeconds: 900
+      Parameters:
+        commands:
+          - set -uo pipefail
+          - for i in $(seq 1 60); do [ -f /var/lib/msr-poc/bootstrap-complete ] && break; sleep 10; done
+          - 'if [ -f /var/lib/msr-poc/bootstrap-complete ]; then echo "MSR_BOOTSTRAP=complete"; else echo "MSR_BOOTSTRAP=missing"; fi'
+          - "TOKEN=$(curl -sf -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')"
+          - 'echo "MSR_AMI=$(curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/ami-id || echo unknown)"'
+          - echo "MSR_KERNEL_RUNNING=$(uname -r)"
+          # Release base de la AMI, escrita por el bootstrap desde la IaC.
+          - 'MSR_AMI_RELEASE=$(grep expected_ami_release /var/lib/msr-poc/baseline.json | cut -d''"'' -f4)'
+          - 'echo "MSR_AMI_RELEASE=$${MSR_AMI_RELEASE:-unknown}"'
+          # Comparacion de version real (sort -V), nunca lexicografica.
+          - 'MSR_RUN=$(uname -r); MSR_FIX="${expected_fixed_kernel}"; if [ "$MSR_RUN" = "$MSR_FIX" ]; then echo "MSR_KERNEL_ORDER=equal"; elif [ "$(printf "%s\n%s\n" "$MSR_RUN" "$MSR_FIX" | sort -V | head -1)" = "$MSR_RUN" ]; then echo "MSR_KERNEL_ORDER=older"; else echo "MSR_KERNEL_ORDER=newer"; fi'
+          # El advisory solo es visible consultando el releasever que lo corrige.
+          - 'MSR_OUT=$(dnf updateinfo list --available --advisory ${candidate_advisory_id} --releasever ${candidate_releasever} 2>/dev/null); MSR_RC=$?; if [ "$MSR_RC" -ne 0 ]; then echo "MSR_REPO_REACHABLE=false"; echo "MSR_ADVISORY_APPLICABLE=unknown"; else echo "MSR_REPO_REACHABLE=true"; if echo "$MSR_OUT" | grep -q "${candidate_advisory_id}"; then echo "MSR_ADVISORY_APPLICABLE=true"; else echo "MSR_ADVISORY_APPLICABLE=false"; fi; fi'
+          - echo "MSR_HTTPD=$(systemctl is-active httpd || true)"
+          - echo "MSR_HEALTH=$(curl -sf --max-time 5 http://127.0.0.1/health || echo UNREACHABLE)"
+          - exit 0
+    outputs:
+      - Name: CommandId
+        Selector: '$.Command.CommandId'
+        Type: String
+
+  - name: WaitForReadinessCommand
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    onFailure: Abort
+    inputs:
+      Service: ssm
+      Api: GetCommandInvocation
+      CommandId: '{{ SendReadinessCommand.CommandId }}'
+      InstanceId: '{{ ValidateReplacementInstance.NewInstanceId }}'
+      PropertySelector: '$.Status'
+      DesiredValues:
+        - Success
+
+  - name: GetReadinessOutput
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: ssm
+      Api: GetCommandInvocation
+      CommandId: '{{ SendReadinessCommand.CommandId }}'
+      InstanceId: '{{ ValidateReplacementInstance.NewInstanceId }}'
+    outputs:
+      - Name: StandardOutputContent
+        Selector: '$.StandardOutputContent'
+        Type: String
+
+  - name: VerifyNewInstanceTags
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: ec2
+      Api: DescribeInstances
+      InstanceIds:
+        - '{{ ValidateReplacementInstance.NewInstanceId }}'
+    outputs:
+      - Name: Tags
+        Selector: '$.Reservations[0].Instances[0].Tags'
+        Type: MapList
+      - Name: ImageId
+        Selector: '$.Reservations[0].Instances[0].ImageId'
+        Type: String
+
+  # 12) Verificación estricta y salida estructurada del reset.
+  - name: Report
+    action: aws:executeScript
+    timeoutSeconds: 120
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        old_instance_id: '{{ CurrentInstanceId }}'
+        new_instance_id: '{{ ValidateReplacementInstance.NewInstanceId }}'
+        correlation_id: '{{ CorrelationId }}'
+        readiness: '{{ GetReadinessOutput.StandardOutputContent }}'
+        tags: '{{ VerifyNewInstanceTags.Tags }}'
+        described_image_id: '{{ VerifyNewInstanceTags.ImageId }}'
+      Script: |
+        EXPECTED_AMI = "${source_ami_id}"
+        EXPECTED_AMI_RELEASE = "${source_ami_release}"
+        ADVISORY = "${candidate_advisory_id}"
+        RELEASEVER = "${candidate_releasever}"
+        EXPECTED_FIXED_KERNEL = "${expected_fixed_kernel}"
+        REQUIRED_TAGS = ${required_tags_json}
+        LOGICAL_LAB_ID = "${lab_id}"
+
+        def parse(text):
+            values = {}
+            for line in (text or "").splitlines():
+                if line.startswith("MSR_") and "=" in line:
+                    key, _, value = line.partition("=")
+                    values[key.strip()] = value.strip()
+            return values
+
+        def handler(events, context):
+            values = parse(events["readiness"])
+            tags = {t["Key"]: t["Value"] for t in events["tags"] or []}
+            missing = [k for k, v in REQUIRED_TAGS.items() if tags.get(k) != v]
+            if missing:
+                raise Exception("RESET_TAGS_MISSING:" + ",".join(sorted(missing)))
+            if values.get("MSR_BOOTSTRAP") != "complete":
+                raise Exception("RESET_BOOTSTRAP_INCOMPLETE")
+
+            # La AMI se exige EXACTA. Un valor ausente o "unknown" no es
+            # aceptable: sin poder verificarla, el reset no puede darse por bueno.
+            reported_ami = values.get("MSR_AMI", "")
+            described_ami = events["described_image_id"]
+            if not reported_ami or reported_ami == "unknown":
+                raise Exception("RESET_AMI_UNVERIFIABLE")
+            if reported_ami != EXPECTED_AMI or described_ami != EXPECTED_AMI:
+                raise Exception("RESET_AMI_MISMATCH:" + reported_ami + "/" + str(described_ami))
+
+            # La release base de la AMI debe ser la esperada (anterior a la
+            # corrección): no basta con el ID ni con la fecha de la imagen.
+            if values.get("MSR_AMI_RELEASE") != EXPECTED_AMI_RELEASE:
+                raise Exception(
+                    "RESET_AMI_RELEASE_MISMATCH:" + str(values.get("MSR_AMI_RELEASE"))
+                )
+
+            # Repositorio inaccesible != instancia no vulnerable.
+            if values.get("MSR_REPO_REACHABLE") != "true":
+                raise Exception("PATCH_REPOSITORY_UNREACHABLE:" + RELEASEVER)
+            if values.get("MSR_ADVISORY_APPLICABLE") != "true":
+                raise Exception("RESET_TARGET_NOT_VULNERABLE:" + ADVISORY)
+            # El kernel tiene que ser ANTERIOR al corregido.
+            if values.get("MSR_KERNEL_ORDER") != "older":
+                raise Exception(
+                    "RESET_KERNEL_NOT_VULNERABLE:" + str(values.get("MSR_KERNEL_RUNNING"))
+                )
+            if values.get("MSR_HTTPD") != "active" or values.get("MSR_HEALTH") != "MSR_POC_HEALTHY":
+                raise Exception("RESET_HEALTH_CHECK_FAILED")
+            return {
+                "OldInstanceId": events["old_instance_id"],
+                "NewInstanceId": events["new_instance_id"],
+                "LogicalLabId": LOGICAL_LAB_ID,
+                "Advisory": ADVISORY,
+                "Releasever": RELEASEVER,
+                "ExpectedFixedKernel": EXPECTED_FIXED_KERNEL,
+                "RunningKernel": values.get("MSR_KERNEL_RUNNING", ""),
+                "VulnerableState": "VULNERABLE",
+                "HealthState": "HEALTHY",
+                "CorrelationId": events["correlation_id"],
+            }
+    outputs:
+      - Name: OldInstanceId
+        Selector: '$.Payload.OldInstanceId'
+        Type: String
+      - Name: NewInstanceId
+        Selector: '$.Payload.NewInstanceId'
+        Type: String
+      - Name: LogicalLabId
+        Selector: '$.Payload.LogicalLabId'
+        Type: String
+      - Name: VulnerableState
+        Selector: '$.Payload.VulnerableState'
+        Type: String
+      - Name: HealthState
+        Selector: '$.Payload.HealthState'
+        Type: String
+      - Name: CorrelationId
+        Selector: '$.Payload.CorrelationId'
+        Type: String
+
+  - name: FailTargetInvalid
+    action: aws:executeScript
+    timeoutSeconds: 120
+    isEnd: true
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      Script: |
+        def handler(events, context):
+            raise Exception("RESET_TARGET_NOT_ALLOWED")

@@ -5,11 +5,19 @@ aplicación arranca y funciona sin ninguna configuración de AWS.
 """
 from __future__ import annotations
 
+import json
 import os
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+from .runbooks import (
+    DEFAULT_PATCH_RUNBOOK,
+    DEFAULT_RESET_RUNBOOK,
+    DEFAULT_ROLLBACK_RUNBOOK,
+)
 
 PROVIDER_MOCK = "mock"
 PROVIDER_AWS_AUTOMATION = "aws-automation"
@@ -33,6 +41,10 @@ class Settings(BaseSettings):
     patch_provider: str = PROVIDER_MOCK
     restore_provider: str = PROVIDER_MOCK
     dry_run: bool = True
+    # Ensayo del recorrido completo sin tocar AWS: un job de dry-run avanza el
+    # anillo con evidencia marcada como simulada. Nunca altera el estado
+    # observado del laboratorio, que sigue siendo el que AWS reporta.
+    dry_run_advances_pipeline: bool = True
 
     # --- Persistencia de jobs ---------------------------------------------
     jobs_db_path: str = "./data/msr_jobs.db"
@@ -44,33 +56,73 @@ class Settings(BaseSettings):
     aws_endpoint_url: str = ""
 
     # --- Systems Manager Automation ---------------------------------------
+    # Runbooks propios de tipo Automation (nunca documentos de tipo Command).
     patch_runbook_name: str = ""
+    rollback_runbook_name: str = ""
+    # No hay variable de service role: los runbooks no declaran `assumeRole` y la
+    # Automation se ejecuta con la identidad de workload que la inicia.
     reset_runbook_name: str = ""
-    automation_assume_role_arn: str = ""
 
-    # --- Objetivo de sandbox (primera integración: 1 EC2 Linux) -----------
-    # Permite apuntar a la instancia real sin hardcodear IDs en la CMDB.
-    sandbox_instance_id: str = ""
-    sandbox_logical_target_id: str = ""
+    # --- Laboratorio reseteable (fase 2) -----------------------------------
+    # La instancia se resuelve por tags a partir del identificador lógico: el
+    # reset la recrea con otro Instance ID, así que nunca se fija en la CMDB.
+    lab_logical_id: str = "linux-patching-01"
+    lab_tag_key: str = "msr-lab-id"
+    lab_environment: str = "sandbox"
+    patch_advisory_id: str = "ALAS2023-2026-1924"
+    patch_package_family: str = "kernel"
+    # El repositorio de la AMI base está fijado en su propia release, anterior a
+    # la corrección: los checks consultan el advisory con este `--releasever`.
+    patch_releasever: str = "2023.12.20260706"
+    patch_expected_fixed_kernel: str = "6.1.176-220.358.amzn2023.x86_64"
+    lab_launch_template_id: str = ""
+    lab_launch_template_version: str = ""
+    # El reset sustituye la instancia dentro de este Auto Scaling Group. El valor
+    # lo fija la IaC y nunca puede llegar desde la API ni desde el frontend.
+    lab_autoscaling_group_name: str = ""
+
+    # --- Ciclo de vida del laboratorio (fase 2.6) --------------------------
+    # `ensure_lab_ready` reconcilia el laboratorio contra AWS. Nunca se ejecuta
+    # en cada arranque de un worker: se activa explícitamente (hook de despliegue
+    # o endpoint) y se protege con el lock de operación del laboratorio.
+    lab_reconcile_on_startup: bool = False
+    lab_reconcile_lock_ttl_seconds: int = 1800
+    # Lock de operación del laboratorio. `auto` usa DynamoDB sólo en `aws-real`:
+    # en Fargate la task del servicio y la del hook de release no comparten
+    # SQLite, así que un lock local no puede serializar patch, reset y
+    # reconciliación entre procesos.
+    lab_lock_backend: str = "auto"
+    lab_lock_table_name: str = "msr-poc-lab-locks"
+    lab_lock_ttl_seconds: int = 3600
+    lab_reconcile_timeout_seconds: int = 1800
+    lab_reconcile_poll_interval_seconds: int = 15
+    lab_replacement_timeout_seconds: int = 900
 
     # --- Política de objetivos --------------------------------------------
-    allowed_account_ids: list[str] = Field(default_factory=list)
-    allowed_regions: list[str] = Field(default_factory=list)
-    allowed_environments: list[str] = Field(default_factory=list)
-    allowed_runbooks: list[str] = Field(
-        default_factory=lambda: ["AWS-RunPatchBaseline", "AWS-PatchInstanceWithRollback"])
+    # `NoDecode`: el valor del entorno lo interpreta `_split_csv` (CSV o JSON) y no
+    # el decodificador de pydantic-settings, que exigiría JSON incluso para un
+    # único elemento (`MSR_ALLOWED_REGIONS=eu-north-1`).
+    allowed_account_ids: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    allowed_regions: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    allowed_environments: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    allowed_runbooks: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: [DEFAULT_PATCH_RUNBOOK, DEFAULT_ROLLBACK_RUNBOOK,
+                                 DEFAULT_RESET_RUNBOOK])
     required_target_tag_key: str = "msr-poc"
     required_target_tag_value: str = "true"
 
     # --- Jobs --------------------------------------------------------------
     job_poll_interval_seconds: int = 2
     job_timeout_seconds: int = 1800
+    # Reconciliador ligero en segundo plano (no ejecuta parches, sólo consulta).
+    reconciler_enabled: bool = True
+    reconciler_interval_seconds: int = 10
     mock_job_duration_seconds: int = 6
     mock_restore_duration_seconds: int = 0
     max_output_chars: int = 2000
 
     # --- API ---------------------------------------------------------------
-    cors_allow_origins: list[str] = Field(
+    cors_allow_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"])
 
     @field_validator("allowed_account_ids", "allowed_regions", "allowed_environments",
@@ -81,9 +133,19 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             raw = value.strip()
             if raw.startswith("["):
-                return value
+                return json.loads(raw)
             return [item.strip() for item in raw.split(",") if item.strip()]
         return value
+
+    @field_validator("lab_lock_backend")
+    @classmethod
+    def _known_lock_backend(cls, value: str) -> str:
+        allowed = ("auto", "sqlite", "dynamodb")
+        cleaned = (value or "auto").strip().lower()
+        if cleaned not in allowed:
+            raise ValueError(f"lab_lock_backend desconocido '{value}'; "
+                             f"permitidos: {', '.join(allowed)}")
+        return cleaned
 
     @field_validator("patch_provider", "restore_provider")
     @classmethod
@@ -107,6 +169,31 @@ class Settings(BaseSettings):
     def uses_aws(self) -> bool:
         return PROVIDER_AWS_AUTOMATION in (self.patch_provider, self.restore_provider)
 
+    def real_aws_execution(self) -> bool:
+        """True sólo si se ejecutarían operaciones mutativas reales en AWS."""
+        return self.uses_aws() and not self.dry_run
+
+    def execution_mode(self) -> str:
+        """Modo visible en logs y en la UI: mock | aws-dry-run | aws-real."""
+        if not self.uses_aws():
+            return "mock"
+        return "aws-real" if not self.dry_run else "aws-dry-run"
+
+    def credentials_source(self) -> str:
+        """Origen de las credenciales AWS (nunca su valor).
+
+        `default-chain` es el modo desplegado: boto3 usa la identidad IAM del
+        entorno de ejecución. `profile` sólo se usa en desarrollo local y
+        `assume-role` cuando se configura un rol explícito.
+        """
+        if not self.uses_aws():
+            return "none"
+        if self.aws_role_arn:
+            return "assume-role"
+        if self.aws_profile:
+            return "profile"
+        return "default-chain"
+
     def validate_for_providers(self) -> None:
         """Falla con un mensaje claro si un provider AWS carece de configuración."""
         missing: list[str] = []
@@ -118,15 +205,59 @@ class Settings(BaseSettings):
         if self.restore_provider == PROVIDER_AWS_AUTOMATION:
             if not self.aws_region:
                 missing.append("MSR_AWS_REGION")
-            if not self.reset_runbook_name:
-                missing.append("MSR_RESET_RUNBOOK_NAME")
-        if not self.dry_run and self.uses_aws() and not self.required_target_tag_key:
-            missing.append("MSR_REQUIRED_TARGET_TAG_KEY")
+            if not self.rollback_runbook_name:
+                missing.append("MSR_ROLLBACK_RUNBOOK_NAME")
         if missing:
             raise ConfigurationError(
                 "Configuración AWS incompleta para el provider seleccionado. "
                 f"Variables obligatorias sin valor: {', '.join(sorted(set(missing)))}. "
                 "Con MSR_PATCH_PROVIDER=mock la aplicación arranca sin configuración de AWS.")
+        if self.real_aws_execution():
+            self.validate_real_execution()
+
+    def validate_real_execution(self) -> None:
+        """Política *fail-closed*: en modo real una lista vacía nunca significa
+        «permitir todo», así que toda la allowlist debe estar configurada."""
+        missing: list[str] = []
+        if not self.aws_region:
+            missing.append("MSR_AWS_REGION")
+        if not self.allowed_account_ids:
+            missing.append("MSR_ALLOWED_ACCOUNT_IDS")
+        if not self.allowed_regions:
+            missing.append("MSR_ALLOWED_REGIONS")
+        if not self.allowed_environments:
+            missing.append("MSR_ALLOWED_ENVIRONMENTS")
+        if not self.required_target_tag_key:
+            missing.append("MSR_REQUIRED_TARGET_TAG_KEY")
+        if not self.required_target_tag_value:
+            missing.append("MSR_REQUIRED_TARGET_TAG_VALUE")
+        if not self.allowed_runbooks:
+            missing.append("MSR_ALLOWED_RUNBOOKS")
+        if self.patch_provider == PROVIDER_AWS_AUTOMATION and not self.patch_runbook_name:
+            missing.append("MSR_PATCH_RUNBOOK_NAME")
+        if self.restore_provider == PROVIDER_AWS_AUTOMATION and not self.rollback_runbook_name:
+            missing.append("MSR_ROLLBACK_RUNBOOK_NAME")
+        # Identidad del objetivo: sólo el identificador lógico del laboratorio,
+        # resoluble por tags. El Instance ID es efímero (cada reset lo cambia) y
+        # nunca se configura.
+        if not self.lab_logical_id:
+            missing.append("MSR_LAB_LOGICAL_ID")
+        if self.lab_logical_id and not self.lab_tag_key:
+            missing.append("MSR_LAB_TAG_KEY")
+        # Sin tabla de locks no hay exclusión entre procesos independientes
+        # (task del servicio y RunTask del hook): no se muta el laboratorio.
+        if not self.lab_lock_table_name:
+            missing.append("MSR_LAB_LOCK_TABLE_NAME")
+        # El reset real sustituye la instancia dentro del ASG: sin el nombre del
+        # grupo no hay reset posible (y nunca se acepta desde la API).
+        if (self.restore_provider == PROVIDER_AWS_AUTOMATION
+                and self.reset_runbook_name and not self.lab_autoscaling_group_name):
+            missing.append("MSR_LAB_AUTOSCALING_GROUP_NAME")
+        if missing:
+            raise ConfigurationError(
+                "Ejecución real en AWS (MSR_DRY_RUN=false) con política incompleta. "
+                f"Variables obligatorias sin valor: {', '.join(sorted(set(missing)))}. "
+                "En modo real una allowlist vacía no autoriza ningún objetivo.")
 
 
 @lru_cache(maxsize=1)

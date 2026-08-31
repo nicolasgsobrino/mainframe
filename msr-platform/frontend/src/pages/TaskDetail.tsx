@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ApiError, api, releaseIdempotencyKey } from "../api";
-import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob } from "../types";
+import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob, LabPatchEvidence,
+  ExecutionMode } from "../types";
 import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
+import LabPanel from "../components/LabPanel";
 import { useView } from "../view";
 
 const PHASE_IDS = ["detection", "prioritization", "pre_implementation", "lab_testing", "prototype", "deployment"];
@@ -15,12 +17,21 @@ const JOB_STATE_LABEL: Record<string, string> = {
   cancelled: "Cancelado", restore_queued: "Restauración en cola",
   restoring: "Restaurando", restored: "Restaurado", restore_failed: "Restauración fallida",
   timed_out: "Tiempo agotado",
+  timeout_pending_confirmation: "Timeout local · pendiente de confirmar en AWS",
+  remote_status_unknown: "Estado remoto desconocido",
+  stop_requested: "Parada solicitada a AWS",
 };
+/** El runbook aborta con este error cuando el objetivo ya estaba parcheado. */
+const alreadyFixed = (job: PatchJob) => !!job.error_message?.includes("KERNEL_ALREADY_FIXED");
+
 const JOB_STATE_TONE: Record<string, string> = {
   succeeded: "bg-green-500/15 text-green-400", restored: "bg-green-500/15 text-green-400",
   failed: "bg-red-500/15 text-red-400", restore_failed: "bg-red-500/15 text-red-400",
   timed_out: "bg-red-500/15 text-red-400", cancelled: "bg-gray-500/15 text-gray-300",
   dry_run: "bg-sky-500/15 text-sky-300",
+  timeout_pending_confirmation: "bg-orange-500/15 text-orange-300",
+  remote_status_unknown: "bg-orange-500/15 text-orange-300",
+  stop_requested: "bg-orange-500/15 text-orange-300",
 };
 const jobTone = (state: string) => JOB_STATE_TONE[state] ?? "bg-amber-500/15 text-amber-300";
 /** Etiqueta del modo de ejecución: mock, AWS dry-run o AWS real. */
@@ -59,6 +70,13 @@ export default function TaskDetail() {
     apply(await api.task(id!));
   }, [id, apply]);
 
+  // Recarga sin perder la fase seleccionada: la usa el panel del laboratorio
+  // cuando el recurso cambia (reset → otra instancia, parcheo confirmado).
+  const refresh = useCallback(() => {
+    keepSelection.current = true;
+    api.task(id!).then(apply).catch((e) => setError(toError(e)));
+  }, [id, apply]);
+
   useEffect(() => { load().catch((e) => setError(toError(e))); }, [load]);
 
   // Polling del job activo: se reanuda tras un reload porque `active_job` viene
@@ -81,6 +99,7 @@ export default function TaskDetail() {
   const selPhaseId = PHASE_IDS[sel];
   const phaseLogs = d.logs.filter((l) => l.phase === selPhaseId);
   const jobRunning = !!activeJob && !activeJob.terminal;
+  const lastJob = activeJob ?? d.jobs?.[0] ?? null;
   const locked = busy || jobRunning;
 
   const run = async (action: () => Promise<TD>) => {
@@ -118,6 +137,9 @@ export default function TaskDetail() {
 
   const nextRing = a.deployment.rings[d.rings_done];
   const nextRingPreapproved = !!nextRing?.plan.approval.preapproved;
+  // Evidencia del parcheo ya confirmado por AWS sobre la instancia del lab: los
+  // anillos siguientes se aprueban igual, pero no relanzan la Automation.
+  const labPatch = d.lab_patch ?? null;
   const canApprove = !done && !jobRunning && (
     currentPhaseId === "deployment"
       ? nextRingPreapproved
@@ -162,6 +184,25 @@ export default function TaskDetail() {
           <Meta k="Fuentes" v={vi.sources.length + " scanners"} />
         </div>
       </div>
+
+      {/* Laboratorio EC2 real: sólo en la tarea de la PoC de parcheo. */}
+      {task.logical_lab_id && (
+        <LabPanel
+          labId={task.logical_lab_id}
+          onPatch={approve}
+          patchBlockedReason={labPatch
+            ? `Parcheo ya confirmado (kernel ${labPatch.kernel ?? "—"}, ejecución ${labPatch.execution_id}). `
+              + "Para repetirlo hay que resetear antes el laboratorio."
+            : canApprove ? null
+              : done ? "La tarea ya está remediada."
+                : jobRunning ? "Hay un job activo sobre el laboratorio."
+                  : "La fase actual no permite todavía ejecutar el parcheo."}
+          locked={locked}
+          onLabChange={refresh}
+        />
+      )}
+
+      {labPatch && <PatchConfirmed evidence={labPatch} mode={d.execution?.mode ?? "mock"} />}
 
       {d.sla?.overdue && !done && (
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm text-red-300 flex items-center gap-2">
@@ -343,11 +384,25 @@ export default function TaskDetail() {
                 {!canApprove && currentPhaseId === "lab_testing" && (
                   <div className="text-xs text-red-400 mb-2">⚠ El MVT ha fallado en laboratorio. ServiceNow bloquea el avance (rollback / análisis).</div>
                 )}
+                {labPatch && currentPhaseId === "deployment" && !done && (
+                  <div className="text-xs text-green-400 mb-2">
+                    ✓ La instancia ya está parcheada y verificada: los anillos restantes se
+                    aprueban y se cierran con esa evidencia, sin relanzar la Automation.
+                  </div>
+                )}
                 {!nextRingPreapproved && currentPhaseId === "deployment" && nextRing && (
                   <div className="text-xs text-amber-300 mb-2">⚠ El anillo {nextRing.ring} requiere revisión y <b>pre-aprobación Human-Driven</b> de su informe pre-anillo (arriba, en Fase 6) antes de desplegar.</div>
                 )}
                 {jobRunning && (
                   <div className="text-xs text-amber-300 mb-2">⏳ Job {activeJob!.id} en curso ({JOB_STATE_LABEL[activeJob!.state] ?? activeJob!.state}). Las acciones mutativas están bloqueadas hasta que finalice.</div>
+                )}
+                {lastJob?.terminal && lastJob.dry_run && (
+                  <div className="text-xs text-sky-300 mb-2">
+                    ⓘ Job {lastJob.id} terminado en <b>dry-run</b>: se ha validado el objetivo y
+                    planificado la Automation, pero no se ha aplicado nada. El anillo avanza como
+                    ensayo del recorrido y queda marcado «simulado». El detalle está arriba, en
+                    «Ejecución del parche».
+                  </div>
                 )}
                 <button disabled={locked || !canApprove} onClick={approve}
                   className={`btn w-full justify-center ${canApprove && !locked ? "btn-brand" : "btn-ghost opacity-50 cursor-not-allowed"}`}>
@@ -375,6 +430,30 @@ export default function TaskDetail() {
   );
 }
 
+/** Parcheo ya confirmado sobre el objetivo: estado del recurso, no de un intento. */
+function PatchConfirmed({ evidence, mode }: { evidence: LabPatchEvidence; mode: ExecutionMode }) {
+  const source = mode === "mock" ? "la simulaci\u00f3n (mock)" : "AWS Systems Manager";
+  return (
+    <div className="rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+      <div className="font-semibold flex items-center gap-2">
+        <span className="text-lg">✓</span> Parcheo confirmado por {source}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-xs text-gray-300">
+        <Meta k="Kernel actual" v={evidence.kernel ?? "—"} />
+        <Meta k="Instancia" v={evidence.instance_id ?? "—"} />
+        <Meta k="Automation" v={evidence.execution_id} />
+        <Meta k="Confirmado" v={evidence.patched_at ? new Date(evidence.patched_at).toLocaleString("es-ES") : "—"} />
+      </div>
+      <div className="text-[11px] text-green-200/80 mt-2">
+        La instancia está en la versión corregida: los anillos que aún queden por aprobar la
+        resuelven como objetivo y se cierran con esta evidencia, sin relanzar la Automation. Para
+        repetir el parcheo hay que resetear el laboratorio, que recrea la instancia desde la AMI
+        vulnerable.
+      </div>
+    </div>
+  );
+}
+
 /** Estado del job de parcheo/restauración: provider, modo, objetivo y pasos. */
 function JobCard({ job, execution, busy, onCancel }: {
   job: PatchJob;
@@ -394,6 +473,9 @@ function JobCard({ job, execution, busy, onCancel }: {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="chip bg-ink border border-line text-gray-300">{executionModeLabel(job)}</span>
           {job.dry_run && <span className="chip bg-sky-500/15 text-sky-300">dry-run · el parche NO se ha aplicado</span>}
+          {job.unconfirmed && (
+            <span className="chip bg-orange-500/15 text-orange-300">estado remoto sin confirmar · el objetivo sigue bloqueado</span>
+          )}
           <span className="text-gray-500">{job.job_type === "patch" ? "parcheo" : job.job_type === "rollback" ? "rollback" : "reset de laboratorio"}</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -412,13 +494,19 @@ function JobCard({ job, execution, busy, onCancel }: {
         )}
         {execution && (
           <div className="text-[11px] text-gray-600">
-            Refresco cada {execution.poll_interval_seconds}s · provider de restauración {execution.restore_provider}
+            Modo {execution.mode}{execution.strict_policy ? " · política fail-closed" : " · política relajada (mock/dry-run)"} · refresco cada {execution.poll_interval_seconds}s · provider de restauración {execution.restore_provider}{execution.reconciler?.running ? " · reconciliador activo en el backend" : ""}
           </div>
         )}
         {job.error_code && (
           <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-red-300">
             <b>{job.error_code}</b> — {job.error_message}
             <div className="font-mono text-[10px] text-red-400/70">{job.correlation_id}</div>
+            {alreadyFixed(job) && (
+              <div className="text-[11px] text-amber-200 mt-1">
+                El runbook abortó porque la instancia <b>ya tenía el kernel corregido</b>: es un
+                intento rechazado sobre un objetivo ya parcheado, no un parcheo fallido.
+              </div>
+            )}
           </div>
         )}
         {job.steps.length > 0 && (
@@ -957,7 +1045,7 @@ function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
             : r.status === "rolled_back" ? "#f59e0b"
             : r.status === "in_progress" ? "#38bdf8" : "#3f4756";
           const stLabel =
-            r.status === "completed" ? "Desplegado"
+            r.status === "completed" ? (r.simulated ? "Simulado" : "Desplegado")
             : r.status === "rolled_back" ? "Revertido"
             : r.status === "in_progress" ? "En curso" : "Pendiente";
           const envKey = ringEnvKey(i);
@@ -978,6 +1066,11 @@ function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
                 <div>{r.plan.runs_tests
                   ? <span className="text-green-400">✓ pruebas en entorno</span>
                   : <span className="text-gray-500">validación por telemetría</span>}</div>
+                {r.simulated && (
+                  <div className="text-amber-300" title="Ensayo en dry-run: no se ha aplicado ningún parche">
+                    ⚑ dry-run · sin cambios reales
+                  </div>
+                )}
                 {r.status === "completed" && r.health && (
                   <div className="text-gray-500">salud: {r.health.availability_pct}% avail · err {r.health.error_rate_pct}%</div>
                 )}

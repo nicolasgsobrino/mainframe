@@ -92,6 +92,32 @@ def _build_adjacency(edges):
     return adj
 
 
+# Perfil de remediación: determina si la mitigación provoca caída del activo y,
+# por tanto, si el blast radius se propaga a los sistemas dependientes. Una
+# actualización de dependencia se despliega en rolling y el servicio no cae, de
+# modo que el impacto queda acotado al propio activo aunque otros dependan de él.
+REMEDIATION_PROFILES = {
+    "patch": {
+        "restart_scope": "instance",
+        "downtime_required": True,
+        "rationale": ("El parche de sistema operativo exige reiniciar la instancia: "
+                      "los sistemas dependientes sí sufren la ventana de indisponibilidad."),
+    },
+    "dependency": {
+        "restart_scope": "service",
+        "downtime_required": False,
+        "rationale": ("La actualización de la dependencia se despliega en rolling sin "
+                      "caída del servicio: los dependientes no se ven afectados."),
+    },
+}
+
+
+def remediation_profile(task):
+    """Tipo de remediación previsto y si implica caída (mismo criterio que el MVT)."""
+    rtype = {"A": "patch", "B": "dependency", "C": "dependency"}.get(task["track"], "patch")
+    return {"remediation_type": rtype, **REMEDIATION_PROFILES[rtype]}
+
+
 def build_impact_graph(task, cis, edges, adj=None, max_nodes=10):
     ci_by_id = {c["id"]: c for c in cis}
     if adj is None:
@@ -137,6 +163,8 @@ def build_impact_graph(task, cis, edges, adj=None, max_nodes=10):
         depth += 1
 
     affected_layers = sorted({n["ci_class"] for n in nodes.values()})
+    profile = remediation_profile(task)
+    propagates = profile["downtime_required"]
     return {
         "nodes": list(nodes.values()),
         "edges": [{"source": e["source"], "target": e["target"], "type": e["type"]}
@@ -144,6 +172,14 @@ def build_impact_graph(task, cis, edges, adj=None, max_nodes=10):
         "affected_layers": affected_layers,
         "affected_count": len(nodes),
         "business_services": [n["name"] for n in nodes.values() if n["ci_class"] == "business_service"],
+        # El alcance del blast radius depende de la mitigación: sin caída del
+        # activo, el impacto no se propaga a quienes dependen de él.
+        "remediation_type": profile["remediation_type"],
+        "downtime_required": propagates,
+        "restart_scope": profile["restart_scope"],
+        "blast_scope": "propagated" if propagates else "local",
+        "impacted_count": len(nodes) if propagates else 1,
+        "blast_rationale": profile["rationale"],
     }
 
 
@@ -161,7 +197,7 @@ def build_mvt(task, impact, catalog):
     layers = set(impact["affected_layers"])
     exposed = task.get("exposed")
     track = task["track"]
-    remediation_type = {"A": "patch", "B": "dependency", "C": "dependency"}.get(track, "patch")
+    remediation_type = remediation_profile(task)["remediation_type"]
 
     selected, excluded = [], []
     for tc in catalog:
@@ -626,6 +662,10 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
             status = "in_progress"
         else:
             status = "pending"
+        ring_evidence = evidence.get(rn) or {}
+        # Un job AWS ejecuta exactamente una instancia: el conteo mostrado nunca
+        # puede ser superior al número de activos realmente ejecutados.
+        executed_assets = ring_evidence.get("executed_assets")
         if rn in evidence:
             actions = evidence[rn]
         elif status in ("completed", "rolled_back"):
@@ -634,18 +674,23 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
             actions = None
         plan = build_ring_plan(task, impact, rn, label, CANARY_PCT[min(i, 4)], executor, ring_nodes,
                                exclusions=exclusions.get(rn), preapproval=preapprovals.get(rn))
+        if executed_assets is not None and status in ("completed", "rolled_back"):
+            assets = int(executed_assets)
         rings.append({
             "ring": rn, "label": label, "assets": assets, "status": status,
+            "executed_assets": executed_assets,
+            "simulated": bool(ring_evidence.get("simulated")),
             "post_checks": ["version-assert", "health-check", "smoke-test", "synthetic-probe"] if status in ("completed", "rolled_back") else [],
             "result": {"completed": "healthy", "rolled_back": "reverted", "in_progress": "-", "pending": "-"}[status],
             "actions": actions,
             "plan": plan,
             "job": active_jobs.get(rn),
+            # Un anillo ensayado en dry-run no tiene telemetría que mostrar.
             "health": {
                 "error_rate_pct": round(rng.uniform(0.0, 0.3), 2),
                 "p95_latency_ms": rng.randint(120, 420),
                 "availability_pct": round(rng.uniform(99.9, 100.0), 2),
-            } if status == "completed" else None,
+            } if status == "completed" and not ring_evidence.get("simulated") else None,
         })
     exceptions = []
     if rng.random() > 0.5:

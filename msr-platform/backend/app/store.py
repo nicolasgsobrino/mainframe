@@ -7,11 +7,14 @@ lo reconcilia con `provider.poll()` y aplica el efecto cuando termina.
 """
 from __future__ import annotations
 
+import logging
 import random
+import threading
+import zlib
 from datetime import datetime
 
-from . import engine, seed
-from .config import Settings, get_settings
+from . import engine, journey, seed
+from .config import PROVIDER_AWS_AUTOMATION, PROVIDER_MOCK, Settings, get_settings
 from .errors import (
     ConflictError,
     DependencyUnavailableError,
@@ -19,8 +22,36 @@ from .errors import (
     TargetNotAllowedError,
     ValidationError,
 )
-from .jobs import JobState, JobType, PatchJob, new_job_id, state_for_execution
-from .policy import sanitize_text
+from .jobs import (
+    JobState,
+    JobType,
+    PatchJob,
+    is_terminal,
+    new_job_id,
+    state_for_execution,
+)
+from .lab import (
+    LAB_STATE_PATCHED,
+    LAB_STATE_UNKNOWN,
+    LAB_STATE_VULNERABLE,
+    RESTORE_KIND_RESET_LAB,
+    LabTarget,
+    synthetic_instance_id,
+)
+from .lab_lifecycle import LabLifecycleManager
+from .lab_locks import OPERATION_PATCH as LOCK_OPERATION_PATCH
+from .lab_locks import OPERATION_RESET as LOCK_OPERATION_RESET
+from .lab_locks import LabLockManager, default_holder, get_lab_lock_backend
+from .labs import (
+    LabInstance,
+    LabResolutionError,
+    check_lab_tags,
+    default_lab_target,
+    get_lab_resolver,
+    required_lab_tags,
+)
+from .policy import INSTANCE_ID_RE, evaluate_target, sanitize_text
+from .precheck import get_lab_precheck
 from .providers import get_patch_provider, get_restore_provider
 from .providers.base import (
     PatchRequest,
@@ -28,9 +59,16 @@ from .providers.base import (
     ProviderError,
     RestoreRequest,
     Target,
+    iso_utc,
     utcnow,
 )
 from .repository import JobRepository, TargetBusyError
+from .runbooks import (
+    OPERATION_PATCH,
+    OPERATION_RESET_LAB,
+    RunbookContractError,
+    resolve_runbook,
+)
 from .seed import NOW, iso
 
 # Códigos de provider que representan configuración ausente o dependencia caída.
@@ -38,6 +76,11 @@ _UNAVAILABLE_CODES = frozenset({"PROVIDER_UNAVAILABLE", "PROVIDER_MISCONFIGURED"
                                 "RUNBOOK_NOT_CONFIGURED", "PROVIDER_START_FAILED"})
 _TASK_SNAPSHOT_KEYS = ("id", "cve", "ci_id", "ci_name", "component", "track",
                        "vulnerable_version", "criticality", "environment")
+# Estados a los que una reconciliación manual administrativa puede llevar un job
+# cuyo resultado remoto no ha podido confirmarse. Nunca a «succeeded».
+ADMIN_RESOLVABLE_STATES = (JobState.FAILED, JobState.CANCELLED, JobState.TIMED_OUT)
+
+log = logging.getLogger("msr.store")
 
 
 def sla_state(sla_due: str) -> dict:
@@ -129,12 +172,51 @@ class Store:
         self.repo = repository or JobRepository(self.settings.jobs_db_absolute_path)
         self.patch_provider = patch_provider or get_patch_provider(self.settings)
         self.restore_provider = restore_provider or get_restore_provider(self.settings)
+        # Resuelve el Instance ID del laboratorio por tags (nunca lo fija).
+        self.lab_resolver = get_lab_resolver(self.settings, self.patch_provider, self.repo)
+        # Evidencia de sólo lectura del estado real del laboratorio.
+        self.lab_precheck = get_lab_precheck(self.settings, self.patch_provider, self.repo)
+        # Lock de operación del laboratorio: exactamente una mutación a la vez
+        # (patch, reset o reconciliación), también entre tasks independientes.
+        self.lab_locks = LabLockManager(
+            self.settings,
+            get_lab_lock_backend(self.settings, self.repo, self.dynamodb_client),
+            default_holder())
+        # Reconciliador del laboratorio, independiente del reconciliador de jobs.
+        self.lab_lifecycle = LabLifecycleManager(self)
+        # Proyección en memoria ya aplicada (distinta del resultado persistido del
+        # job): se reconstruye en cada rehidratación.
+        self._projected: set[str] = set()
+        self._job_locks: dict[str, threading.Lock] = {}
+        self._locks_guard = threading.Lock()
+        log.info("store inicializado modo=%s patch_provider=%s restore_provider=%s",
+                 self.settings.execution_mode(), self.patch_provider.name,
+                 self.restore_provider.name)
         self.reset(clear_jobs=False)
+
+    def dynamodb_client(self):
+        """Cliente DynamoDB del provider AWS, con sus mismas credenciales."""
+        provider = self.restore_provider
+        if provider.name != PROVIDER_AWS_AUTOMATION:
+            provider = self.patch_provider
+        if provider.name != PROVIDER_AWS_AUTOMATION:
+            return None
+        return provider.dynamodb
 
     def reset(self, clear_jobs: bool = True):
         if clear_jobs:
             self.repo.clear()
-        data = seed.build_all()
+        # Advisory, releasever y kernel corregido salen SIEMPRE de la
+        # configuración (IaC/entorno), nunca de la petición del cliente.
+        data = seed.build_all(
+            lab_logical_id=self.settings.lab_logical_id,
+            lab_advisory_id=self.settings.patch_advisory_id,
+            lab_package_family=self.settings.patch_package_family,
+            lab_releasever=self.settings.patch_releasever,
+            lab_expected_fixed_kernel=self.settings.patch_expected_fixed_kernel,
+            lab_region=self.settings.aws_region or None,
+            lab_account_id=(self.settings.allowed_account_ids[0]
+                            if self.settings.allowed_account_ids else None))
         self.cis = data["cis"]
         self.edges = data["edges"]
         self.findings = data["findings"]
@@ -151,6 +233,22 @@ class Store:
         start_phases = [5, 2, 5, 3, 4]
         for i, (tid, task) in enumerate(self.tasks.items()):
             self._init_pipeline(tid, start_phases[i % len(start_phases)])
+        self._ensure_lab_target()
+        # El estado funcional vive en memoria, pero los jobs son la fuente de
+        # verdad: se re-proyectan desde SQLite en cada arranque.
+        self.rehydrate_pipeline_state()
+
+    def _ensure_lab_target(self) -> None:
+        """Registra el laboratorio configurado si aún no está en SQLite."""
+        logical_lab_id = self.settings.lab_logical_id
+        if not logical_lab_id or self.repo.get_lab_target(logical_lab_id) is not None:
+            return
+        lab = default_lab_target(self.settings, logical_lab_id)
+        if self.patch_provider.name == PROVIDER_MOCK:
+            # En modo mock no hay EC2 que consultar: la instancia inicial del
+            # laboratorio se simula (y cambia con cada reset).
+            lab.current_instance_id = synthetic_instance_id(logical_lab_id, "genesis")
+        self.repo.upsert_lab_target(lab)
 
     # ------------------------------------------------------------------
     def _init_pipeline(self, tid, phase_index):
@@ -163,7 +261,9 @@ class Store:
         # anillos completados si estamos en fase de despliegue
         rings_done = 0
         if phase_index >= 5:
-            rings_done = random.Random(hash(tid) & 0xFFFF).randint(1, 3)
+            # crc32 en lugar de hash(): estable entre procesos, de modo que la
+            # rehidratación parte siempre del mismo histórico de demo.
+            rings_done = random.Random(zlib.crc32(tid.encode()) & 0xFFFF).randint(1, 3)
         # Los anillos ya desplegados se consideran pre-aprobados por el owner (histórico).
         ring_preapprovals = {}
         ring_exclusions = {}
@@ -203,9 +303,58 @@ class Store:
             "artifacts": {"impact": impact, "mvt": mvt, "lab": lab,
                           "prototype": proto, "deployment": deploy, "audit": audit},
             "logs": logs,
+            # Punto de partida determinista del histórico de demo: la
+            # rehidratación vuelve aquí antes de re-proyectar los jobs.
+            "baseline": {
+                "rings_done": rings_done,
+                "deployment_status": statuses["deployment"],
+                "task_status": task.get("status"),
+                "vi_status": self.vulnerable_items[task["vulnerable_item_id"]]["status"],
+            },
         }
         if phase_index >= 5 and rings_done >= len(engine.RING_DEFS):
             self.tasks[tid]["status"] = "remediated"
+
+    # ------------------------------------------------------------------
+    # Rehidratación del pipeline desde SQLite
+    # ------------------------------------------------------------------
+    def _reset_projection(self, tid: str) -> None:
+        """Devuelve la proyección en memoria al histórico determinista de demo."""
+        p = self.pipelines[tid]
+        baseline = p["baseline"]
+        t = self.tasks[tid]
+        p["rings_done"] = baseline["rings_done"]
+        p["statuses"]["deployment"] = baseline["deployment_status"]
+        p["rolled_back_rings"] = []
+        p["ring_evidence"] = {}
+        p["rollback"] = {"status": "armed", "triggered": False}
+        t["status"] = baseline["task_status"]
+        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = baseline["vi_status"]
+
+    def rehydrate_pipeline_state(self) -> int:
+        """Reconstruye el estado funcional a partir de los jobs persistidos.
+
+        Los jobs son la fuente de verdad: al arrancar, cada tarea vuelve a su
+        línea base y se re-proyectan en orden cronólogico los patch jobs
+        `succeeded` (anillos completados), los restore jobs `restored` (anillos
+        revertidos), la evidencia, los eventos y el estado de la tarea y del
+        Vulnerable Item. Es idempotente: ejecutarla dos veces da el mismo
+        resultado, y no depende del flag de proyección del job.
+        """
+        replayed = 0
+        for tid in self.repo.tasks_with_jobs():
+            if tid not in self.pipelines:
+                continue
+            self._reset_projection(tid)
+            for job in self.repo.list_jobs_for_task_chronological(tid):
+                self._projected.discard(job.id)
+                if job.terminal:
+                    self._apply_job_outcome(tid, job, persist=False)
+                    replayed += 1
+            self._rebuild_deploy(tid)
+        if replayed:
+            log.info("pipeline rehidratado desde SQLite: %s jobs re-proyectados", replayed)
+        return replayed
 
     # ------------------------------------------------------------------
     def _phase_logs(self, pid, task, impact, mvt, lab, proto, deploy):
@@ -265,6 +414,7 @@ class Store:
         for p in self.pipelines.values():
             pid = engine.PHASE_IDS[p["phase_index"]]
             by_phase[pid] = by_phase.get(pid, 0) + 1
+        journey_summaries = [self._journey_summary(t) for t in tasks]
         by_track = {"A": 0, "B": 0, "C": 0}
         for t in tasks:
             by_track[t["track"]] = by_track.get(t["track"], 0) + 1
@@ -285,15 +435,9 @@ class Store:
                             if engine.PHASE_IDS[p["phase_index"]] == "deployment")
         cmdb = self.cmdb_summary()
         return {
-            "funnel": [
-                {"label": "Hallazgos totales", "value": 100000},
-                {"label": "Relevantes", "value": 8000},
-                {"label": "Explotables", "value": 500},
-                {"label": "Críticos para banca", "value": 80},
-                {"label": "Remediación inmediata", "value": 20},
-            ],
+            "funnel": self._funnel(tasks),
             "kpis": {
-                "open_findings": len(self.findings) * 420,
+                "open_findings": len(self.findings),
                 "vulnerable_items": len(self.vulnerable_items),
                 "remediation_tasks": len(tasks),
                 "kev_count": kev,
@@ -304,6 +448,7 @@ class Store:
             },
             "by_priority": by_priority,
             "by_phase": by_phase,
+            "journey": journey.aggregate(journey_summaries),
             "by_track": by_track,
             "by_lane": by_lane,
             "by_criticality": by_criticality,
@@ -317,6 +462,26 @@ class Store:
             "cmdb": cmdb,
             "sla": self._sla_overview(tasks),
         }
+
+    def _funnel(self, tasks):
+        """Embudo de curación derivado de los datos reales, de ruido a acción."""
+        active = [t for t in tasks if t.get("status") != "remediated"]
+        return [
+            {"label": "Hallazgos de los escáneres", "value": len(self.findings)},
+            {"label": "Activos afectados", "value": len({f["ci_id"] for f in self.findings})},
+            {"label": "CVE distintas", "value": len({f["cve"] for f in self.findings})},
+            {"label": "Vulnerable Items curados", "value": len(self.vulnerable_items)},
+            {"label": "Remediation Tasks activas", "value": len(active)},
+        ]
+
+    def _journey_summary(self, task):
+        """Proyección de las 8 fases del journey sobre el pipeline de la tarea."""
+        summary = journey.summary(task, self.pipelines[task["id"]],
+                                  sla_state(task.get("sla_due", "")))
+        return {**summary, "task_id": task["id"], "cve": task["cve"],
+                "title": task["title"], "ci_name": task["ci_name"],
+                "lane": task.get("lane", "standard"), "priority": task["priority"],
+                "risk_score": task["risk_score"]}
 
     def _sla_overview(self, tasks):
         active = [t for t in tasks if t.get("status") != "remediated"]
@@ -415,7 +580,9 @@ class Store:
                 "phase_index": p["phase_index"],
                 "phase_status": p["statuses"][engine.PHASE_IDS[p["phase_index"]]],
                 "affected_count": p["artifacts"]["impact"]["affected_count"],
+                "kev": self.vulnerable_items[t["vulnerable_item_id"]]["kev"],
                 "sla": sla_state(t.get("sla_due", "")),
+                "journey": self._journey_summary(t),
             })
         return sorted(out, key=lambda x: -x["risk_score"])
 
@@ -442,12 +609,20 @@ class Store:
             "phase_index": p["phase_index"],
             "phases": phases,
             "lane": lane,
+            "journey": {
+                **self._journey_summary(t),
+                "phases": journey.phase_states(t, p),
+                "rings": journey.ring_states(p),
+            },
             "lane_meta": seed.LANE_META.get(lane, seed.LANE_META["standard"]),
             "lane_flow": engine.lane_flow(lane),
             "artifacts": p["artifacts"],
             "logs": p["logs"],
             "rings_done": p["rings_done"],
             "sla": sla_state(t.get("sla_due", "")),
+            # Evidencia durable del parcheo ya confirmado: si existe, la UI no
+            # debe ofrecer volver a parchear.
+            "lab_patch": self._lab_patch_evidence(tid),
             "active_job": active_job.as_dict() if active_job else None,
             "jobs": [j.as_dict() for j in self.repo.list_jobs_for_task(tid, limit=20)],
             "execution": {
@@ -455,6 +630,8 @@ class Store:
                 "restore_provider": self.restore_provider.name,
                 "dry_run": self.settings.effective_dry_run(self.patch_provider.name),
                 "poll_interval_seconds": self.settings.job_poll_interval_seconds,
+                "mode": self.settings.execution_mode(),
+                "strict_policy": self.settings.real_aws_execution(),
             },
         }
 
@@ -619,32 +796,66 @@ class Store:
                 return [a for a in ring["plan"]["assets"] if not a.get("excluded")]
         return []
 
-    def _resolve_target(self, tid, ring_no) -> Target:
-        """Objetivo del anillo: el CI raíz si está en el alcance, si no el primero.
+    def _asset_target(self, asset: dict) -> Target:
+        """Objetivo de un activo de la CMDB.
 
-        Los IDs de instancia nunca están hardcodeados en la CMDB: si el operador
-        define MSR_SANDBOX_INSTANCE_ID, se superpone al objetivo correspondiente.
+        Los Instance ID no se fijan en ninguna variable de entorno ni en la CMDB:
+        el activo del laboratorio se resuelve dinámicamente por tags en AWS, y el
+        resto de activos son sintéticos (mock) y no tienen instancia real.
         """
-        assets = self._ring_assets(tid, ring_no)
-        if not assets:
-            raise ValidationError(
-                f"El anillo {ring_no} no tiene activos seleccionados para desplegar.",
-                code="NO_TARGET_SELECTED")
-        asset = next((a for a in assets if a.get("is_root")), assets[0])
         logical_id = asset.get("logical_target_id") or asset["id"]
         instance_id = asset.get("instance_id")
         region = asset.get("region")
-        sandbox_id = self.settings.sandbox_instance_id
-        sandbox_logical = self.settings.sandbox_logical_target_id
-        if sandbox_id and (not sandbox_logical or sandbox_logical == logical_id):
-            instance_id = sandbox_id
-            region = self.settings.aws_region or region
+        if logical_id == self.settings.lab_logical_id:
+            try:
+                instance = self._resolve_lab_instance(logical_id)
+            except LabResolutionError as exc:
+                raise ValidationError(exc.message, code=exc.code) from exc
+            # El entorno del laboratorio es el del activo real (tag msr-environment),
+            # no el del anillo («Laboratorio»), que es el nombre de una etapa del
+            # despliegue y nunca coincide con la allowlist de entornos.
+            return instance.as_target()
         return Target(
             logical_target_id=logical_id, instance_id=instance_id,
             account_id=asset.get("account_id"), region=region,
             tags=dict(asset.get("tags") or {}),
             operating_system=asset.get("os"), environment=asset.get("environment"),
             ssm_managed=bool(asset.get("ssm_managed")), name=asset.get("name"))
+
+    def _resolve_ring_targets(self, tid, ring_no) -> list[Target]:
+        """Todos los activos seleccionados del anillo, en orden de dependencia."""
+        assets = self._ring_assets(tid, ring_no)
+        if not assets:
+            raise ValidationError(
+                f"El anillo {ring_no} no tiene activos seleccionados para desplegar.",
+                code="NO_TARGET_SELECTED")
+        return [self._asset_target(a) for a in assets]
+
+    def _resolve_target(self, tid, ring_no) -> Target:
+        """Objetivo único del anillo (mock multiactivo): CI raíz o el primero."""
+        assets = self._ring_assets(tid, ring_no)
+        if not assets:
+            raise ValidationError(
+                f"El anillo {ring_no} no tiene activos seleccionados para desplegar.",
+                code="NO_TARGET_SELECTED")
+        return self._asset_target(next((a for a in assets if a.get("is_root")), assets[0]))
+
+    def _aws_single_target(self, tid, ring_no, track: str) -> Target:
+        """Con provider AWS un job representa exactamente UNA instancia real."""
+        if (track or "") != "A":
+            raise ValidationError(
+                f"El track {track or 'sin valor'} no se ejecuta en AWS Systems Manager: "
+                "sólo el track A (infraestructura) está soportado en esta fase.",
+                code="UNSUPPORTED_REMEDIATION_TRACK")
+        targets = self._resolve_ring_targets(tid, ring_no)
+        real = [t for t in targets
+                if t.instance_id and INSTANCE_ID_RE.match(t.instance_id)]
+        if len(real) != 1:
+            raise ValidationError(
+                f"El anillo {ring_no} resuelve {len(real)} instancias EC2 reales de "
+                f"{len(targets)} activos y el provider AWS admite exactamente una en esta fase.",
+                code="RING_TARGET_COUNT_UNSUPPORTED")
+        return real[0]
 
     # ------------------------------------------------------------------
     def _provider_error(self, exc: ProviderError):
@@ -659,7 +870,69 @@ class Store:
                         else JobState.FAILED)
         job.transition_to(target_state, error_code=code, error_message=sanitize_text(message))
         self.repo.append_event(job.id, job.state, f"{code}: {sanitize_text(message, 500)}")
+        # Fallo controlado: el laboratorio queda libre para el siguiente intento.
+        self._release_lab_lock_for_job(job)
         return self.repo.save_job(job)
+
+    # --- lock de operación del laboratorio ------------------------------
+    def _lab_id_for_task(self, tid: str) -> str:
+        """Laboratorio asociado a la tarea, si la tarea es la del laboratorio."""
+        return str((self.tasks.get(tid) or {}).get("logical_lab_id") or "")
+
+    def _lab_patch_evidence(self, tid: str) -> dict | None:
+        """Evidencia durable de que la instancia actual del laboratorio ya está
+        parcheada. Sólo cuenta la confirmación de una ejecución real: sin
+        `last_patch_execution_id` no hay evidencia y el parcheo sigue abierto."""
+        lab_id = self._lab_id_for_task(tid)
+        if not lab_id:
+            return None
+        lab = self.repo.get_lab_target(lab_id)
+        if lab is None or lab.lab_state != LAB_STATE_PATCHED:
+            return None
+        if not lab.last_patch_execution_id:
+            return None
+        return {
+            "logical_lab_id": lab_id,
+            "instance_id": lab.current_instance_id,
+            "kernel": lab.current_kernel,
+            "execution_id": lab.last_patch_execution_id,
+            "job_id": lab.last_patch_job_id,
+            "patched_at": iso_utc(lab.last_patch_at) if lab.last_patch_at else None,
+            "health_state": lab.health_state,
+        }
+
+    def _take_lab_lock(self, lab_id: str, owner: str, operation: str, reason: str) -> bool:
+        """Toma el lock del laboratorio. True si esta operación debe liberarlo.
+
+        Devuelve False cuando el lock ya es del mismo dueño: la reconciliación
+        propaga su `correlation_id` al reset que lanza, así que el reset reentra
+        sin apropiarse de la liberación.
+        """
+        if not lab_id:
+            return False
+        held = self.lab_locks.state(lab_id) or {}
+        if held.get("owner") == owner:
+            return False
+        self.lab_locks.acquire_or_conflict(lab_id, owner, operation, reason=reason)
+        return True
+
+    def _release_lab_lock_for_job(self, job: PatchJob, *, force: bool = False) -> None:
+        """Libera el lock del laboratorio cuando su job mutativo ya es terminal.
+
+        `force` cubre el caso en que el job ni siquiera llega a crearse: el lock
+        tomado un instante antes no puede quedarse retenido.
+        """
+        lock = job.request_payload.get("lab_lock")
+        if not isinstance(lock, dict) or lock.get("released"):
+            return
+        if not (force or job.terminal):
+            return
+        lab_id = str(lock.get("lab_id") or "")
+        owner = str(lock.get("owner") or "")
+        if not lab_id or not owner:
+            return
+        self.lab_locks.release(lab_id, owner)
+        job.request_payload["lab_lock"] = {**lock, "released": True}
 
     def _replay(self, idempotency_key: str | None) -> PatchJob | None:
         """Idempotencia: la misma clave devuelve el job original, nunca uno nuevo."""
@@ -702,52 +975,80 @@ class Store:
                     f"La tarea {tid} ya tiene un job activo ({active.id}, estado {active.state.value}).",
                     correlation_id=active.correlation_id)
 
-        target = self._resolve_target(tid, ring_no)
+        deploy = p["artifacts"]["deployment"]
+        ring = next(r for r in deploy["rings"] if r["ring"] == ring_no)
+        track = t.get("track", "A")
+        aws = self.patch_provider.name == PROVIDER_AWS_AUTOMATION
+        if aws:
+            target = self._aws_single_target(tid, ring_no, track)
+            assets_count = 1
+        else:
+            target = self._resolve_target(tid, ring_no)
+            assets_count = max(1, ring["assets"])
+        # Idempotencia sobre el objetivo, no sobre el despliegue: los anillos
+        # posteriores de la promoción resuelven la misma instancia real, que ya
+        # está en la versión corregida. Se aprueban y se cierran con la evidencia
+        # del parcheo, sin relanzar la Automation (abortaría con
+        # KERNEL_ALREADY_FIXED).
+        patched = self._lab_patch_evidence(tid)
+        already_compliant = (patched is not None
+                             and target.instance_id == patched["instance_id"])
         busy = self.repo.active_job_for_target(target.logical_target_id)
         if busy is not None and busy.active:
             raise ConflictError(
                 f"El objetivo {target.logical_target_id} ya tiene un job activo ({busy.id}).",
                 correlation_id=busy.correlation_id)
 
-        deploy = p["artifacts"]["deployment"]
-        ring = next(r for r in deploy["rings"] if r["ring"] == ring_no)
         from_version = engine._prev_version(t)
         request_job_id = new_job_id()
         dry_run = self.settings.effective_dry_run(self.patch_provider.name)
+        # En una ejecución AWS real la versión corregida la determina el runbook:
+        # no se calcula una versión ficticia como evidencia.
+        to_version = "" if (aws and not dry_run) else engine._fixed_version(from_version)
         request = PatchRequest(
             job_id=request_job_id, task_id=tid, ring_number=ring_no,
             targets=(target,),
             spec=PatchSpec(component=t.get("component", t["ci_name"]),
-                           from_version=from_version,
-                           to_version=engine._fixed_version(from_version),
-                           cve=t.get("cve"), track=t.get("track", "A")),
+                           from_version=from_version, to_version=to_version,
+                           cve=t.get("cve"), track=track),
             dry_run=dry_run, ring_label=ring["label"], executor=deploy["executor"],
-            assets_count=max(1, ring["assets"]), task_snapshot=_task_snapshot(t))
+            assets_count=assets_count, task_snapshot=_task_snapshot(t))
         job = PatchJob(
             id=request_job_id, job_type=JobType.PATCH, task_id=tid, ring_number=ring_no,
             provider=self.patch_provider.name, dry_run=dry_run, targets=(target,),
             idempotency_key=idempotency_key or f"auto:{request_job_id}",
             request_payload=_patch_request_payload(request))
         job.request_payload["correlation_id"] = job.correlation_id
+        # Parcheo del laboratorio: no puede empezar mientras un reset o una
+        # reconciliación tengan el laboratorio tomado (409 si lo tienen).
+        lab_id = self._lab_id_for_task(tid)
+        if self._take_lab_lock(lab_id, job.correlation_id, LOCK_OPERATION_PATCH,
+                               f"patch:{tid}:ring-{ring_no}"):
+            job.request_payload["lab_lock"] = {"lab_id": lab_id, "owner": job.correlation_id,
+                                               "operation": LOCK_OPERATION_PATCH}
         request = _patch_request_from_payload(job.request_payload)
 
         try:
             job, created = self.repo.create_job(job, scope="approve")
         except TargetBusyError as exc:
+            self._release_lab_lock_for_job(job, force=True)
             raise ConflictError(
                 f"El objetivo {exc.logical_target_id} ya tiene un job activo.") from exc
         if not created:
+            self._release_lab_lock_for_job(job, force=True)
             return job  # idempotencia: misma clave → mismo job
 
         self.repo.append_event(job.id, job.state,
                                f"Job creado para el anillo {ring_no} ({ring['label']}).")
         self._log(tid, {"actor": "Owner (HITL)", "phase": "deployment",
-                        "msg": f"[HITL] Aprobado despliegue de {ring['label']} ({ring['assets']} activos). "
+                        "msg": f"[HITL] Aprobado despliegue de {ring['label']} ({assets_count} activos). "
                                f"Job {job.id} ({job.provider}"
                                + (", dry-run)" if dry_run else ")") + " creado."})
 
         job.transition_to(JobState.VALIDATING)
         self.repo.save_job(job)
+        if already_compliant and patched is not None:
+            return self._complete_compliant_ring(tid, job, ring, patched)
         try:
             policy = self.patch_provider.validate_target(request)
         except ProviderError as exc:
@@ -774,6 +1075,31 @@ class Store:
         self.repo.save_job(job)
         if job.terminal:
             self._apply_job_outcome(tid, job)
+        return job
+
+    def _complete_compliant_ring(self, tid, job: PatchJob, ring: dict,
+                                 evidence: dict) -> PatchJob:
+        """Cierra un anillo cuyo objetivo ya está en la versión corregida.
+
+        No es un parcheo nuevo: el anillo se da por desplegado con la evidencia
+        del parcheo que ya confirmó AWS, y el job queda en el histórico como
+        ejecución idempotente sin cambios en la instancia.
+        """
+        job.result_payload["already_compliant"] = dict(evidence)
+        job.result_payload["report"] = {"CurrentKernel": evidence["kernel"],
+                                        "HealthStatus": evidence["health_state"] or "healthy"}
+        job.provider_reference = evidence["execution_id"]
+        job.transition_to(JobState.STARTING)
+        job.transition_to(JobState.SUCCEEDED)
+        detail = (f"La instancia {evidence['instance_id']} ya está en la versión corregida "
+                  f"(kernel {evidence['kernel']}, ejecución {evidence['execution_id']}): "
+                  "el anillo se cierra sin relanzar la Automation.")
+        self.repo.append_event(job.id, job.state, detail)
+        self._release_lab_lock_for_job(job)
+        self.repo.save_job(job)
+        self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                        "msg": f"{ring['label']}: {detail}"})
+        self._apply_job_outcome(tid, job)
         return job
 
     # ------------------------------------------------------------------
@@ -803,7 +1129,10 @@ class Store:
         plan = p["artifacts"]["deployment"]["rollback_plan"]
         reason = reason or ("Fallo de post-checks / breach de health-check" if trigger == "auto"
                            else "Rollback solicitado por el owner")
-        target = self._resolve_target(tid, ring_no)
+        if self.restore_provider.name == PROVIDER_AWS_AUTOMATION:
+            target = self._aws_single_target(tid, ring_no, t.get("track", "A"))
+        else:
+            target = self._resolve_target(tid, ring_no)
         job_id = new_job_id()
         dry_run = self.settings.effective_dry_run(self.restore_provider.name)
         job_type = JobType.RESET_LAB if restore_kind == "reset_lab" else JobType.ROLLBACK
@@ -865,10 +1194,22 @@ class Store:
             "provider_detail": sanitize_text(execution.detail, 500),
             "raw_status": execution.raw_status,
         })
-        for key in ("from_version", "to_version", "restored_version"):
+        for key in ("from_version", "to_version", "restored_version", "new_instance_id"):
             value = getattr(execution, key, None)
             if value:
                 job.result_payload[key] = value
+        if execution.report:
+            # Outputs declarados del runbook: evidencia auditable del resultado.
+            job.result_payload["report"] = dict(execution.report)
+        warning_code = execution.warning_code
+        if warning_code:
+            message = (f"[{warning_code}] "
+                       f"{sanitize_text(execution.warning_message, 500)}")
+            job.result_payload["warning"] = {
+                "code": warning_code,
+                "message": sanitize_text(execution.warning_message, 500)}
+            if not self.repo.has_event(job.id, message):
+                self.repo.append_event(job.id, job.state, message)
         target_state = state_for_execution(execution.status, job.job_type)
         if execution.error_code:
             job.error_code = execution.error_code
@@ -880,29 +1221,40 @@ class Store:
                                    sanitize_text(execution.detail, 500) or f"Estado {job.state.value}.")
         return job
 
+    def _provider_for(self, job: PatchJob):
+        return self.patch_provider if job.job_type is JobType.PATCH else self.restore_provider
+
+    def _request_for(self, job: PatchJob):
+        if job.job_type is JobType.PATCH:
+            return _patch_request_from_payload(job.request_payload)
+        return _restore_request_from_payload(job.request_payload)
+
+    def _job_lock(self, job_id: str) -> threading.Lock:
+        with self._locks_guard:
+            return self._job_locks.setdefault(job_id, threading.Lock())
+
     def reconcile_job(self, job: PatchJob) -> PatchJob:
-        """Consulta al provider y aplica el resultado. Idempotente y sin duplicar logs."""
+        """Consulta al provider y aplica el resultado. Idempotente y sin duplicar logs.
+
+        Un mismo job nunca se consulta en paralelo (frontend + reconciliador):
+        si otro hilo lo está reconciliando, se devuelve el estado conocido.
+        """
         if job.terminal or not job.provider_reference:
             return job
-        elapsed = (utcnow() - job.created_at).total_seconds()
-        if elapsed > self.settings.job_timeout_seconds:
-            job.transition_to(JobState.TIMED_OUT, error_code="JOB_TIMED_OUT",
-                              error_message="El job excedió MSR_JOB_TIMEOUT_SECONDS.")
-            self.repo.append_event(job.id, job.state, "Job caducado por timeout.")
-            self.repo.save_job(job)
-            self._apply_job_outcome(job.task_id, job)
+        lock = self._job_lock(job.id)
+        if not lock.acquire(blocking=False):
             return job
         try:
-            if job.job_type is JobType.PATCH:
-                request = _patch_request_from_payload(job.request_payload)
-                execution = self.patch_provider.poll(job.provider_reference, request)
-            else:
-                request = _restore_request_from_payload(job.request_payload)
-                execution = self.restore_provider.poll(job.provider_reference, request)
-        except ProviderError as exc:
-            message = f"No se pudo reconciliar el job: {exc.code}"
-            if not self.repo.has_event(job.id, message):
-                self.repo.append_event(job.id, job.state, message)
+            return self._reconcile_locked(job)
+        finally:
+            lock.release()
+
+    def _reconcile_locked(self, job: PatchJob) -> PatchJob:
+        elapsed = (utcnow() - job.created_at).total_seconds()
+        if elapsed > self.settings.job_timeout_seconds or job.unconfirmed:
+            return self._handle_timeout(job)
+        execution = self._poll_provider(job)
+        if execution is None:
             return job
         self._absorb_execution(job, execution)
         self.repo.save_job(job)
@@ -910,42 +1262,138 @@ class Store:
             self._apply_job_outcome(job.task_id, job)
         return job
 
+    def _poll_provider(self, job: PatchJob):
+        """Consulta al provider; None si la consulta no pudo completarse."""
+        try:
+            return self._provider_for(job).poll(job.provider_reference or "",
+                                                self._request_for(job))
+        except ProviderError as exc:
+            message = f"No se pudo reconciliar el job: {exc.code}"
+            if not self.repo.has_event(job.id, message):
+                self.repo.append_event(job.id, job.state, message)
+            return None
+
+    def _mark_unconfirmed(self, job: PatchJob, state: JobState, code: str,
+                          message: str) -> PatchJob:
+        """Estado no terminal: el lock del objetivo se mantiene deliberadamente."""
+        if job.state is not state:
+            job.transition_to(state, error_code=code, error_message=message)
+            self.repo.append_event(job.id, job.state, message)
+            self.repo.save_job(job)
+        return job
+
+    def _handle_timeout(self, job: PatchJob) -> PatchJob:
+        """Timeout local: nunca es por sí mismo un estado terminal en AWS.
+
+        Sin ejecución remota viva (mock o dry-run) el job caduca. Con ejecución
+        remota se vuelve a consultar el estado, se solicita la parada y el job
+        queda en un estado no confirmado que mantiene el objetivo bloqueado
+        hasta que AWS confirme un estado terminal (o hasta una reconciliación
+        manual administrativa).
+        """
+        remote = job.provider != PROVIDER_MOCK and not job.dry_run
+        if not remote:
+            job.transition_to(JobState.TIMED_OUT, error_code="JOB_TIMED_OUT",
+                              error_message="El job excedió MSR_JOB_TIMEOUT_SECONDS.")
+            self.repo.append_event(job.id, job.state, "Job caducado por timeout.")
+            self.repo.save_job(job)
+            self._apply_job_outcome(job.task_id, job)
+            return job
+
+        self._mark_unconfirmed(
+            job, JobState.TIMEOUT_PENDING_CONFIRMATION, "JOB_TIMEOUT_PENDING_CONFIRMATION",
+            "Timeout local alcanzado: la ejecución remota puede seguir activa, "
+            "el objetivo permanece bloqueado hasta confirmar su estado.")
+        execution = self._poll_provider(job)
+        if execution is None:
+            return self._mark_unconfirmed(
+                job, JobState.REMOTE_STATUS_UNKNOWN, "REMOTE_STATUS_UNKNOWN",
+                "No se pudo obtener el estado remoto de la ejecución: el objetivo "
+                "sigue ocupado y requiere reconciliación manual.")
+        if is_terminal(state_for_execution(execution.status, job.job_type)):
+            self._absorb_execution(job, execution)
+            self.repo.save_job(job)
+            self._apply_job_outcome(job.task_id, job)
+            return job
+        if job.state is JobState.STOP_REQUESTED:
+            return job
+        try:
+            self._provider_for(job).cancel(job.provider_reference or "",
+                                           self._request_for(job))
+        except ProviderError as exc:
+            return self._mark_unconfirmed(
+                job, JobState.REMOTE_STATUS_UNKNOWN, exc.code,
+                f"No se pudo solicitar la parada de la ejecución remota: {exc.code}. "
+                "El objetivo sigue ocupado.")
+        return self._mark_unconfirmed(
+            job, JobState.STOP_REQUESTED, "STOP_REQUESTED",
+            "Parada solicitada al proveedor tras el timeout local: el job no se "
+            "marca como cancelado hasta que la ejecución remota lo confirme.")
+
     # ------------------------------------------------------------------
-    def _apply_job_outcome(self, tid, job: PatchJob) -> None:
-        """Aplica el efecto de un job terminal exactamente una vez."""
-        if tid not in self.pipelines or job.result_payload.get("outcome_applied"):
+    def admin_resolve_job(self, job_id: str, state: str, note: str,
+                          actor: str = "admin") -> PatchJob:
+        """Reconciliación manual de un job sin estado remoto confirmado.
+
+        Sólo cierra jobs en estado no confirmado y deja evento de auditoría; no
+        puede declarar un éxito que AWS no haya confirmado.
+        """
+        job = self.repo.get_job(job_id, with_events=True)
+        if job is None:
+            raise NotFoundError(f"El job {job_id} no existe.")
+        if not job.unconfirmed:
+            raise ValidationError(
+                f"El job {job_id} no está en un estado no confirmado ({job.state.value}).",
+                code="JOB_NOT_UNCONFIRMED")
+        allowed = {s.value for s in ADMIN_RESOLVABLE_STATES}
+        if state not in allowed:
+            raise ValidationError(
+                f"Estado no permitido para reconciliación manual: {state}. "
+                f"Permitidos: {', '.join(sorted(allowed))}.",
+                code="ADMIN_STATE_NOT_ALLOWED")
+        target_state = JobState(state)
+        if job.job_type is not JobType.PATCH and target_state is JobState.FAILED:
+            target_state = JobState.RESTORE_FAILED
+        detail = sanitize_text(note, 500) or "sin detalle"
+        job.transition_to(target_state, error_code="ADMIN_RECONCILED", error_message=detail)
+        self.repo.append_event(
+            job.id, job.state,
+            f"[Auditoría] Reconciliación manual a {job.state.value} por {actor}: {detail}",
+            actor=actor)
+        self.repo.save_job(job)
+        self._apply_job_outcome(job.task_id, job)
+        return job
+
+    def reconcile_active_jobs(self) -> int:
+        """Reconciliación de todos los jobs activos persistidos (reconciliador)."""
+        reconciled = 0
+        for job in self.repo.list_active_jobs():
+            self.reconcile_job(job)
+            reconciled += 1
+        return reconciled
+
+    # ------------------------------------------------------------------
+    def _apply_job_outcome(self, tid, job: PatchJob, *, persist: bool = True) -> None:
+        """Proyecta el resultado de un job terminal sobre el estado en memoria.
+
+        El resultado persistido del job y su proyección son cosas distintas: la
+        proyección se controla en memoria (`_projected`), de modo que reiniciar
+        el backend puede volver a reconstruirla desde SQLite.
+        """
+        # El lock del laboratorio se libera con el estado terminal del job, no al
+        # arrancarlo: la Automation sigue viva mientras el job está activo.
+        self._release_lab_lock_for_job(job)
+        if tid not in self.pipelines or job.id in self._projected:
             return
+        self._projected.add(job.id)
         job.result_payload["outcome_applied"] = True
-        p = self.pipelines[tid]
-        t = self.tasks[tid]
 
         if job.state is JobState.DRY_RUN:
-            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                            "msg": f"Dry-run completado (job {job.id}, provider {job.provider}): "
-                                   f"no se ha aplicado ningún cambio y el anillo {job.ring_number} "
-                                   "no avanza."})
+            self._apply_dry_run(tid, job)
         elif job.job_type is JobType.PATCH and job.state is JobState.SUCCEEDED:
-            ring_no = job.ring_number
-            p["rings_done"] = max(p["rings_done"], ring_no)
-            p["ring_evidence"][ring_no] = {
-                "steps": job.steps(),
-                "from_version": job.result_payload.get("from_version"),
-                "to_version": job.result_payload.get("to_version"),
-                "job_id": job.id, "provider": job.provider,
-            }
-            deploy = self._rebuild_deploy(tid)
-            ring = next(r for r in deploy["rings"] if r["ring"] == ring_no)
-            for step in job.steps():
-                self._log(tid, {"actor": step.get("actor", "Devin"), "phase": "deployment",
-                                "msg": f"$ {step.get('command')} → {step.get('output')} "
-                                       f"({step.get('duration_s', 0)}s)"})
-            self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                            "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy."})
-            if p["rings_done"] >= len(engine.RING_DEFS):
-                t["status"] = "remediated"
-                self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
-                self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                                "msg": "Reescaneo verificado. Vulnerable Item → FIXED. Informe de auditoría generado."})
+            self._project_ring_deployed(tid, job)
+        elif job.job_type is JobType.RESET_LAB and job.state is JobState.RESTORED:
+            self._apply_lab_reset(tid, job)
         elif job.job_type is not JobType.PATCH and job.state is JobState.RESTORED:
             self._apply_rollback(tid, job)
         elif job.state in (JobState.FAILED, JobState.RESTORE_FAILED, JobState.TIMED_OUT,
@@ -956,7 +1404,569 @@ class Store:
                                    f"{sanitize_text(job.error_message or '-', 300)}. "
                                    f"El anillo {job.ring_number} no avanza."})
             self._rebuild_deploy(tid)
+        if persist:
+            self.repo.save_job(job)
+
+    def _apply_dry_run(self, tid: str, job: PatchJob) -> None:
+        """Efecto de un job de dry-run: ensayo del recorrido, nunca evidencia real.
+
+        Con `MSR_DRY_RUN_ADVANCES_PIPELINE` el anillo avanza (o el reset reabre el
+        ciclo) para poder recorrer las cinco aprobaciones sin tocar AWS. El estado
+        del laboratorio no se toca: sigue siendo el que AWS reporta.
+        """
+        if not self.settings.dry_run_advances_pipeline:
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": f"Dry-run completado (job {job.id}, provider {job.provider}): "
+                                   f"no se ha aplicado ningún cambio y el anillo {job.ring_number} "
+                                   "no avanza."})
+            return
+        if job.job_type is JobType.PATCH:
+            self._project_ring_deployed(tid, job, simulated=True)
+        elif job.job_type is JobType.RESET_LAB:
+            self._reopen_pipeline(tid)
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": f"↺ Reset simulado (job {job.id}): el ciclo de anillos vuelve "
+                                   "a empezar. La instancia real no se ha recreado."})
+        else:
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": f"Dry-run completado (job {job.id}): sin cambios reales."})
+
+    def _reopen_pipeline(self, tid: str) -> None:
+        """Devuelve el despliegue a su línea base para repetir el ciclo completo."""
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        p["rings_done"] = 0
+        p["ring_evidence"] = {}
+        p["rolled_back_rings"] = []
+        if p["statuses"].get("deployment") == "approved":
+            p["statuses"]["deployment"] = "awaiting_approval"
+        if t.get("status") == "remediated":
+            t["status"] = "in_flight"
+        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "open"
+        self._rebuild_deploy(tid)
+
+    def _project_ring_deployed(self, tid: str, job: PatchJob, *,
+                               simulated: bool = False) -> None:
+        """Proyecta un anillo desplegado sobre el pipeline.
+
+        `simulated` marca la evidencia de un ensayo en dry-run: el anillo avanza
+        para poder recorrer las aprobaciones, pero no se registra evidencia de
+        parcheo sobre el laboratorio ni se declara corregido el Vulnerable Item.
+        """
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        ring_no = job.ring_number
+        p["rings_done"] = max(p["rings_done"], ring_no)
+        # Sólo se declaran desplegados los objetivos realmente ejecutados.
+        executed = [tg.instance_id or tg.logical_target_id for tg in job.targets]
+        p["ring_evidence"][ring_no] = {
+            "steps": job.steps(),
+            "from_version": job.result_payload.get("from_version"),
+            "to_version": job.result_payload.get("to_version"),
+            "job_id": job.id, "provider": job.provider,
+            "executed_assets": job.request_payload.get("assets_count") or len(executed),
+            "executed_targets": executed,
+            "simulated": simulated,
+        }
+        deploy = self._rebuild_deploy(tid)
+        ring = next(r for r in deploy["rings"] if r["ring"] == ring_no)
+        for step in job.steps():
+            self._log(tid, {"actor": step.get("actor", "Devin"), "phase": "deployment",
+                            "msg": f"$ {step.get('command')} → {step.get('output')} "
+                                   f"({step.get('duration_s', 0)}s)"})
+        if simulated:
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": f"{ring['label']}: anillo completado en dry-run (job {job.id}). "
+                                   "Ensayo del recorrido: no se ha aplicado ningún parche."})
+        else:
+            self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
+                            "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy "
+                                   f"({', '.join(executed) or 'sin objetivos'})."})
+            self._apply_lab_patch(job)
+        if p["rings_done"] < len(engine.RING_DEFS):
+            return
+        # La fase de despliegue la cierra la evidencia del último anillo, no una
+        # aprobación adicional que ya no tiene nada que aprobar.
+        p["statuses"]["deployment"] = "approved"
+        if simulated:
+            self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                            "msg": "Recorrido completo ensayado en dry-run: el Vulnerable Item sigue "
+                                   "abierto porque no se ha aplicado ningún parche."})
+            return
+        t["status"] = "remediated"
+        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
+        self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
+                        "msg": "Reescaneo verificado. Vulnerable Item → FIXED. "
+                               "Informe de auditoría generado."})
+
+    # ------------------------------------------------------------------
+    # Laboratorio reutilizable (modelo persistente; sin operaciones EC2)
+    # ------------------------------------------------------------------
+    def list_lab_targets(self) -> list[dict]:
+        return [lab.as_dict() for lab in self.repo.list_lab_targets()]
+
+    def get_lab_target(self, logical_lab_id: str) -> dict:
+        lab = self.repo.get_lab_target(logical_lab_id)
+        if lab is None:
+            raise NotFoundError(f"El laboratorio {logical_lab_id} no está registrado.")
+        return lab.as_dict()
+
+    def register_lab_target(self, payload: dict) -> dict:
+        """Registra o actualiza la instancia vulnerable reutilizable de la PoC."""
+        logical_lab_id = (payload.get("logical_lab_id") or "").strip()
+        if not logical_lab_id:
+            raise ValidationError("logical_lab_id es obligatorio.",
+                                  code="LAB_TARGET_INVALID")
+        instance_id = payload.get("current_instance_id") or None
+        if instance_id and not INSTANCE_ID_RE.match(instance_id):
+            raise ValidationError(f"current_instance_id no es un Instance ID válido: {instance_id}",
+                                  code="LAB_TARGET_INVALID")
+        existing = self.repo.get_lab_target(logical_lab_id)
+        lab = LabTarget(
+            logical_lab_id=logical_lab_id,
+            current_instance_id=instance_id,
+            account_id=payload.get("account_id"),
+            region=payload.get("region") or self.settings.aws_region or None,
+            vulnerable_ami_id=payload.get("vulnerable_ami_id"),
+            launch_template_id=payload.get("launch_template_id"),
+            launch_template_version=payload.get("launch_template_version"),
+            # El ASG lo fija la configuración (IaC): nunca llega en el payload.
+            autoscaling_group_name=self.settings.lab_autoscaling_group_name or None,
+            expected_vulnerable_package=payload.get("expected_vulnerable_package"),
+            expected_vulnerable_version=payload.get("expected_vulnerable_version"),
+            # Igual que el ASG: advisory, releasever y kernel corregido son
+            # contrato de la IaC; el payload no puede sobreescribirlos.
+            candidate_releasever=self.settings.patch_releasever or None,
+            expected_fixed_kernel=self.settings.patch_expected_fixed_kernel or None,
+            required_tags=dict(payload.get("required_tags") or {}))
+        if existing is not None:
+            # El registro describe el laboratorio; no borra el estado operativo
+            # ya reconciliado con AWS.
+            lab.last_reset_job_id = existing.last_reset_job_id
+            lab.previous_instance_id = existing.previous_instance_id
+            lab.lab_state = existing.lab_state
+            lab.current_kernel = existing.current_kernel
+            lab.advisory_applicable = existing.advisory_applicable
+            lab.ssm_state = existing.ssm_state
+            lab.health_state = existing.health_state
+            lab.evidence_source = existing.evidence_source
+            lab.last_patch_job_id = existing.last_patch_job_id
+            lab.last_patch_execution_id = existing.last_patch_execution_id
+            lab.last_patch_at = existing.last_patch_at
+            lab.last_reset_execution_id = existing.last_reset_execution_id
+            lab.reconciliation_state = existing.reconciliation_state
+            lab.last_reconciled_at = existing.last_reconciled_at
+            lab.last_reconciliation_error = existing.last_reconciliation_error
+            lab.last_correlation_id = existing.last_correlation_id
+        return self.repo.upsert_lab_target(lab).as_dict()
+
+    # --- resolución dinámica por identificador lógico -------------------
+    def _lab_or_404(self, logical_lab_id: str) -> LabTarget:
+        lab = self.repo.get_lab_target(logical_lab_id)
+        if lab is None:
+            raise NotFoundError(f"El laboratorio {logical_lab_id} no está registrado.")
+        return lab
+
+    def _lab_task_id(self, logical_lab_id: str) -> str:
+        """Tarea de remediación track A asociada al laboratorio."""
+        for tid, task in self.tasks.items():
+            if task.get("logical_lab_id") == logical_lab_id:
+                return tid
+        raise NotFoundError(
+            f"No hay ninguna tarea de remediación asociada al laboratorio {logical_lab_id}.")
+
+    def _resolve_lab_instance(self, logical_lab_id: str) -> LabInstance:
+        """Instance ID actual del laboratorio, resuelto por tags (nunca fijado)."""
+        instance = self.lab_resolver.resolve(logical_lab_id)
+        lab = self.repo.get_lab_target(logical_lab_id)
+        if lab is not None and lab.current_instance_id != instance.instance_id:
+            # El Auto Scaling Group ha sustituido la instancia (reset manual o
+            # sustitución por salud): la evidencia del kernel, el advisory y la
+            # salud pertenecían a la instancia anterior y deja de ser válida.
+            lab.previous_instance_id = lab.current_instance_id
+            lab.current_instance_id = instance.instance_id
+            lab.account_id = instance.account_id or lab.account_id
+            lab.region = instance.region or lab.region
+            lab.vulnerable_ami_id = instance.image_id or lab.vulnerable_ami_id
+            lab.lab_state = LAB_STATE_UNKNOWN
+            lab.current_kernel = None
+            lab.advisory_applicable = None
+            lab.health_state = None
+            lab.ssm_state = instance.ping_status
+            lab.evidence_source = None
+            lab.last_patch_execution_id = None
+            lab.last_patch_at = None
+            self.repo.upsert_lab_target(lab)
+            self._observe_lab(logical_lab_id, instance)
+        return instance
+
+    def _observe_lab(self, logical_lab_id: str, instance: LabInstance) -> None:
+        """Reobserva el laboratorio en AWS (sólo lectura) y persiste la evidencia.
+
+        Si la observación falla, el laboratorio queda en `unknown`: fail-closed,
+        nunca se hereda el estado de la instancia anterior.
+        """
+        try:
+            evidence = self.lab_precheck.inspect(instance)
+        except (ProviderError, LabResolutionError) as exc:
+            log.warning("No se pudo reobservar el laboratorio %s tras el cambio de "
+                        "instancia: %s", logical_lab_id, exc)
+            return
+        self.lab_lifecycle.record_observation(logical_lab_id, instance, evidence)
+
+    def _lab_state(self, logical_lab_id: str, tid: str) -> dict:
+        """Estado operativo del laboratorio según la evidencia persistida.
+
+        La evidencia observada en AWS manda: el histórico de jobs sólo aporta las
+        referencias de los últimos jobs. Mientras no haya evidencia se declara
+        `unknown`, nunca «parcheado» ni «vulnerable confirmado».
+        """
+        lab = self.repo.get_lab_target(logical_lab_id)
+        last_patch = last_reset = None
+        for job in self.repo.list_jobs_for_task_chronological(tid):
+            if job.job_type is JobType.PATCH and job.state is JobState.SUCCEEDED:
+                last_patch = job
+            elif job.job_type is JobType.RESET_LAB and job.state is JobState.RESTORED:
+                last_reset = job
+        state = lab.lab_state if lab else LAB_STATE_UNKNOWN
+        return {
+            "vulnerable_state": state,
+            "advisory_confirmed": bool(lab and lab.advisory_applicable is not None),
+            "advisory_applicable": lab.advisory_applicable if lab else None,
+            "current_kernel": lab.current_kernel if lab else None,
+            "health_state": lab.health_state if lab else None,
+            "ssm_state": lab.ssm_state if lab else None,
+            "evidence_source": lab.evidence_source if lab else None,
+            "reconciliation_state": lab.reconciliation_state if lab else None,
+            "last_reconciled_at": (lab.as_dict()["last_reconciled_at"] if lab else None),
+            "last_reconciliation_error": lab.last_reconciliation_error if lab else None,
+            "last_patch_execution_id": lab.last_patch_execution_id if lab else None,
+            "last_reset_execution_id": lab.last_reset_execution_id if lab else None,
+            "previous_instance_id": lab.previous_instance_id if lab else None,
+            "last_patch_job_id": last_patch.id if last_patch else None,
+            "last_reset_job_id": last_reset.id if last_reset else None,
+        }
+
+    def lab_snapshot(self, logical_lab_id: str) -> dict:
+        """Vista de sólo lectura del laboratorio para la UI (`GET /api/labs/{id}`)."""
+        lab = self._lab_or_404(logical_lab_id)
+        # El ASG es contrato de la IaC (`MSR_LAB_AUTOSCALING_GROUP_NAME`): manda
+        # la configuración, no lo que se persistió cuando se registró el lab.
+        asg = self.settings.lab_autoscaling_group_name or None
+        if asg is not None and lab.autoscaling_group_name != asg:
+            lab.autoscaling_group_name = asg
+            self.repo.upsert_lab_target(lab)
+        tid = self._lab_task_id(logical_lab_id)
+        instance: dict | None = None
+        resolution_error: dict | None = None
+        try:
+            instance = self._resolve_lab_instance(logical_lab_id).as_dict()
+        except LabResolutionError as exc:
+            resolution_error = {"code": exc.code, "message": exc.message,
+                                "candidates": list(exc.candidates)}
+        except ProviderError as exc:
+            resolution_error = {"code": exc.code, "message": exc.message, "candidates": []}
+        active = self.active_job(tid)
+        return {
+            "lab": self.repo.get_lab_target(logical_lab_id).as_dict() if lab else None,
+            "instance": instance,
+            "resolution_error": resolution_error,
+            "task_id": tid,
+            "advisory_id": self.settings.patch_advisory_id,
+            "package_family": self.settings.patch_package_family,
+            "releasever": self.settings.patch_releasever,
+            "expected_fixed_kernel": self.settings.patch_expected_fixed_kernel,
+            "environment": self.settings.lab_environment,
+            "required_tags": required_lab_tags(self.settings, logical_lab_id),
+            "execution_mode": self.settings.execution_mode(),
+            "dry_run": self.settings.effective_dry_run(self.patch_provider.name),
+            "patch_provider": self.patch_provider.name,
+            "restore_provider": self.restore_provider.name,
+            "active_job": active.as_dict() if active else None,
+            "reconciliation": self.lab_lifecycle.status(logical_lab_id),
+            **self._lab_state(logical_lab_id, tid),
+        }
+
+    def validate_lab(self, logical_lab_id: str) -> dict:
+        """Validación de sólo lectura: no inicia ninguna Automation ni muta nada."""
+        self._lab_or_404(logical_lab_id)
+        tid = self._lab_task_id(logical_lab_id)
+        checks: list[dict] = [{"check": "Laboratorio registrado", "ok": True,
+                               "detail": f"Laboratorio {logical_lab_id} presente en SQLite."}]
+        instance = None
+        try:
+            instance = self._resolve_lab_instance(logical_lab_id)
+            checks.append({"check": "Instancia resuelta por tags", "ok": True,
+                           "detail": f"{instance.instance_id} ({instance.source})."})
+        except (LabResolutionError, ProviderError) as exc:
+            checks.append({"check": "Instancia resuelta por tags", "ok": False,
+                           "detail": exc.message, "code": exc.code})
+
+        evidence = None
+        if instance is not None:
+            missing = check_lab_tags(instance.tags, self.settings, logical_lab_id)
+            checks.append({"check": "Tags obligatorios", "ok": not missing,
+                           "detail": ("Todos los tags obligatorios presentes."
+                                      if not missing else f"Faltan: {', '.join(missing)}")})
+            checks.append({"check": "Instancia en ejecución", "ok": instance.state == "running",
+                           "detail": f"Estado EC2: {instance.state}."})
+            checks.append({"check": "Nodo gestionado por SSM", "ok": instance.ssm_managed,
+                           "detail": f"PingStatus: {instance.ping_status or 'desconocido'}."})
+            policy = evaluate_target(
+                instance.as_target(self.settings.lab_environment), self.settings,
+                instance_state=instance.state, require_instance=True,
+                strict=self.settings.real_aws_execution())
+            checks.extend(policy.checks)
+            # Evidencia de sólo lectura: es la que decide si el laboratorio está
+            # listo, y se persiste para que la UI no muestre un estado obsoleto.
+            evidence = self.lab_precheck.inspect(instance)
+            checks.extend(evidence.checks)
+            self.lab_lifecycle.record_observation(logical_lab_id, instance, evidence)
+
+        for operation in (OPERATION_PATCH, OPERATION_RESET_LAB):
+            try:
+                runbook = resolve_runbook(self.settings, operation)
+                detail = f"{runbook.name} (Automation)."
+                ok = True
+            except RunbookContractError as exc:
+                detail, ok = exc.message, False
+            checks.append({"check": f"Runbook de {operation} configurado", "ok": ok,
+                           "detail": detail})
+
+        return {
+            "logical_lab_id": logical_lab_id,
+            "read_only": True,
+            # Sólo un check en rojo bloquea: `ok: None` es «no concluyente»
+            # (p. ej. sin escaneo de Patch Manager que confirme el advisory) y
+            # el precheck del runbook vuelve a comprobarlo antes de tocar nada.
+            "allowed": not any(c.get("ok") is False for c in checks),
+            "inconclusive": [c["check"] for c in checks if c.get("ok") is None],
+            "checks": checks,
+            "instance": instance.as_dict() if instance else None,
+            "evidence": evidence.as_dict() if evidence else None,
+            "task_id": tid,
+            "advisory_id": self.settings.patch_advisory_id,
+            "releasever": self.settings.patch_releasever,
+            "expected_fixed_kernel": self.settings.patch_expected_fixed_kernel,
+            "note": ("La aplicabilidad real del advisory sólo se confirma con el precheck "
+                     "del runbook; esta validación no ejecuta nada en la instancia."),
+            **self._lab_state(logical_lab_id, tid),
+        }
+
+    def lab_jobs(self, logical_lab_id: str) -> list[dict]:
+        """Historial completo de jobs del laboratorio (parcheo y resets)."""
+        self._lab_or_404(logical_lab_id)
+        tid = self._lab_task_id(logical_lab_id)
+        return [job.as_dict() for job in self.list_task_jobs(tid)]
+
+    def start_lab_reset_job(self, logical_lab_id: str,
+                            idempotency_key: str | None = None, *,
+                            correlation_id: str | None = None,
+                            trigger: str = "lab_reset") -> PatchJob:
+        """`reset_lab`: recreación deliberada de la instancia vulnerable.
+
+        Distinto de `rollback` (recuperación de una ejecución fallida): no
+        depende de que haya anillos desplegados, no toca `rings_done` al
+        crearse y termina actualizando el Instance ID del laboratorio.
+        """
+        lab = self._lab_or_404(logical_lab_id)
+        tid = self._lab_task_id(logical_lab_id)
+        replay = self._replay(idempotency_key)
+        if replay is not None:
+            return replay
+        try:
+            instance = self._resolve_lab_instance(logical_lab_id)
+        except LabResolutionError as exc:
+            raise ValidationError(exc.message, code=exc.code) from exc
+        target = instance.as_target(self.settings.lab_environment)
+
+        active = self.repo.active_job_for_task(tid)
+        if active is not None:
+            active = self.reconcile_job(active)
+            if active.active:
+                raise ConflictError(f"El laboratorio {logical_lab_id} ya tiene un job activo "
+                                    f"({active.id}).", correlation_id=active.correlation_id)
+
+        job_id = new_job_id()
+        dry_run = self.settings.effective_dry_run(self.restore_provider.name)
+        request = RestoreRequest(
+            job_id=job_id, task_id=tid, ring_number=0, targets=(target,),
+            reason=f"Reset del laboratorio {logical_lab_id}", target_version="",
+            snapshot_ref=None, dry_run=dry_run, restore_kind=RESTORE_KIND_RESET_LAB,
+            task_snapshot=_task_snapshot(self.tasks[tid]))
+        job = PatchJob(
+            id=job_id, job_type=JobType.RESET_LAB, task_id=tid, ring_number=0,
+            provider=self.restore_provider.name, dry_run=dry_run, targets=(target,),
+            state=JobState.RESTORE_QUEUED,
+            idempotency_key=idempotency_key or f"auto:{job_id}",
+            request_payload=_restore_request_payload(request))
+        # La reconciliación propaga su correlation ID para que el job, la
+        # Automation y el estado del laboratorio compartan la misma traza.
+        if correlation_id:
+            job.correlation_id = correlation_id
+        job.request_payload.update({
+            "trigger": trigger, "correlation_id": job.correlation_id,
+            "logical_lab_id": logical_lab_id,
+            "previous_instance_id": instance.instance_id,
+        })
+        # Reset del laboratorio: excluye cualquier otra mutación (parcheo desde
+        # la UI u otra reconciliación). Una reconciliación que ya tiene el lock
+        # reentra con el mismo dueño y conserva su responsabilidad de liberarlo.
+        if self._take_lab_lock(logical_lab_id, job.correlation_id, LOCK_OPERATION_RESET,
+                               f"reset:{trigger}"):
+            job.request_payload["lab_lock"] = {"lab_id": logical_lab_id,
+                                               "owner": job.correlation_id,
+                                               "operation": LOCK_OPERATION_RESET}
+        request = _restore_request_from_payload(job.request_payload)
+
+        try:
+            job, created = self.repo.create_job(job, scope="lab_reset")
+        except TargetBusyError as exc:
+            self._release_lab_lock_for_job(job, force=True)
+            raise ConflictError(
+                f"El objetivo {exc.logical_target_id} ya tiene un job activo.") from exc
+        if not created:
+            self._release_lab_lock_for_job(job, force=True)
+            return job
+        self.repo.record_lab_reset(logical_lab_id, job.id)
+        self.repo.append_event(job.id, job.state,
+                               f"Reset del laboratorio {logical_lab_id} solicitado sobre "
+                               f"{instance.instance_id}.")
+        job.transition_to(JobState.VALIDATING)
         self.repo.save_job(job)
+        try:
+            policy = self.restore_provider.validate_target(request)
+            job.result_payload["policy"] = policy.as_dict()
+            if not policy.allowed:
+                self._fail_job(job, policy.error_code or "TARGET_NOT_ALLOWED", policy.message)
+                raise TargetNotAllowedError(policy.message,
+                                            code=policy.error_code or "TARGET_NOT_ALLOWED",
+                                            correlation_id=job.correlation_id)
+            execution = self.restore_provider.start(request, job.idempotency_key)
+        except ProviderError as exc:
+            self._fail_job(job, exc.code, exc.message)
+            raise self._provider_error(exc) from exc
+
+        job.provider_reference = execution.provider_reference
+        job.dry_run = execution.dry_run
+        self._absorb_execution(job, execution)
+        self.repo.save_job(job)
+        if job.terminal:
+            self._apply_job_outcome(tid, job)
+        else:
+            job = self.reconcile_job(job)
+        _ = lab
+        return job
+
+    def _apply_lab_reset(self, tid: str, job: PatchJob) -> None:
+        """Efecto de un reset confirmado: nueva instancia y laboratorio vulnerable.
+
+        No modifica el historial de jobs ni incrementa `rings_done`: devuelve el
+        laboratorio a su línea base para poder repetir el ciclo completo.
+        """
+        logical_lab_id = job.request_payload.get("logical_lab_id") or ""
+        previous = job.request_payload.get("previous_instance_id")
+        report = job.result_payload.get("report") or {}
+        new_instance_id = self._rediscovered_instance_id(logical_lab_id, previous)
+        if new_instance_id is None and not self.settings.uses_aws():
+            # Sólo en modo simulado: sin AWS no hay dónde redescubrir la instancia.
+            new_instance_id = job.result_payload.get("new_instance_id")
+        lab = self.repo.get_lab_target(logical_lab_id) if logical_lab_id else None
+        if lab is not None:
+            if new_instance_id and new_instance_id != previous:
+                lab.previous_instance_id = previous or lab.previous_instance_id
+                lab.current_instance_id = new_instance_id
+            lab.last_reset_job_id = job.id
+            lab.last_reset_execution_id = job.provider_reference or lab.last_reset_execution_id
+            lab.last_correlation_id = job.correlation_id
+            lab.lab_state = LAB_STATE_VULNERABLE
+            lab.advisory_applicable = True
+            lab.current_kernel = report.get("RunningKernel") or None
+            lab.health_state = (report.get("HealthState") or "").lower() or lab.health_state
+            lab.last_patch_execution_id = None
+            lab.last_patch_job_id = None
+            lab.last_patch_at = None
+            self.repo.upsert_lab_target(lab)
+
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        p["rings_done"] = 0
+        p["ring_evidence"] = {}
+        p["rolled_back_rings"] = []
+        if p["statuses"].get("deployment") == "approved":
+            p["statuses"]["deployment"] = "awaiting_approval"
+        t["status"] = "in_flight" if t.get("status") == "remediated" else t.get("status")
+        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "open"
+        self._rebuild_deploy(tid)
+        self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                        "msg": f"↺ Reset del laboratorio {logical_lab_id or '-'} completado "
+                               f"(job {job.id}): instancia {previous or '-'} → "
+                               f"{new_instance_id or 'pendiente de resolver'}. "
+                               "El laboratorio vuelve a estado vulnerable."})
+
+    def _apply_lab_patch(self, job: PatchJob) -> None:
+        """Efecto de un parcheo confirmado sobre el estado del laboratorio.
+
+        El estado pasa a `patched` con la evidencia que devuelve el Automation
+        Report (kernel y salud), de modo que la UI deja de mostrar el estado
+        anterior en cuanto AWS confirma el parcheo.
+        """
+        logical_lab_id = self.settings.lab_logical_id
+        lab = self.repo.get_lab_target(logical_lab_id) if logical_lab_id else None
+        if lab is None:
+            return
+        if job.result_payload.get("already_compliant"):
+            # Anillo cerrado sobre un objetivo ya parcheado: manda la evidencia
+            # del parcheo original, no la de esta ejecución sin cambios.
+            return
+        instance_ids = {target.instance_id for target in job.targets if target.instance_id}
+        if lab.current_instance_id and lab.current_instance_id not in instance_ids:
+            return
+        report = job.result_payload.get("report") or {}
+        lab.lab_state = LAB_STATE_PATCHED
+        lab.last_patch_job_id = job.id
+        lab.last_patch_execution_id = job.provider_reference or lab.last_patch_execution_id
+        lab.last_correlation_id = job.correlation_id
+        lab.current_kernel = (report.get("CurrentKernel")
+                              or job.result_payload.get("to_version")
+                              or lab.expected_fixed_kernel)
+        lab.advisory_applicable = False
+        # El instante del job, no el de este cálculo: la rehidratación reaplica
+        # el efecto de un job ya terminado y no debe rejuvenecer la evidencia.
+        lab.last_patch_at = job.completed_at or utcnow()
+        health = (report.get("HealthStatus") or "").lower()
+        lab.health_state = health or "healthy"
+        lab.evidence_source = job.provider
+        self.repo.upsert_lab_target(lab)
+
+    def _rediscovered_instance_id(self, logical_lab_id: str, previous: str | None) -> str | None:
+        """Instance ID redescubierto en AWS tras un reset (nunca el del provider).
+
+        La fuente de verdad es el descubrimiento por tags en AWS: el
+        `NewInstanceId` que devuelve la Automation nunca lo sustituye. Si el
+        descubrimiento devuelve la instancia anterior, no se acepta como
+        reemplazo.
+        """
+        if not logical_lab_id:
+            return None
+        try:
+            instance = self.lab_resolver.resolve(logical_lab_id)
+        except (LabResolutionError, ProviderError):
+            return None
+        if previous and instance.instance_id == previous:
+            return None
+        return instance.instance_id
+
+    # --- reconciliación del laboratorio (fase 2.6) ----------------------
+    def ensure_lab_ready(self, logical_lab_id: str | None = None, *,
+                         confirmed: bool = False, reason: str = "api") -> dict:
+        """`ensure_lab_ready`: deja el laboratorio listo para una nueva demostración."""
+        return self.lab_lifecycle.ensure_lab_ready(logical_lab_id, confirmed=confirmed,
+                                                   reason=reason)
+
+    def lab_reconciliation_status(self, logical_lab_id: str | None = None) -> dict:
+        """Estado del reconciliador de laboratorio (sin llamadas a AWS)."""
+        return self.lab_lifecycle.status(logical_lab_id)
 
     # ------------------------------------------------------------------
     def get_job(self, job_id: str) -> PatchJob:

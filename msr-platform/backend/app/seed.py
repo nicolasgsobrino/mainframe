@@ -632,6 +632,17 @@ def _risk_score(cvss, epss, kev, exposed, criticality, env):
     return round(min(100, max(0, tech + exploit + business + exposure + env_factor)))
 
 
+# Días de plazo restantes que debe tener cada postura de SLA. `on_track` se
+# limita al propio plazo: con SLA de 3 días (KEV) el margen máximo es de 3 días.
+SLA_POSTURES = {"overdue": -3, "due_soon": 1, "on_track": 8}
+
+
+def _detected_at(sla_days: int, posture: str) -> datetime:
+    """Fecha de detección que deja el plazo en la postura de cumplimiento pedida."""
+    days_left = min(SLA_POSTURES[posture], sla_days)
+    return NOW - timedelta(days=sla_days - days_left)
+
+
 def build_records(cis, edges):
     servers = [c for c in cis if c["ci_class"] == "server"]
     apps = [c for c in cis if c["ci_class"] == "application"]
@@ -656,20 +667,22 @@ def build_records(cis, edges):
 
     # Conjunto reducido de escenarios de demo (4-5 vulnerabilidades pequeñas,
     # blast radius acotado ≤ 10 CIs). Cada uno cubre un dominio técnico distinto.
+    # `sla_posture` fija la fecha de detección respecto al plazo de cada escenario
+    # para que el reparto de cumplimiento sea legible y estable (ver _detected_at).
     scenarios = [
-        # (cve_index, ci_id preferido o None, exposed)
-        (0, "APP-1001", True),   # Log4Shell en payments-api (dominio B, crítico)
-        (14, None, True),        # regreSSHion OpenSSH (dominio A, infra)
-        (10, "APP-1004", False), # runc Container Escape en retail-bff (dominio C)
-        (1, "APP-1005", True),   # Spring4Shell en mobile-gateway (dominio B)
-        (4, None, True),         # HTTP/2 Rapid Reset nginx (dominio A)
+        # (cve_index, ci_id preferido o None, exposed, sla_posture)
+        (0, "APP-1001", True, "overdue"),    # Log4Shell en payments-api (dominio B, crítico)
+        (14, None, True, "on_track"),        # regreSSHion OpenSSH (dominio A, infra)
+        (10, "APP-1004", False, "on_track"), # runc Container Escape en retail-bff (dominio C)
+        (1, "APP-1005", True, "on_track"),   # Spring4Shell en mobile-gateway (dominio B)
+        (4, None, True, "on_track"),         # HTTP/2 Rapid Reset nginx (dominio A)
     ]
 
     vitems = []
     tasks = []
     vid = 700000
     tid = 900000
-    for idx, (cve_i, pref_ci, exposed) in enumerate(scenarios):
+    for idx, (cve_i, pref_ci, exposed, sla_posture) in enumerate(scenarios):
         cve = CVE_CATALOG[cve_i]
         track = cve[6]
         if pref_ci:
@@ -687,12 +700,6 @@ def build_records(cis, edges):
             "ci_class": ci["ci_class"], "exposed": exposed, "criticality": crit,
             "environment": env, "owner": ci.get("owner", RNG.choice(OWNERS)),
         }
-        detected_days = RNG.randint(1, 22)
-        detected_dt = NOW - timedelta(days=detected_days)
-        vitem["risk_score"] = risk
-        vitem["sources"] = RNG.sample(SCANNERS, RNG.randint(1, 3))
-        vitem["status"] = "open"
-        vitem["detected_at"] = iso(detected_dt)
         # SLA por severidad/KEV
         if cve[4] or cve[2] >= 9:
             sla_days = 3
@@ -700,10 +707,14 @@ def build_records(cis, edges):
             sla_days = 15
         else:
             sla_days = 30
+        detected_dt = _detected_at(sla_days, sla_posture)
+        vitem["risk_score"] = risk
+        vitem["sources"] = RNG.sample(SCANNERS, RNG.randint(1, 3))
+        vitem["status"] = "open"
+        vitem["detected_at"] = iso(detected_dt)
         vitem["sla_days"] = sla_days
         lane = assign_lane(risk, cve[4], cve[5], exposed, crit)
         vitem["lane"] = lane
-        # Vencimiento = detección + SLA (así hay VI dentro y fuera de plazo, como en real).
         vitem["sla_due"] = iso(detected_dt + timedelta(days=sla_days))
         vitems.append(vitem)
 
@@ -722,7 +733,8 @@ def build_records(cis, edges):
             "ci_id": ci["id"], "ci_name": ci["name"], "owner": vitem["owner"],
             "criticality": crit, "environment": env, "sla_due": vitem["sla_due"],
             "change_type": change_type, "exposed": exposed, "component": cve[7],
-            "vulnerable_version": cve[8], "created_at": iso(NOW - timedelta(days=RNG.randint(0, 8))),
+            # La tarea nace del hallazgo: nunca puede ser posterior a su vencimiento.
+            "vulnerable_version": cve[8], "created_at": iso(detected_dt),
         })
 
     return findings, vitems, tasks
@@ -766,7 +778,77 @@ TEST_CATALOG = [
 ]
 
 
-def build_all():
+# ---------------------------------------------------------------------------
+# 4.bis Escenario de laboratorio de la PoC (track A, sin Instance ID fijo)
+# ---------------------------------------------------------------------------
+LAB_LOGICAL_ID = "linux-patching-01"
+LAB_ADVISORY_ID = "ALAS2023-2026-1924"
+LAB_PACKAGE_FAMILY = "kernel"
+# Release de Amazon Linux 2023 que corrige el advisory (posterior a la AMI base)
+# y kernel resultante esperado. Valores de la IaC, nunca del frontend.
+LAB_RELEASEVER = "2023.12.20260706"
+LAB_EXPECTED_FIXED_KERNEL = "6.1.176-220.358.amzn2023.x86_64"
+LAB_ENVIRONMENT = "sandbox"
+LAB_CI_ID = "SRV-LAB-0001"
+LAB_TASK_ID = "RTASK900900"
+LAB_VITEM_ID = "VIT700900"
+
+
+def build_lab_scenario(logical_lab_id: str = LAB_LOGICAL_ID,
+                       advisory_id: str = LAB_ADVISORY_ID,
+                       package_family: str = LAB_PACKAGE_FAMILY,
+                       releasever: str = LAB_RELEASEVER,
+                       expected_fixed_kernel: str = LAB_EXPECTED_FIXED_KERNEL,
+                       region: str | None = None,
+                       account_id: str | None = None):
+    """CI, Vulnerable Item y Remediation Task del laboratorio EC2 real.
+
+    El Instance ID NO se fija aquí: la instancia se resuelve en ejecución a
+    partir del `logical_target_id` y de los tags obligatorios, porque el reset
+    del laboratorio la recrea con un identificador distinto.
+    """
+    ci = target_fields(_std_fields({
+        "id": LAB_CI_ID, "name": f"msr-poc-{logical_lab_id}", "ci_class": "server",
+        "criticality": "low", "environment": LAB_ENVIRONMENT, "track": "A",
+        "os": "Amazon Linux 2023", "owner": "linux-ops", "location": f"AWS {region or '-'}",
+        "logical_target_id": logical_lab_id, "instance_id": None,
+        "account_id": account_id, "region": region, "ssm_managed": True,
+        "tags": {"msr-poc": "true", "msr-lab-id": logical_lab_id,
+                 "msr-environment": LAB_ENVIRONMENT, "msr-resettable": "true",
+                 "PatchGroup": "msr-poc-linux"},
+        "support_group": "SG-Infra-Linux", "lab_target": True,
+    }))
+    detected = NOW - timedelta(days=1)
+    vitem = {
+        "id": LAB_VITEM_ID, "cve": advisory_id,
+        "title": f"Amazon Linux 2023 {package_family} security advisory {advisory_id}",
+        "cvss": 7.8, "epss": 0.11, "kev": False, "exploit_available": False,
+        "track": "A", "component": package_family, "vulnerable_version": "pendiente de precheck",
+        "ci_id": ci["id"], "ci_name": ci["name"], "ci_class": "server", "exposed": False,
+        "criticality": "low", "environment": LAB_ENVIRONMENT, "owner": "linux-ops",
+        "risk_score": 42, "sources": ["Amazon Linux Security Center (ALAS)"],
+        "status": "open", "detected_at": iso(detected), "sla_days": 15,
+        "lane": "standard", "sla_due": iso(detected + timedelta(days=15)),
+    }
+    task = {
+        "id": LAB_TASK_ID, "vulnerable_item_id": vitem["id"], "cve": advisory_id,
+        "title": vitem["title"], "track": "A", "lane": "standard", "risk_score": 42,
+        "priority": _priority_label(42), "ci_id": ci["id"], "ci_name": ci["name"],
+        "owner": "linux-ops", "criticality": "low", "environment": LAB_ENVIRONMENT,
+        "sla_due": vitem["sla_due"], "change_type": "standard", "exposed": False,
+        "component": package_family, "vulnerable_version": vitem["vulnerable_version"],
+        "created_at": iso(detected), "advisory_id": advisory_id,
+        "releasever": releasever, "expected_fixed_kernel": expected_fixed_kernel,
+        "logical_lab_id": logical_lab_id, "lab_target": True,
+    }
+    return ci, vitem, task
+
+
+def build_all(lab_logical_id: str = LAB_LOGICAL_ID, lab_advisory_id: str = LAB_ADVISORY_ID,
+              lab_package_family: str = LAB_PACKAGE_FAMILY,
+              lab_releasever: str = LAB_RELEASEVER,
+              lab_expected_fixed_kernel: str = LAB_EXPECTED_FIXED_KERNEL,
+              lab_region: str | None = None, lab_account_id: str | None = None):
     # La CMDB es la fuente de verdad versionada en el repo (formato ServiceNow).
     # Si el export existe se recarga; si no, se genera y se persiste al repo.
     if has_cmdb_export():
@@ -778,6 +860,15 @@ def build_all():
     for ci in cis:
         target_fields(ci)
     findings, vitems, tasks = build_records(cis, edges)
+    # Escenario real de la PoC: instancia EC2 de laboratorio, track A.
+    lab_ci, lab_vitem, lab_task = build_lab_scenario(
+        logical_lab_id=lab_logical_id, advisory_id=lab_advisory_id,
+        package_family=lab_package_family, releasever=lab_releasever,
+        expected_fixed_kernel=lab_expected_fixed_kernel,
+        region=lab_region, account_id=lab_account_id)
+    cis = [c for c in cis if c["id"] != lab_ci["id"]] + [lab_ci]
+    vitems.append(lab_vitem)
+    tasks.append(lab_task)
     catalog = [dict(zip(
         ["id", "name", "layer", "applies_to", "remediation_type", "criticality", "tool", "evidence"], t))
         for t in TEST_CATALOG]

@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,13 +15,52 @@ from pydantic import BaseModel
 
 from . import engine
 from .config import get_settings
-from .errors import DomainError, NotFoundError
+from .errors import DomainError, NotFoundError, ValidationError
+from .reconciler import JobReconciler
 from .store import STORE
 
 log = logging.getLogger("msr.api")
 settings = get_settings()
 
-app = FastAPI(title="Machine Speed Remediation Platform", version="1.0.0")
+RECONCILER = JobReconciler(STORE, settings.reconciler_interval_seconds,
+                           enabled=settings.reconciler_enabled)
+
+
+def _reconcile_lab_on_startup() -> None:
+    """Hook de arranque opcional (`MSR_LAB_RECONCILE_ON_STARTUP`).
+
+    Está desactivado por defecto: un reset es destructivo y no debe dispararse
+    cada vez que se reinicia una réplica. La forma recomendada de dejar el
+    laboratorio listo en un despliegue es el hook de ejecución única
+    `python -m app.lab_hook`, que toma el mismo lock durable.
+    """
+    try:
+        result = STORE.ensure_lab_ready(reason="startup")
+        log.info("lab_reconcile_on_startup state=%s action=%s instance=%s",
+                 result.get("state"), result.get("action"), result.get("instance_id"))
+    except DomainError as exc:
+        log.error("lab_reconcile_on_startup falló code=%s correlation_id=%s",
+                  exc.code, exc.correlation_id)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # El estado funcional se reconstruye desde SQLite antes de servir tráfico.
+    STORE.rehydrate_pipeline_state()
+    RECONCILER.start()
+    if settings.lab_reconcile_on_startup:
+        # En un hilo aparte: la API sirve tráfico mientras el laboratorio se
+        # reconcilia, y el lock durable evita que dos réplicas lo hagan a la vez.
+        threading.Thread(target=_reconcile_lab_on_startup, name="lab-reconcile",
+                         daemon=True).start()
+    try:
+        yield
+    finally:
+        await RECONCILER.stop()
+
+
+app = FastAPI(title="Machine Speed Remediation Platform", version="1.1.0",
+              lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allow_origins,
@@ -55,6 +96,9 @@ def execution_config():
         "dry_run": settings.effective_dry_run(STORE.patch_provider.name),
         "poll_interval_seconds": settings.job_poll_interval_seconds,
         "region": settings.aws_region or None,
+        "mode": settings.execution_mode(),
+        "strict_policy": settings.real_aws_execution(),
+        "reconciler": RECONCILER.status(),
     }
 
 
@@ -105,6 +149,111 @@ def task_patch_jobs(tid: str):
 @app.post("/api/patch-jobs/{job_id}/cancel")
 def cancel_patch_job(job_id: str):
     return STORE.cancel_job(job_id).as_dict()
+
+
+class AdminResolveBody(BaseModel):
+    state: str
+    note: str
+    actor: str = "admin"
+
+
+@app.post("/api/patch-jobs/{job_id}/admin-resolve")
+def admin_resolve_job(job_id: str, body: AdminResolveBody):
+    """Cierre manual de un job cuyo estado remoto no ha podido confirmarse."""
+    return STORE.admin_resolve_job(job_id, body.state, body.note, actor=body.actor).as_dict()
+
+
+class LabTargetBody(BaseModel):
+    logical_lab_id: str
+    current_instance_id: str | None = None
+    account_id: str | None = None
+    region: str | None = None
+    vulnerable_ami_id: str | None = None
+    launch_template_id: str | None = None
+    launch_template_version: str | None = None
+    expected_vulnerable_package: str | None = None
+    expected_vulnerable_version: str | None = None
+    required_tags: dict[str, str] = {}
+
+
+@app.get("/api/lab-targets")
+def lab_targets():
+    """Laboratorios reutilizables registrados (modelo; sin operaciones EC2)."""
+    return STORE.list_lab_targets()
+
+
+@app.get("/api/lab-targets/{logical_lab_id}")
+def lab_target(logical_lab_id: str):
+    return STORE.get_lab_target(logical_lab_id)
+
+
+@app.post("/api/lab-targets")
+def register_lab_target(body: LabTargetBody):
+    return STORE.register_lab_target(body.model_dump())
+
+
+# --- Laboratorio EC2 reseteable (fase 2) ---------------------------------
+# El Instance ID nunca se acepta desde el cliente: sólo el identificador
+# lógico del laboratorio, que se resuelve por tags en el backend.
+@app.get("/api/labs/{logical_lab_id}")
+def lab_status(logical_lab_id: str):
+    """Estado del laboratorio: instancia resuelta, advisory, modo y job activo."""
+    return STORE.lab_snapshot(logical_lab_id)
+
+
+@app.post("/api/labs/{logical_lab_id}/validate")
+def lab_validate(logical_lab_id: str):
+    """Validación de sólo lectura: no inicia ninguna Automation ni muta nada."""
+    return STORE.validate_lab(logical_lab_id)
+
+
+class LabResetBody(BaseModel):
+    confirmed: bool = False
+
+
+@app.post("/api/labs/{logical_lab_id}/reset", status_code=status.HTTP_202_ACCEPTED)
+def lab_reset(logical_lab_id: str, body: LabResetBody | None = None,
+              idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
+    """Recrea la instancia vulnerable (`reset_lab`); no es un rollback.
+
+    En `aws-real` la operación destruye una instancia EC2 real, así que exige
+    confirmación humana explícita en el cuerpo de la petición.
+    """
+    if settings.real_aws_execution() and not (body is not None and body.confirmed):
+        raise ValidationError(
+            "El reset real termina la instancia EC2 del laboratorio: envía "
+            "confirmed=true para confirmarlo explícitamente.",
+            code="LAB_RESET_CONFIRMATION_REQUIRED")
+    job = STORE.start_lab_reset_job(
+        logical_lab_id,
+        idempotency_key=_idempotency_key(idempotency_key, logical_lab_id, "lab-reset"))
+    return {"job": job.as_dict(), "lab": STORE.get_lab_target(logical_lab_id)}
+
+
+@app.get("/api/labs/{logical_lab_id}/reconciliation")
+def lab_reconciliation(logical_lab_id: str):
+    """Estado del reconciliador del laboratorio (sin llamadas a AWS)."""
+    STORE.get_lab_target(logical_lab_id)
+    return STORE.lab_reconciliation_status(logical_lab_id)
+
+
+@app.post("/api/labs/{logical_lab_id}/reconcile")
+def lab_reconcile(logical_lab_id: str, body: LabResetBody | None = None):
+    """`ensure_lab_ready`: deja el laboratorio listo para una demostración nueva.
+
+    En `aws-real` un reset destructivo exige confirmación humana explícita
+    (`confirmed: true`); sin ella la operación se limita a informar de lo que
+    haría. En `aws-dry-run` nunca se inicia ninguna Automation.
+    """
+    STORE.get_lab_target(logical_lab_id)
+    confirmed = bool(body.confirmed) if body is not None else False
+    return STORE.ensure_lab_ready(logical_lab_id, confirmed=confirmed, reason="api")
+
+
+@app.get("/api/labs/{logical_lab_id}/jobs")
+def lab_jobs(logical_lab_id: str):
+    """Historial de jobs del laboratorio (parcheos y resets)."""
+    return STORE.lab_jobs(logical_lab_id)
 
 
 class RingPreapproveBody(BaseModel):
