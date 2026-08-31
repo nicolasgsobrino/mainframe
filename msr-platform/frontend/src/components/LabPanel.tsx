@@ -104,7 +104,11 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
   const lastSignature = useRef<string | null>(null);
   useEffect(() => {
     if (!snapshot) return;
-    if (lastSignature.current !== null && lastSignature.current !== labSignature) onLabChange?.();
+    if (lastSignature.current !== null && lastSignature.current !== labSignature) {
+      // La validación anterior describe un recurso que ya no existe.
+      setValidation(null);
+      onLabChange?.();
+    }
     lastSignature.current = labSignature;
   }, [snapshot, labSignature, onLabChange]);
 
