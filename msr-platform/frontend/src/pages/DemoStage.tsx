@@ -98,8 +98,13 @@ function actionPhaseOf(step: DemoStep, j: JourneyDetail): string | null {
   return "ring_execution";
 }
 
-function SceneStepper({ phases, current, actionPhase, onSelect }: {
-  phases: Phase[]; current: string; actionPhase: string | null; onSelect: (id: string) => void;
+function SceneStepper({ phases, current, actionPhase, actionAccent, onSelect }: {
+  phases: Phase[];
+  current: string;
+  /** Escena donde vive la acción pendiente: se resalta sin etiquetas. */
+  actionPhase: string | null;
+  actionAccent: string;
+  onSelect: (id: string) => void;
 }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
@@ -115,14 +120,18 @@ function SceneStepper({ phases, current, actionPhase, onSelect }: {
             onClick={() => onSelect(p.id)}
             aria-pressed={active}
             title={`${p.label_en} · ${p.status}`}
-            className={`relative rounded-lg border p-2 text-left transition-colors ${
-              active ? "bg-ink-panel" : "bg-ink hover:bg-ink-panel"}`}
-            style={{ borderColor: isAction ? "#f59e0b" : active ? color : done ? color + "55" : "#2b313d" }}
+            className={`relative rounded-lg border-2 p-2 text-left transition-colors ${
+              active ? "bg-ink-panel" : "bg-ink hover:bg-ink-panel"} ${
+              isAction ? "scale-[1.03]" : ""}`}
+            style={{
+              borderColor: isAction ? actionAccent : active ? color : done ? color + "55" : "#2b313d",
+              background: isAction ? actionAccent + "14" : undefined,
+              boxShadow: isAction ? `0 0 0 3px ${actionAccent}26, 0 0 18px ${actionAccent}40` : undefined,
+            }}
           >
             {isAction && (
-              <span className="absolute -top-2 left-2 text-[9px] font-bold px-1.5 py-px rounded bg-amber-500 text-black">
-                AQUÍ
-              </span>
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full animate-pulse"
+                    style={{ background: actionAccent }} aria-hidden />
             )}
             <div className="flex items-center gap-1.5">
               <span className="w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
@@ -274,6 +283,10 @@ export default function DemoStage() {
   // presentar desde cero. Sólo toca el store de la demo, nunca AWS.
   const resetDemo = useCallback(() => {
     setResetting(true);
+    // La reproducción en curso pertenece al recorrido que se está tirando.
+    pending.current = null;
+    setPlayback(null);
+    setReplaying(false);
     api.resetScenario()
       .then(() => api.tasks())
       .then((all) => {
@@ -392,6 +405,7 @@ export default function DemoStage() {
       </div>
 
       <SceneStepper phases={j.phases} current={scenePhase.id} actionPhase={actionPhase}
+                    actionAccent={stepTone(step) === "human" ? "#f59e0b" : "#8ef04a"}
                     onSelect={setPinned} />
 
       <NextActionBar
