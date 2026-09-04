@@ -16,13 +16,15 @@ interface DemoCtx {
   /** Activo de verdad: la preferencia sólo cuenta si el modo lo permite. */
   active: boolean;
   allowed: boolean;
+  /** El modo de ejecución ya se conoce: hasta entonces `allowed` no decide nada. */
+  resolved: boolean;
   reason: string | null;
   setEnabled: (on: boolean) => void;
   setExecution: (execution: ExecutionConfig | null) => void;
 }
 
 const Ctx = createContext<DemoCtx>({
-  enabled: false, active: false, allowed: false, reason: null,
+  enabled: false, active: false, allowed: false, resolved: false, reason: null,
   setEnabled: () => {}, setExecution: () => {},
 });
 
@@ -55,7 +57,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      enabled, active: enabled && allowed, allowed, reason, setEnabled, setExecution,
+      enabled, active: enabled && allowed, allowed, resolved: execution !== null, reason,
+      setEnabled, setExecution,
     }}>
       {children}
     </Ctx.Provider>

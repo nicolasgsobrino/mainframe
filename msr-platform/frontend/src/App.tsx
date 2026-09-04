@@ -8,11 +8,12 @@ import Catalog from "./pages/Catalog";
 import Integrations from "./pages/Integrations";
 import DemoStage from "./pages/DemoStage";
 import { ViewProvider, RoleToggle, useView, ROLE_META } from "./view";
-import { DemoProvider, DemoToggle, DemoBanner } from "./demo";
+import { DemoProvider, DemoToggle, DemoBanner, useDemo } from "./demo";
 
-const NAV = [
+const NAV: { to: string; label: string; icon: string; demoOnly?: boolean }[] = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
-  { to: "/demo", label: "Presentación guiada", icon: "▶" },
+  // La presentación guiada sólo existe mientras el Modo Demo está activo.
+  { to: "/demo", label: "Presentación guiada", icon: "▶", demoOnly: true },
   { to: "/tasks", label: "Remediation Tasks", icon: "◈" },
   { to: "/analytics", label: "Analítica", icon: "◧" },
   { to: "/cmdb", label: "CMDB · Impact Graph", icon: "⧉" },
@@ -21,6 +22,8 @@ const NAV = [
 ];
 
 function Sidebar() {
+  const { active } = useDemo();
+  const items = NAV.filter((n) => !n.demoOnly || active);
   return (
     <aside className="w-64 shrink-0 bg-ink border-r border-line flex flex-col">
       <div className="px-5 py-5 border-b border-line">
@@ -33,7 +36,7 @@ function Sidebar() {
         </div>
       </div>
       <nav className="flex-1 py-3">
-        {NAV.map((n) => (
+        {items.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
@@ -65,6 +68,14 @@ function Sidebar() {
   );
 }
 
+/** La ruta guiada no existe fuera del Modo Demo: en ejecución real no se ofrece. */
+function DemoGuard() {
+  const { allowed, resolved } = useDemo();
+  if (!resolved) return <div className="p-6 text-xs text-gray-500">Comprobando el modo de ejecución…</div>;
+  if (!allowed) return <Navigate to="/dashboard" replace />;
+  return <DemoStage />;
+}
+
 function RoleHint() {
   const { role } = useView();
   return <div className="text-[11px] text-gray-500 leading-relaxed">{ROLE_META[role].hint}</div>;
@@ -82,7 +93,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/demo" element={<DemoStage />} />
+            <Route path="/demo" element={<DemoGuard />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/tasks/:id" element={<TaskDetail />} />
             <Route path="/analytics" element={<Analytics />} />

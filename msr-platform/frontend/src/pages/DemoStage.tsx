@@ -165,6 +165,8 @@ export default function DemoStage() {
   const [detail, setDetail] = useState<TaskDetail | null>(null);
   const [pinned, setPinned] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [armed, setArmed] = useState(false);
 
   useReportExecution(detail?.execution ?? null);
 
@@ -204,6 +206,23 @@ export default function DemoStage() {
     setDetail(next);
     api.tasks().then(setTasks).catch(() => undefined);
   }, []);
+
+  // Rehace el escenario sintético (3 resueltas + 2 pendientes) para volver a
+  // presentar desde cero. Sólo toca el store de la demo, nunca AWS.
+  const resetDemo = useCallback(() => {
+    setResetting(true);
+    api.resetScenario()
+      .then(() => api.tasks())
+      .then((all) => {
+        setTasks(all);
+        setPinned(null);
+        const first = all.find((t) => t.status !== "remediated") ?? all[0];
+        setTaskId(first?.id ?? null);
+        if (first) load(first.id);
+      })
+      .catch(() => setError("No se pudo reiniciar el escenario de la demo."))
+      .finally(() => { setResetting(false); setArmed(false); });
+  }, [load]);
 
   const gatesByPhase = useMemo(() => {
     const map = new Map<string, HitlGate[]>();
@@ -245,9 +264,24 @@ export default function DemoStage() {
         </div>
         <div className="space-y-2">
           <VulnPicker tasks={tasks} selected={taskId} onSelect={setTaskId} />
-          <Link to={`/tasks/${taskId}`} className="text-[11px] text-gray-500 hover:text-gray-300 block text-right">
-            Abrir la Remediation Task completa →
-          </Link>
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              disabled={resetting}
+              onClick={() => (armed ? resetDemo() : setArmed(true))}
+              onBlur={() => setArmed(false)}
+              title="Vuelve al escenario inicial: 3 vulnerabilidades resueltas y 2 pendientes"
+              className={`text-[11px] rounded-md border px-2 py-1 transition ${
+                armed
+                  ? "border-amber-500/50 bg-amber-500/15 text-amber-200"
+                  : "border-line text-gray-500 hover:text-gray-200"}`}
+            >
+              {resetting ? "Reiniciando…" : armed ? "Confirmar reinicio" : "↺ Reiniciar la demo"}
+            </button>
+            <Link to={`/tasks/${taskId}`} className="text-[11px] text-gray-500 hover:text-gray-300">
+              Abrir la Remediation Task completa →
+            </Link>
+          </div>
         </div>
       </div>
 

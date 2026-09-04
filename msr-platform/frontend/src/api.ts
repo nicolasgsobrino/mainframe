@@ -58,6 +58,9 @@ export const api = {
   tasks: (): Promise<Task[]> => fetch("/api/tasks").then(j),
   task: (id: string): Promise<TaskDetail> => fetch(`/api/tasks/${id}`).then(j),
   execution: (): Promise<ExecutionConfig> => fetch("/api/execution").then(j),
+  /** Rehace el escenario sintético (vulnerabilidades, pipelines y jobs). */
+  resetScenario: (): Promise<{ status: string }> =>
+    fetch("/api/reset", { method: "POST" }).then(j),
   approve: (id: string, ring: number): Promise<TaskDetail> =>
     mutate(`/api/tasks/${id}/approve`, `approve:${id}:${ring}`),
   rollback: (id: string, ring: number): Promise<TaskDetail> =>
