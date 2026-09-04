@@ -7,6 +7,7 @@ import Cmdb from "./pages/Cmdb";
 import Catalog from "./pages/Catalog";
 import Integrations from "./pages/Integrations";
 import { ViewProvider, RoleToggle, useView, ROLE_META } from "./view";
+import { DemoProvider, DemoToggle, DemoBanner } from "./demo";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
@@ -49,6 +50,10 @@ function Sidebar() {
         <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Perspectiva</div>
         <RoleToggle />
         <RoleHint />
+        <div className="pt-2">
+          <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1">Presentación</div>
+          <DemoToggle />
+        </div>
         <div className="text-[11px] text-gray-600 leading-relaxed pt-1">
           Demo · datos sintéticos<br />
           ServiceNow (control) + Devin (agente)
@@ -66,10 +71,12 @@ function RoleHint() {
 export default function App() {
   return (
     <ViewProvider>
+    <DemoProvider>
     <BrowserRouter>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
+          <DemoBanner />
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -83,6 +90,7 @@ export default function App() {
         </main>
       </div>
     </BrowserRouter>
+    </DemoProvider>
     </ViewProvider>
   );
 }

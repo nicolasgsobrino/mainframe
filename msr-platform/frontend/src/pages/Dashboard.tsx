@@ -5,6 +5,8 @@ import type { ExecutionConfig, Overview, Task, LogEntry } from "../types";
 import { Risk } from "../ui";
 import JourneyBoard, { BlockerChip, JOURNEY_BAND_COLOR } from "../components/journey/JourneyBoard";
 import VulnJourneyPanel from "../components/journey/VulnJourneyPanel";
+import { CountUp, HitlCounter, LogConsole } from "../components/flow";
+import { useReportExecution } from "../demo";
 
 /** Bloqueos que exigen una intervención humana, en orden de urgencia. */
 const ACTIONABLE_BLOCKERS = ["job_failed", "job_unconfirmed", "awaiting_approval"];
@@ -20,7 +22,9 @@ function Kpi({ label, value, accent, hint, onClick }: {
       title={hint}
       className="card p-4 text-left hover:bg-ink-panel transition-colors focus:outline-none focus:ring-2 focus:ring-brand/60"
     >
-      <div className="text-2xl font-extrabold" style={{ color: accent }}>{value}</div>
+      <div className="text-2xl font-extrabold" style={{ color: accent }}>
+        {typeof value === "number" ? <CountUp value={value} /> : value}
+      </div>
       <div className="text-xs text-gray-400 mt-1">{label}</div>
     </button>
   );
@@ -53,6 +57,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
+  useReportExecution(execution);
   const phaseFilter = params.get("phase");
   const selectedTask = params.get("vuln");
 
@@ -196,6 +201,8 @@ export default function Dashboard() {
           )}
         </div>
 
+        <HitlCounter hitl={ov.journey.hitl} />
+
         <JourneyBoard
           journey={ov.journey}
           selected={phaseFilter}
@@ -264,19 +271,11 @@ export default function Dashboard() {
             <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
             <div className="text-sm font-semibold">Actividad del agente</div>
           </div>
-          <div className="p-3 space-y-1 overflow-y-auto max-h-[340px]">
-            {activity.slice(0, 16).map((a, i) => (
-              <button key={i} type="button" disabled={!a.task_id}
-                      onClick={() => a.task_id && nav(`/tasks/${a.task_id}`)}
-                      className={`w-full text-left text-xs flex gap-2 rounded px-1 py-1 ${
-                        a.task_id ? "hover:bg-ink-panel" : "cursor-default"}`}>
-                <span className={`chip shrink-0 ${a.actor === "Devin" ? "bg-brand/15 text-brand" : a.actor.includes("HITL") || a.actor.includes("Owner") ? "bg-amber-500/15 text-amber-300" : "bg-sky-500/15 text-sky-300"}`}>
-                  {a.actor}
-                </span>
-                <span className="text-gray-400 leading-relaxed">{a.msg}</span>
-              </button>
-            ))}
-            {activity.length === 0 && <div className="text-xs text-gray-600">Sin actividad todavía. Aprueba una fase en una tarea para ver al agente trabajar.</div>}
+          <div className="p-3 overflow-y-auto max-h-[340px]">
+            <LogConsole
+              entries={activity}
+              onSelect={(e) => e.task_id && nav(`/tasks/${e.task_id}`)}
+            />
           </div>
         </div>
 

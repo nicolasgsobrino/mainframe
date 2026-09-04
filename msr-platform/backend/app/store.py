@@ -229,10 +229,11 @@ class Store:
         self.pipelines = {}
         self.activity = []  # feed global de actividad del agente
 
-        # Distribución inicial de fases para una demo rica (varias en despliegue)
-        start_phases = [5, 2, 5, 3, 4]
-        for i, (tid, task) in enumerate(self.tasks.items()):
-            self._init_pipeline(tid, start_phases[i % len(start_phases)])
+        # Escenario inicial: histórico de vulnerabilidades ya cerradas junto a
+        # las que quedan abiertas para recorrer el flujo completo.
+        for tid in self.tasks:
+            phase_index, rings_done = seed.initial_pipeline_state(tid)
+            self._init_pipeline(tid, phase_index, rings_done=rings_done)
         self._ensure_lab_target()
         # El estado funcional vive en memoria, pero los jobs son la fuente de
         # verdad: se re-proyectan desde SQLite en cada arranque.
@@ -251,7 +252,7 @@ class Store:
         self.repo.upsert_lab_target(lab)
 
     # ------------------------------------------------------------------
-    def _init_pipeline(self, tid, phase_index):
+    def _init_pipeline(self, tid, phase_index, rings_done=None):
         task = self.tasks[tid]
         impact = engine.build_impact_graph(task, self.cis, self.edges, adj=self.adj)
         mvt = engine.build_mvt(task, impact, self.catalog)
@@ -259,11 +260,12 @@ class Store:
         lab = engine.build_lab_results(task, mvt, force_pass=phase_index > 3)
         proto = engine.build_prototype(task, impact)
         # anillos completados si estamos en fase de despliegue
-        rings_done = 0
-        if phase_index >= 5:
-            # crc32 en lugar de hash(): estable entre procesos, de modo que la
-            # rehidratación parte siempre del mismo histórico de demo.
-            rings_done = random.Random(zlib.crc32(tid.encode()) & 0xFFFF).randint(1, 3)
+        if rings_done is None:
+            rings_done = 0
+            if phase_index >= 5:
+                # crc32 en lugar de hash(): estable entre procesos, de modo que la
+                # rehidratación parte siempre del mismo histórico de demo.
+                rings_done = random.Random(zlib.crc32(tid.encode()) & 0xFFFF).randint(1, 3)
         # Los anillos ya desplegados se consideran pre-aprobados por el owner (histórico).
         ring_preapprovals = {}
         ring_exclusions = {}
@@ -287,9 +289,17 @@ class Store:
             else:
                 statuses[pid] = "pending"
 
+        remediated = phase_index >= 5 and rings_done >= len(engine.RING_DEFS)
+        if remediated:
+            statuses["deployment"] = "approved"
+            task["status"] = "remediated"
+            self.vulnerable_items[task["vulnerable_item_id"]]["status"] = "fixed"
+
         logs = []
         for j in range(phase_index + 1):
             logs.extend(self._phase_logs(engine.PHASE_IDS[j], task, impact, mvt, lab, proto, deploy))
+        if remediated:
+            logs.extend(self._closure_logs(task, deploy, audit))
 
         self.pipelines[tid] = {
             "task_id": tid, "phase_index": phase_index,
@@ -312,8 +322,6 @@ class Store:
                 "vi_status": self.vulnerable_items[task["vulnerable_item_id"]]["status"],
             },
         }
-        if phase_index >= 5 and rings_done >= len(engine.RING_DEFS):
-            self.tasks[tid]["status"] = "remediated"
 
     # ------------------------------------------------------------------
     # Rehidratación del pipeline desde SQLite
@@ -401,6 +409,19 @@ class Store:
                     logs.append({"actor": SN, "phase": pid, "msg": f"{r['label']}: despliegue en curso sobre {r['assets']} activos."})
             return logs
         return []
+
+    def _closure_logs(self, task, deploy, audit):
+        """Cierre de una vulnerabilidad ya remediada en el histórico."""
+        return [
+            {"actor": "Devin", "phase": "deployment",
+             "msg": f"Post-checks superados en los {len(deploy['rings'])} anillos "
+                    f"({deploy['total_assets']} activos)."},
+            {"actor": "ServiceNow", "phase": "deployment",
+             "msg": "Reescaneo verificado. Vulnerable Item → FIXED."},
+            {"actor": "HITL · Owner", "phase": "deployment",
+             "msg": f"Evidencias aceptadas y cierre aprobado por {task.get('owner', 'owner@bank.example')}. "
+                    f"Informe de auditoría {audit['report_id']} ({audit['evidences_count']} evidencias)."},
+        ]
 
     # ------------------------------------------------------------------
     # API de lectura
@@ -613,6 +634,7 @@ class Store:
                 **self._journey_summary(t),
                 "phases": journey.phase_states(t, p),
                 "rings": journey.ring_states(p),
+                "gates": journey.gate_states(t, p),
             },
             "lane_meta": seed.LANE_META.get(lane, seed.LANE_META["standard"]),
             "lane_flow": engine.lane_flow(lane),

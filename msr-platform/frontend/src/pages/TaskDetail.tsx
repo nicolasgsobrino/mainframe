@@ -53,7 +53,7 @@ function Verdict({ v }: { v: string }) {
 export default function TaskDetail() {
   const { id } = useParams();
   const { role } = useView();
-  const isTech = role === "tech";
+  const isTech = role === "technical";
   const [d, setD] = useState<TD | null>(null);
   const [sel, setSel] = useState<number>(0);
   const [busy, setBusy] = useState(false);

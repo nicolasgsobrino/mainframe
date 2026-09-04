@@ -4,6 +4,7 @@ import { api } from "../../api";
 import type { JourneyResources, JourneyRing, TaskDetail } from "../../types";
 import { LaneTag, Priority, Risk } from "../../ui";
 import { BlockerChip, JOURNEY_BAND_COLOR } from "./JourneyBoard";
+import { HitlCounter, HitlRail } from "../flow";
 
 const RING_STATUS_COLOR: Record<string, string> = {
   completed: "#22c55e",
@@ -116,6 +117,8 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
         {nextAction(j.blockers, j.ring_label)} →
       </Link>
 
+      <HitlCounter hitl={j.hitl} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <ol className="space-y-1.5">
           {j.phases.map((p) => {
@@ -142,6 +145,13 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
                     )}
                   </div>
                   {current && <div className="text-[10px] text-gray-500">en curso</div>}
+                  {p.gates_pending > 0 && (
+                    <div className="text-[10px] text-amber-300">
+                      ◑ {p.gates_pending === 1
+                        ? "1 decisión humana pendiente"
+                        : `${p.gates_pending} decisiones humanas pendientes`}
+                    </div>
+                  )}
                 </div>
               </li>
             );
@@ -153,6 +163,8 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
           <RingStrip rings={j.rings} />
         </div>
       </div>
+
+      <HitlRail gates={j.gates.filter((g) => g.status !== "upcoming")} />
 
       <details className="group">
         <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-200 select-none">

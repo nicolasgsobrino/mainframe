@@ -1,6 +1,8 @@
 """Proyección de las 8 fases del Patching Journey sobre el pipeline de 6 fases."""
 import copy
 
+from conftest import deployment_task
+
 from app import engine, journey
 
 
@@ -138,6 +140,81 @@ def test_task_detail_exposes_the_journey_with_rings(store):
     assert len(journey_block["phases"]) == 8
     assert [r["ring"] for r in journey_block["rings"]] == [1, 2, 3, 4, 5]
     assert journey_block["resources"]["total"] >= 1
+
+
+def test_gate_catalog_declares_which_gates_the_engine_enforces():
+    catalog = journey.gate_catalog()
+    assert [g["id"] for g in catalog] == [
+        "scope_confirmation", "ai_proposal", "change_approval",
+        "ring_preapproval", "ring_result", "closure"]
+    assert {g["id"] for g in catalog if g["enforced"]} == {
+        "change_approval", "ring_preapproval"}
+    assert all(g["phase"] in journey.PHASE_INDEX for g in catalog)
+
+
+def test_gates_repeat_once_per_ring_and_follow_the_deployment(store):
+    tid = deployment_task(store)
+    task, pipeline = store.tasks[tid], store.pipelines[tid]
+    gates = journey.gate_states(task, pipeline)
+
+    per_ring = [g for g in gates if g["per_ring"]]
+    assert len(per_ring) == 2 * len(engine.RING_DEFS)
+    done = pipeline["rings_done"]
+    preapprovals = [g for g in gates if g["id"] == "ring_preapproval"]
+    assert [g["status"] for g in preapprovals[:done]] == [journey.GATE_DONE] * done
+    assert preapprovals[done]["status"] == journey.GATE_PENDING
+    assert [g["status"] for g in gates if g["id"] == "ring_result"][:done] == (
+        [journey.GATE_DONE] * done)
+    assert all(g["actor"] for g in preapprovals[:done])
+
+
+def test_gates_do_not_wait_on_a_ring_before_the_deployment_phase(store):
+    task, pipeline = _first(store)
+    pipeline = copy.deepcopy(pipeline)
+    pipeline["phase_index"] = engine.PHASE_IDS.index("detection")
+
+    gates = journey.gate_states(task, pipeline)
+    pending = [g for g in gates if g["status"] == journey.GATE_PENDING]
+    assert [g["id"] for g in pending] == ["scope_confirmation"]
+    assert journey.gate_rollup(gates)["pending_enforced"] == 0
+
+
+def test_a_remediated_task_has_every_gate_behind_it(store):
+    tid = next(t for t, task in store.tasks.items() if task.get("status") == "remediated")
+    gates = journey.gate_states(store.tasks[tid], store.pipelines[tid])
+    rollup = journey.gate_rollup(gates)
+
+    assert rollup["done"] == rollup["total"] == len(gates)
+    assert rollup["pending"] == 0 and rollup["next"] is None
+
+
+def test_overview_aggregates_the_human_decisions(store):
+    ov = store.overview()
+    hitl = ov["journey"]["hitl"]
+
+    assert hitl["pending"] >= hitl["pending_enforced"] >= 0
+    assert hitl["done"] + hitl["pending"] <= hitl["total"]
+    assert hitl["tasks_awaiting"] == sum(
+        1 for t in store.tasks
+        if journey.gate_rollup(journey.gate_states(
+            store.tasks[t], store.pipelines[t]))["pending"])
+    assert sum(p["gates_pending"] for p in ov["journey"]["phases"]) == hitl["tasks_awaiting"]
+
+
+def test_the_scenario_starts_with_three_vulnerabilities_already_closed(store):
+    remediated = [t for t in store.tasks.values() if t.get("status") == "remediated"]
+
+    assert len(remediated) == 3
+    for task in remediated:
+        assert store.vulnerable_items[task["vulnerable_item_id"]]["status"] == "fixed"
+        pipeline = store.pipelines[task["id"]]
+        assert pipeline["rings_done"] == len(engine.RING_DEFS)
+        assert pipeline["statuses"]["deployment"] == "approved"
+        assert journey.position(task, pipeline)["phase"] == "evidence_closure"
+    # Y con dos abiertas que recorren el flujo durante la demo, además del lab.
+    open_tasks = [t for t in store.tasks.values() if t.get("status") != "remediated"]
+    assert len(open_tasks) == 3
+    assert any(t.get("lab_target") for t in open_tasks)
 
 
 def test_blast_radius_does_not_propagate_without_downtime(store):

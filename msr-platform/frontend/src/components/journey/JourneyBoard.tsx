@@ -50,6 +50,14 @@ function PhaseCard({ phase, selected, onSelect }: {
         {phase.per_ring && (
           <span className="text-[10px] text-gray-500" title="Se repite en cada anillo de despliegue">× anillo</span>
         )}
+        {phase.gates.length > 0 && (
+          <span
+            className={`ml-auto text-[10px] ${phase.gates_pending > 0 ? "text-amber-300" : "text-gray-600"}`}
+            title={phase.gates.map((g) => `${g.label}${g.enforced ? "" : " (registro)"}`).join(" · ")}
+          >
+            ◑ {phase.gates_pending > 0 ? `${phase.gates_pending} pdte.` : "HITL"}
+          </span>
+        )}
       </div>
       <div className="text-xs font-semibold text-gray-200 mt-2 leading-snug">{phase.label}</div>
       <div className="text-[10px] text-gray-500 leading-snug">{phase.label_en}</div>

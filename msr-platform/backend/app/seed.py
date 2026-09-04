@@ -844,6 +844,25 @@ def build_lab_scenario(logical_lab_id: str = LAB_LOGICAL_ID,
     return ci, vitem, task
 
 
+# Punto de partida de cada tarea: (fase del pipeline, anillos desplegados).
+# Tres vulnerabilidades cerradas dan histórico y métricas al dashboard desde el
+# primer momento; dos quedan abiertas para recorrer el flujo completo, y el
+# laboratorio AWS arranca en despliegue con sus cinco anillos por aprobar.
+INITIAL_PIPELINE_STATE = {
+    "RTASK900001": (0, 0),  # Log4Shell · payments-api — recorrido desde el disparador
+    "RTASK900002": (5, 5),  # regreSSHion · remediada
+    "RTASK900003": (5, 5),  # runc container escape · remediada
+    "RTASK900004": (5, 2),  # Spring4Shell · mobile-gateway — desplegando (2/5 anillos)
+    "RTASK900005": (5, 5),  # HTTP/2 Rapid Reset · remediada
+    LAB_TASK_ID: (5, 0),
+}
+DEFAULT_PIPELINE_STATE = (5, 0)
+
+
+def initial_pipeline_state(task_id: str) -> tuple[int, int]:
+    return INITIAL_PIPELINE_STATE.get(task_id, DEFAULT_PIPELINE_STATE)
+
+
 def build_all(lab_logical_id: str = LAB_LOGICAL_ID, lab_advisory_id: str = LAB_ADVISORY_ID,
               lab_package_family: str = LAB_PACKAGE_FAMILY,
               lab_releasever: str = LAB_RELEASEVER,
