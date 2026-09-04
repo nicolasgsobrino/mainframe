@@ -311,10 +311,9 @@ class Store:
             "rolled_back_rings": [],
             "ring_preapprovals": ring_preapprovals,
             "ring_exclusions": ring_exclusions,
-            # Verificaciones humanas de las puertas que el motor no bloquea:
-            # quedan registradas con autor, rol y resultado, sin condicionar
-            # la ejecución (las que sí bloquean son la aprobación del cambio y
-            # la pre-aprobación de cada anillo).
+            # Verificaciones humanas de las puertas que se cierran registrando
+            # la decisión (autor, rol y resultado). Bloquean el recorrido: el
+            # motor no avanza mientras una esté pendiente.
             "hitl_verifications": {},
             "rollback": {"status": "armed", "triggered": False},
             # Evidencia real de ejecución por anillo (pasos devueltos por el provider).
@@ -331,6 +330,46 @@ class Store:
                 "vi_status": self.vulnerable_items[task["vulnerable_item_id"]]["status"],
             },
         }
+        self._seed_historic_verifications(tid, phase_index, rings_done, remediated)
+
+    def _seed_historic_verifications(self, tid, phase_index, rings_done,
+                                     remediated) -> None:
+        """Da por verificadas las puertas que el histórico de demo ya superó.
+
+        Sin esto, una tarea que arranca a mitad del recorrido aparecería
+        esperando decisiones humanas que, por construcción, ya se tomaron.
+        """
+        task = self.tasks[tid]
+        actor = task.get("owner", "owner@bank.example")
+        done: list[tuple[str, int | None]] = []
+        if phase_index > engine.PHASE_IDS.index("detection"):
+            done.append(("scope_confirmation", None))
+        if phase_index > engine.PHASE_IDS.index("pre_implementation"):
+            done.append(("ai_proposal", None))
+        done.extend(("ring_result", engine.RING_DEFS[i][0]) for i in range(rings_done))
+        if remediated:
+            done.append(("closure", None))
+        p = self.pipelines[tid]
+        for gate_id, ring in done:
+            p["hitl_verifications"][journey.verification_key(gate_id, ring)] = {
+                "gate": gate_id, "ring": ring, "actor": actor,
+                "role": "service_manager", "ts": iso(NOW),
+                "note": "Verificación humana registrada en el histórico.",
+                "output": self._gate_output(tid, gate_id, ring),
+            }
+        # Línea base del histórico: la rehidratación vuelve aquí antes de
+        # aplicar las verificaciones ya registradas en esta instalación.
+        p["baseline"]["hitl_verifications"] = dict(p["hitl_verifications"])
+        p["hitl_verifications"].update(self.repo.verifications_for_task(tid))
+
+    def _clear_deployment_verifications(self, tid) -> None:
+        """Olvida las validaciones de anillo y el cierre para repetir el ciclo."""
+        p = self.pipelines[tid]
+        keys = [k for k in p["hitl_verifications"]
+                if k == "closure" or k.startswith("ring_result")]
+        for key in keys:
+            p["hitl_verifications"].pop(key, None)
+        self.repo.delete_verifications(tid, keys)
 
     # ------------------------------------------------------------------
     # Rehidratación del pipeline desde SQLite
@@ -341,6 +380,8 @@ class Store:
         baseline = p["baseline"]
         t = self.tasks[tid]
         p["rings_done"] = baseline["rings_done"]
+        p["hitl_verifications"] = {**(baseline.get("hitl_verifications") or {}),
+                                   **self.repo.verifications_for_task(tid)}
         p["statuses"]["deployment"] = baseline["deployment_status"]
         p["rolled_back_rings"] = []
         p["ring_evidence"] = {}
@@ -369,6 +410,9 @@ class Store:
                     self._apply_job_outcome(tid, job, persist=False)
                     replayed += 1
             self._rebuild_deploy(tid)
+            # La aceptación de evidencias ya registrada vuelve a cerrar la tarea.
+            if "closure" in self.pipelines[tid]["hitl_verifications"]:
+                self._close_after_evidence_acceptance(tid)
         if replayed:
             log.info("pipeline rehidratado desde SQLite: %s jobs re-proyectados", replayed)
         return replayed
@@ -687,6 +731,8 @@ class Store:
             self.start_ring_patch_job(tid, idempotency_key)
             return self.task_detail(tid)
 
+        self._require_human_verification(tid)
+
         # Resto de fases: marcar aprobada y pasar a la siguiente
         p["statuses"][pid] = "approved"
         self._log(tid, {"actor": "Owner (HITL)", "phase": pid, "msg": f"Fase '{engine.PHASES[idx][1]}' aprobada."})
@@ -701,19 +747,45 @@ class Store:
         return self.task_detail(tid)
 
     # ------------------------------------------------------------------
-    def verify_gate(self, tid, gate_id, ring=None, actor=None, role=None, note=None):
-        """Registra la verificación humana de una puerta no bloqueante.
+    def pending_verification(self, tid) -> dict | None:
+        """Puerta humana que detiene ahora mismo el recorrido, si la hay.
 
-        Deja constancia auditable (quién, cuándo, con qué resultado) de los
-        controles humanos que el motor no aplica. Las puertas que sí bloquean
-        tienen su propia acción y no se cierran por aquí.
+        Son las que se cierran registrando la decisión: mientras una esté
+        pendiente, el motor no aprueba fases ni lanza el siguiente anillo.
+        """
+        t = self.tasks[tid]
+        p = self.pipelines[tid]
+        return next((g for g in journey.gate_states(t, p)
+                     if g["verifiable"] and g["status"] == journey.GATE_PENDING), None)
+
+    def _require_human_verification(self, tid) -> None:
+        gate = self.pending_verification(tid)
+        if gate is None:
+            return
+        ring_suffix = f" (anillo {gate['ring']})" if gate["ring"] is not None else ""
+        self._log(tid, {
+            "actor": "msr-platform",
+            "phase": engine.PHASE_IDS[self.pipelines[tid]["phase_index"]],
+            "msg": f"Avance bloqueado: la puerta '{gate['label']}'{ring_suffix} "
+                   "espera verificación humana."})
+        raise ValidationError(
+            f"El recorrido está detenido en '{gate['label']}'{ring_suffix}: "
+            "requiere verificación humana antes de continuar.",
+            code="HITL_VERIFICATION_REQUIRED")
+
+    def verify_gate(self, tid, gate_id, ring=None, actor=None, role=None, note=None):
+        """Registra la verificación humana de una puerta y desbloquea el paso.
+
+        Deja constancia auditable (quién, cuándo, con qué resultado). Las
+        puertas que se cierran con su propia acción —aprobación del cambio y
+        pre-aprobación de anillo— no se verifican por aquí.
         """
         if tid not in self.pipelines or gate_id not in journey.GATE_IDS:
             return None
-        if journey.GATE_ENFORCED.get(gate_id):
+        if not journey.GATE_VERIFIABLE.get(gate_id):
             raise ValidationError(
-                f"La puerta '{gate_id}' bloquea la ejecución y tiene su propia "
-                "acción de aprobación: no se cierra como verificación registrada.",
+                f"La puerta '{gate_id}' se cierra con su propia acción de "
+                "aprobación: no se registra como verificación.",
                 code="GATE_ENFORCED")
         p = self.pipelines[tid]
         t = self.tasks[tid]
@@ -725,14 +797,39 @@ class Store:
             "note": note or "Verificación humana completada.",
             "output": self._gate_output(tid, gate_id, ring),
         }
-        p.setdefault("hitl_verifications", {})[journey.verification_key(gate_id, ring)] = record
+        key = journey.verification_key(gate_id, ring)
+        p.setdefault("hitl_verifications", {})[key] = record
+        self.repo.save_verification(tid, key, record)
         ring_suffix = f" (anillo {ring})" if ring is not None else ""
         self._log(tid, {
             "actor": "Owner (HITL)",
             "phase": engine.PHASE_IDS[p["phase_index"]],
             "msg": f"[Auditoría] Verificación humana de '{label}'{ring_suffix} "
                    f"completada por {actor}: {record['output']}"})
+        if gate_id == "closure":
+            self._close_after_evidence_acceptance(tid)
         return self.task_detail(tid)
+
+    def _close_after_evidence_acceptance(self, tid) -> None:
+        """Cierra el Vulnerable Item cuando alguien acepta las evidencias.
+
+        El último anillo deja el despliegue completo, pero la remediación no se
+        declara sola: es esta aceptación humana la que la cierra. Un recorrido
+        ensayado en dry-run no cierra nada.
+        """
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        if p["rings_done"] < len(engine.RING_DEFS) or t.get("status") == "remediated":
+            return
+        simulated = any((e or {}).get("simulated")
+                        for e in p.get("ring_evidence", {}).values())
+        if simulated:
+            return
+        t["status"] = "remediated"
+        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
+        self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
+                        "msg": "Reescaneo verificado. Vulnerable Item → FIXED. "
+                               "Informe de auditoría generado."})
 
     def _gate_output(self, tid, gate_id, ring=None) -> str:
         """Resultado concreto que deja una verificación, con datos del pipeline."""
@@ -765,6 +862,9 @@ class Store:
             return None
         p = self.pipelines[tid]
         t = self.tasks[tid]
+        # Un anillo no se pre-aprueba mientras el resultado del anterior siga
+        # esperando validación humana.
+        self._require_human_verification(tid)
         approver = approver or t.get("owner", "owner@bank.example")
         p.setdefault("ring_preapprovals", {})[ring_no] = {
             "required": "Human-Driven", "preapproved": True,
@@ -1046,6 +1146,8 @@ class Store:
         if p["rings_done"] >= len(engine.RING_DEFS):
             raise ValidationError("El despliegue ya ha completado todos los anillos.",
                                   code="DEPLOYMENT_COMPLETED")
+        # El anillo anterior no se promociona hasta que su resultado se valide.
+        self._require_human_verification(tid)
         ring_no = engine.RING_DEFS[p["rings_done"]][0]
         preapproval = p.get("ring_preapprovals", {}).get(ring_no)
         if not (preapproval and preapproval.get("preapproved")):
@@ -1527,6 +1629,9 @@ class Store:
         p["rings_done"] = 0
         p["ring_evidence"] = {}
         p["rolled_back_rings"] = []
+        # El ciclo se repite entero: las validaciones de anillo y el cierre
+        # vuelven a pedirse.
+        self._clear_deployment_verifications(tid)
         if p["statuses"].get("deployment") == "approved":
             p["statuses"]["deployment"] = "awaiting_approval"
         if t.get("status") == "remediated":
@@ -1582,11 +1687,11 @@ class Store:
                             "msg": "Recorrido completo ensayado en dry-run: el Vulnerable Item sigue "
                                    "abierto porque no se ha aplicado ningún parche."})
             return
-        t["status"] = "remediated"
-        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
-        self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                        "msg": "Reescaneo verificado. Vulnerable Item → FIXED. "
-                               "Informe de auditoría generado."})
+        # El cierre del Vulnerable Item lo decide una persona al aceptar las
+        # evidencias (puerta de cierre), no la última ejecución.
+        self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                        "msg": "Todos los anillos desplegados. Pendiente de aceptación "
+                               "humana de las evidencias para cerrar el Vulnerable Item."})
 
     # ------------------------------------------------------------------
     # Laboratorio reutilizable (modelo persistente; sin operaciones EC2)

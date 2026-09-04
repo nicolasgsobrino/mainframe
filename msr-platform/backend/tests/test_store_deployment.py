@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
-from conftest import deployment_task
+from conftest import clear_human_gates, deployment_task
 
 from app import engine
 from app.errors import ConflictError, TargetNotAllowedError, ValidationError
@@ -65,6 +65,8 @@ class DryRunPatchProvider(FailingPatchProvider):
 
 
 def preapprove_next_ring(store: Store, tid: str) -> int:
+    # Validar el resultado del anillo anterior es condición para el siguiente.
+    clear_human_gates(store, tid)
     ring = store.pipelines[tid]["rings_done"] + 1
     store.preapprove_ring(tid, ring, approver="tester", note="test")
     return ring
@@ -271,6 +273,7 @@ def test_phases_one_to_five_remain_synchronous(store):
     tid = next(t for t, p in store.pipelines.items() if p["phase_index"] < 5)
     pipeline = store.pipelines[tid]
     index = pipeline["phase_index"]
+    clear_human_gates(store, tid)
 
     detail = store.approve_phase(tid, "key-1")
 

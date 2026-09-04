@@ -9,6 +9,7 @@ evidencia en lugar de relanzar el runbook (que abortaría con
 from __future__ import annotations
 
 import pytest
+from conftest import clear_human_gates
 from lab_fakes import ASG_NAME, FIXED_KERNEL, FakeLabWorld
 from test_lab_lifecycle import LAB_ID, build
 
@@ -36,6 +37,7 @@ def world() -> FakeLabWorld:
 
 
 def _approve_next_ring(store, tid, key: str) -> PatchJob:
+    clear_human_gates(store, tid)
     ring_no = engine.RING_DEFS[store.pipelines[tid]["rings_done"]][0]
     store.preapprove_ring(tid, ring_no)
     return store.start_ring_patch_job(tid, key)
@@ -95,6 +97,11 @@ def test_the_last_ring_closes_the_deployment(lab_settings, world):
 
     while store.pipelines[tid]["rings_done"] < len(engine.RING_DEFS):
         _approve_next_ring(store, tid, f"key-ring-{store.pipelines[tid]['rings_done']}")
+
+    # El despliegue completo no cierra solo: falta validar el último resultado
+    # y aceptar las evidencias.
+    assert store.task_detail(tid)["task"].get("status") != "remediated"
+    clear_human_gates(store, tid)
 
     detail = store.task_detail(tid)
     assert detail["task"]["status"] == "remediated"

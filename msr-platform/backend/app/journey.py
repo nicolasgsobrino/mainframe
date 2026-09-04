@@ -187,30 +187,36 @@ def resource_rollup(pipeline: dict) -> dict:
 # Human in the Loop: capa transversal
 # ---------------------------------------------------------------------------
 # El control humano no es una fase del recorrido, es un tipo de evento que se
-# repite a lo largo de él. Cada puerta declara la fase del journey donde ocurre
-# y si el motor la aplica de verdad (`enforced`) o si hoy es sólo un punto de
-# control registrado: `change_approval` y `ring_preapproval` bloquean la
-# ejecución; el resto documenta la decisión sin condicionarla. Convertirlas en
-# puertas efectivas es un cambio del motor, deliberadamente fuera de alcance.
+# repite a lo largo de él. Todas las puertas bloquean el motor: el recorrido no
+# continúa mientras una esté pendiente. Lo que cambia es cómo se cierran
+# (`closes_with`): la aprobación del cambio y la pre-aprobación de anillo tienen
+# su propia acción histórica; el resto se cierra con una verificación humana
+# registrada.
+CLOSE_VERIFICATION = "verification"
+CLOSE_PHASE_APPROVAL = "phase_approval"
+CLOSE_RING_PREAPPROVAL = "ring_preapproval"
+
+# (id, label, pregunta, fase del journey, fase del pipeline, cómo se cierra,
+#  ¿se repite por anillo?)
 GATES = [
     ("scope_confirmation", "Confirmación de alcance",
      "Los activos correlacionados con la CMDB son los correctos",
-     "asset_identification", "detection", False, False),
+     "asset_identification", "detection", CLOSE_VERIFICATION, False),
     ("ai_proposal", "Validación de la propuesta de remediación",
      "Tipo de remediación, aplicabilidad y blast radius calculado",
-     "blast_radius", "pre_implementation", False, False),
+     "blast_radius", "pre_implementation", CLOSE_VERIFICATION, False),
     ("change_approval", "Aprobación del cambio y del plan",
      "Cambio ITSM, ventana, secuencia de anillos y rollback armado",
-     "change_planning", "prototype", True, False),
+     "change_planning", "prototype", CLOSE_PHASE_APPROVAL, False),
     ("ring_preapproval", "Pre-aprobación del anillo",
      "Autorización para ejecutar este lote concreto ahora",
-     "ring_execution", None, True, True),
+     "ring_execution", None, CLOSE_RING_PREAPPROVAL, True),
     ("ring_result", "Validación del resultado del anillo",
      "Post-checks, salud y evidencia antes de promocionar",
-     "gate_validation", None, False, True),
+     "gate_validation", None, CLOSE_VERIFICATION, True),
     ("closure", "Aceptación de evidencias y cierre",
      "Informe de auditoría y cierre del Vulnerable Item",
-     "evidence_closure", None, False, False),
+     "evidence_closure", None, CLOSE_VERIFICATION, False),
 ]
 
 GATE_DONE = "done"
@@ -219,7 +225,11 @@ GATE_UPCOMING = "upcoming"
 
 GATE_IDS = [g[0] for g in GATES]
 GATE_PER_RING = {g[0]: g[6] for g in GATES}
-GATE_ENFORCED = {g[0]: g[5] for g in GATES}
+GATE_CLOSES_WITH = {g[0]: g[5] for g in GATES}
+# Puertas que se cierran registrando la verificación humana (el resto tienen su
+# propia acción: aprobar la fase o pre-aprobar el anillo).
+GATE_VERIFIABLE = {g[0]: g[5] == CLOSE_VERIFICATION for g in GATES}
+GATE_LABELS = {g[0]: g[1] for g in GATES}
 
 
 def verification_key(gate_id: str, ring: int | None) -> str:
@@ -233,8 +243,11 @@ def gate_catalog() -> list[dict]:
     """Metadatos de las puertas humanas, para que la UI no los duplique."""
     return [
         {"id": gid, "label": label, "question": question, "phase": phase,
-         "enforced": enforced, "per_ring": per_ring}
-        for gid, label, question, phase, _pipeline, enforced, per_ring in GATES
+         # Todas bloquean el recorrido; `verifiable` dice si se cierran con una
+         # verificación humana registrada o con su propia acción de aprobación.
+         "enforced": True, "verifiable": closes_with == CLOSE_VERIFICATION,
+         "closes_with": closes_with, "per_ring": per_ring}
+        for gid, label, question, phase, _pipeline, closes_with, per_ring in GATES
     ]
 
 
@@ -279,13 +292,15 @@ def gate_states(task: dict, pipeline: dict) -> list[dict]:
                     "verified": bool(verified),
                     "detail": detail})
 
-    for gid, _label, _q, _phase, pipeline_phase, _enforced, per_ring in GATES:
+    for gid, _label, _q, _phase, pipeline_phase, _closes, per_ring in GATES:
         if not per_ring and gid != "closure":
             emit(gid, _phase_gate_status(pipeline, pipeline_phase, remediated))
         elif gid == "closure":
             if remediated:
                 emit(gid, GATE_DONE)
             elif pipeline["rings_done"] >= len(engine.RING_DEFS):
+                # Todos los anillos desplegados: el cierre del Vulnerable Item
+                # espera a que alguien acepte las evidencias.
                 emit(gid, GATE_PENDING)
             else:
                 emit(gid, GATE_UPCOMING)
@@ -303,7 +318,9 @@ def gate_states(task: dict, pipeline: dict) -> list[dict]:
         elif gid == "ring_result":
             for r in rings:
                 if r["status"] == "completed":
-                    status = GATE_DONE
+                    # Desplegado pero sin revisar: el siguiente anillo no sale
+                    # hasta que se valide el resultado de éste.
+                    status = GATE_DONE if remediated else GATE_PENDING
                 elif r["status"] == "rolled_back":
                     status = GATE_PENDING
                 else:
@@ -322,10 +339,11 @@ def gate_rollup(gates: list[dict]) -> dict:
         "total": len(gates),
         "done": sum(1 for g in gates if g["status"] == GATE_DONE),
         "pending": len(pending),
-        # Sólo estas bloquean de verdad la ejecución en el motor actual.
+        # Todas las puertas detienen el recorrido hasta que alguien decide.
         "pending_enforced": sum(1 for g in pending if g["enforced"]),
         "next": next(({"id": g["id"], "label": g["label"], "ring": g["ring"],
-                       "enforced": g["enforced"]} for g in pending), None),
+                       "enforced": g["enforced"], "verifiable": g["verifiable"]}
+                      for g in pending), None),
     }
 
 

@@ -40,12 +40,12 @@ function when(ts: string | null): string {
 export function HitlGateCard({ gate, onSelect, onVerify }: {
   gate: HitlGate;
   onSelect?: () => void;
-  /** Verificación humana de un punto de control que el motor no bloquea. */
+  /** Verificación humana de una puerta que se cierra registrando la decisión. */
   onVerify?: (gate: HitlGate) => Promise<unknown>;
 }) {
   const [verifying, setVerifying] = useState(false);
   const meta = STATUS_META[gate.status];
-  const canVerify = Boolean(onVerify) && !gate.enforced && gate.status !== "done";
+  const canVerify = Boolean(onVerify) && gate.verifiable && gate.status !== "done";
 
   const verify = async () => {
     if (!onVerify || verifying) return;
@@ -94,10 +94,18 @@ export function HitlGateCard({ gate, onSelect, onVerify }: {
           {verifying ? "Verificación humana en curso…" : "◑ Verificar y registrar la decisión"}
         </button>
       )}
-      {!gate.enforced && (
-        <div className="text-[10px] text-gray-600 mt-1"
-             title="Punto de control registrado: el motor todavía no lo bloquea">
-          registro · no bloquea la ejecución
+      {gate.status === "pending" && (
+        <div className="text-[10px] text-amber-300/80 mt-1"
+             title="El motor no continúa hasta que una persona cierre esta puerta">
+          ⛔ el recorrido está detenido aquí
+          {!gate.verifiable && (
+            <span className="text-gray-500">
+              {" · se cierra con "}
+              {gate.closes_with === "ring_preapproval"
+                ? "la pre-aprobación del anillo"
+                : "la aprobación del cambio"}
+            </span>
+          )}
         </div>
       )}
     </>

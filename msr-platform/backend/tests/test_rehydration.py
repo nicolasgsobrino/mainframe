@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 
-from conftest import deployment_task
+from conftest import clear_human_gates, deployment_task
 
 from app import engine
 from app.jobs import JobState
@@ -34,6 +34,7 @@ def mock_store(settings, repo) -> tuple[Store, FrozenClock]:
 
 
 def complete_ring(store: Store, clock: FrozenClock, tid: str, key: str):
+    clear_human_gates(store, tid)
     ring_no = engine.RING_DEFS[store.pipelines[tid]["rings_done"]][0]
     store.preapprove_ring(tid, ring_no)
     job = store.start_ring_patch_job(tid, key)

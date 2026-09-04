@@ -35,8 +35,11 @@ export interface JourneyResources {
 export type HitlGateStatus = "done" | "pending" | "upcoming";
 export interface HitlGateMeta {
   id: string; label: string; question: string; phase: string;
-  /** `false` = punto de control registrado, pero el motor todavía no lo bloquea. */
+  /** Todas las puertas detienen el recorrido hasta la decisión humana. */
   enforced: boolean; per_ring: boolean;
+  /** `true` = se cierra registrando la verificación; si no, con su propia acción. */
+  verifiable: boolean;
+  closes_with: "verification" | "phase_approval" | "ring_preapproval";
 }
 export interface HitlGate extends HitlGateMeta {
   status: HitlGateStatus; ring: number | null;

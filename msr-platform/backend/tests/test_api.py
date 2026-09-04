@@ -124,6 +124,12 @@ def test_cancel_endpoint_cancels_an_active_job(client):
 
 def test_non_deployment_phase_stays_synchronous_200(client):
     tid = next(t["id"] for t in client.get("/api/tasks").json() if t["phase_index"] < 5)
+    # La fase no avanza mientras su puerta humana siga pendiente.
+    blocked = client.post(f"/api/tasks/{tid}/approve")
+    assert blocked.status_code == 422
+    assert blocked.json()["error"]["code"] == "HITL_VERIFICATION_REQUIRED"
+    client.post(f"/api/tasks/{tid}/gates/scope_confirmation/verify", json={})
+
     response = client.post(f"/api/tasks/{tid}/approve")
     assert response.status_code == 200
     assert response.json()["active_job"] is None

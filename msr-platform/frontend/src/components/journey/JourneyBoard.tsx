@@ -53,7 +53,7 @@ function PhaseCard({ phase, selected, onSelect }: {
         {phase.gates.length > 0 && (
           <span
             className={`ml-auto text-[10px] ${phase.gates_pending > 0 ? "text-amber-300" : "text-gray-600"}`}
-            title={phase.gates.map((g) => `${g.label}${g.enforced ? "" : " (registro)"}`).join(" · ")}
+            title={phase.gates.map((g) => g.label).join(" · ")}
           >
             ◑ {phase.gates_pending > 0 ? `${phase.gates_pending} pdte.` : "HITL"}
           </span>

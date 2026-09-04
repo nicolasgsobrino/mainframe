@@ -138,6 +138,16 @@ CREATE TABLE IF NOT EXISTS lab_locks (
     acquired_at     TEXT NOT NULL,
     expires_at      TEXT NOT NULL
 );
+
+-- Verificaciones humanas de las puertas HITL: son decisiones que bloquean el
+-- recorrido, así que deben sobrevivir a un reinicio igual que los jobs.
+CREATE TABLE IF NOT EXISTS hitl_verifications (
+    task_id          TEXT NOT NULL,
+    verification_key TEXT NOT NULL,
+    payload          TEXT NOT NULL DEFAULT '{}',
+    created_at       TEXT NOT NULL,
+    PRIMARY KEY (task_id, verification_key)
+);
 """
 
 
@@ -469,6 +479,32 @@ class JobRepository:
         with self.connection() as conn:
             return [r["task_id"] for r in conn.execute(
                 "SELECT DISTINCT task_id FROM jobs ORDER BY task_id")]
+
+    # --- verificaciones humanas (puertas HITL) --------------------------
+    def save_verification(self, task_id: str, key: str, payload: dict) -> None:
+        with self.transaction() as conn:
+            conn.execute(
+                "INSERT INTO hitl_verifications (task_id, verification_key, payload, "
+                "created_at) VALUES (?, ?, ?, ?) ON CONFLICT(task_id, verification_key) "
+                "DO UPDATE SET payload = excluded.payload, created_at = excluded.created_at",
+                (task_id, key, json.dumps(payload),
+                 _iso(datetime.now(timezone.utc))))
+
+    def verifications_for_task(self, task_id: str) -> dict[str, dict]:
+        with self.connection() as conn:
+            rows = conn.execute(
+                "SELECT verification_key, payload FROM hitl_verifications "
+                "WHERE task_id = ?", (task_id,)).fetchall()
+        return {r["verification_key"]: json.loads(r["payload"]) for r in rows}
+
+    def delete_verifications(self, task_id: str, keys: list[str]) -> None:
+        if not keys:
+            return
+        placeholders = ",".join("?" * len(keys))
+        with self.transaction() as conn:
+            conn.execute(
+                f"DELETE FROM hitl_verifications WHERE task_id = ? "
+                f"AND verification_key IN ({placeholders})", (task_id, *keys))
 
     # --- laboratorio reutilizable --------------------------------------
     def upsert_lab_target(self, lab: LabTarget) -> LabTarget:

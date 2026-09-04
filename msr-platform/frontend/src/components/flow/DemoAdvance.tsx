@@ -18,12 +18,13 @@ export interface DemoStep {
 
 export function nextDemoStep(detail: TaskDetail): DemoStep {
   const j = detail.journey;
-  const gate = j.gates.find((g) => !g.enforced && !g.verified && g.status === "pending") ?? null;
+  // Una puerta pendiente detiene el recorrido: es siempre el siguiente paso.
+  const gate = j.gates.find((g) => g.verifiable && g.status === "pending") ?? null;
   if (gate) {
     return {
       kind: "verify",
       label: `Verificar: ${gate.label}${gate.ring !== null ? ` · anillo ${gate.ring}` : ""}`,
-      hint: gate.question,
+      hint: `${gate.question} · el flujo está detenido hasta esta validación.`,
       gate,
       ring: gate.ring,
     };

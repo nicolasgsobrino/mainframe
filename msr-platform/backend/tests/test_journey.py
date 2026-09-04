@@ -142,13 +142,15 @@ def test_task_detail_exposes_the_journey_with_rings(store):
     assert journey_block["resources"]["total"] >= 1
 
 
-def test_gate_catalog_declares_which_gates_the_engine_enforces():
+def test_gate_catalog_declares_how_each_gate_is_closed():
     catalog = journey.gate_catalog()
     assert [g["id"] for g in catalog] == [
         "scope_confirmation", "ai_proposal", "change_approval",
         "ring_preapproval", "ring_result", "closure"]
-    assert {g["id"] for g in catalog if g["enforced"]} == {
-        "change_approval", "ring_preapproval"}
+    # Todas bloquean; lo que cambia es con qué acción se cierran.
+    assert all(g["enforced"] for g in catalog)
+    assert {g["id"] for g in catalog if g["verifiable"]} == {
+        "scope_confirmation", "ai_proposal", "ring_result", "closure"}
     assert all(g["phase"] in journey.PHASE_INDEX for g in catalog)
 
 
@@ -176,7 +178,7 @@ def test_gates_do_not_wait_on_a_ring_before_the_deployment_phase(store):
     gates = journey.gate_states(task, pipeline)
     pending = [g for g in gates if g["status"] == journey.GATE_PENDING]
     assert [g["id"] for g in pending] == ["scope_confirmation"]
-    assert journey.gate_rollup(gates)["pending_enforced"] == 0
+    assert journey.gate_rollup(gates)["pending_enforced"] == 1
 
 
 def test_a_remediated_task_has_every_gate_behind_it(store):
