@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
-import type { HitlGate, JourneyDetail, Task, TaskDetail } from "../types";
+import type { HitlGate, JourneyDetail, LogEntry, Task, TaskDetail } from "../types";
 import { LaneTag, Priority, Risk } from "../ui";
-import { DemoAdvanceControl, HitlCounter, HitlRail, LogConsole, nextDemoStep } from "../components/flow";
+import {
+  ExecutionTheatre, HitlCounter, HitlRail, LogConsole, NextActionBar, nextDemoStep, stepTone,
+  type DemoStep, type ExecLine,
+} from "../components/flow";
 import { SCENES } from "../components/flow/scenes";
 import { useDemo, useReportExecution } from "../demo";
 import { useView, ROLE_META } from "../view";
@@ -47,8 +50,56 @@ const SCRIPT: Record<string, { pitch: string; automation: string }> = {
   },
 };
 
-function SceneStepper({ phases, current, onSelect }: {
-  phases: Phase[]; current: string; onSelect: (id: string) => void;
+/**
+ * Lo que la acción acaba de provocar por detrás, en el orden en que ocurrió:
+ * los comandos del anillo que se ha desplegado y las entradas de log que el
+ * backend ha escrito con esta acción. Nada de esto es inventado por la UI.
+ */
+function playbackLines(step: DemoStep, before: LogEntry[], next: TaskDetail): ExecLine[] {
+  const seen = new Set(before.map((l) => `${l.ts ?? ""}|${l.actor}|${l.msg}`));
+  const lines: ExecLine[] = [];
+
+  if (step.kind === "deploy" && step.ring !== null) {
+    const ring = next.artifacts.deployment.rings.find((r) => r.ring === step.ring);
+    ring?.actions?.steps.forEach((s) => {
+      lines.push({ actor: s.actor, text: s.why ?? s.tool, detail: `$ ${s.command}` });
+      if (s.output) {
+        lines.push({
+          actor: s.tool, text: s.output,
+          detail: `${s.status} · ${s.duration_s}s`,
+          status: s.status === "ok" || s.status === "success" ? "ok" : "warn",
+        });
+      }
+    });
+    ring?.post_checks.forEach((c) => lines.push({ actor: "Post-check", text: c }));
+  }
+
+  next.logs
+    .filter((l) => !seen.has(`${l.ts ?? ""}|${l.actor}|${l.msg}`))
+    .forEach((l) => lines.push({ actor: l.actor, text: l.msg, detail: l.phase }));
+
+  return lines;
+}
+
+/** Título de la reproducción según lo que se acaba de ejecutar. */
+const PLAYBACK_TITLE: Record<DemoStep["kind"], (s: DemoStep) => string> = {
+  verify: (s) => `Validación humana registrada · ${s.gate?.label ?? ""}`,
+  preapprove: (s) => `Anillo ${s.ring} pre-aprobado · informe pre-anillo aceptado`,
+  deploy: (s) => `Desplegando el anillo ${s.ring}`,
+  approve: () => "Fase aprobada · la plataforma prepara los artefactos siguientes",
+  done: () => "Recorrido completado",
+};
+
+/** Escena donde vive la acción pendiente, para señalarla en el stepper. */
+function actionPhaseOf(step: DemoStep, j: JourneyDetail): string | null {
+  if (step.kind === "done") return null;
+  if (step.kind === "verify") return step.gate?.phase ?? null;
+  if (step.kind === "approve") return j.phase;
+  return "ring_execution";
+}
+
+function SceneStepper({ phases, current, actionPhase, onSelect }: {
+  phases: Phase[]; current: string; actionPhase: string | null; onSelect: (id: string) => void;
 }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
@@ -56,6 +107,7 @@ function SceneStepper({ phases, current, onSelect }: {
         const color = JOURNEY_BAND_COLOR[p.band];
         const active = p.id === current;
         const done = p.status === "completed";
+        const isAction = p.id === actionPhase;
         return (
           <button
             key={p.id}
@@ -63,10 +115,15 @@ function SceneStepper({ phases, current, onSelect }: {
             onClick={() => onSelect(p.id)}
             aria-pressed={active}
             title={`${p.label_en} · ${p.status}`}
-            className={`rounded-lg border p-2 text-left transition-colors ${
+            className={`relative rounded-lg border p-2 text-left transition-colors ${
               active ? "bg-ink-panel" : "bg-ink hover:bg-ink-panel"}`}
-            style={{ borderColor: active ? color : done ? color + "55" : "#2b313d" }}
+            style={{ borderColor: isAction ? "#f59e0b" : active ? color : done ? color + "55" : "#2b313d" }}
           >
+            {isAction && (
+              <span className="absolute -top-2 left-2 text-[9px] font-bold px-1.5 py-px rounded bg-amber-500 text-black">
+                AQUÍ
+              </span>
+            )}
             <div className="flex items-center gap-1.5">
               <span className="w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
                     style={{
@@ -167,6 +224,12 @@ export default function DemoStage() {
   const [error, setError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [armed, setArmed] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [playback, setPlayback] = useState<{ title: string; subtitle: string; lines: ExecLine[] } | null>(null);
+  const [replaying, setReplaying] = useState(false);
+  // Paso lanzado cuya reproducción todavía no se puede montar: el job del
+  // anillo sigue en vuelo y su evidencia aún no está publicada.
+  const pending = useRef<{ step: DemoStep; before: LogEntry[] } | null>(null);
 
   useReportExecution(detail?.execution ?? null);
 
@@ -224,6 +287,22 @@ export default function DemoStage() {
       .finally(() => { setResetting(false); setArmed(false); });
   }, [load]);
 
+  // La reproducción se monta cuando el backend ha terminado: en mock eso es
+  // inmediato, pero un anillo real publica su evidencia al cerrar el job.
+  useEffect(() => {
+    const waiting = pending.current;
+    const job = detail?.active_job;
+    if (!waiting || !detail || (job && !job.terminal)) return;
+    pending.current = null;
+    setPlayback({
+      title: PLAYBACK_TITLE[waiting.step.kind](waiting.step),
+      subtitle: stepTone(waiting.step) === "human"
+        ? `Decisión registrada como ${ROLE_META[role].label} · el flujo queda desbloqueado`
+        : "Ejecución del agente reproducida paso a paso",
+      lines: playbackLines(waiting.step, waiting.before, detail),
+    });
+  }, [detail, role]);
+
   const gatesByPhase = useMemo(() => {
     const map = new Map<string, HitlGate[]>();
     detail?.journey.gates.forEach((g) => map.set(g.phase, [...(map.get(g.phase) ?? []), g]));
@@ -241,12 +320,39 @@ export default function DemoStage() {
   const script = SCRIPT[scenePhase.id];
   const gates = gatesByPhase.get(scenePhase.id) ?? [];
   const step = nextDemoStep(detail);
+  const job = detail.active_job ?? null;
+  // El siguiente paso espera a que termine lo anterior: job real en vuelo o
+  // reproducción en curso (el presentador puede saltarla).
+  const busy = running || replaying || (job !== null && !job.terminal);
+  const actionPhase = actionPhaseOf(step, j);
   const color = JOURNEY_BAND_COLOR[scenePhase.band];
 
   const verifyGate = (gate: HitlGate) =>
     api.verifyGate(taskId, gate.id, { ring: gate.ring, role }).then(apply);
-  const advance = () => api.approve(taskId, detail.rings_done + 1).then(apply);
-  const preapprove = (ring: number) => api.preapproveRing(taskId, ring).then(apply);
+
+  const call = (s: DemoStep): Promise<TaskDetail> => {
+    if (s.kind === "verify" && s.gate) return api.verifyGate(taskId, s.gate.id, { ring: s.gate.ring, role });
+    if (s.kind === "preapprove" && s.ring !== null) return api.preapproveRing(taskId, s.ring);
+    return api.approve(taskId, detail.rings_done + 1);
+  };
+
+  // Una sola acción para toda la pantalla: ejecuta el paso y reproduce con
+  // ritmo lo que el backend ha hecho, que en mock ocurre en milisegundos.
+  const act = () => {
+    if (busy || step.kind === "done") return;
+    setRunning(true);
+    setPlayback(null);
+    setReplaying(true);
+    pending.current = { step, before: detail.logs };
+    call(step)
+      .then(apply)
+      .catch(() => {
+        pending.current = null;
+        setReplaying(false);
+        setError("La acción no se pudo completar; el flujo sigue detenido.");
+      })
+      .finally(() => setRunning(false));
+  };
 
   return (
     <div className="p-6 space-y-4">
@@ -285,9 +391,25 @@ export default function DemoStage() {
         </div>
       </div>
 
-      <SceneStepper phases={j.phases} current={scenePhase.id} onSelect={setPinned} />
+      <SceneStepper phases={j.phases} current={scenePhase.id} actionPhase={actionPhase}
+                    onSelect={setPinned} />
+
+      <NextActionBar
+        step={step}
+        running={busy}
+        onAct={act}
+        onGoToScene={actionPhase && actionPhase !== scenePhase.id
+          ? () => setPinned(actionPhase)
+          : undefined}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
+        <div className="space-y-3">
+        {playback && (
+          <ExecutionTheatre title={playback.title} subtitle={playback.subtitle} lines={playback.lines}
+                            onDone={() => setReplaying(false)}
+                            onDismiss={() => setPlayback(null)} />
+        )}
         <div className="card p-5 space-y-4" key={scenePhase.id}>
           <div className="animate-fade-in">
             <div className="flex flex-wrap items-center gap-2">
@@ -311,16 +433,15 @@ export default function DemoStage() {
           </div>
           <div className="animate-fade-in">{Scene && <Scene detail={detail} gates={gates} />}</div>
         </div>
+        </div>
 
         <div className="space-y-3 xl:sticky xl:top-6">
-          <DemoAdvanceControl detail={detail} onVerify={verifyGate} onAdvance={advance}
-                              onPreapprove={preapprove} />
           <div className="card p-3 space-y-2">
             <HitlCounter hitl={j.hitl} />
-            {step.kind !== "done" && step.gate && step.gate.phase !== scenePhase.id && (
-              <button type="button" onClick={() => setPinned(step.gate?.phase ?? null)}
+            {step.kind !== "done" && actionPhase && actionPhase !== scenePhase.id && (
+              <button type="button" onClick={() => setPinned(actionPhase)}
                       className="text-[11px] text-amber-300 hover:text-amber-200">
-                El recorrido está detenido en «{step.gate.label}» → ir a esa escena
+                La acción pendiente está en «{j.phases.find((p) => p.id === actionPhase)?.label}» → ir a esa escena
               </button>
             )}
           </div>

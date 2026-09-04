@@ -669,9 +669,14 @@ class JobRepository:
     def clear(self) -> None:
         """Sólo para `POST /api/reset` y para los tests: vacía el histórico.
 
+        Las decisiones humanas ya registradas también son histórico: si
+        sobrevivieran, las puertas HITL seguirían cerradas y el recorrido no
+        volvería a detenerse en ellas.
+
         `lab_targets` es configuración del laboratorio, no histórico: sobrevive
         deliberadamente al reset para poder repetir la PoC sin re-registrarlo.
         """
         with self.transaction() as conn:
-            for table in ("idempotency_keys", "job_events", "job_targets", "jobs"):
+            for table in ("idempotency_keys", "job_events", "job_targets", "jobs",
+                          "hitl_verifications"):
                 conn.execute(f"DELETE FROM {table}")
