@@ -113,10 +113,15 @@ def _deployment_position(task: dict, pipeline: dict) -> tuple[str, int | None, l
 def position(task: dict, pipeline: dict) -> dict:
     """Fase del journey en la que se encuentra la vulnerabilidad, y por qué."""
     pipeline_phase = engine.PHASE_IDS[pipeline["phase_index"]]
+    verified = pipeline.get("hitl_verifications") or {}
     if task.get("status") == "remediated":
         phase_id, ring, blockers = "evidence_closure", None, []
     elif pipeline_phase in _PIPELINE_TO_JOURNEY:
         phase_id, ring = _PIPELINE_TO_JOURNEY[pipeline_phase]
+        # La confirmación de activos vive dentro de la misma fase del motor que
+        # el disparador: es su verificación humana la que la hace visible.
+        if phase_id == "cyber_trigger" and "scope_confirmation" in verified:
+            phase_id = "asset_identification"
         blockers = []
     else:
         phase_id, ring, blockers = _deployment_position(task, pipeline)
@@ -212,6 +217,17 @@ GATE_DONE = "done"
 GATE_PENDING = "pending"
 GATE_UPCOMING = "upcoming"
 
+GATE_IDS = [g[0] for g in GATES]
+GATE_PER_RING = {g[0]: g[6] for g in GATES}
+GATE_ENFORCED = {g[0]: g[5] for g in GATES}
+
+
+def verification_key(gate_id: str, ring: int | None) -> str:
+    """Clave con la que se archiva la verificación humana de una puerta."""
+    if GATE_PER_RING.get(gate_id) and ring is not None:
+        return f"{gate_id}:{ring}"
+    return gate_id
+
 
 def gate_catalog() -> list[dict]:
     """Metadatos de las puertas humanas, para que la UI no los duplique."""
@@ -242,15 +258,25 @@ def gate_states(task: dict, pipeline: dict) -> list[dict]:
     # despliegue, aunque el plan ya lo marque como el siguiente de la cola.
     deploying = engine.PHASE_IDS[pipeline["phase_index"]] == "deployment"
     rings = pipeline["artifacts"]["deployment"]["rings"]
+    verifications = pipeline.get("hitl_verifications") or {}
     meta = {g["id"]: g for g in gate_catalog()}
     out: list[dict] = []
 
     def emit(gid: str, status: str, *, ring: int | None = None,
              approval: dict | None = None, detail: str | None = None) -> None:
-        out.append({**meta[gid], "ring": ring, "status": status,
-                    "actor": (approval or {}).get("approver"),
-                    "ts": (approval or {}).get("ts"),
-                    "note": (approval or {}).get("note"),
+        # Una verificación humana explícita cierra la puerta y aporta su autor,
+        # su sello de tiempo y el resultado que dejó registrado.
+        verified = verifications.get(verification_key(gid, ring))
+        record = verified or approval or {}
+        out.append({**meta[gid],
+                    "ring": ring,
+                    "status": GATE_DONE if verified else status,
+                    "actor": record.get("approver") or record.get("actor"),
+                    "role": record.get("role"),
+                    "ts": record.get("ts"),
+                    "note": record.get("note"),
+                    "output": (verified or {}).get("output"),
+                    "verified": bool(verified),
                     "detail": detail})
 
     for gid, _label, _q, _phase, pipeline_phase, _enforced, per_ring in GATES:

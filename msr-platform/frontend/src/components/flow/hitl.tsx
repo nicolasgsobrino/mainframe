@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { HitlGate, HitlGateStatus, HitlRollup } from "../../types";
 
 /** Lenguaje visual único del control humano: ámbar en todas las vistas. */
@@ -5,12 +6,12 @@ export const HITL_COLOR = "#f59e0b";
 
 const STATUS_META: Record<HitlGateStatus, { label: string; cls: string; dot: string }> = {
   done: {
-    label: "decidido",
+    label: "verificado",
     cls: "border-emerald-500/40 text-emerald-300 bg-emerald-500/10",
     dot: "#22c55e",
   },
   pending: {
-    label: "espera decisión",
+    label: "pendiente de verificación",
     cls: "border-amber-500/50 text-amber-300 bg-amber-500/15",
     dot: HITL_COLOR,
   },
@@ -19,6 +20,11 @@ const STATUS_META: Record<HitlGateStatus, { label: string; cls: string; dot: str
     cls: "border-line text-gray-500 bg-ink",
     dot: "#475569",
   },
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  service_manager: "Service Manager",
+  technical: "Technical",
 };
 
 function when(ts: string | null): string {
@@ -31,8 +37,26 @@ function when(ts: string | null): string {
  * Una puerta humana, con la misma plantilla en todo el producto: qué se
  * decide, quién decidió y si el motor la aplica o sólo la registra.
  */
-export function HitlGateCard({ gate, onSelect }: { gate: HitlGate; onSelect?: () => void }) {
+export function HitlGateCard({ gate, onSelect, onVerify }: {
+  gate: HitlGate;
+  onSelect?: () => void;
+  /** Verificación humana de un punto de control que el motor no bloquea. */
+  onVerify?: (gate: HitlGate) => Promise<unknown>;
+}) {
+  const [verifying, setVerifying] = useState(false);
   const meta = STATUS_META[gate.status];
+  const canVerify = Boolean(onVerify) && !gate.enforced && gate.status !== "done";
+
+  const verify = async () => {
+    if (!onVerify || verifying) return;
+    setVerifying(true);
+    try {
+      await onVerify(gate);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const body = (
     <>
       <div className="flex items-center gap-2">
@@ -51,6 +75,25 @@ export function HitlGateCard({ gate, onSelect }: { gate: HitlGate; onSelect?: ()
           {gate.note && <span className="text-gray-500"> · «{gate.note}»</span>}
         </div>
       )}
+      {gate.verified && (
+        <div className="mt-1.5 rounded border border-emerald-500/30 bg-emerald-500/5 px-2 py-1">
+          <div className="text-[10px] font-semibold text-emerald-300">
+            ✓ Verificación humana completada
+            {gate.role && <span className="text-emerald-400/70"> · {ROLE_LABEL[gate.role] ?? gate.role}</span>}
+          </div>
+          {gate.output && <div className="text-[10px] text-gray-400 leading-snug mt-0.5">{gate.output}</div>}
+        </div>
+      )}
+      {canVerify && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); void verify(); }}
+          disabled={verifying}
+          className="mt-2 w-full rounded border border-amber-500/50 bg-amber-500/15 px-2 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/25 disabled:opacity-60"
+        >
+          {verifying ? "Verificación humana en curso…" : "◑ Verificar y registrar la decisión"}
+        </button>
+      )}
       {!gate.enforced && (
         <div className="text-[10px] text-gray-600 mt-1"
              title="Punto de control registrado: el motor todavía no lo bloquea">
@@ -62,7 +105,9 @@ export function HitlGateCard({ gate, onSelect }: { gate: HitlGate; onSelect?: ()
   const cls = `rounded-lg border p-2.5 w-full text-left ${
     gate.status === "pending" ? "border-amber-500/40 bg-amber-500/5" : "border-line bg-ink"}`;
   return onSelect
-    ? <button type="button" onClick={onSelect} className={`${cls} hover:bg-ink-panel transition-colors`}>{body}</button>
+    ? <div role="button" tabIndex={0} onClick={onSelect}
+           onKeyDown={(e) => { if (e.key === "Enter") onSelect(); }}
+           className={`${cls} hover:bg-ink-panel transition-colors cursor-pointer`}>{body}</div>
     : <div className={cls}>{body}</div>;
 }
 
@@ -70,7 +115,13 @@ export function HitlGateCard({ gate, onSelect }: { gate: HitlGate; onSelect?: ()
  * Carril transversal de Human in the Loop: las puertas no son una fase, son un
  * tipo de evento que se repite a lo largo del recorrido.
  */
-export function HitlRail({ gates, compact = false }: { gates: HitlGate[]; compact?: boolean }) {
+export function HitlRail({ gates, compact = false, onVerify, stacked = false }: {
+  gates: HitlGate[];
+  compact?: boolean;
+  onVerify?: (gate: HitlGate) => Promise<unknown>;
+  /** Apila las puertas en una columna: para contenedores estrechos. */
+  stacked?: boolean;
+}) {
   const shown = compact ? gates.filter((g) => g.status !== "upcoming" || !g.per_ring) : gates;
   if (shown.length === 0) return null;
   return (
@@ -83,8 +134,10 @@ export function HitlRail({ gates, compact = false }: { gates: HitlGate[]; compac
           control humano recurrente a lo largo del recorrido, no una fase
         </span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {shown.map((g) => <HitlGateCard key={`${g.id}:${g.ring ?? "-"}`} gate={g} />)}
+      <div className={`grid gap-2 ${stacked ? "" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
+        {shown.map((g) => (
+          <HitlGateCard key={`${g.id}:${g.ring ?? "-"}`} gate={g} onVerify={onVerify} />
+        ))}
       </div>
     </div>
   );

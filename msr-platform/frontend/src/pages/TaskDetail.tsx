@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ApiError, api, releaseIdempotencyKey } from "../api";
-import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob, LabPatchEvidence,
+import type { TaskDetail as TD, FlowStep, HitlGate, Ring, ItsmChange, Deployment, PatchJob, LabPatchEvidence,
   ExecutionMode } from "../types";
 import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 import LabPanel from "../components/LabPanel";
+import { DemoAdvanceControl, HitlRail } from "../components/flow";
+import { useDemo } from "../demo";
 import { useView } from "../view";
 
 const PHASE_IDS = ["detection", "prioritization", "pre_implementation", "lab_testing", "prototype", "deployment"];
@@ -53,6 +55,7 @@ function Verdict({ v }: { v: string }) {
 export default function TaskDetail() {
   const { id } = useParams();
   const { role } = useView();
+  const { active: demo } = useDemo();
   const isTech = role === "technical";
   const [d, setD] = useState<TD | null>(null);
   const [sel, setSel] = useState<number>(0);
@@ -115,6 +118,9 @@ export default function TaskDetail() {
   };
 
   const approve = () => run(() => api.approve(id!, d.rings_done + 1));
+  // Verificación humana registrada de un punto de control no bloqueante.
+  const verifyGate = (gate: HitlGate) =>
+    run(() => api.verifyGate(id!, gate.id, { ring: gate.ring, role }));
   const rollback = () => run(() => api.rollback(id!, d.rings_done));
   const simulate = () => run(() => api.simulateIncident(id!));
   const preapproveRing = (ring: number) => run(() => api.preapproveRing(id!, ring));
@@ -362,8 +368,19 @@ export default function TaskDetail() {
           )}
 
           {/* HITL control */}
-          <div className="card p-4">
-            <div className="text-sm font-semibold mb-1">Aprobación humana (HITL)</div>
+          <div className="card p-4 space-y-3">
+            <div className="text-sm font-semibold">Aprobación humana (HITL)</div>
+
+            {demo && (
+              <DemoAdvanceControl detail={d} busy={locked}
+                onVerify={verifyGate}
+                onPreapprove={async (ring) => { await preapproveRing(ring); }}
+                onAdvance={async () => { await approve(); }} />
+            )}
+
+            <HitlRail gates={d.journey.gates.filter((g) => g.status !== "upcoming")}
+                      onVerify={verifyGate} stacked />
+
             {done ? (
               <div className="space-y-3">
                 <div className="text-xs text-green-400">Tarea remediada. Vulnerable Item cerrado con evidencia de auditoría.</div>

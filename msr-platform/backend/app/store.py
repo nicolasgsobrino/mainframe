@@ -79,6 +79,10 @@ _TASK_SNAPSHOT_KEYS = ("id", "cve", "ci_id", "ci_name", "component", "track",
 # Estados a los que una reconciliación manual administrativa puede llevar un job
 # cuyo resultado remoto no ha podido confirmarse. Nunca a «succeeded».
 ADMIN_RESOLVABLE_STATES = (JobState.FAILED, JobState.CANCELLED, JobState.TIMED_OUT)
+REMEDIATION_LABELS = {
+    "patch": "parche in-place con reinicio de la instancia",
+    "dependency": "actualización de dependencia en rolling, sin caída",
+}
 
 log = logging.getLogger("msr.store")
 
@@ -307,6 +311,11 @@ class Store:
             "rolled_back_rings": [],
             "ring_preapprovals": ring_preapprovals,
             "ring_exclusions": ring_exclusions,
+            # Verificaciones humanas de las puertas que el motor no bloquea:
+            # quedan registradas con autor, rol y resultado, sin condicionar
+            # la ejecución (las que sí bloquean son la aprobación del cambio y
+            # la pre-aprobación de cada anillo).
+            "hitl_verifications": {},
             "rollback": {"status": "armed", "triggered": False},
             # Evidencia real de ejecución por anillo (pasos devueltos por el provider).
             "ring_evidence": {},
@@ -690,6 +699,64 @@ class Store:
             for l in self._phase_logs(nxt, t, a["impact"], a["mvt"], a["lab"], a["prototype"], a["deployment"]):
                 self._log(tid, l)
         return self.task_detail(tid)
+
+    # ------------------------------------------------------------------
+    def verify_gate(self, tid, gate_id, ring=None, actor=None, role=None, note=None):
+        """Registra la verificación humana de una puerta no bloqueante.
+
+        Deja constancia auditable (quién, cuándo, con qué resultado) de los
+        controles humanos que el motor no aplica. Las puertas que sí bloquean
+        tienen su propia acción y no se cierran por aquí.
+        """
+        if tid not in self.pipelines or gate_id not in journey.GATE_IDS:
+            return None
+        if journey.GATE_ENFORCED.get(gate_id):
+            raise ValidationError(
+                f"La puerta '{gate_id}' bloquea la ejecución y tiene su propia "
+                "acción de aprobación: no se cierra como verificación registrada.",
+                code="GATE_ENFORCED")
+        p = self.pipelines[tid]
+        t = self.tasks[tid]
+        label = next(g["label"] for g in journey.gate_catalog() if g["id"] == gate_id)
+        actor = actor or t.get("owner", "owner@bank.example")
+        record = {
+            "gate": gate_id, "ring": ring, "actor": actor,
+            "role": role or "service_manager", "ts": iso(NOW),
+            "note": note or "Verificación humana completada.",
+            "output": self._gate_output(tid, gate_id, ring),
+        }
+        p.setdefault("hitl_verifications", {})[journey.verification_key(gate_id, ring)] = record
+        ring_suffix = f" (anillo {ring})" if ring is not None else ""
+        self._log(tid, {
+            "actor": "Owner (HITL)",
+            "phase": engine.PHASE_IDS[p["phase_index"]],
+            "msg": f"[Auditoría] Verificación humana de '{label}'{ring_suffix} "
+                   f"completada por {actor}: {record['output']}"})
+        return self.task_detail(tid)
+
+    def _gate_output(self, tid, gate_id, ring=None) -> str:
+        """Resultado concreto que deja una verificación, con datos del pipeline."""
+        p = self.pipelines[tid]
+        a = p["artifacts"]
+        if gate_id == "scope_confirmation":
+            impact = a["impact"]
+            return (f"{impact['affected_count']} activos afectados confirmados "
+                    f"contra la CMDB · {len(impact['business_services'])} "
+                    "servicios de negocio implicados.")
+        if gate_id == "ai_proposal":
+            return (f"Propuesta de remediación aceptada: "
+                    f"{REMEDIATION_LABELS[a['impact']['remediation_type']]} · "
+                    f"{len(a['mvt']['selected'])} pruebas mínimas viables "
+                    f"seleccionadas · confianza {a['mvt']['confidence']}%.")
+        if gate_id == "ring_result":
+            rings = {r["ring"]: r for r in a["deployment"]["rings"]}
+            r = rings.get(ring)
+            if r is None:
+                return "Resultado del anillo revisado."
+            return f"Resultado del anillo {ring} · {r['label']} revisado: {r['status']}."
+        audit = a["audit"]
+        return (f"Evidencias aceptadas: informe {audit['report_id']} con "
+                f"{audit['evidences_count']} evidencias.")
 
     # ------------------------------------------------------------------
     def preapprove_ring(self, tid, ring_no, approver=None, note=None):

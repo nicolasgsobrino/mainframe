@@ -282,6 +282,24 @@ def update_ring_assets(tid: str, ring_no: int, body: RingAssetsBody):
     return d
 
 
+class GateVerifyBody(BaseModel):
+    ring: int | None = None
+    actor: str | None = None
+    role: str | None = None
+    note: str | None = None
+
+
+@app.post("/api/tasks/{tid}/gates/{gate_id}/verify")
+def verify_gate(tid: str, gate_id: str, body: GateVerifyBody | None = None):
+    """Registra una verificación humana en un punto de control no bloqueante."""
+    body = body or GateVerifyBody()
+    d = STORE.verify_gate(tid, gate_id, ring=body.ring, actor=body.actor,
+                          role=body.role, note=body.note)
+    if not d:
+        raise NotFoundError(f"La tarea {tid} o la puerta {gate_id} no existen.")
+    return d
+
+
 @app.post("/api/tasks/{tid}/rollback")
 def rollback(tid: str, response: Response,
              idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):

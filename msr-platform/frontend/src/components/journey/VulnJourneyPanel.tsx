@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api";
-import type { JourneyResources, JourneyRing, TaskDetail } from "../../types";
+import type { HitlGate, JourneyResources, JourneyRing, TaskDetail } from "../../types";
 import { LaneTag, Priority, Risk } from "../../ui";
 import { BlockerChip, JOURNEY_BAND_COLOR } from "./JourneyBoard";
-import { HitlCounter, HitlRail } from "../flow";
+import { DemoAdvanceControl, HitlCounter, HitlRail } from "../flow";
+import { useDemo } from "../../demo";
+import { useView } from "../../view";
 
 const RING_STATUS_COLOR: Record<string, string> = {
   completed: "#22c55e",
@@ -81,6 +83,8 @@ function nextAction(blockers: string[], ringLabel: string | null): string {
 /** Vista detallada: el journey de una vulnerabilidad con las mismas 8 fases. */
 export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const [detail, setDetail] = useState<TaskDetail | null>(null);
+  const { active: demo } = useDemo();
+  const { role } = useView();
 
   useEffect(() => {
     let active = true;
@@ -90,6 +94,15 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
   }, [taskId]);
 
   if (!detail) return <div className="card p-5 text-xs text-gray-500">Cargando journey…</div>;
+
+  // Las verificaciones humanas y el avance de fase operan sobre el estado real
+  // del backend: la respuesta ya trae el detalle actualizado.
+  const verifyGate = (gate: HitlGate) =>
+    api.verifyGate(taskId, gate.id, { ring: gate.ring, role }).then(setDetail);
+  const advancePhase = () =>
+    api.approve(taskId, detail.rings_done + 1).then(setDetail);
+  const preapproveRing = (ring: number) =>
+    api.preapproveRing(taskId, ring).then(setDetail);
 
   const j = detail.journey;
   const impact = detail.artifacts.impact;
@@ -118,6 +131,11 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
       </Link>
 
       <HitlCounter hitl={j.hitl} />
+
+      {demo && (
+        <DemoAdvanceControl detail={detail} onVerify={verifyGate} onAdvance={advancePhase}
+                            onPreapprove={preapproveRing} />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <ol className="space-y-1.5">
@@ -164,7 +182,7 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
         </div>
       </div>
 
-      <HitlRail gates={j.gates.filter((g) => g.status !== "upcoming")} />
+      <HitlRail gates={j.gates.filter((g) => g.status !== "upcoming")} onVerify={verifyGate} />
 
       <details className="group">
         <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-200 select-none">

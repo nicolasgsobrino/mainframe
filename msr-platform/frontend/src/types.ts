@@ -41,6 +41,8 @@ export interface HitlGateMeta {
 export interface HitlGate extends HitlGateMeta {
   status: HitlGateStatus; ring: number | null;
   actor: string | null; ts: string | null; note: string | null; detail: string | null;
+  /** Verificación humana explícita registrada sobre esta puerta. */
+  verified: boolean; role: string | null; output: string | null;
 }
 export interface HitlRollup {
   total: number; done: number; pending: number; pending_enforced: number;

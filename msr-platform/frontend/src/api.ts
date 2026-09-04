@@ -73,6 +73,16 @@ export const api = {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ note: note ?? null }),
     }).then(j),
+  // Verificación humana de un punto de control que no bloquea la ejecución:
+  // queda registrada con autor, rol y resultado.
+  verifyGate: (id: string, gateId: string, opts: { ring?: number | null; actor?: string; role?: string; note?: string } = {}): Promise<TaskDetail> =>
+    fetch(`/api/tasks/${id}/gates/${gateId}/verify`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ring: opts.ring ?? null, actor: opts.actor ?? null,
+        role: opts.role ?? null, note: opts.note ?? null,
+      }),
+    }).then(j),
   updateRingAssets: (id: string, ring: number, excluded: string[]): Promise<TaskDetail> =>
     fetch(`/api/tasks/${id}/rings/${ring}/assets`, {
       method: "POST", headers: { "Content-Type": "application/json" },

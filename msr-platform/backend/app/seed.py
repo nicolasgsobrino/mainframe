@@ -671,7 +671,9 @@ def build_records(cis, edges):
     # para que el reparto de cumplimiento sea legible y estable (ver _detected_at).
     scenarios = [
         # (cve_index, ci_id preferido o None, exposed, sla_posture)
-        (0, "APP-1001", True, "overdue"),    # Log4Shell en payments-api (dominio B, crítico)
+        # Log4Shell en payments-api (dominio B, crítico): es la vulnerabilidad
+        # que se recorre en la demo, con urgencia (vence mañana) pero en plazo.
+        (0, "APP-1001", True, "due_soon"),
         (14, None, True, "on_track"),        # regreSSHion OpenSSH (dominio A, infra)
         (10, "APP-1004", False, "on_track"), # runc Container Escape en retail-bff (dominio C)
         (1, "APP-1005", True, "on_track"),   # Spring4Shell en mobile-gateway (dominio B)
