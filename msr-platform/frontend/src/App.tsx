@@ -6,11 +6,13 @@ import Analytics from "./pages/Analytics";
 import Cmdb from "./pages/Cmdb";
 import Catalog from "./pages/Catalog";
 import Integrations from "./pages/Integrations";
+import DemoStage from "./pages/DemoStage";
 import { ViewProvider, RoleToggle, useView, ROLE_META } from "./view";
 import { DemoProvider, DemoToggle, DemoBanner } from "./demo";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
+  { to: "/demo", label: "Presentación guiada", icon: "▶" },
   { to: "/tasks", label: "Remediation Tasks", icon: "◈" },
   { to: "/analytics", label: "Analítica", icon: "◧" },
   { to: "/cmdb", label: "CMDB · Impact Graph", icon: "⧉" },
@@ -80,6 +82,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/demo" element={<DemoStage />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/tasks/:id" element={<TaskDetail />} />
             <Route path="/analytics" element={<Analytics />} />
