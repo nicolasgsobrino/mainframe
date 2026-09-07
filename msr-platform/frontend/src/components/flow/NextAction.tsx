@@ -11,7 +11,8 @@ export type StepTone = "human" | "auto" | "done";
 
 export function stepTone(step: DemoStep): StepTone {
   if (step.kind === "done") return "done";
-  return step.kind === "verify" || step.kind === "preapprove" || step.kind === "rollback"
+  return step.kind === "verify" || step.kind === "preapprove"
+    || step.kind === "approve" || step.kind === "rollback"
     ? "human"
     : "auto";
 }
@@ -40,7 +41,7 @@ const TONE = {
   human: {
     accent: "#f59e0b",
     kicker: "YOUR TURN · HUMAN DECISION",
-    who: "Nothing automates this: the flow is stopped until a person approves it.",
+    who: "This step is not automated: the flow stays paused until a person approves it.",
     icon: "✋",
   },
   auto: {

@@ -276,7 +276,7 @@ class Store:
         for i in range(rings_done):
             rn = engine.RING_DEFS[i][0]
             ring_preapprovals[rn] = {
-                "required": "Human-Driven", "preapproved": True,
+                "required": "Human-driven", "preapproved": True,
                 "approver": task.get("owner", "owner@bank.example"),
                 "ts": iso(NOW), "note": "Historical pre-approval of the deployment."}
         deploy = engine.build_deployment(task, impact, rings_done,
@@ -873,7 +873,7 @@ class Store:
 
     # ------------------------------------------------------------------
     def preapprove_ring(self, tid, ring_no, approver=None, note=None):
-        """Revisión y pre-aprobación Human-Driven del informe pre-anillo."""
+        """Revisión y pre-aprobación Human-driven del informe pre-anillo."""
         if tid not in self.pipelines:
             return None
         p = self.pipelines[tid]
@@ -883,12 +883,12 @@ class Store:
         self._require_human_verification(tid)
         approver = approver or t.get("owner", "owner@bank.example")
         p.setdefault("ring_preapprovals", {})[ring_no] = {
-            "required": "Human-Driven", "preapproved": True,
+            "required": "Human-driven", "preapproved": True,
             "approver": approver, "ts": iso(NOW),
             "note": note or "Pre-ring report reviewed and verified.",
         }
         excl = p.get("ring_exclusions", {}).get(ring_no) or []
-        self._log(tid, {"actor": "Owner (HITL · Human-Driven)", "phase": "deployment",
+        self._log(tid, {"actor": "Owner (HITL · Human-driven)", "phase": "deployment",
                         "msg": f"[Audit] Pre-ring report for ring {ring_no} verified and PRE-APPROVED by {approver}"
                                + (f" · {len(excl)} asset(s) excluded from the selection." if excl else ".")})
         self._rebuild_deploy(tid)
@@ -1174,9 +1174,9 @@ class Store:
         if not (preapproval and preapproval.get("preapproved")):
             self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
                             "msg": f"Deployment of ring {ring_no} blocked: it requires review and "
-                                   "Human-Driven pre-approval of the pre-ring report."})
+                                   "Human-driven pre-approval of the pre-ring report."})
             raise ValidationError(
-                f"Ring {ring_no} requires Human-Driven pre-approval before being deployed.",
+                f"Ring {ring_no} requires Human-driven pre-approval before being deployed.",
                 code="RING_NOT_PREAPPROVED")
 
         active = self.repo.active_job_for_task(tid)

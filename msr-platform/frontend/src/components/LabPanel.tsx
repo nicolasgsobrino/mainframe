@@ -11,7 +11,7 @@ const MODE_META: Record<string, { label: string; cls: string }> = {
 
 /** Estado del laboratorio según la evidencia persistida, nunca supuesto. */
 const STATE_META: Record<string, { label: string; cls: string }> = {
-  unknown: { label: "State without evidence", cls: "bg-gray-500/15 text-gray-300" },
+  unknown: { label: "State not evidenced", cls: "bg-gray-500/15 text-gray-300" },
   vulnerable: { label: "VULNERABLE", cls: "bg-amber-500/15 text-amber-300" },
   patched: { label: "PATCHED", cls: "bg-green-500/15 text-green-400" },
 };
@@ -132,7 +132,7 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
   // El parcheo exige una validación previa que confirme el estado vulnerable.
   const validatedVulnerable = !!validation?.allowed && validation.vulnerable_state === "vulnerable";
   const patchBlocked = patchBlockedReason
-    ?? (!validatedVulnerable ? "Run «Validate lab» first: patching requires a successful validation "
+    ?? (!validatedVulnerable ? "Run “Validate lab” first: patching requires a successful validation "
       + "with the lab in a vulnerable state." : null);
 
   const run = async (action: () => Promise<unknown>) => {

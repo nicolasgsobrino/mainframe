@@ -29,7 +29,7 @@ export function nextDemoStep(detail: TaskDetail): DemoStep {
         : `Verify: ${gate.label}${gate.ring !== null ? ` · ring ${gate.ring}` : ""}`,
       hint: ringResult
         ? `${gate.question} · accept to promote to the next ring, or roll this deployment back.`
-        : `${gate.question} · the flow is stopped until this validation.`,
+        : `${gate.question} · the flow stays paused until this sign-off.`,
       gate,
       ring: gate.ring,
     };
@@ -48,7 +48,7 @@ export function nextDemoStep(detail: TaskDetail): DemoStep {
       return {
         kind: "preapprove", ring: next.ring, gate: null,
         label: `Pre-approve ring ${next.ring} · ${next.label}`,
-        hint: "A blocking gate: without human pre-approval of the pre-ring report there is no deployment.",
+        hint: "Blocking gate: nothing is deployed until a person pre-approves the pre-ring report.",
       };
     }
     return {
@@ -63,9 +63,9 @@ export function nextDemoStep(detail: TaskDetail): DemoStep {
     (g) => g.status === "pending" && g.closes_with === "phase_approval") ?? null;
   return {
     kind: "approve",
-    label: phaseGate ? phaseGate.label : `Advance: ${j.phase_label}`,
+    label: phaseGate ? phaseGate.label : `Advance to: ${j.phase_label}`,
     hint: phaseGate
-      ? `${phaseGate.question} · the flow is stopped until this approval.`
+      ? `${phaseGate.question} · the flow stays paused until this approval.`
       : "Approves the current pipeline phase and publishes the artefacts of the next one.",
     gate: phaseGate,
     ring: null,

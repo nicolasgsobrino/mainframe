@@ -59,9 +59,9 @@ def build_ring_actions(task, ring_no, assets, executor, ts_base):
     if stage["kind"] == "replica":
         prov = "Terraform + Ansible"
         add("Devin", prov, f"terraform apply -target=replica.{stage['key']} ({assets} CIs)",
-            f"Replica of {assets} CIs provisioned in «{stage['env']}»",
+            f"Replica of {assets} CIs provisioned in “{stage['env']}”",
             f"An ephemeral (IaC) replica of all the impacted infrastructure is spun up to apply and test the fix "
-            f"without touching production (stage «{stage['env']}»).")
+            f"without touching production (stage “{stage['env']}”).")
 
     if task["track"] == "C":
         add("Devin", "git", f"git checkout -b fix/{task['cve'].lower()}-image", f"Switched to branch 'fix/{task['cve'].lower()}-image'",
@@ -110,7 +110,7 @@ def build_ring_actions(task, ring_no, assets, executor, ts_base):
         n_tests = rng.randint(8, 14)
         add("Devin", "CI/CD", f"run test-suite --env {stage['key']} (full MVT)",
             f"{n_tests}/{n_tests} tests PASS · regression OK",
-            f"In «{stage['env']}» the full test battery (functional, integration and patch tests) runs "
+            f"In “{stage['env']}” the full test battery (functional, integration and patch tests) runs "
             f"against the replica before promoting; if anything fails, the rollout does not advance.")
         if stage["key"] == "lab":
             add("Devin", "Terraform", "terraform destroy -target=replica.lab",

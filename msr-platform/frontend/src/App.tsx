@@ -13,11 +13,11 @@ import { DemoProvider, DemoToggle, DemoBanner, useDemo } from "./demo";
 const NAV: { to: string; label: string; icon: string; demoOnly?: boolean }[] = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
   // La presentación guiada sólo existe mientras el Modo Demo está activo.
-  { to: "/demo", label: "Guided walkthrough", icon: "▶", demoOnly: true },
+  { to: "/demo", label: "Guided Demo", icon: "▶", demoOnly: true },
   { to: "/tasks", label: "Remediation Tasks", icon: "◈" },
   { to: "/analytics", label: "Analytics", icon: "◧" },
   { to: "/cmdb", label: "CMDB · Impact Graph", icon: "⧉" },
-  { to: "/catalog", label: "Test catalogue", icon: "☰" },
+  { to: "/catalog", label: "Test Catalogue", icon: "☰" },
   { to: "/integrations", label: "Integrations", icon: "⇄" },
 ];
 

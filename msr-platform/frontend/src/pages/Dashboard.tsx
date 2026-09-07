@@ -129,7 +129,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <Kpi label="Open vulnerabilities" value={ov.kpis.vulnerable_items}
              hint="See all Remediation Tasks" onClick={() => nav("/tasks")} />
-        <Kpi label="Need my action" value={needsAction.length}
+        <Kpi label="Needs my action" value={needsAction.length}
              accent={needsAction.length > 0 ? "#f59e0b" : "#22c55e"}
              hint="Pending approvals, failed jobs or unconfirmed jobs"
              onClick={() => document.getElementById("needs-action")?.scrollIntoView({ behavior: "smooth" })} />
@@ -166,7 +166,7 @@ export default function Dashboard() {
       {/* ¿Qué requiere atención ahora? */}
       {needsAction.length > 0 && (
         <section id="needs-action" className="card p-4 space-y-2">
-          <div className="text-sm font-semibold">Need my action</div>
+          <div className="text-sm font-semibold">Needs my action</div>
           <div className="text-xs text-gray-500">
             Operational blockers: pending approvals, failed executions and unconfirmed jobs.
           </div>
@@ -216,7 +216,7 @@ export default function Dashboard() {
                 ? <>Phase {phaseMeta.index} · {phaseMeta.label} <span className="text-gray-500 font-normal">({journeyTasks.length})</span></>
                 : <>All vulnerabilities <span className="text-gray-500 font-normal">({journeyTasks.length})</span></>}
               <div className="text-xs text-gray-500 font-normal mt-0.5">
-                {phaseMeta ? phaseMeta.label_en : "Pick a phase to filter, and a vulnerability to see its journey"}
+                {phaseMeta ? phaseMeta.label_en : "Pick a phase to filter, then a vulnerability to see its journey"}
               </div>
             </div>
             <div className="divide-y divide-line/50">

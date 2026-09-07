@@ -29,7 +29,7 @@ PHASE_IDS = [p[0] for p in PHASES]
 # ---------------------------------------------------------------------------
 # Front común a los 3 carriles (antes del split por velocidad/riesgo).
 SHARED_FLOW = [
-    {"name": "Discovery & synchronization", "detail": "CMDB, inventory, vulnerability sources; detection of orphan assets.",
+    {"name": "Discovery & synchronisation", "detail": "CMDB, inventory, vulnerability sources; detection of orphan assets.",
      "automation": "agentable", "mode": "Auto", "sla": "< 1 h"},
     {"name": "Triage and lane assignment", "detail": "The Risk and Exposure Office correlates KEV/EPSS, criticality and exposure; draws the line per asset and entity.",
      "automation": "ai_assisted", "mode": "Auto", "sla": "< 30 min"},
@@ -389,9 +389,9 @@ def assign_impact_to_rings(impact):
 def _asset_reason(stage: dict, ci_class: str, crit: str, is_root: bool) -> str:
     what = "replica of the asset" if stage["kind"] == "replica" else "real asset"
     if is_root:
-        return (f"Root CI of the vulnerability ({ci_class}, {crit}); {what} in «{stage['env']}». "
+        return (f"Root CI of the vulnerability ({ci_class}, {crit}); {what} in “{stage['env']}”. "
                 f"Deployed first because it is the origin of the blast radius.")
-    return (f"Impacted CI ({ci_class}, {crit}) inside the blast radius; {what} in «{stage['env']}» "
+    return (f"Impacted CI ({ci_class}, {crit}) inside the blast radius; {what} in “{stage['env']}” "
             f"(dependency order: infrastructure → application → service).")
 
 
@@ -399,7 +399,7 @@ def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nod
                     exclusions=None, preapproval=None):
     """Informe pre-anillo por ETAPA/entorno: los CIs impactados de esta etapa
     (réplica o reales), sus dependencias (subgrafo del Impact Graph), criterios de
-    entrada, ventana y estado de pre-aprobación (auditoría Human-Driven)."""
+    entrada, ventana y estado de pre-aprobación (auditoría Human-driven)."""
     rng = _rng(task["id"] + f"plan{ring_no}")
     stage = RING_STAGES[ring_no]
     is_replica = stage["kind"] == "replica"
@@ -499,7 +499,7 @@ def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nod
         "dependencies": dependencies,
         "graph": {"nodes": graph_nodes, "edges": graph_edges},
         "entry_criteria": entry_criteria,
-        "approval": preapproval or {"required": "Human-Driven", "preapproved": False,
+        "approval": preapproval or {"required": "Human-driven", "preapproved": False,
                                     "approver": None, "ts": None, "note": None},
     }
 
@@ -553,7 +553,7 @@ CHANGE_TYPE_META = {
     "normal": {
         "label": "Normal change", "itsm_state": "Assess → Authorize", "requires_human": True,
         "risk": "Medium", "approval": "Specific assessment and authorisation (CAB)",
-        "detail": "Requires specific assessment and authorisation before executing; the usual type for patching that affects production or critical services without a standard model. It runs through the whole process: assess, authorize, schedule, authorize implementation, implement and review & close.",
+        "detail": "Requires specific assessment and authorisation before executing; the usual type for patching that affects production or critical services without a standard model. It runs through the whole process: assess, authorise, schedule, authorise implementation, implement and review & close.",
     },
     "emergency": {
         "label": "Emergency change", "itsm_state": "Emergency authorize", "requires_human": True,

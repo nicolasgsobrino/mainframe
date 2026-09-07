@@ -358,7 +358,7 @@ export default function TaskDetail() {
                   <span className="text-gray-400 leading-relaxed">{l.msg}</span>
                 </div>
               ))}
-              {phaseLogs.length === 0 && <div className="text-xs text-gray-600">Phase pending. The agent will work once it gets here.</div>}
+              {phaseLogs.length === 0 && <div className="text-xs text-gray-600">Phase pending. The agent starts once the flow reaches it.</div>}
             </div>
           </div>
 
@@ -408,7 +408,7 @@ export default function TaskDetail() {
                   </div>
                 )}
                 {!nextRingPreapproved && currentPhaseId === "deployment" && nextRing && (
-                  <div className="text-xs text-amber-300 mb-2">⚠ Ring {nextRing.ring} needs review and <b>Human-Driven pre-approval</b> of its pre-ring report (above, in Phase 6) before deploying.</div>
+                  <div className="text-xs text-amber-300 mb-2">⚠ Ring {nextRing.ring} needs review and <b>Human-driven pre-approval</b> of its pre-ring report (above, in Phase 6) before deploying.</div>
                 )}
                 {jobRunning && (
                   <div className="text-xs text-amber-300 mb-2">⏳ Job {activeJob!.id} in progress ({JOB_STATE_LABEL[activeJob!.state] ?? activeJob!.state}). Mutating actions are blocked until it finishes.</div>
@@ -417,8 +417,8 @@ export default function TaskDetail() {
                   <div className="text-xs text-sky-300 mb-2">
                     ⓘ Job {lastJob.id} finished in <b>dry-run</b>: the target was validated and the
                     Automation planned, but nothing was applied. The ring advances as a rehearsal of
-                    the journey and is marked «simulated». The detail is above, in
-                    «Patch execution».
+                    the journey and is marked “simulated”. The detail is above, under
+                    “Patch execution”.
                   </div>
                 )}
                 <button disabled={locked || !canApprove} onClick={approve}
@@ -714,7 +714,7 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
         )}
         <div className="text-xs text-gray-500 mb-2 leading-relaxed">
           Every ring carries a <b>pre-ring report</b> with the asset selection Devin made and its rationale.
-          The owner reviews it, edits the selection if needed and <b>verifies and pre-approves (Human-Driven)</b> before it can be deployed.
+          The owner reviews it, edits the selection if needed and <b>verifies and pre-approves (Human-driven)</b> before it can be deployed.
         </div>
         <div className="space-y-2">
           {a.deployment.rings.map((r) => (
@@ -932,10 +932,10 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
             </div>
           )}
 
-          {/* Revisión / pre-aprobación Human-Driven */}
+          {/* Revisión / pre-aprobación Human-driven */}
           {pa.preapproved ? (
             <div className="rounded-lg border border-brand/30 bg-brand/5 px-3 py-2 text-[11px] text-gray-300">
-              <span className="text-brand font-semibold">✓ Report verified and pre-approved (Human-Driven)</span>
+              <span className="text-brand font-semibold">✓ Report verified and pre-approved (Human-driven)</span>
               {pa.approver && <> · by <span className="font-mono">{pa.approver}</span></>}
               {pa.ts && <> · {pa.ts.slice(0, 16).replace("T", " ")}</>}
               {pa.note && <div className="text-gray-500 mt-0.5">{pa.note}</div>}
@@ -943,7 +943,7 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
           ) : (r.status === "pending" || r.status === "in_progress") ? (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-center gap-3">
               <div className="text-[11px] text-amber-200 flex-1">
-                Human-Driven audit required: review the report and the assets, edit them if needed and verify before deploying.
+                Human-driven audit required: review the report and the assets, edit them if needed and verify before deploying.
               </div>
               <button disabled={busy} onClick={() => onPreapprove(r.ring)}
                 className="btn btn-brand text-[11px]">✓ Verify and pre-approve</button>
@@ -1114,7 +1114,7 @@ function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
       {next && !next.plan.approval.preapproved && (
         <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-center gap-3 flex-wrap">
           <div className="text-[11px] text-amber-200 flex-1">
-            Next environment: <b>{next.plan.environment || next.label}</b>. Review the report and verify the asset selection before promoting (Human-Driven audit).
+            Next environment: <b>{next.plan.environment || next.label}</b>. Review the report and verify the asset selection before promoting (Human-driven audit).
           </div>
           <button disabled={busy} onClick={() => onPreapprove(next.ring)} className="btn btn-brand text-[11px]">
             ✓ Verify and pre-approve {next.plan.environment}

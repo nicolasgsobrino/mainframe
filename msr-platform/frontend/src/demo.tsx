@@ -82,7 +82,7 @@ export function DemoToggle() {
       type="button"
       disabled={!allowed}
       onClick={() => setEnabled(!enabled)}
-      title={reason ?? "Guided walkthrough over the same data: no real changes"}
+      title={reason ?? "Guided demo over the same data: no real changes"}
       className={`w-full rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
         !allowed
           ? "border-line bg-ink text-gray-600 cursor-not-allowed"
@@ -104,7 +104,7 @@ export function DemoBanner() {
       <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse" />
       <b>Demo Mode</b>
       <span className="text-fuchsia-200/80">
-        guided walkthrough over real backend data · no action mutates AWS resources
+        guided demo over real backend data · no action mutates AWS resources
       </span>
     </div>
   );

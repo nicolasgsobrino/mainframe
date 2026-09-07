@@ -64,7 +64,7 @@ LANES = {
 LANE_META = {
     "critical": {
         "label": "Critical",
-        "sla": "Outside the window · resolution < 24 h",
+        "sla": "Out of window · resolve in < 24 h",
         "color": "red",
         "automation": "Almost 100% agentable (Devin executes; a human supervises)",
         "flow": "pre-approved emergency change → immediate execution → reinforced validation → RCA → Cyber-IT closure",

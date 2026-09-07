@@ -87,7 +87,7 @@ export function HitlGateCard({ gate, onSelect, onVerify, onRollback }: {
         <div className="text-[11px] text-gray-400 mt-1">
           {gate.actor}
           {gate.ts && <span className="text-gray-600"> · {when(gate.ts)}</span>}
-          {gate.note && <span className="text-gray-500"> · «{gate.note}»</span>}
+          {gate.note && <span className="text-gray-500"> · “{gate.note}”</span>}
         </div>
       )}
       {gate.verified && (
@@ -122,7 +122,7 @@ export function HitlGateCard({ gate, onSelect, onVerify, onRollback }: {
               }}
               onBlur={() => setArmed(false)}
               disabled={verifying}
-              title={`Tests are not convincing: roll ring ${ringNo} back to its pre-deployment state.`}
+              title={`Tests not convincing? Roll ring ${ringNo} back to its pre-deployment state.`}
               className={`rounded border px-2 py-1 text-[11px] font-semibold transition disabled:opacity-60 ${
                 armed
                   ? "border-orange-500/60 bg-orange-500/25 text-orange-100"
@@ -135,7 +135,7 @@ export function HitlGateCard({ gate, onSelect, onVerify, onRollback }: {
       )}
       {gate.status === "pending" && (
         <div className="text-[10px] text-amber-300/80 mt-1"
-             title="The engine does not continue until a person closes this gate">
+             title="The workflow does not move on until a person closes this gate">
           ⛔ the journey is stopped here
           {!gate.verifiable && (
             <span className="text-gray-500">

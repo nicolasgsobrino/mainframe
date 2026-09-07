@@ -25,15 +25,15 @@ const SCRIPT: Record<string, { pitch: string; automation: string }> = {
     automation: "Automated correlation · human confirmation",
   },
   applicability_assessment: {
-    pitch: "The remediation type and the minimum test set that gives confidence without slowing the rollout are decided here.",
+    pitch: "This is where we decide the remediation type and the smallest test set that gives confidence without slowing the rollout.",
     automation: "AI proposal · validated by a person",
   },
   blast_radius: {
     pitch: "What breaks if this goes wrong: the real reach of the change, following the dependency graph.",
-    automation: "Automated computation over the CMDB",
+    automation: "Automated computation on the CMDB",
   },
   change_planning: {
-    pitch: "The ITSM change, its window, its tasks and the ring sequence are all set up before executing.",
+    pitch: "The ITSM change, its window, its tasks and the ring sequence are all set up before anything runs.",
     automation: "Automated plan · change approval",
   },
   ring_execution: {
@@ -204,7 +204,7 @@ function Curtain() {
   return (
     <div className="p-6">
       <div className="card p-8 max-w-2xl mx-auto text-center space-y-4">
-        <div className="text-xs tracking-[0.2em] text-fuchsia-300">GUIDED WALKTHROUGH</div>
+        <div className="text-xs tracking-[0.2em] text-fuchsia-300">GUIDED DEMO</div>
         <h1 className="text-2xl font-bold text-gray-100">From the Cyber finding to closure with evidence</h1>
         <p className="text-sm text-gray-400 leading-relaxed">
           Eight scenes over real backend data, with every human control point marked and the pacing
@@ -328,7 +328,7 @@ export default function DemoStage() {
 
   if (!active) return <Curtain />;
   if (error) return <div className="p-6 text-sm text-red-300">{error}</div>;
-  if (!detail || !taskId) return <div className="p-6 text-xs text-gray-500">Preparing the walkthrough…</div>;
+  if (!detail || !taskId) return <div className="p-6 text-xs text-gray-500">Preparing the demo…</div>;
 
   const j = detail.journey;
   const sceneId = pinned ?? j.phase;
@@ -399,7 +399,7 @@ export default function DemoStage() {
     <div className="p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] tracking-[0.2em] text-fuchsia-300">GUIDED WALKTHROUGH</div>
+          <div className="text-[10px] tracking-[0.2em] text-fuchsia-300">GUIDED DEMO</div>
           <h1 className="text-xl font-bold text-gray-100 leading-tight">{j.cve} · {j.title}</h1>
           <div className="flex flex-wrap items-center gap-2 mt-1.5">
             <Risk score={j.risk_score} />
@@ -484,7 +484,7 @@ export default function DemoStage() {
             {step.kind !== "done" && actionPhase && actionPhase !== scenePhase.id && (
               <button type="button" onClick={() => setPinned(actionPhase)}
                       className="text-[11px] text-amber-300 hover:text-amber-200">
-                The pending action is in «{j.phases.find((p) => p.id === actionPhase)?.label}» → go to that scene
+                The pending action is in “{j.phases.find((p) => p.id === actionPhase)?.label}” → go to that scene
               </button>
             )}
           </div>
