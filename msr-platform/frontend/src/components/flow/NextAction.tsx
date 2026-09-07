@@ -58,10 +58,14 @@ const TONE = {
   },
 } as const;
 
-export function NextActionBar({ step, running, onAct, onGoToScene, onRollback }: {
+export function NextActionBar({ step, running, onAct, onGoToScene, onRollback, action, kicker }: {
   step: DemoStep;
   running: boolean;
   onAct: () => void;
+  /** Verbo y objeto propios cuando el paso no viene del recorrido de la demo. */
+  action?: { verb: string; object: string };
+  /** Encabezado propio: la ejecución real no se anuncia como la demo. */
+  kicker?: string;
   /** Cuando el paso vive en otra escena, saltar a ella antes de actuar. */
   onGoToScene?: () => void;
   /** Segunda salida de la validación del anillo: revertir en vez de aceptar. */
@@ -70,7 +74,7 @@ export function NextActionBar({ step, running, onAct, onGoToScene, onRollback }:
   const [armed, setArmed] = useState(false);
   const tone = stepTone(step);
   const meta = TONE[tone];
-  const { verb, object } = stepAction(step);
+  const { verb, object } = action ?? stepAction(step);
   const disabled = running || tone === "done";
   const rollbackRing = onRollback && step.kind === "verify"
     && step.gate?.id === "ring_result" && step.ring !== null
@@ -86,10 +90,12 @@ export function NextActionBar({ step, running, onAct, onGoToScene, onRollback }:
       </span>
       <div className="flex-1 min-w-[16rem]">
         <div className="text-[10px] font-bold tracking-[0.16em]" style={{ color: meta.accent }}>
-          {meta.kicker}
+          {kicker ?? meta.kicker}
         </div>
         <div className="text-lg font-bold text-gray-100 leading-tight">
-          {tone === "done" ? "Journey completed" : <>{verb} <span className="text-gray-400 font-semibold">· {object}</span></>}
+          {tone === "done"
+            ? (action?.verb ?? "Journey completed")
+            : <>{verb} <span className="text-gray-400 font-semibold">· {object}</span></>}
         </div>
         <div className="text-[11px] text-gray-400 mt-0.5">{tone === "done" ? meta.who : step.hint}</div>
       </div>

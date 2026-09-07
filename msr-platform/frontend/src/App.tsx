@@ -7,6 +7,7 @@ import Cmdb from "./pages/Cmdb";
 import Catalog from "./pages/Catalog";
 import Integrations from "./pages/Integrations";
 import DemoStage from "./pages/DemoStage";
+import LiveStage from "./pages/LiveStage";
 import { ViewProvider, RoleToggle, useView, ROLE_META } from "./view";
 import { DemoProvider, DemoToggle, DemoBanner, useDemo } from "./demo";
 
@@ -14,6 +15,8 @@ const NAV: { to: string; label: string; icon: string; demoOnly?: boolean }[] = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
   // La presentación guiada sólo existe mientras el Modo Demo está activo.
   { to: "/demo", label: "Guided Demo", icon: "▶", demoOnly: true },
+  // Ejecución real sobre la EC2 del laboratorio: un único entorno, sin ITSM.
+  { to: "/live", label: "Live Patching", icon: "◉" },
   { to: "/tasks", label: "Remediation Tasks", icon: "◈" },
   { to: "/analytics", label: "Analytics", icon: "◧" },
   { to: "/cmdb", label: "CMDB · Impact Graph", icon: "⧉" },
@@ -94,6 +97,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/demo" element={<DemoGuard />} />
+            <Route path="/live" element={<LiveStage />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/tasks/:id" element={<TaskDetail />} />
             <Route path="/analytics" element={<Analytics />} />

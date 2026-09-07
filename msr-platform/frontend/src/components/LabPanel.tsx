@@ -1,61 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, api, releaseIdempotencyKey } from "../api";
-import type { LabCheck, LabReconcileResult, LabSnapshot, LabValidation, PatchJob } from "../types";
-
-/** Modo de ejecución: mock, dry-run o AWS real. Nunca se confunden en la UI. */
-const MODE_META: Record<string, { label: string; cls: string }> = {
-  "mock": { label: "Simulation (mock)", cls: "bg-gray-500/15 text-gray-300" },
-  "aws-dry-run": { label: "AWS · dry-run (no real changes)", cls: "bg-sky-500/15 text-sky-300" },
-  "aws-real": { label: "AWS Systems Manager · live execution", cls: "bg-red-500/15 text-red-300" },
-};
-
-/** Estado del laboratorio según la evidencia persistida, nunca supuesto. */
-const STATE_META: Record<string, { label: string; cls: string }> = {
-  unknown: { label: "State not evidenced", cls: "bg-gray-500/15 text-gray-300" },
-  vulnerable: { label: "VULNERABLE", cls: "bg-amber-500/15 text-amber-300" },
-  patched: { label: "PATCHED", cls: "bg-green-500/15 text-green-400" },
-};
-
-/** Estado del reconciliador (`ensure_lab_ready`). */
-const RECONCILE_META: Record<string, { label: string; cls: string }> = {
-  idle: { label: "Reconciliation: not run", cls: "bg-gray-500/15 text-gray-300" },
-  running: { label: "Reconciling…", cls: "bg-sky-500/15 text-sky-300" },
-  ready: { label: "READY", cls: "bg-green-500/15 text-green-400" },
-  resetting: { label: "Recreating the instance…", cls: "bg-sky-500/15 text-sky-300" },
-  failed: { label: "Reconciliation failed", cls: "bg-red-500/15 text-red-300" },
-  skipped: { label: "Reconciliation skipped", cls: "bg-amber-500/15 text-amber-300" },
-};
-
-const ts = (value: string | null) => (value ? new Date(value).toLocaleString("en-GB") : "—");
-const tri = (value: boolean | null | undefined) =>
-  value === null || value === undefined ? "no evidence" : value ? "yes" : "no";
-
-const toError = (e: unknown) =>
-  e instanceof ApiError
-    ? { code: e.code, message: e.message }
-    : { code: "NETWORK_ERROR", message: e instanceof Error ? e.message : String(e) };
-
-/** Una comprobación: verde si cumple, roja si falla, gris si no es concluyente. */
-function Check({ c }: { c: LabCheck }) {
-  const [icon, cls] = c.ok === null ? ["?", "text-gray-400"]
-    : c.ok ? ["\u2713", "text-green-400"] : ["\u2717", "text-red-400"];
-  return (
-    <div className="text-xs flex gap-2">
-      <span className={cls}>{icon}</span>
-      <span className="text-gray-300">{c.check}</span>
-      <span className="text-gray-500">{c.detail}</span>
-    </div>
-  );
-}
-
-function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <div className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">{label}</div>
-      <div className={`text-sm text-gray-200 ${mono ? "font-mono" : ""}`}>{value}</div>
-    </div>
-  );
-}
+import { api, releaseIdempotencyKey } from "../api";
+import type { LabReconcileResult, LabSnapshot, LabValidation, PatchJob } from "../types";
+import { Check, Field } from "./lab/fields";
+import { MODE_META, RECONCILE_META, STATE_META, toError, ts, tri } from "./lab/meta";
 
 /** Panel del laboratorio EC2 reutilizable.
  *
