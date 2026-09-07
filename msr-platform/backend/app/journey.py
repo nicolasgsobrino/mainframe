@@ -219,6 +219,33 @@ GATES = [
      "evidence_closure", None, CLOSE_VERIFICATION, False),
 ]
 
+# La aprobación del cambio no es genérica: el proceso ITSM que la cierra
+# depende de la tipología del cambio, y la demo debe decirlo con su nombre.
+CHANGE_APPROVAL_COPY = {
+    "emergency": {
+        "label": "Aprobación del eCAB",
+        "question": "El eCAB autoriza el cambio de emergencia, su ventana y su rollback",
+        "verdict": "Aprobado por el eCAB",
+    },
+    "standard": {
+        "label": "Verificación del cambio estándar",
+        "question": "Modelo de cambio pre-aprobado: procedimiento, ventana y rollback verificados",
+        "verdict": "Standard Change verificado",
+    },
+    "normal": {
+        "label": "Autorización del CAB",
+        "question": "El CAB evalúa y autoriza el cambio normal, su ventana y su rollback",
+        "verdict": "Cambio normal aprobado",
+    },
+}
+
+
+def change_approval_copy(task: dict) -> dict:
+    """Literales de la aprobación del cambio según su tipología ITSM."""
+    return CHANGE_APPROVAL_COPY.get(task.get("change_type", "normal"),
+                                    CHANGE_APPROVAL_COPY["normal"])
+
+
 GATE_DONE = "done"
 GATE_PENDING = "pending"
 GATE_UPCOMING = "upcoming"
@@ -246,7 +273,10 @@ def gate_catalog() -> list[dict]:
          # Todas bloquean el recorrido; `verifiable` dice si se cierran con una
          # verificación humana registrada o con su propia acción de aprobación.
          "enforced": True, "verifiable": closes_with == CLOSE_VERIFICATION,
-         "closes_with": closes_with, "per_ring": per_ring}
+         "closes_with": closes_with, "per_ring": per_ring,
+         # Frase con la que se cuenta la decisión ya tomada; la aprobación del
+         # cambio la particulariza según su tipología ITSM.
+         "verdict": None}
         for gid, label, question, phase, _pipeline, closes_with, per_ring in GATES
     ]
 
@@ -275,13 +305,18 @@ def gate_states(task: dict, pipeline: dict) -> list[dict]:
     meta = {g["id"]: g for g in gate_catalog()}
     out: list[dict] = []
 
+    change_copy = change_approval_copy(task)
+
     def emit(gid: str, status: str, *, ring: int | None = None,
              approval: dict | None = None, detail: str | None = None) -> None:
         # Una verificación humana explícita cierra la puerta y aporta su autor,
         # su sello de tiempo y el resultado que dejó registrado.
         verified = verifications.get(verification_key(gid, ring))
         record = verified or approval or {}
-        out.append({**meta[gid],
+        gate_meta = dict(meta[gid])
+        if gid == "change_approval":
+            gate_meta.update(change_copy)
+        out.append({**gate_meta,
                     "ring": ring,
                     "status": GATE_DONE if verified else status,
                     "actor": record.get("approver") or record.get("actor"),

@@ -10,7 +10,9 @@ export type StepTone = "human" | "auto" | "done";
 
 export function stepTone(step: DemoStep): StepTone {
   if (step.kind === "done") return "done";
-  return step.kind === "verify" || step.kind === "preapprove" ? "human" : "auto";
+  return step.kind === "verify" || step.kind === "preapprove" || step.kind === "rollback"
+    ? "human"
+    : "auto";
 }
 
 /** Verbo corto y objeto de la acción, para no obligar a leer el botón entero. */
@@ -23,7 +25,9 @@ export function stepAction(step: DemoStep): { verb: string; object: string } {
     case "deploy":
       return { verb: "Desplegar", object: `anillo ${step.ring}` };
     case "approve":
-      return { verb: "Aprobar", object: "la fase actual" };
+      return { verb: "Aprobar", object: step.gate?.label ?? "la fase actual" };
+    case "rollback":
+      return { verb: "Revertir", object: `anillo ${step.ring}` };
     default:
       return { verb: "Completado", object: "" };
   }

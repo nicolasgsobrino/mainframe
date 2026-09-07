@@ -8,7 +8,7 @@ import type { HitlGate, TaskDetail } from "../../types";
  * de forma que el recorrido avanza sobre datos reales.
  */
 export interface DemoStep {
-  kind: "verify" | "preapprove" | "deploy" | "approve" | "done";
+  kind: "verify" | "preapprove" | "deploy" | "approve" | "rollback" | "done";
   label: string;
   hint: string;
   gate: HitlGate | null;
@@ -52,11 +52,17 @@ export function nextDemoStep(detail: TaskDetail): DemoStep {
       hint: "Ejecuta el lote del anillo pre-aprobado y publica su evidencia.",
     };
   }
+  // Si la fase actual cierra una puerta humana (la aprobación del cambio), la
+  // acción se cuenta con el nombre del proceso ITSM que corresponde.
+  const phaseGate = j.gates.find(
+    (g) => g.status === "pending" && g.closes_with === "phase_approval") ?? null;
   return {
     kind: "approve",
-    label: `Avanzar: ${j.phase_label}`,
-    hint: "Aprueba la fase actual del pipeline y publica los artefactos de la siguiente.",
-    gate: null,
+    label: phaseGate ? phaseGate.label : `Avanzar: ${j.phase_label}`,
+    hint: phaseGate
+      ? `${phaseGate.question} · el flujo está detenido hasta esta aprobación.`
+      : "Aprueba la fase actual del pipeline y publica los artefactos de la siguiente.",
+    gate: phaseGate,
     ring: null,
   };
 }

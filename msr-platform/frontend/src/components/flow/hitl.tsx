@@ -68,6 +68,9 @@ export function HitlGateCard({ gate, onSelect, onVerify }: {
         <span className={`chip ml-auto border ${meta.cls}`}>{meta.label}</span>
       </div>
       <div className="text-[11px] text-gray-500 leading-snug mt-1">{gate.question}</div>
+      {gate.status === "done" && gate.verdict && (
+        <div className="text-[11px] font-semibold text-emerald-300 mt-1">✓ {gate.verdict}</div>
+      )}
       {gate.status === "done" && gate.actor && (
         <div className="text-[11px] text-gray-400 mt-1">
           {gate.actor}

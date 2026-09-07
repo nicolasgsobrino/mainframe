@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import ImpactGraphView from "../ImpactGraphView";
 import type { HitlGate, Ring, TaskDetail } from "../../types";
 import { CI_CLASS_META } from "../../ui";
@@ -14,6 +14,10 @@ export interface SceneProps {
   detail: TaskDetail;
   /** Puertas humanas de la fase, para señalar dónde se detiene el recorrido. */
   gates: HitlGate[];
+  /** Revierte un anillo ya desplegado; sin ella el control se ve inhabilitado. */
+  onRollback?: (ring: Ring) => void;
+  /** Hay un job en vuelo o una reproducción en curso: no se encadenan acciones. */
+  busy?: boolean;
 }
 
 /** Dato suelto con etiqueta: el ladrillo con el que se arman las escenas. */
@@ -288,7 +292,53 @@ const RING_STATUS: Record<string, { label: string; color: string }> = {
   pending: { label: "pendiente", color: "#475569" },
 };
 
-function RingCard({ ring }: { ring: Ring }) {
+/**
+ * Rollback del anillo: la salida de emergencia está a la vista en cada lote,
+ * no escondida en una acción global. El motor revierte el último anillo
+ * desplegado, así que el resto se muestra inhabilitado explicando por qué.
+ */
+function RingRollback({ ring, enabled, busy, onRollback }: {
+  ring: Ring; enabled: boolean; busy: boolean; onRollback?: (ring: Ring) => void;
+}) {
+  const [armed, setArmed] = useState(false);
+  const reverted = ring.status === "rolled_back";
+  const usable = Boolean(onRollback) && enabled && !busy && !reverted;
+  const why = reverted
+    ? "Anillo ya revertido: su evidencia se invalidó y vuelve a análisis."
+    : ring.status === "pending"
+      ? "Nada que revertir: el anillo todavía no se ha desplegado."
+      : enabled
+        ? `Revierte el anillo ${ring.ring} a la versión estable y reabre su validación.`
+        : "Sólo se revierte el último anillo desplegado; revierte antes los posteriores.";
+  return (
+    <div className="pt-1.5 border-t border-line/70 flex items-center gap-2">
+      <button
+        type="button"
+        disabled={!usable}
+        title={why}
+        onClick={() => {
+          if (!usable || !onRollback) return;
+          if (!armed) { setArmed(true); return; }
+          setArmed(false);
+          onRollback(ring);
+        }}
+        onBlur={() => setArmed(false)}
+        className={`text-[10px] rounded-md border px-2 py-1 transition ${
+          armed
+            ? "border-orange-500/60 bg-orange-500/20 text-orange-200"
+            : "border-orange-500/35 text-orange-300/90 hover:bg-orange-500/10"} ${
+          usable ? "" : "opacity-45 cursor-not-allowed hover:bg-transparent"}`}
+      >
+        {reverted ? "⟲ Revertido" : armed ? "Confirmar rollback" : "⟲ Rollback del anillo"}
+      </button>
+      <span className="text-[10px] text-gray-600 leading-snug">{why}</span>
+    </div>
+  );
+}
+
+function RingCard({ ring, rollbackEnabled = false, busy = false, onRollback }: {
+  ring: Ring; rollbackEnabled?: boolean; busy?: boolean; onRollback?: (ring: Ring) => void;
+}) {
   const meta = RING_STATUS[ring.status] ?? RING_STATUS.pending;
   const approval = ring.plan.approval;
   return (
@@ -325,13 +375,21 @@ function RingCard({ ring }: { ring: Ring }) {
           <span className="chip border border-line">disponibilidad {ring.health.availability_pct}%</span>
         </div>
       )}
+      <RingRollback ring={ring} enabled={rollbackEnabled} busy={busy} onRollback={onRollback} />
     </div>
   );
 }
 
-function RingExecution({ detail }: SceneProps) {
+/** Último anillo desplegado: el único que el motor puede revertir ahora. */
+function revertibleRing(detail: TaskDetail): number | null {
+  const rings = detail.artifacts.deployment.rings;
+  return detail.rings_done > 0 ? rings[detail.rings_done - 1]?.ring ?? null : null;
+}
+
+function RingExecution({ detail, onRollback, busy = false }: SceneProps) {
   const dep = detail.artifacts.deployment;
   const res = detail.journey.resources;
+  const revertible = revertibleRing(detail);
   return (
     <div className="space-y-3">
       <Facts>
@@ -343,7 +401,14 @@ function RingExecution({ detail }: SceneProps) {
               hint={dep.exceptions[0]?.reason ?? "Sin excepciones registradas"} />
       </Facts>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {dep.rings.map((r) => <RingCard key={r.ring} ring={r} />)}
+        {dep.rings.map((r) => (
+          <RingCard key={r.ring} ring={r} onRollback={onRollback} busy={busy}
+                    rollbackEnabled={r.ring === revertible} />
+        ))}
+      </div>
+      <div className="text-[10px] text-gray-600">
+        Cada anillo lleva su propia salida: si la validación no convence, el lote se revierte
+        a la versión estable antes de promocionar al siguiente.
       </div>
     </div>
   );
@@ -351,10 +416,11 @@ function RingExecution({ detail }: SceneProps) {
 
 // --- 7 · Validación de gate y rollback --------------------------------------
 
-function GateValidation({ detail }: SceneProps) {
+function GateValidation({ detail, onRollback, busy = false }: SceneProps) {
   const dep = detail.artifacts.deployment;
   const last = [...dep.rings].reverse().find((r) => r.status !== "pending") ?? dep.rings[0];
   const rollback = dep.rollback_plan;
+  const revertible = revertibleRing(detail);
   return (
     <div className="space-y-3">
       <Facts>
@@ -376,6 +442,12 @@ function GateValidation({ detail }: SceneProps) {
           />
         </Block>
         <Block title="Plan de rollback" sub={rollback.strategy}>
+          {last && (
+            <div className="mb-2">
+              <RingRollback ring={last} enabled={last.ring === revertible} busy={busy}
+                            onRollback={onRollback} />
+            </div>
+          )}
           <Revealed
             items={rollback.steps}
             render={(s) => (

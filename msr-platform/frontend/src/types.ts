@@ -40,6 +40,8 @@ export interface HitlGateMeta {
   /** `true` = se cierra registrando la verificación; si no, con su propia acción. */
   verifiable: boolean;
   closes_with: "verification" | "phase_approval" | "ring_preapproval";
+  /** Cómo se cuenta la decisión ya tomada (p. ej. «Aprobado por el eCAB»). */
+  verdict: string | null;
 }
 export interface HitlGate extends HitlGateMeta {
   status: HitlGateStatus; ring: number | null;

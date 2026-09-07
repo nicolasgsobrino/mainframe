@@ -735,7 +735,14 @@ class Store:
 
         # Resto de fases: marcar aprobada y pasar a la siguiente
         p["statuses"][pid] = "approved"
-        self._log(tid, {"actor": "Owner (HITL)", "phase": pid, "msg": f"Fase '{engine.PHASES[idx][1]}' aprobada."})
+        msg = f"Fase '{engine.PHASES[idx][1]}' aprobada."
+        if pid == "prototype":
+            # La aprobación del cambio se registra con el nombre del proceso
+            # ITSM que corresponde a su tipología (eCAB, estándar o CAB).
+            itsm = p["artifacts"]["deployment"]["itsm"]
+            msg = (f"{journey.change_approval_copy(t)['verdict']}: {itsm['number']} "
+                   f"({itsm['type_label']}) · {itsm['approval']}.")
+        self._log(tid, {"actor": "Owner (HITL)", "phase": pid, "msg": msg})
         if idx + 1 < len(engine.PHASE_IDS):
             p["phase_index"] = idx + 1
             nxt = engine.PHASE_IDS[idx + 1]

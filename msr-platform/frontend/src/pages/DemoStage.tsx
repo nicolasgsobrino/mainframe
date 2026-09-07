@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
-import type { HitlGate, JourneyDetail, LogEntry, Task, TaskDetail } from "../types";
+import type { HitlGate, JourneyDetail, LogEntry, Ring, Task, TaskDetail } from "../types";
 import { LaneTag, Priority, Risk } from "../ui";
 import {
   ExecutionTheatre, HitlCounter, HitlRail, LogConsole, NextActionBar, nextDemoStep, stepTone,
@@ -86,7 +86,10 @@ const PLAYBACK_TITLE: Record<DemoStep["kind"], (s: DemoStep) => string> = {
   verify: (s) => `Validación humana registrada · ${s.gate?.label ?? ""}`,
   preapprove: (s) => `Anillo ${s.ring} pre-aprobado · informe pre-anillo aceptado`,
   deploy: (s) => `Desplegando el anillo ${s.ring}`,
-  approve: () => "Fase aprobada · la plataforma prepara los artefactos siguientes",
+  rollback: (s) => `Rollback del anillo ${s.ring} · restaurando la versión estable`,
+  approve: (s) => s.gate?.verdict
+    ? `${s.gate.verdict} · la plataforma prepara los artefactos siguientes`
+    : "Fase aprobada · la plataforma prepara los artefactos siguientes",
   done: () => "Recorrido completado",
 };
 
@@ -95,6 +98,7 @@ function actionPhaseOf(step: DemoStep, j: JourneyDetail): string | null {
   if (step.kind === "done") return null;
   if (step.kind === "verify") return step.gate?.phase ?? null;
   if (step.kind === "approve") return j.phase;
+  if (step.kind === "rollback") return "gate_validation";
   return "ring_execution";
 }
 
@@ -349,6 +353,29 @@ export default function DemoStage() {
     return api.approve(taskId, detail.rings_done + 1);
   };
 
+  // Rollback del anillo desplegado: misma mecánica que el resto de acciones
+  // (job del backend + reproducción), disparada desde la tarjeta del anillo.
+  const rollbackRing = (ring: Ring) => {
+    if (busy) return;
+    const s: DemoStep = {
+      kind: "rollback", ring: ring.ring, gate: null,
+      label: `Revertir el anillo ${ring.ring} · ${ring.label}`,
+      hint: "Restaura la versión estable del lote y reabre su validación humana.",
+    };
+    setRunning(true);
+    setPlayback(null);
+    setReplaying(true);
+    pending.current = { step: s, before: detail.logs };
+    api.rollback(taskId, ring.ring)
+      .then(apply)
+      .catch(() => {
+        pending.current = null;
+        setReplaying(false);
+        setError("El rollback no se pudo completar; el anillo sigue como estaba.");
+      })
+      .finally(() => setRunning(false));
+  };
+
   // Una sola acción para toda la pantalla: ejecuta el paso y reproduce con
   // ritmo lo que el backend ha hecho, que en mock ocurre en milisegundos.
   const act = () => {
@@ -445,7 +472,7 @@ export default function DemoStage() {
             <div className="text-xs text-gray-400 leading-relaxed mt-1">{script?.pitch}</div>
             <div className="text-[11px] text-gray-600 mt-1">{script?.automation}</div>
           </div>
-          <div className="animate-fade-in">{Scene && <Scene detail={detail} gates={gates} />}</div>
+          <div className="animate-fade-in">{Scene && <Scene detail={detail} gates={gates} onRollback={rollbackRing} busy={busy} />}</div>
         </div>
         </div>
 
