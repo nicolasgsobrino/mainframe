@@ -48,6 +48,12 @@ def test_deployment_cycles_through_planning_execution_and_closure(store):
     pipeline["phase_index"] = engine.PHASE_IDS.index("deployment")
     rings = pipeline["artifacts"]["deployment"]["rings"]
     active = next(r for r in rings if r["status"] == "in_progress")
+    # Los anillos ya desplegados tienen su resultado aceptado: si no, el
+    # recorrido se quedaría retenido en su validación humana.
+    pipeline["hitl_verifications"] = {
+        journey.verification_key("ring_result", r["ring"]): {"actor": "qa"}
+        for r in rings
+    }
 
     active["job"] = None
     active["plan"]["approval"]["preapproved"] = False
@@ -71,17 +77,31 @@ def test_deployment_cycles_through_planning_execution_and_closure(store):
     assert journey.position(task, pipeline)["phase"] == "evidence_closure"
 
 
-def test_rollback_sends_the_vulnerability_back_to_the_gate(store):
+def test_rollback_sends_the_ring_back_to_the_step_before_deployment(store):
     task, pipeline = _first(store)
     pipeline = copy.deepcopy(pipeline)
     pipeline["phase_index"] = engine.PHASE_IDS.index("deployment")
     pipeline["rollback"] = {"triggered": True, "status": "executed"}
-    pipeline["artifacts"]["deployment"]["rings"][1]["status"] = "rolled_back"
+    pipeline["artifacts"]["deployment"]["rings"][0]["status"] = "completed"
+    pipeline["hitl_verifications"] = {
+        journey.verification_key("ring_result", 1): {"actor": "qa"},
+    }
+    ring = pipeline["artifacts"]["deployment"]["rings"][1]
+    ring["status"] = "rolled_back"
+    ring["plan"]["approval"]["preapproved"] = False
 
     pos = journey.position(task, pipeline)
-    assert pos["phase"] == "gate_validation"
-    assert pos["blockers"] == ["rollback"]
+    assert pos["phase"] == "change_planning"
+    assert pos["blockers"] == ["rollback", "awaiting_approval"]
     assert pos["ring"] == 2
+
+    gates = journey.gate_states(task, pipeline)
+    preapproval = next(g for g in gates
+                       if g["id"] == "ring_preapproval" and g["ring"] == 2)
+    result = next(g for g in gates
+                  if g["id"] == "ring_result" and g["ring"] == 2)
+    assert preapproval["status"] == journey.GATE_PENDING
+    assert result["status"] == journey.GATE_UPCOMING
 
 
 def test_a_remediated_task_is_closed_whatever_the_pipeline_says(store):

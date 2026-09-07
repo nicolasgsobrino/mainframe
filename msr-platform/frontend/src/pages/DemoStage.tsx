@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
-import type { HitlGate, JourneyDetail, LogEntry, Ring, Task, TaskDetail } from "../types";
+import type { HitlGate, JourneyDetail, LogEntry, Task, TaskDetail } from "../types";
 import { LaneTag, Priority, Risk } from "../ui";
 import {
   ExecutionTheatre, HitlCounter, HitlRail, LogConsole, NextActionBar, nextDemoStep, stepTone,
@@ -355,18 +355,19 @@ export default function DemoStage() {
 
   // Rollback del anillo desplegado: misma mecánica que el resto de acciones
   // (job del backend + reproducción), disparada desde la tarjeta del anillo.
-  const rollbackRing = (ring: Ring) => {
+  const rollbackRing = (ring: number) => {
     if (busy) return;
+    const label = detail.artifacts.deployment.rings.find((r) => r.ring === ring)?.label ?? "";
     const s: DemoStep = {
-      kind: "rollback", ring: ring.ring, gate: null,
-      label: `Revertir el anillo ${ring.ring} · ${ring.label}`,
-      hint: "Restaura la versión estable del lote y reabre su validación humana.",
+      kind: "rollback", ring, gate: null,
+      label: `Revertir el anillo ${ring} · ${label}`,
+      hint: "Restaura la versión estable del lote y devuelve el anillo al estado previo al despliegue.",
     };
     setRunning(true);
     setPlayback(null);
     setReplaying(true);
     pending.current = { step: s, before: detail.logs };
-    api.rollback(taskId, ring.ring)
+    api.rollback(taskId, ring)
       .then(apply)
       .catch(() => {
         pending.current = null;
@@ -442,6 +443,7 @@ export default function DemoStage() {
         onGoToScene={actionPhase && actionPhase !== scenePhase.id
           ? () => setPinned(actionPhase)
           : undefined}
+        onRollback={rollbackRing}
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
@@ -487,7 +489,7 @@ export default function DemoStage() {
             )}
           </div>
           <HitlRail gates={gates.length > 0 ? gates : j.gates.filter((g) => g.status === "pending")} stacked
-                    onVerify={verifyGate} />
+                    onVerify={verifyGate} onRollback={rollbackRing} />
           <div className="card p-3">
             <div className="text-[10px] font-semibold tracking-wider text-gray-500 mb-2">
               ACTIVIDAD TÉCNICA

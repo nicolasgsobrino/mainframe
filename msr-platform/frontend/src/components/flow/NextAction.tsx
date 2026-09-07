@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { DemoStep } from "./DemoAdvance";
 
 /**
@@ -19,7 +20,9 @@ export function stepTone(step: DemoStep): StepTone {
 export function stepAction(step: DemoStep): { verb: string; object: string } {
   switch (step.kind) {
     case "verify":
-      return { verb: "Verificar", object: step.gate?.label ?? "punto de control" };
+      return step.gate?.id === "ring_result"
+        ? { verb: "Aceptar y promocionar", object: `anillo ${step.ring}` }
+        : { verb: "Verificar", object: step.gate?.label ?? "punto de control" };
     case "preapprove":
       return { verb: "Pre-aprobar", object: `anillo ${step.ring}` };
     case "deploy":
@@ -54,17 +57,24 @@ const TONE = {
   },
 } as const;
 
-export function NextActionBar({ step, running, onAct, onGoToScene }: {
+export function NextActionBar({ step, running, onAct, onGoToScene, onRollback }: {
   step: DemoStep;
   running: boolean;
   onAct: () => void;
   /** Cuando el paso vive en otra escena, saltar a ella antes de actuar. */
   onGoToScene?: () => void;
+  /** Segunda salida de la validación del anillo: revertir en vez de aceptar. */
+  onRollback?: (ring: number) => void;
 }) {
+  const [armed, setArmed] = useState(false);
   const tone = stepTone(step);
   const meta = TONE[tone];
   const { verb, object } = stepAction(step);
   const disabled = running || tone === "done";
+  const rollbackRing = onRollback && step.kind === "verify"
+    && step.gate?.id === "ring_result" && step.ring !== null
+    ? step.ring
+    : null;
 
   return (
     <div className="rounded-xl border-2 p-4 flex flex-wrap items-center gap-4"
@@ -87,6 +97,27 @@ export function NextActionBar({ step, running, onAct, onGoToScene }: {
           <button type="button" onClick={onGoToScene}
                   className="text-[11px] rounded-lg border border-line px-3 py-2 text-gray-400 hover:text-gray-200">
             Ver su escena
+          </button>
+        )}
+        {rollbackRing !== null && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              if (disabled) return;
+              if (!armed) { setArmed(true); return; }
+              setArmed(false);
+              onRollback?.(rollbackRing);
+            }}
+            onBlur={() => setArmed(false)}
+            data-testid="demo-next-rollback"
+            title={`Revierte el anillo ${rollbackRing} y lo devuelve al estado previo al despliegue`}
+            className={`rounded-lg border px-4 py-2.5 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed ${
+              armed
+                ? "border-orange-500/70 bg-orange-500/25 text-orange-100"
+                : "border-orange-500/50 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20"}`}
+          >
+            {armed ? "Confirmar rollback" : "⟲ Rollback"}
           </button>
         )}
         <span className="relative inline-flex">

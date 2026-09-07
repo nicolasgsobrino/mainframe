@@ -15,7 +15,7 @@ export interface SceneProps {
   /** Puertas humanas de la fase, para señalar dónde se detiene el recorrido. */
   gates: HitlGate[];
   /** Revierte un anillo ya desplegado; sin ella el control se ve inhabilitado. */
-  onRollback?: (ring: Ring) => void;
+  onRollback?: (ring: number) => void;
   /** Hay un job en vuelo o una reproducción en curso: no se encadenan acciones. */
   busy?: boolean;
 }
@@ -298,13 +298,13 @@ const RING_STATUS: Record<string, { label: string; color: string }> = {
  * desplegado, así que el resto se muestra inhabilitado explicando por qué.
  */
 function RingRollback({ ring, enabled, busy, onRollback }: {
-  ring: Ring; enabled: boolean; busy: boolean; onRollback?: (ring: Ring) => void;
+  ring: Ring; enabled: boolean; busy: boolean; onRollback?: (ring: number) => void;
 }) {
   const [armed, setArmed] = useState(false);
   const reverted = ring.status === "rolled_back";
   const usable = Boolean(onRollback) && enabled && !busy && !reverted;
   const why = reverted
-    ? "Anillo ya revertido: su evidencia se invalidó y vuelve a análisis."
+    ? "Anillo revertido: su evidencia se invalidó y vuelve al estado previo al despliegue."
     : ring.status === "pending"
       ? "Nada que revertir: el anillo todavía no se ha desplegado."
       : enabled
@@ -320,7 +320,7 @@ function RingRollback({ ring, enabled, busy, onRollback }: {
           if (!usable || !onRollback) return;
           if (!armed) { setArmed(true); return; }
           setArmed(false);
-          onRollback(ring);
+          onRollback(ring.ring);
         }}
         onBlur={() => setArmed(false)}
         className={`text-[10px] rounded-md border px-2 py-1 transition ${
@@ -337,7 +337,7 @@ function RingRollback({ ring, enabled, busy, onRollback }: {
 }
 
 function RingCard({ ring, rollbackEnabled = false, busy = false, onRollback }: {
-  ring: Ring; rollbackEnabled?: boolean; busy?: boolean; onRollback?: (ring: Ring) => void;
+  ring: Ring; rollbackEnabled?: boolean; busy?: boolean; onRollback?: (ring: number) => void;
 }) {
   const meta = RING_STATUS[ring.status] ?? RING_STATUS.pending;
   const approval = ring.plan.approval;
@@ -414,7 +414,7 @@ function RingExecution({ detail, onRollback, busy = false }: SceneProps) {
   );
 }
 
-// --- 7 · Validación de gate y rollback --------------------------------------
+// --- 7 · Validation Tests y rollback ----------------------------------------
 
 function GateValidation({ detail, onRollback, busy = false }: SceneProps) {
   const dep = detail.artifacts.deployment;

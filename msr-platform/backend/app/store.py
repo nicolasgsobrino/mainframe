@@ -362,6 +362,15 @@ class Store:
         p["baseline"]["hitl_verifications"] = dict(p["hitl_verifications"])
         p["hitl_verifications"].update(self.repo.verifications_for_task(tid))
 
+    def _clear_ring_verifications(self, tid, ring_no: int) -> None:
+        """Reabre las decisiones humanas de un anillo concreto."""
+        p = self.pipelines[tid]
+        keys = [journey.verification_key(gid, ring_no)
+                for gid in ("ring_preapproval", "ring_result")]
+        for key in keys:
+            p["hitl_verifications"].pop(key, None)
+        self.repo.delete_verifications(tid, keys)
+
     def _clear_deployment_verifications(self, tid) -> None:
         """Olvida las validaciones de anillo y el cierre para repetir el ciclo."""
         p = self.pipelines[tid]
@@ -947,6 +956,10 @@ class Store:
             p["rolled_back_rings"].append(ring_no)
         p["rings_done"] = max(0, p["rings_done"] - 1)
         p["ring_evidence"].pop(ring_no, None)
+        # El anillo vuelve al estado previo al despliegue: su pre-aprobación y su
+        # validación de resultado se reabren para repetir el ciclo del anillo.
+        p.get("ring_preapprovals", {}).pop(ring_no, None)
+        self._clear_ring_verifications(tid, ring_no)
         p["rollback"] = {
             "status": "completed", "triggered": True, "trigger_type": trigger,
             "reason": reason, "ring": ring_no, "ts": iso(NOW),
@@ -961,7 +974,8 @@ class Store:
         self._rebuild_deploy(tid)
         self._log(tid, {"actor": "Devin", "phase": "deployment",
                         "msg": f"Rollback completado. Versión restaurada: {p['rollback']['restored_version']}. "
-                               f"Servicio healthy; anillo {ring_no} marcado como revertido para re-análisis."})
+                               f"Servicio healthy; anillo {ring_no} vuelve al estado previo al despliegue "
+                               "(pre-aprobación y validación reabiertas)."})
 
     def simulate_incident(self, tid):
         """Simula una anomalía post-despliegue que dispara rollback automático."""
@@ -1658,6 +1672,8 @@ class Store:
         t = self.tasks[tid]
         ring_no = job.ring_number
         p["rings_done"] = max(p["rings_done"], ring_no)
+        if ring_no in p["rolled_back_rings"]:
+            p["rolled_back_rings"].remove(ring_no)
         # Sólo se declaran desplegados los objetivos realmente ejecutados.
         executed = [tg.instance_id or tg.logical_target_id for tg in job.targets]
         p["ring_evidence"][ring_no] = {

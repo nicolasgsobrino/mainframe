@@ -21,10 +21,15 @@ export function nextDemoStep(detail: TaskDetail): DemoStep {
   // Una puerta pendiente detiene el recorrido: es siempre el siguiente paso.
   const gate = j.gates.find((g) => g.verifiable && g.status === "pending") ?? null;
   if (gate) {
+    const ringResult = gate.id === "ring_result";
     return {
       kind: "verify",
-      label: `Verificar: ${gate.label}${gate.ring !== null ? ` · anillo ${gate.ring}` : ""}`,
-      hint: `${gate.question} · el flujo está detenido hasta esta validación.`,
+      label: ringResult
+        ? `Aceptar y promocionar el anillo ${gate.ring}`
+        : `Verificar: ${gate.label}${gate.ring !== null ? ` · anillo ${gate.ring}` : ""}`,
+      hint: ringResult
+        ? `${gate.question} · acepta para promocionar al siguiente anillo o revierte este despliegue.`
+        : `${gate.question} · el flujo está detenido hasta esta validación.`,
       gate,
       ring: gate.ring,
     };

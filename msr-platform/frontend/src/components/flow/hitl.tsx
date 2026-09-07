@@ -37,15 +37,27 @@ function when(ts: string | null): string {
  * Una puerta humana, con la misma plantilla en todo el producto: qué se
  * decide, quién decidió y si el motor la aplica o sólo la registra.
  */
-export function HitlGateCard({ gate, onSelect, onVerify }: {
+export function HitlGateCard({ gate, onSelect, onVerify, onRollback }: {
   gate: HitlGate;
   onSelect?: () => void;
   /** Verificación humana de una puerta que se cierra registrando la decisión. */
   onVerify?: (gate: HitlGate) => Promise<unknown>;
+  /**
+   * Salida alternativa de la validación del anillo: si las pruebas no
+   * convencen, la decisión humana es revertir en vez de promocionar.
+   */
+  onRollback?: (ring: number) => void;
 }) {
   const [verifying, setVerifying] = useState(false);
+  const [armed, setArmed] = useState(false);
   const meta = STATUS_META[gate.status];
-  const canVerify = Boolean(onVerify) && gate.verifiable && gate.status !== "done";
+  // Sólo se decide sobre lo que ya está encima de la mesa: una puerta «por
+  // venir» no se puede anticipar.
+  const canVerify = Boolean(onVerify) && gate.verifiable && gate.status === "pending";
+  const ringNo = gate.ring;
+  const canRollback = Boolean(onRollback) && gate.id === "ring_result"
+    && ringNo !== null && gate.status === "pending";
+  const accept = gate.id === "ring_result";
 
   const verify = async () => {
     if (!onVerify || verifying) return;
@@ -88,14 +100,38 @@ export function HitlGateCard({ gate, onSelect, onVerify }: {
         </div>
       )}
       {canVerify && (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); void verify(); }}
-          disabled={verifying}
-          className="mt-2 w-full rounded border border-amber-500/50 bg-amber-500/15 px-2 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/25 disabled:opacity-60"
-        >
-          {verifying ? "Verificación humana en curso…" : "◑ Verificar y registrar la decisión"}
-        </button>
+        <div className="mt-2 flex gap-1.5">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); void verify(); }}
+            disabled={verifying}
+            className="flex-1 rounded border border-emerald-500/50 bg-emerald-500/15 px-2 py-1 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-60"
+          >
+            {verifying
+              ? "Verificación humana en curso…"
+              : accept ? "✓ Aceptar y promocionar" : "◑ Verificar y registrar la decisión"}
+          </button>
+          {canRollback && ringNo !== null && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!armed) { setArmed(true); return; }
+                setArmed(false);
+                onRollback?.(ringNo);
+              }}
+              onBlur={() => setArmed(false)}
+              disabled={verifying}
+              title={`Las pruebas no convencen: revierte el anillo ${ringNo} y lo devuelve al estado previo al despliegue.`}
+              className={`rounded border px-2 py-1 text-[11px] font-semibold transition disabled:opacity-60 ${
+                armed
+                  ? "border-orange-500/60 bg-orange-500/25 text-orange-100"
+                  : "border-orange-500/45 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20"}`}
+            >
+              {armed ? "Confirmar rollback" : "⟲ Rollback"}
+            </button>
+          )}
+        </div>
       )}
       {gate.status === "pending" && (
         <div className="text-[10px] text-amber-300/80 mt-1"
@@ -126,10 +162,12 @@ export function HitlGateCard({ gate, onSelect, onVerify }: {
  * Carril transversal de Human in the Loop: las puertas no son una fase, son un
  * tipo de evento que se repite a lo largo del recorrido.
  */
-export function HitlRail({ gates, compact = false, onVerify, stacked = false }: {
+export function HitlRail({ gates, compact = false, onVerify, onRollback, stacked = false }: {
   gates: HitlGate[];
   compact?: boolean;
   onVerify?: (gate: HitlGate) => Promise<unknown>;
+  /** Rollback ofrecido junto a la aceptación en la validación del anillo. */
+  onRollback?: (ring: number) => void;
   /** Apila las puertas en una columna: para contenedores estrechos. */
   stacked?: boolean;
 }) {
@@ -147,7 +185,8 @@ export function HitlRail({ gates, compact = false, onVerify, stacked = false }: 
       </div>
       <div className={`grid gap-2 ${stacked ? "" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
         {shown.map((g) => (
-          <HitlGateCard key={`${g.id}:${g.ring ?? "-"}`} gate={g} onVerify={onVerify} />
+          <HitlGateCard key={`${g.id}:${g.ring ?? "-"}`} gate={g} onVerify={onVerify}
+                        onRollback={onRollback} />
         ))}
       </div>
     </div>

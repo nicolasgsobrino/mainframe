@@ -35,8 +35,8 @@ PHASES = [
      "Change framework & rollout planning", "change_planning", True),
     ("ring_execution", "Ejecución por anillos",
      "Patch execution by deployment rings", "execution_closure", True),
-    ("gate_validation", "Validación de gate y rollback",
-     "Gate validation & rollback decision", "execution_closure", True),
+    ("gate_validation", "Validation Tests y rollback",
+     "Validation tests & rollback decision", "execution_closure", True),
     ("evidence_closure", "Evidencias y cierre",
      "Evidence & closure", "execution_closure", True),
 ]
@@ -84,11 +84,23 @@ def _deployment_position(task: dict, pipeline: dict) -> tuple[str, int | None, l
     rings = deploy["rings"]
     blockers: list[str] = []
 
-    rolled_back = [r for r in rings if r["status"] == "rolled_back"]
-    if pipeline.get("rollback", {}).get("triggered") and rolled_back:
-        return "gate_validation", rolled_back[-1]["ring"], ["rollback"]
+    # Un anillo desplegado retiene el recorrido en su validación humana: el
+    # siguiente no empieza hasta que alguien acepte el resultado del anterior.
+    verified = pipeline.get("hitl_verifications") or {}
+    awaiting = next((r for r in rings
+                     if r["status"] == "completed"
+                     and verification_key("ring_result", r["ring"]) not in verified),
+                    None)
+    if awaiting is not None:
+        return "gate_validation", awaiting["ring"], ["awaiting_ring_validation"]
 
     active = next((r for r in rings if r["status"] == "in_progress"), None)
+    if active is None:
+        # Un anillo revertido vuelve a la cola en el punto previo al despliegue.
+        reverted = next((r for r in rings if r["status"] == "rolled_back"), None)
+        if reverted is not None:
+            active = reverted
+            blockers = ["rollback"]
     if active is None:
         # Sin anillo activo: o está todo cerrado, o el histórico dejó el
         # despliegue completo. En ambos casos toca evidencia y cierre.
@@ -106,7 +118,7 @@ def _deployment_position(task: dict, pipeline: dict) -> tuple[str, int | None, l
 
     approval = active["plan"]["approval"]
     if not approval.get("preapproved"):
-        return "change_planning", active["ring"], ["awaiting_approval"]
+        return "change_planning", active["ring"], blockers + ["awaiting_approval"]
     return "ring_execution", active["ring"], blockers
 
 
@@ -344,7 +356,7 @@ def gate_states(task: dict, pipeline: dict) -> list[dict]:
                 approval = r["plan"]["approval"]
                 if approval.get("preapproved"):
                     status = GATE_DONE
-                elif deploying and r["status"] == "in_progress":
+                elif deploying and r["status"] in ("in_progress", "rolled_back"):
                     status = GATE_PENDING
                 else:
                     status = GATE_UPCOMING
@@ -357,7 +369,9 @@ def gate_states(task: dict, pipeline: dict) -> list[dict]:
                     # hasta que se valide el resultado de éste.
                     status = GATE_DONE if remediated else GATE_PENDING
                 elif r["status"] == "rolled_back":
-                    status = GATE_PENDING
+                    # Revertido: no hay resultado que validar hasta que el
+                    # anillo se vuelva a pre-aprobar y desplegar.
+                    status = GATE_UPCOMING
                 else:
                     job = r.get("job") or {}
                     failed = (job.get("state") in _FAILED_JOB_STATES
@@ -370,6 +384,9 @@ def gate_states(task: dict, pipeline: dict) -> list[dict]:
 def gate_rollup(gates: list[dict]) -> dict:
     """Cuántas decisiones humanas hay tomadas, pendientes y por venir."""
     pending = [g for g in gates if g["status"] == GATE_PENDING]
+    # La siguiente decisión es la del anillo más atrasado: validar el resultado
+    # del anillo N va antes que pre-aprobar el N+1.
+    pending.sort(key=lambda g: (g["ring"] or 0, GATE_IDS.index(g["id"])))
     return {
         "total": len(gates),
         "done": sum(1 for g in gates if g["status"] == GATE_DONE),
