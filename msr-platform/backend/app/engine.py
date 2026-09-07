@@ -14,12 +14,12 @@ from datetime import timedelta
 from .seed import NOW, iso
 
 PHASES = [
-    ("detection", "Detección e ingesta"),
-    ("prioritization", "Priorización"),
-    ("pre_implementation", "Pre-implementación (MVT)"),
-    ("lab_testing", "Pruebas en laboratorio"),
-    ("prototype", "Validación en prototipo"),
-    ("deployment", "Despliegue por anillos e informe"),
+    ("detection", "Detection and ingestion"),
+    ("prioritization", "Prioritisation"),
+    ("pre_implementation", "Pre-implementation (MVT)"),
+    ("lab_testing", "Lab testing"),
+    ("prototype", "Validation in the prototype"),
+    ("deployment", "Ring-based rollout and report"),
 ]
 PHASE_IDS = [p[0] for p in PHASES]
 
@@ -29,33 +29,33 @@ PHASE_IDS = [p[0] for p in PHASES]
 # ---------------------------------------------------------------------------
 # Front común a los 3 carriles (antes del split por velocidad/riesgo).
 SHARED_FLOW = [
-    {"name": "Discovery & synchronization", "detail": "CMDB, inventario, fuentes de vulnerabilidad; detección de activos huérfanos.",
+    {"name": "Discovery & synchronisation", "detail": "CMDB, inventory, vulnerability sources; detection of orphan assets.",
      "automation": "agentable", "mode": "Auto", "sla": "< 1 h"},
-    {"name": "Triage y asignación de carril", "detail": "La Oficina de Riesgo y Exposición correlaciona KEV/EPSS, criticidad y exposición; traza la línea por activo y entidad.",
+    {"name": "Triage and lane assignment", "detail": "The Risk and Exposure Office correlates KEV/EPSS, criticality and exposure; draws the line per asset and entity.",
      "automation": "ai_assisted", "mode": "Auto", "sla": "< 30 min"},
 ]
 # Flujo específico por carril (pasos, automatización y SLA), alineado con el modelo operativo.
 LANE_FLOWS = {
     "critical": [
-        {"name": "Emergency change pre-aprobado", "detail": "Pre-checks mínimos automatizados.", "automation": "agentable", "mode": "Auto", "sla": "< 30 min"},
-        {"name": "Ejecución inmediata", "detail": "Fuera de ventana.", "automation": "agentable", "mode": "Auto", "sla": "< 1 h"},
-        {"name": "Validación reforzada", "detail": "Batería ampliada de post-checks.", "automation": "ai_assisted", "mode": "Auto", "sla": "15-30 min"},
-        {"name": "Escalado directo + RCA", "detail": "Cierre express con evidencia.", "automation": "ai_assisted", "mode": "Auto", "sla": "15-30 min"},
-        {"name": "Resolución conjunta Cyber-IT", "detail": "Cierre basado en evidencia (vulns no resolubles por el flujo estándar).", "automation": "human", "mode": "Manual", "sla": "2-4 h"},
+        {"name": "Pre-approved emergency change", "detail": "Automated minimum pre-checks.", "automation": "agentable", "mode": "Auto", "sla": "< 30 min"},
+        {"name": "Immediate execution", "detail": "Outside the window.", "automation": "agentable", "mode": "Auto", "sla": "< 1 h"},
+        {"name": "Reinforced validation", "detail": "Extended battery of post-checks.", "automation": "ai_assisted", "mode": "Auto", "sla": "15-30 min"},
+        {"name": "Direct escalation + RCA", "detail": "Express closure with evidence.", "automation": "ai_assisted", "mode": "Auto", "sla": "15-30 min"},
+        {"name": "Joint Cyber-IT resolution", "detail": "Evidence-based closure (vulns not solvable by the standard flow).", "automation": "human", "mode": "Manual", "sla": "2-4 h"},
     ],
     "accelerated": [
-        {"name": "Change estándar pre-aprobado", "detail": "Pre-checks y rollbacks automatizados.", "automation": "agentable", "mode": "Auto", "sla": "2-4 h"},
-        {"name": "Primera ventana disponible", "detail": "Canary / rolling.", "automation": "agentable", "mode": "Auto", "sla": "0-24 h"},
-        {"name": "Validación automática", "detail": "Por telemetría.", "automation": "ai_assisted", "mode": "Auto", "sla": "1-2 h"},
-        {"name": "Retry / Rollback en la misma ventana", "detail": "Cierre con evidencia.", "automation": "agentable", "mode": "Auto", "sla": "2-4 h"},
+        {"name": "Pre-approved standard change", "detail": "Automated pre-checks and rollbacks.", "automation": "agentable", "mode": "Auto", "sla": "2-4 h"},
+        {"name": "First available window", "detail": "Canary / rolling.", "automation": "agentable", "mode": "Auto", "sla": "0-24 h"},
+        {"name": "Automated validation", "detail": "By telemetry.", "automation": "ai_assisted", "mode": "Auto", "sla": "1-2 h"},
+        {"name": "Retry / rollback in the same window", "detail": "Closure with evidence.", "automation": "agentable", "mode": "Auto", "sla": "2-4 h"},
     ],
     "standard": [
-        {"name": "Ordinary change", "detail": "Mensual / trimestral.", "automation": "ai_assisted", "mode": "Semiauto", "sla": "1-3 días"},
-        {"name": "Pre-validación completa", "detail": "Dependencias y rollback.", "automation": "human", "mode": "Manual", "sla": "1 día"},
-        {"name": "Ejecución en ventana planificada", "detail": "Ventana de mantenimiento.", "automation": "human", "mode": "Manual", "sla": "Ventana"},
-        {"name": "Validación funcional", "detail": "Pruebas funcionales.", "automation": "ai_assisted", "mode": "Semiauto", "sla": "1 día"},
-        {"name": "Rollback closed-loop", "detail": "Cierre del bucle de rollback.", "automation": "human", "mode": "Manual", "sla": "1-2 h"},
-        {"name": "Reporting y riesgo residual", "detail": "Informe y riesgo residual.", "automation": "human", "mode": "Manual", "sla": "< 30 min"},
+        {"name": "Ordinary change", "detail": "Monthly / quarterly.", "automation": "ai_assisted", "mode": "Semiauto", "sla": "1-3 days"},
+        {"name": "Full pre-validation", "detail": "Dependencies and rollback.", "automation": "human", "mode": "Manual", "sla": "1 day"},
+        {"name": "Execution in the planned window", "detail": "Maintenance window.", "automation": "human", "mode": "Manual", "sla": "Window"},
+        {"name": "Functional validation", "detail": "Functional tests.", "automation": "ai_assisted", "mode": "Semiauto", "sla": "1 day"},
+        {"name": "Rollback closed-loop", "detail": "Closing the rollback loop.", "automation": "human", "mode": "Manual", "sla": "1-2 h"},
+        {"name": "Reporting and residual risk", "detail": "Report and residual risk.", "automation": "human", "mode": "Manual", "sla": "< 30 min"},
     ],
 }
 # Nivel de automatización de cada una de las 6 fases del pipeline según el carril.
@@ -100,14 +100,14 @@ REMEDIATION_PROFILES = {
     "patch": {
         "restart_scope": "instance",
         "downtime_required": True,
-        "rationale": ("El parche de sistema operativo exige reiniciar la instancia: "
-                      "los sistemas dependientes sí sufren la ventana de indisponibilidad."),
+        "rationale": ("The operating system patch requires rebooting the instance: "
+                      "dependent systems do suffer the outage window."),
     },
     "dependency": {
         "restart_scope": "service",
         "downtime_required": False,
-        "rationale": ("La actualización de la dependencia se despliega en rolling sin "
-                      "caída del servicio: los dependientes no se ven afectados."),
+        "rationale": ("The dependency upgrade is rolled out without a service "
+                      "outage: dependants are not affected."),
     },
 }
 
@@ -227,13 +227,13 @@ def build_mvt(task, impact, catalog):
 
         if layer_present and type_ok and crit_ok:
             include = True
-            reason = f"Capa '{applies_layer}' presente en el blast radius y aplica a remediación '{remediation_type}'."
+            reason = f"Layer '{applies_layer}' present in the blast radius and applicable to remediation '{remediation_type}'."
         elif layer_present and type_ok and not crit_ok:
-            reason = f"Capa afectada pero criticidad de la prueba ({tc['criticality']}) superior a la del cambio; excluida para MVT."
+            reason = f"Layer affected but the test criticality ({tc['criticality']}) is higher than the change's; excluded from the MVT."
         elif not layer_present:
-            reason = f"Capa '{applies_layer}' no presente en el blast radius."
+            reason = f"Layer '{applies_layer}' not present in the blast radius."
         else:
-            reason = f"Tipo de remediación '{remediation_type}' no aplica a esta prueba."
+            reason = f"Remediation type '{remediation_type}' does not apply to this test."
 
         entry = {**tc, "reason": reason}
         (selected if include else excluded).append(entry)
@@ -246,10 +246,10 @@ def build_mvt(task, impact, catalog):
         "remediation_type": remediation_type,
         "confidence": confidence,
         "rationale": (
-            f"Devin construyó el Impact Graph ({impact['affected_count']} CIs, capas: "
-            f"{', '.join(impact['affected_layers'])}) y propuso el conjunto mínimo de "
-            f"{len(selected)} pruebas que preserva la confianza del despliegue, excluyendo "
-            f"{len(excluded)} pruebas no aplicables. Aprobación final: owner técnico / QA / SRE (HITL)."
+            f"Devin built the Impact Graph ({impact['affected_count']} CIs, layers: "
+            f"{', '.join(impact['affected_layers'])}) and proposed the minimum set of "
+            f"{len(selected)} tests that preserves confidence in the rollout, excluding "
+            f"{len(excluded)} non-applicable tests. Final approval: technical owner / QA / SRE (HITL)."
         ),
     }
 
@@ -323,31 +323,31 @@ def build_prototype(task, impact):
 # ejecuta toda la batería de pruebas; en Canary y Producción el despliegue es
 # progresivo (subconjunto → controlado → total) sobre los activos reales.
 RING_DEFS = [
-    (1, "Anillo 1 · Laboratorio"),
-    (2, "Anillo 2 · Canary"),
-    (3, "Anillo 3 · Pre-productivo"),
-    (4, "Anillo 4 · Productivo controlado"),
-    (5, "Anillo 5 · Productivo total"),
+    (1, "Ring 1 · Lab"),
+    (2, "Ring 2 · Canary"),
+    (3, "Ring 3 · Pre-production"),
+    (4, "Ring 4 · Controlled production"),
+    (5, "Ring 5 · Full production"),
 ]
 
 # Definición de cada etapa: entorno, si es réplica o activos reales, alcance
 # (porcentaje del blast radius), si ejecuta pruebas, y ventana.
 RING_STAGES = {
-    1: {"key": "lab", "env": "Laboratorio", "kind": "replica", "pct": 100, "tests": True, "prod": False,
-        "scope": "all", "window": "Inmediata · entorno aislado sin impacto en negocio",
-        "purpose": "Réplica efímera (IaC) de toda la infraestructura impactada; se aplica el fix y se ejecuta la batería completa de pruebas."},
+    1: {"key": "lab", "env": "Lab", "kind": "replica", "pct": 100, "tests": True, "prod": False,
+        "scope": "all", "window": "Immediate · isolated environment with no business impact",
+        "purpose": "Ephemeral (IaC) replica of all the impacted infrastructure; the fix is applied and the full test battery is run."},
     2: {"key": "canary", "env": "Canary", "kind": "real", "pct": 10, "tests": False, "prod": True,
-        "scope": "canary", "window": "Ventana estándar · vigilancia reforzada",
-        "purpose": "Despliegue a un subconjunto mínimo de activos reales para observar el comportamiento con tráfico real."},
-    3: {"key": "preprod", "env": "Pre-productivo", "kind": "replica", "pct": 100, "tests": True, "prod": False,
-        "scope": "all", "window": "Ventana de pre-producción",
-        "purpose": "Despliegue en pre-producción; pruebas funcionales y de integración con datos representativos."},
-    4: {"key": "prod_controlled", "env": "Productivo controlado", "kind": "real", "pct": 50, "tests": False, "prod": True,
-        "scope": "half", "window": "Ventana de mantenimiento acordada",
-        "purpose": "Despliegue controlado a una parte de producción, vigilando la telemetría antes de generalizar."},
-    5: {"key": "prod_full", "env": "Productivo total", "kind": "real", "pct": 100, "tests": False, "prod": True,
-        "scope": "all_real", "window": "Ventana planificada final",
-        "purpose": "Despliegue al 100% del alcance productivo; verificación y cierre del despliegue."},
+        "scope": "canary", "window": "Standard window · reinforced monitoring",
+        "purpose": "Rollout to a minimum subset of real assets to observe behaviour with real traffic."},
+    3: {"key": "preprod", "env": "Pre-production", "kind": "replica", "pct": 100, "tests": True, "prod": False,
+        "scope": "all", "window": "Pre-production window",
+        "purpose": "Rollout in pre-production; functional and integration tests with representative data."},
+    4: {"key": "prod_controlled", "env": "Controlled production", "kind": "real", "pct": 50, "tests": False, "prod": True,
+        "scope": "half", "window": "Agreed maintenance window",
+        "purpose": "Controlled rollout to part of production, watching telemetry before generalising."},
+    5: {"key": "prod_full", "env": "Full production", "kind": "real", "pct": 100, "tests": False, "prod": True,
+        "scope": "all_real", "window": "Final planned window",
+        "purpose": "Rollout to 100% of the production scope; verification and closure of the deployment."},
 }
 CANARY_PCT = [100, 10, 100, 50, 100]
 
@@ -387,19 +387,19 @@ def assign_impact_to_rings(impact):
 
 
 def _asset_reason(stage: dict, ci_class: str, crit: str, is_root: bool) -> str:
-    what = "réplica del activo" if stage["kind"] == "replica" else "activo real"
+    what = "replica of the asset" if stage["kind"] == "replica" else "real asset"
     if is_root:
-        return (f"CI raíz de la vulnerabilidad ({ci_class}, {crit}); {what} en «{stage['env']}». "
-                f"Se despliega en primer lugar por ser origen del blast radius.")
-    return (f"CI impactado ({ci_class}, {crit}) dentro del blast radius; {what} en «{stage['env']}» "
-            f"(orden por dependencia: infraestructura → aplicación → servicio).")
+        return (f"Root CI of the vulnerability ({ci_class}, {crit}); {what} in “{stage['env']}”. "
+                f"Deployed first because it is the origin of the blast radius.")
+    return (f"Impacted CI ({ci_class}, {crit}) inside the blast radius; {what} in “{stage['env']}” "
+            f"(dependency order: infrastructure → application → service).")
 
 
 def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nodes,
                     exclusions=None, preapproval=None):
     """Informe pre-anillo por ETAPA/entorno: los CIs impactados de esta etapa
     (réplica o reales), sus dependencias (subgrafo del Impact Graph), criterios de
-    entrada, ventana y estado de pre-aprobación (auditoría Human-Driven)."""
+    entrada, ventana y estado de pre-aprobación (auditoría Human-driven)."""
     rng = _rng(task["id"] + f"plan{ring_no}")
     stage = RING_STAGES[ring_no]
     is_replica = stage["kind"] == "replica"
@@ -411,7 +411,7 @@ def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nod
     assets = []
     for n in ring_nodes:
         is_root = bool(n.get("is_root"))
-        display = f"réplica · {n['name']}" if is_replica else n["name"]
+        display = f"replica · {n['name']}" if is_replica else n["name"]
         assets.append({
             "id": n["id"], "name": display, "ci_class": n["ci_class"],
             "criticality": n.get("criticality", "medium"),
@@ -450,27 +450,27 @@ def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nod
     selected_n = assets_count - len([a for a in assets if a["excluded"]])
 
     entry_criteria = [
-        {"check": "MVT aprobado (HITL)", "ok": True},
-        {"check": "Prototipo validado", "ok": True},
-        {"check": "Change Request autorizado (ITSM)", "ok": True},
-        {"check": "Ventana disponible", "ok": True},
-        {"check": "Plan de rollback probado en lab", "ok": True},
-        {"check": "Sin conflictos de cambio abiertos", "ok": bool(rng.random() > 0.15)},
+        {"check": "MVT approved (HITL)", "ok": True},
+        {"check": "Prototype validated", "ok": True},
+        {"check": "Change Request authorised (ITSM)", "ok": True},
+        {"check": "Window available", "ok": True},
+        {"check": "Rollback plan tested in the lab", "ok": True},
+        {"check": "No open change conflicts", "ok": bool(rng.random() > 0.15)},
     ]
     if is_replica:
-        scope_txt = (f"réplica del 100% del alcance ({assets_count} CIs) donde se aplica el fix "
-                     f"y se ejecuta toda la batería de pruebas")
+        scope_txt = (f"replica of 100% of the scope ({assets_count} CIs) where the fix is applied "
+                     f"and the full test battery is run")
     elif stage["scope"] == "canary":
-        scope_txt = f"subconjunto canary del {stage['pct']}% ({assets_count} CIs reales) para observar tráfico real"
+        scope_txt = f"canary subset of {stage['pct']}% ({assets_count} real CIs) to observe real traffic"
     elif stage["scope"] == "half":
-        scope_txt = f"despliegue controlado al {stage['pct']}% de producción ({assets_count} CIs reales)"
+        scope_txt = f"controlled rollout to {stage['pct']}% of production ({assets_count} real CIs)"
     else:
-        scope_txt = f"despliegue al 100% del alcance productivo ({assets_count} CIs reales)"
+        scope_txt = f"rollout to 100% of the production scope ({assets_count} real CIs)"
 
     rationale = (
-        f"{stage['purpose']} En esta etapa el alcance es un {scope_txt}, ordenados por dependencia "
-        f"(infraestructura → aplicación → servicio de negocio) con {len(dependencies)} dependencias directas. "
-        f"Ejecutor: {executor}."
+        f"{stage['purpose']} At this stage the scope is a {scope_txt}, ordered by dependency "
+        f"(infrastructure → application → business service) with {len(dependencies)} direct dependencies. "
+        f"Executor: {executor}."
     )
     return {
         "ring": ring_no,
@@ -489,17 +489,17 @@ def build_ring_plan(task, impact, ring_no, label, canary_pct, executor, ring_nod
         "selected_count": selected_n,
         "selection_rationale": rationale,
         "selection_criteria": [
-            {"factor": "Entorno", "detail": f"{stage['env']} — {'réplica de la infraestructura impactada' if is_replica else 'activos reales'}."},
-            {"factor": "Alcance", "detail": scope_txt + "."},
-            {"factor": "Orden", "detail": "Los activos se despliegan por dependencia: primero infraestructura, después aplicación y servicio."},
-            {"factor": "Pruebas", "detail": "Batería completa de MVT en este entorno." if stage["tests"] else "Validación por telemetría/post-checks (entorno productivo)."},
-            {"factor": "Ventana", "detail": stage["window"]},
+            {"factor": "Environment", "detail": f"{stage['env']} — {'replica of the impacted infrastructure' if is_replica else 'real assets'}."},
+            {"factor": "Scope", "detail": scope_txt + "."},
+            {"factor": "Order", "detail": "Assets are deployed by dependency: infrastructure first, then application and service."},
+            {"factor": "Tests", "detail": "Full MVT battery in this environment." if stage["tests"] else "Validation by telemetry/post-checks (production environment)."},
+            {"factor": "Window", "detail": stage["window"]},
         ],
         "assets": assets,
         "dependencies": dependencies,
         "graph": {"nodes": graph_nodes, "edges": graph_edges},
         "entry_criteria": entry_criteria,
-        "approval": preapproval or {"required": "Human-Driven", "preapproved": False,
+        "approval": preapproval or {"required": "Human-driven", "preapproved": False,
                                     "approver": None, "ts": None, "note": None},
     }
 
@@ -546,19 +546,19 @@ def build_rollback_plan(task, impact):
 
 CHANGE_TYPE_META = {
     "standard": {
-        "label": "Cambio estándar", "itsm_state": "Implement (pre-aprobado)", "requires_human": False,
-        "risk": "Bajo", "approval": "Pre-aprobado por modelo de cambio (sin CAB)",
-        "detail": "Cambio recurrente, conocido y documentado con procedimiento y riesgo previamente aprobados. Sus fases de autorización están pre-aprobadas por el modelo, por lo que no requiere evaluación individual del CAB. Aplica a lab/desarrollo/pre-producción y actuaciones de bajo riesgo con procedimiento conocido.",
+        "label": "Standard change", "itsm_state": "Implement (pre-approved)", "requires_human": False,
+        "risk": "Low", "approval": "Pre-approved by the change model (no CAB)",
+        "detail": "Recurring, well-known and documented change with a previously approved procedure and risk. Its authorisation phases are pre-approved by the model, so it needs no individual CAB assessment. Applies to lab/development/pre-production and low-risk actions with a known procedure.",
     },
     "normal": {
-        "label": "Cambio normal", "itsm_state": "Assess → Authorize", "requires_human": True,
-        "risk": "Medio", "approval": "Evaluación y autorización específica (CAB)",
-        "detail": "Requiere evaluación y autorización específica antes de ejecutarse; tipología habitual para parcheados que afectan a producción o servicios críticos sin modelo estándar. Recorre todo el proceso: assess, authorize, schedule, authorize implementation, implement y review & close.",
+        "label": "Normal change", "itsm_state": "Assess → Authorize", "requires_human": True,
+        "risk": "Medium", "approval": "Specific assessment and authorisation (CAB)",
+        "detail": "Requires specific assessment and authorisation before executing; the usual type for patching that affects production or critical services without a standard model. It runs through the whole process: assess, authorise, schedule, authorise implementation, implement and review & close.",
     },
     "emergency": {
-        "label": "Cambio de emergencia", "itsm_state": "Emergency authorize", "requires_human": True,
-        "risk": "Alto", "approval": "Aprobación express (E-CAB) / regularización posterior",
-        "detail": "Intervención urgente ante vulnerabilidad crítica, explotación activa o riesgo inminente; objetivo de remediación en las primeras 24 h. Evaluación, aprobación e implementación aceleradas (E-CAB o mecanismo alternativo); si la urgencia lo impide, autorización excepcional y regularización posterior con revisión obligatoria.",
+        "label": "Emergency change", "itsm_state": "Emergency authorize", "requires_human": True,
+        "risk": "High", "approval": "Express approval (E-CAB) / later regularisation",
+        "detail": "Urgent intervention for a critical vulnerability, active exploitation or imminent risk; remediation target within the first 24 h. Accelerated assessment, approval and implementation (E-CAB or an alternative mechanism); if urgency prevents it, exceptional authorisation and later regularisation with a mandatory review.",
     },
 }
 
@@ -600,15 +600,15 @@ def build_itsm_change(task, impact, rng):
     # Impacto/riesgo del cambio (criterios de assessment del proceso ITSM).
     bsvc = impact.get("business_services", [])
     crit = task.get("criticality", "medium")
-    impact_level = "Alto" if (crit in ("high", "critical") or bsvc) else ("Medio" if crit == "medium" else "Bajo")
-    four_eyes = ct != "standard" and (impact_level == "Alto")  # 4-ojos en cambios de mayor impacto
+    impact_level = "High" if (crit in ("high", "critical") or bsvc) else ("Medium" if crit == "medium" else "Low")
+    four_eyes = ct != "standard" and (impact_level == "High")  # four-eyes on higher-impact changes
     gxp = bool(bsvc) and crit in ("high", "critical")
 
     ctasks = [
-        {"name": "Assessment (CTASK)", "role": "Técnico L2 — revisa que el cambio está listo para aprobar/implementar",
+        {"name": "Assessment (CTASK)", "role": "L2 engineer — checks the change is ready to approve/implement",
          "auto": ct == "standard"},
-        {"name": "Implementation (CTASK)", "role": f"Ejecutor {_deploy_executor(task, rng)} — aplica el parche según procedimiento", "auto": False},
-        {"name": "Review (CTASK)", "role": "Segundo técnico distinto al ejecutor (principio 4-ojos) — confirma el resultado", "auto": False},
+        {"name": "Implementation (CTASK)", "role": f"{_deploy_executor(task, rng)} executor — applies the patch per procedure", "auto": False},
+        {"name": "Review (CTASK)", "role": "A second engineer, different from the executor (four-eyes principle) — confirms the result", "auto": False},
     ]
     return {
         "system": "ServiceNow ITSM · Change Management",
@@ -620,7 +620,7 @@ def build_itsm_change(task, impact, rng):
         "approval": meta["approval"],
         "requires_human": meta["requires_human"],
         "detail": meta["detail"],
-        "short_description": f"Remediación {task['cve']} en {task['ci_name']} ({task.get('component', '-')})",
+        "short_description": f"Remediation of {task['cve']} on {task['ci_name']} ({task.get('component', '-')})",
         "assignment_group": "CAB / Change Management",
         "phases": phases,
         "ctasks": ctasks,
@@ -696,7 +696,7 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
     if rng.random() > 0.5:
         exceptions.append({
             "asset": f"{task['ci_name']}-legacy-{rng.randint(1,9):02d}",
-            "reason": rng.choice(["Sin ventana disponible", "Congelado por cambio", "Dependencia de proveedor", "Apagado"]),
+            "reason": rng.choice(["No window available", "Change freeze", "Vendor dependency", "Powered off"]),
             "owner": task["owner"], "expires": iso(NOW + timedelta(days=30)),
             "compensating_control": "WAF rule + network isolation",
         })
@@ -706,7 +706,7 @@ def build_deployment(task, impact, progress_rings: int, rollback=None, rolled_ba
     return {
         "executor": executor, "total_assets": total_assets, "rings": rings,
         "exceptions": exceptions, "pr_url": pr_url,
-        "strategy": "promoción por entornos (Lab → Canary → Pre-prod → Prod controlado → Prod total)",
+        "strategy": "promotion across environments (Lab → Canary → Pre-prod → Controlled prod → Full prod)",
         "itsm": build_itsm_change(task, impact, rng),
         "rollback_plan": build_rollback_plan(task, impact),
         "rollback": rollback or {"status": "armed", "triggered": False},
@@ -718,14 +718,14 @@ def build_audit(task, impact, mvt, lab, proto, deploy):
         "report_id": f"AUD-{task['id'][-5:]}",
         "generated_at": iso(NOW),
         "trace": [
-            {"step": "Finding", "ref": task["cve"], "detail": f"Detectado por escáneres, VI {task['vulnerable_item_id']}"},
-            {"step": "Vulnerable Item", "ref": task["vulnerable_item_id"], "detail": f"Riesgo {task['risk_score']}/100, track {task['track']}"},
+            {"step": "Finding", "ref": task["cve"], "detail": f"Detected by the scanners, VI {task['vulnerable_item_id']}"},
+            {"step": "Vulnerable Item", "ref": task["vulnerable_item_id"], "detail": f"Risk {task['risk_score']}/100, track {task['track']}"},
             {"step": "Impact Graph", "ref": f"{impact['affected_count']} CIs", "detail": ", ".join(impact["affected_layers"])},
-            {"step": "Test Plan (MVT)", "ref": f"{len(mvt['selected'])} tests", "detail": f"Confianza {mvt['confidence']}%"},
-            {"step": "Lab results", "ref": f"{lab['passed']}/{lab['total']}", "detail": f"Veredicto {lab['verdict']}"},
-            {"step": "Prototype", "ref": proto["approach"], "detail": f"Veredicto {proto['verdict']}"},
-            {"step": "Change Request", "ref": task["change_type"], "detail": "Aprobado (CAB)"},
-            {"step": "Deployment", "ref": deploy["executor"], "detail": f"{deploy['total_assets']} activos en {len(deploy['rings'])} anillos"},
+            {"step": "Test Plan (MVT)", "ref": f"{len(mvt['selected'])} tests", "detail": f"Confidence {mvt['confidence']}%"},
+            {"step": "Lab results", "ref": f"{lab['passed']}/{lab['total']}", "detail": f"Verdict {lab['verdict']}"},
+            {"step": "Prototype", "ref": proto["approach"], "detail": f"Verdict {proto['verdict']}"},
+            {"step": "Change Request", "ref": task["change_type"], "detail": "Approved (CAB)"},
+            {"step": "Deployment", "ref": deploy["executor"], "detail": f"{deploy['total_assets']} assets across {len(deploy['rings'])} rings"},
             {"step": "Rescan & closure", "ref": "verified", "detail": "Vulnerable Item → fixed"},
         ],
         "dora_relevant": any(n for n in impact["nodes"] if n["ci_class"] == "business_service"),

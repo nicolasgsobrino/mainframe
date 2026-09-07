@@ -41,8 +41,8 @@ def test_a_passing_check_does_not_publish_the_failure_message(aws_settings):
     result = evaluate_target(aws_target(), aws_settings, instance_state="running")
 
     details = {c["check"]: c["detail"] for c in result.checks if c["ok"]}
-    assert "y la región configurada es" not in details["Región permitida"]
-    assert "no aparece como managed node" not in details["Nodo gestionado por SSM"]
+    assert "and the configured region is" not in details["Region allowed"]
+    assert "does not appear as a managed node" not in details["Node managed by SSM"]
 
 
 def test_missing_required_tag_is_rejected(aws_settings):
@@ -100,4 +100,4 @@ def test_secrets_are_redacted(secret):
 
 def test_output_is_truncated():
     assert sanitize_text("a" * 5000, 100).startswith("a" * 100)
-    assert "truncado" in sanitize_text("a" * 5000, 100)
+    assert "truncated" in sanitize_text("a" * 5000, 100)

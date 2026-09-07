@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 
-from conftest import deployment_task
+from conftest import clear_human_gates, deployment_task
 
 from app import engine
 from app.jobs import JobState
@@ -34,6 +34,7 @@ def mock_store(settings, repo) -> tuple[Store, FrozenClock]:
 
 
 def complete_ring(store: Store, clock: FrozenClock, tid: str, key: str):
+    clear_human_gates(store, tid)
     ring_no = engine.RING_DEFS[store.pipelines[tid]["rings_done"]][0]
     store.preapprove_ring(tid, ring_no)
     job = store.start_ring_patch_job(tid, key)
@@ -59,6 +60,24 @@ def test_pipeline_state_survives_a_store_restart(settings, repo):
         assert store_2.repo.get_job(job.id).state is JobState.SUCCEEDED
     finally:
         repo_2.close()
+
+
+def test_rehydration_reopens_the_rollout_when_the_target_was_replaced(settings, repo):
+    """Instancia sustituida: la evidencia describe una máquina que ya no existe."""
+    settings.lab_logical_id = "linux-patching-01"
+    store, clock = mock_store(settings, repo)
+    tid = store._lab_task_id("linux-patching-01")
+    job, ring_no = complete_ring(store, clock, tid, "key-replaced")
+    assert store.pipelines[tid]["rings_done"] == ring_no
+    lab = store.repo.get_lab_target("linux-patching-01")
+    lab.previous_instance_id = next(t.instance_id for t in job.targets if t.instance_id)
+    lab.current_instance_id = "i-0ffff11112222aaaa"
+    store.repo.upsert_lab_target(lab)
+
+    store.rehydrate_pipeline_state()
+
+    assert store.pipelines[tid]["rings_done"] == 0
+    assert store.pipelines[tid]["ring_evidence"] == {}
 
 
 def test_rehydration_is_idempotent(settings, repo):

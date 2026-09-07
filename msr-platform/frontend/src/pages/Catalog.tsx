@@ -16,9 +16,9 @@ export default function Catalog() {
   return (
     <div className="p-6 space-y-5 max-w-[1200px]">
       <header>
-        <div className="text-xs font-bold text-brand tracking-wider">CATÁLOGO DE PRUEBAS · VERSIONADO EN GIT</div>
-        <h1 className="text-2xl font-extrabold mt-1">Biblioteca de pruebas reutilizables</h1>
-        <p className="text-sm text-gray-400 mt-1">Perfiles de prueba deterministas por capa. Devin selecciona de aquí el Minimum Viable Test Plan según el Impact Graph.</p>
+        <div className="text-xs font-bold text-brand tracking-wider">TEST CATALOGUE · VERSIONED IN GIT</div>
+        <h1 className="text-2xl font-extrabold mt-1">Library of reusable tests</h1>
+        <p className="text-sm text-gray-400 mt-1">Deterministic test profiles by layer. Devin picks the Minimum Viable Test Plan from here based on the Impact Graph.</p>
       </header>
 
       {layers.map((layer) => (
@@ -26,7 +26,7 @@ export default function Catalog() {
           <div className="px-4 py-2.5 border-b border-line flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-sm" style={{ background: LAYER_COLOR[layer] }} />
             <span className="text-sm font-semibold capitalize">{layer}</span>
-            <span className="text-xs text-gray-500">{rows.filter((r) => r.layer === layer).length} pruebas</span>
+            <span className="text-xs text-gray-500">{rows.filter((r) => r.layer === layer).length} tests</span>
           </div>
           <table className="w-full text-sm">
             <tbody>
@@ -35,9 +35,9 @@ export default function Catalog() {
                   <td className="px-4 py-2 font-mono text-xs text-gray-500 w-28">{t.id}</td>
                   <td className="px-2 py-2 text-gray-200">{t.name}</td>
                   <td className="px-2 py-2"><span className="chip bg-ink-panel text-gray-400">{t.tool}</span></td>
-                  <td className="px-2 py-2 text-xs text-gray-500">tipo: {t.remediation_type}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500">type: {t.remediation_type}</td>
                   <td className="px-2 py-2 text-xs text-gray-500">crit: {t.criticality}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500">evidencia: {t.evidence}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500">evidence: {t.evidence}</td>
                 </tr>
               ))}
             </tbody>

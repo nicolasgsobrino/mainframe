@@ -1,25 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ApiError, api, releaseIdempotencyKey } from "../api";
-import type { TaskDetail as TD, FlowStep, Ring, ItsmChange, Deployment, PatchJob, LabPatchEvidence,
+import type { TaskDetail as TD, FlowStep, HitlGate, Ring, ItsmChange, Deployment, PatchJob, LabPatchEvidence,
   ExecutionMode } from "../types";
 import { Priority, Track, Risk, KevTag, PHASE_META, LaneTag, LANE_META, AUTOMATION_META, SlaTag } from "../ui";
 import ImpactGraphView from "../components/ImpactGraphView";
 import LabPanel from "../components/LabPanel";
+import { DemoAdvanceControl, HitlRail } from "../components/flow";
+import { useDemo } from "../demo";
 import { useView } from "../view";
 
 const PHASE_IDS = ["detection", "prioritization", "pre_implementation", "lab_testing", "prototype", "deployment"];
 
 const JOB_STATE_LABEL: Record<string, string> = {
-  queued: "En cola", validating: "Validando objetivo", dry_run: "Dry-run (sin cambios)",
-  starting: "Arrancando", running: "En ejecución", verifying: "Verificando",
-  succeeded: "Completado", failed: "Fallido", cancelling: "Cancelando",
-  cancelled: "Cancelado", restore_queued: "Restauración en cola",
-  restoring: "Restaurando", restored: "Restaurado", restore_failed: "Restauración fallida",
-  timed_out: "Tiempo agotado",
-  timeout_pending_confirmation: "Timeout local · pendiente de confirmar en AWS",
-  remote_status_unknown: "Estado remoto desconocido",
-  stop_requested: "Parada solicitada a AWS",
+  queued: "Queued", validating: "Validating the target", dry_run: "Dry-run (no changes)",
+  starting: "Starting", running: "Running", verifying: "Verifying",
+  succeeded: "Completed", failed: "Failed", cancelling: "Cancelling",
+  cancelled: "Cancelled", restore_queued: "Restore queued",
+  restoring: "Restoring", restored: "Restored", restore_failed: "Restore failed",
+  timed_out: "Timed out",
+  timeout_pending_confirmation: "Local timeout · pending confirmation in AWS",
+  remote_status_unknown: "Remote status unknown",
+  stop_requested: "Stop requested from AWS",
 };
 /** El runbook aborta con este error cuando el objetivo ya estaba parcheado. */
 const alreadyFixed = (job: PatchJob) => !!job.error_message?.includes("KERNEL_ALREADY_FIXED");
@@ -36,8 +38,8 @@ const JOB_STATE_TONE: Record<string, string> = {
 const jobTone = (state: string) => JOB_STATE_TONE[state] ?? "bg-amber-500/15 text-amber-300";
 /** Etiqueta del modo de ejecución: mock, AWS dry-run o AWS real. */
 const executionModeLabel = (job: PatchJob): string => {
-  if (job.provider === "mock") return "Simulación (mock)";
-  return job.dry_run ? "AWS · dry-run (sin cambios reales)" : "AWS Systems Manager · ejecución real";
+  if (job.provider === "mock") return "Simulation (mock)";
+  return job.dry_run ? "AWS · dry-run (no real changes)" : "AWS Systems Manager · live execution";
 };
 
 const toError = (e: unknown) =>
@@ -53,7 +55,8 @@ function Verdict({ v }: { v: string }) {
 export default function TaskDetail() {
   const { id } = useParams();
   const { role } = useView();
-  const isTech = role === "tech";
+  const { active: demo } = useDemo();
+  const isTech = role === "technical";
   const [d, setD] = useState<TD | null>(null);
   const [sel, setSel] = useState<number>(0);
   const [busy, setBusy] = useState(false);
@@ -92,7 +95,7 @@ export default function TaskDetail() {
     return () => window.clearInterval(timer);
   }, [activeJob, id, pollMs, apply]);
 
-  if (!d) return <div className="p-8 text-gray-500">Cargando…</div>;
+  if (!d) return <div className="p-8 text-gray-500">Loading…</div>;
   const { task, vulnerable_item: vi, artifacts: a } = d;
   const done = task.status === "remediated";
   const currentPhaseId = PHASE_IDS[d.phase_index];
@@ -115,6 +118,9 @@ export default function TaskDetail() {
   };
 
   const approve = () => run(() => api.approve(id!, d.rings_done + 1));
+  // Verificación humana registrada de un punto de control no bloqueante.
+  const verifyGate = (gate: HitlGate) =>
+    run(() => api.verifyGate(id!, gate.id, { ring: gate.ring, role }));
   const rollback = () => run(() => api.rollback(id!, d.rings_done));
   const simulate = () => run(() => api.simulateIncident(id!));
   const preapproveRing = (ring: number) => run(() => api.preapproveRing(id!, ring));
@@ -160,13 +166,13 @@ export default function TaskDetail() {
               <Track t={task.track} />
               <Priority p={task.priority} />
               {vi.kev && <KevTag />}
-              {vi.exploit_available && <span className="chip bg-red-500/10 text-red-300 border border-red-500/20">exploit disponible</span>}
+              {vi.exploit_available && <span className="chip bg-red-500/10 text-red-300 border border-red-500/20">exploit available</span>}
               {!done && <SlaTag sla={d.sla} />}
-              {done && <span className="chip bg-green-500/15 text-green-400">REMEDIADA</span>}
+              {done && <span className="chip bg-green-500/15 text-green-400">REMEDIATED</span>}
             </div>
             <h1 className="text-xl font-extrabold mt-2">{task.title}</h1>
             <div className="text-sm text-gray-400 mt-1">
-              Activo <span className="text-gray-200">{task.ci_name}</span> · {task.environment} · owner {task.owner}
+              Asset <span className="text-gray-200">{task.ci_name}</span> · {task.environment} · owner {task.owner}
             </div>
           </div>
           <div className="text-right shrink-0">
@@ -178,10 +184,10 @@ export default function TaskDetail() {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mt-4 text-xs">
           <Meta k="CVSS" v={vi.cvss.toFixed(1)} />
           <Meta k="EPSS" v={`${(vi.epss * 100).toFixed(0)}%`} />
-          <Meta k="Componente" v={`${vi.component} ${vi.vulnerable_version}`} />
-          <Meta k="Expuesto" v={task.exposed ? "Sí (internet)" : "No"} />
+          <Meta k="Component" v={`${vi.component} ${vi.vulnerable_version}`} />
+          <Meta k="Exposed" v={task.exposed ? "Yes (internet)" : "No"} />
           <Meta k="SLA" v={task.sla_due.slice(0, 10)} />
-          <Meta k="Fuentes" v={vi.sources.length + " scanners"} />
+          <Meta k="Sources" v={vi.sources.length + " scanners"} />
         </div>
       </div>
 
@@ -191,12 +197,12 @@ export default function TaskDetail() {
           labId={task.logical_lab_id}
           onPatch={approve}
           patchBlockedReason={labPatch
-            ? `Parcheo ya confirmado (kernel ${labPatch.kernel ?? "—"}, ejecución ${labPatch.execution_id}). `
-              + "Para repetirlo hay que resetear antes el laboratorio."
+            ? `Patching already confirmed (kernel ${labPatch.kernel ?? "—"}, execution ${labPatch.execution_id}). `
+              + "To repeat it the lab must be reset first."
             : canApprove ? null
-              : done ? "La tarea ya está remediada."
-                : jobRunning ? "Hay un job activo sobre el laboratorio."
-                  : "La fase actual no permite todavía ejecutar el parcheo."}
+              : done ? "The task is already remediated."
+                : jobRunning ? "There is an active job on the lab."
+                  : "The current phase does not allow patching yet."}
           locked={locked}
           onLabChange={refresh}
         />
@@ -208,8 +214,8 @@ export default function TaskDetail() {
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm text-red-300 flex items-center gap-2">
           <span className="text-lg">⚠</span>
           <span>
-            <b>SLA vencido</b> — due date {d.sla.due.slice(0, 10)}, superado hace <b>{d.sla.days_overdue} día(s)</b>.
-            Esta remediación está fuera de plazo; prioriza su ejecución.
+            <b>SLA breached</b> — due date {d.sla.due.slice(0, 10)}, overdue by <b>{d.sla.days_overdue} day(s)</b>.
+            This remediation is past due; prioritise its execution.
           </span>
         </div>
       )}
@@ -217,19 +223,19 @@ export default function TaskDetail() {
       {/* Resumen ejecutivo — vista Gestor */}
       {!isTech && (
         <div className="card p-5">
-          <div className="text-sm font-semibold text-gray-100 mb-1">Resumen ejecutivo</div>
+          <div className="text-sm font-semibold text-gray-100 mb-1">Executive summary</div>
           <div className="text-xs text-gray-500 mb-3">
-            Vista de gestión — riesgo, plazo, impacto de negocio y estado. Cambia a <b>Técnico</b> (barra lateral) para el detalle operativo.
+            Management view — risk, deadline, business impact and status. Switch to <b>Technical</b> (side bar) for the operational detail.
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Meta k="Carril / SLA" v={`${d.lane_meta.label} · ${d.lane_meta.sla}`} />
-            <Meta k="Riesgo" v={`${task.risk_score}/100 · ${task.priority}`} />
-            <Meta k="Fase actual" v={PHASE_META[currentPhaseId].label} />
-            <Meta k="Anillos desplegados" v={`${d.rings_done}/${a.deployment.rings.length}`} />
-            <Meta k="CIs impactados" v={String(a.impact.affected_count)} />
-            <Meta k="Servicios de negocio" v={a.impact.business_services.length ? a.impact.business_services.join(", ") : "—"} />
+            <Meta k="Lane / SLA" v={`${d.lane_meta.label} · ${d.lane_meta.sla}`} />
+            <Meta k="Risk" v={`${task.risk_score}/100 · ${task.priority}`} />
+            <Meta k="Current phase" v={PHASE_META[currentPhaseId].label} />
+            <Meta k="Rings deployed" v={`${d.rings_done}/${a.deployment.rings.length}`} />
+            <Meta k="CIs impacted" v={String(a.impact.affected_count)} />
+            <Meta k="Business services" v={a.impact.business_services.length ? a.impact.business_services.join(", ") : "—"} />
             <Meta k="Due date" v={task.sla_due.slice(0, 10)} />
-            <Meta k="Rollback" v={a.deployment.rollback.triggered ? "Ejecutado" : "Armado"} />
+            <Meta k="Rollback" v={a.deployment.rollback.triggered ? "Executed" : "Armed"} />
           </div>
         </div>
       )}
@@ -237,8 +243,8 @@ export default function TaskDetail() {
       {/* Phase stepper */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold">Ciclo de remediación · 6 fases</div>
-          <div className="text-xs text-gray-500">ServiceNow gobierna · Devin ejecuta · HITL en cada transición</div>
+          <div className="text-sm font-semibold">Remediation cycle · 6 phases</div>
+          <div className="text-xs text-gray-500">ServiceNow governs · Devin executes · HITL at every transition</div>
         </div>
         <div className="flex items-center">
           {d.phases.map((p, i) => {
@@ -270,7 +276,7 @@ export default function TaskDetail() {
       <div className="card p-4" style={{ borderLeft: `3px solid ${LANE_META[d.lane].dot}` }}>
         <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
           <div className="text-sm font-semibold flex items-center gap-2">
-            Carril operativo · <LaneTag lane={d.lane} />
+            Operational lane · <LaneTag lane={d.lane} />
             <span className="text-xs font-normal text-gray-400">{d.lane_meta.sla}</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -282,7 +288,7 @@ export default function TaskDetail() {
           </div>
         </div>
         <div className="text-xs text-gray-500 mb-3">
-          Asignado por el triage (CMDB como risk engine) · {d.lane_meta.automation}
+          Assigned by triage (CMDB as risk engine) · {d.lane_meta.automation}
         </div>
         <div className="flex flex-wrap items-stretch gap-2">
           {d.lane_flow.shared.map((s, i) => (
@@ -299,23 +305,23 @@ export default function TaskDetail() {
       {/* Mapa de dependencias y afectados — visible siempre en la Remediation Task */}
       <div className="card p-5">
         <div className="mb-3">
-          <div className="text-sm font-semibold text-gray-100">Mapa de dependencias y afectados (Impact Graph)</div>
+          <div className="text-sm font-semibold text-gray-100">Dependency and impact map (Impact Graph)</div>
           <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-            Blast radius de la vulnerabilidad calculado desde la CMDB (relaciones CI→CI). Raíz: <span className="font-mono text-gray-300">{task.ci_name}</span> ·
-            {" "}{a.impact.affected_count} CIs afectados · capas: {a.impact.affected_layers.join(", ")}.
+            Blast radius of the vulnerability computed from the CMDB (CI→CI relationships). Root: <span className="font-mono text-gray-300">{task.ci_name}</span> ·
+            {" "}{a.impact.affected_count} affected CIs · layers: {a.impact.affected_layers.join(", ")}.
           </div>
         </div>
         <div className="flex flex-wrap gap-2 mb-3 text-xs">
-          <span className="chip bg-red-500/15 text-red-300 border border-red-500/30">Raíz vulnerable: {task.ci_name}</span>
-          <span className="chip bg-ink-panel text-gray-300 border border-line">{a.impact.affected_count} CIs afectados</span>
+          <span className="chip bg-red-500/15 text-red-300 border border-red-500/30">Vulnerable root: {task.ci_name}</span>
+          <span className="chip bg-ink-panel text-gray-300 border border-line">{a.impact.affected_count} affected CIs</span>
           {a.impact.business_services.map((s) => (
             <span key={s} className="chip bg-purple-500/15 text-purple-300 border border-purple-500/30">svc: {s}</span>
           ))}
         </div>
         <ImpactGraphView nodes={a.impact.nodes} edges={a.impact.edges} height={340} />
         <div className="mt-2 text-[11px] text-gray-500 leading-relaxed">
-          Devin selecciona los activos a remediar a partir de este grafo: los CIs dependientes del nodo raíz son los que quedan
-          expuestos por la vulnerabilidad y determinan el alcance de los anillos de despliegue.
+          Devin selects the assets to remediate from this graph: the CIs depending on the root node are the ones exposed by
+          the vulnerability and they determine the scope of the deployment rings.
         </div>
       </div>
 
@@ -325,7 +331,7 @@ export default function TaskDetail() {
             <b>{error.code}</b> — {error.message}
             {error.correlationId && <span className="text-red-400/70 font-mono text-xs"> · {error.correlationId}</span>}
           </span>
-          <button className="text-xs text-red-200/70 hover:text-red-100" onClick={() => setError(null)}>cerrar</button>
+          <button className="text-xs text-red-200/70 hover:text-red-100" onClick={() => setError(null)}>close</button>
         </div>
       )}
 
@@ -352,7 +358,7 @@ export default function TaskDetail() {
                   <span className="text-gray-400 leading-relaxed">{l.msg}</span>
                 </div>
               ))}
-              {phaseLogs.length === 0 && <div className="text-xs text-gray-600">Fase pendiente. El agente trabajará al llegar aquí.</div>}
+              {phaseLogs.length === 0 && <div className="text-xs text-gray-600">Phase pending. The agent starts once the flow reaches it.</div>}
             </div>
           </div>
 
@@ -362,62 +368,73 @@ export default function TaskDetail() {
           )}
 
           {/* HITL control */}
-          <div className="card p-4">
-            <div className="text-sm font-semibold mb-1">Aprobación humana (HITL)</div>
+          <div className="card p-4 space-y-3">
+            <div className="text-sm font-semibold">Human approval (HITL)</div>
+
+            {demo && (
+              <DemoAdvanceControl detail={d} busy={locked}
+                onVerify={verifyGate}
+                onPreapprove={async (ring) => { await preapproveRing(ring); }}
+                onAdvance={async () => { await approve(); }} />
+            )}
+
+            <HitlRail gates={d.journey.gates.filter((g) => g.status !== "upcoming")}
+                      onVerify={verifyGate} stacked />
+
             {done ? (
               <div className="space-y-3">
-                <div className="text-xs text-green-400">Tarea remediada. Vulnerable Item cerrado con evidencia de auditoría.</div>
-                <div className="text-xs text-gray-400">¿Anomalía detectada en producción tras el despliegue? Puedes ejecutar un rollback.</div>
+                <div className="text-xs text-green-400">Task remediated. Vulnerable Item closed with audit evidence.</div>
+                <div className="text-xs text-gray-400">Anomaly spotted in production after the rollout? You can run a rollback.</div>
                 <button disabled={locked} onClick={rollback}
                   className="btn w-full justify-center btn-ghost border border-amber-500/40 text-amber-300 hover:bg-amber-500/10">
-                  {locked ? "Procesando…" : "⟲ Ejecutar rollback del último anillo"}
+                  {locked ? "Processing…" : "⟲ Roll back the last ring"}
                 </button>
               </div>
             ) : (
               <>
                 <div className="text-xs text-gray-400 mb-3">
-                  Fase actual: <span className="font-semibold" style={{ color: PHASE_META[currentPhaseId].color }}>{PHASE_META[currentPhaseId].label}</span>.
+                  Current phase: <span className="font-semibold" style={{ color: PHASE_META[currentPhaseId].color }}>{PHASE_META[currentPhaseId].label}</span>.
                   {currentPhaseId === "deployment"
-                    ? ` Aprobar despliega el siguiente anillo (${d.rings_done}/5 completados).`
-                    : " Devin propone; el owner aprueba para avanzar."}
+                    ? ` Approving deploys the next ring (${d.rings_done}/5 completed).`
+                    : " Devin proposes; the owner approves to move on."}
                 </div>
                 {!canApprove && currentPhaseId === "lab_testing" && (
-                  <div className="text-xs text-red-400 mb-2">⚠ El MVT ha fallado en laboratorio. ServiceNow bloquea el avance (rollback / análisis).</div>
+                  <div className="text-xs text-red-400 mb-2">⚠ The MVT failed in the lab. ServiceNow blocks progress (rollback / analysis).</div>
                 )}
                 {labPatch && currentPhaseId === "deployment" && !done && (
                   <div className="text-xs text-green-400 mb-2">
-                    ✓ La instancia ya está parcheada y verificada: los anillos restantes se
-                    aprueban y se cierran con esa evidencia, sin relanzar la Automation.
+                    ✓ The instance is already patched and verified: the remaining rings are
+                    approved and closed with that evidence, without re-running the Automation.
                   </div>
                 )}
                 {!nextRingPreapproved && currentPhaseId === "deployment" && nextRing && (
-                  <div className="text-xs text-amber-300 mb-2">⚠ El anillo {nextRing.ring} requiere revisión y <b>pre-aprobación Human-Driven</b> de su informe pre-anillo (arriba, en Fase 6) antes de desplegar.</div>
+                  <div className="text-xs text-amber-300 mb-2">⚠ Ring {nextRing.ring} needs review and <b>Human-driven pre-approval</b> of its pre-ring report (above, in Phase 6) before deploying.</div>
                 )}
                 {jobRunning && (
-                  <div className="text-xs text-amber-300 mb-2">⏳ Job {activeJob!.id} en curso ({JOB_STATE_LABEL[activeJob!.state] ?? activeJob!.state}). Las acciones mutativas están bloqueadas hasta que finalice.</div>
+                  <div className="text-xs text-amber-300 mb-2">⏳ Job {activeJob!.id} in progress ({JOB_STATE_LABEL[activeJob!.state] ?? activeJob!.state}). Mutating actions are blocked until it finishes.</div>
                 )}
                 {lastJob?.terminal && lastJob.dry_run && (
                   <div className="text-xs text-sky-300 mb-2">
-                    ⓘ Job {lastJob.id} terminado en <b>dry-run</b>: se ha validado el objetivo y
-                    planificado la Automation, pero no se ha aplicado nada. El anillo avanza como
-                    ensayo del recorrido y queda marcado «simulado». El detalle está arriba, en
-                    «Ejecución del parche».
+                    ⓘ Job {lastJob.id} finished in <b>dry-run</b>: the target was validated and the
+                    Automation planned, but nothing was applied. The ring advances as a rehearsal of
+                    the journey and is marked “simulated”. The detail is above, under
+                    “Patch execution”.
                   </div>
                 )}
                 <button disabled={locked || !canApprove} onClick={approve}
                   className={`btn w-full justify-center ${canApprove && !locked ? "btn-brand" : "btn-ghost opacity-50 cursor-not-allowed"}`}>
-                  {locked ? "Procesando…" : currentPhaseId === "deployment" ? "Aprobar y desplegar anillo" : "Aprobar fase y avanzar"}
+                  {locked ? "Processing…" : currentPhaseId === "deployment" ? "Approve and deploy the ring" : "Approve the phase and move on"}
                 </button>
                 {currentPhaseId === "deployment" && d.rings_done > 0 && (
                   <div className="mt-3 pt-3 border-t border-line space-y-2">
-                    <div className="text-[11px] text-gray-500">Gestión de rollback (anillo {d.rings_done} desplegado)</div>
+                    <div className="text-[11px] text-gray-500">Rollback management (ring {d.rings_done} deployed)</div>
                     <button disabled={locked} onClick={rollback}
                       className="btn w-full justify-center btn-ghost border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs">
-                      ⟲ Rollback manual del anillo
+                      ⟲ Manual rollback of the ring
                     </button>
                     <button disabled={locked} onClick={simulate}
                       className="btn w-full justify-center btn-ghost border border-red-500/40 text-red-300 hover:bg-red-500/10 text-xs">
-                      ⚠ Simular incidente → rollback automático
+                      ⚠ Simulate an incident → automatic rollback
                     </button>
                   </div>
                 )}
@@ -432,23 +449,22 @@ export default function TaskDetail() {
 
 /** Parcheo ya confirmado sobre el objetivo: estado del recurso, no de un intento. */
 function PatchConfirmed({ evidence, mode }: { evidence: LabPatchEvidence; mode: ExecutionMode }) {
-  const source = mode === "mock" ? "la simulaci\u00f3n (mock)" : "AWS Systems Manager";
+  const source = mode === "mock" ? "the simulation (mock)" : "AWS Systems Manager";
   return (
     <div className="rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-300">
       <div className="font-semibold flex items-center gap-2">
-        <span className="text-lg">✓</span> Parcheo confirmado por {source}
+        <span className="text-lg">✓</span> Patching confirmed by {source}
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-xs text-gray-300">
-        <Meta k="Kernel actual" v={evidence.kernel ?? "—"} />
-        <Meta k="Instancia" v={evidence.instance_id ?? "—"} />
+        <Meta k="Current kernel" v={evidence.kernel ?? "—"} />
+        <Meta k="Instance" v={evidence.instance_id ?? "—"} />
         <Meta k="Automation" v={evidence.execution_id} />
-        <Meta k="Confirmado" v={evidence.patched_at ? new Date(evidence.patched_at).toLocaleString("es-ES") : "—"} />
+        <Meta k="Confirmed" v={evidence.patched_at ? new Date(evidence.patched_at).toLocaleString("en-GB") : "—"} />
       </div>
       <div className="text-[11px] text-green-200/80 mt-2">
-        La instancia está en la versión corregida: los anillos que aún queden por aprobar la
-        resuelven como objetivo y se cierran con esta evidencia, sin relanzar la Automation. Para
-        repetir el parcheo hay que resetear el laboratorio, que recrea la instancia desde la AMI
-        vulnerable.
+        The instance is on the fixed version: the rings still awaiting approval resolve it as their
+        target and close with this evidence, without re-running the Automation. To repeat the
+        patching the lab must be reset, which recreates the instance from the vulnerable AMI.
       </div>
     </div>
   );
@@ -466,35 +482,35 @@ function JobCard({ job, execution, busy, onCancel }: {
   return (
     <div className="card overflow-hidden">
       <div className="px-4 py-3 border-b border-line flex items-center justify-between gap-2">
-        <div className="text-sm font-semibold">Ejecución del parche</div>
+        <div className="text-sm font-semibold">Patch execution</div>
         <span className={`chip ${jobTone(job.state)}`}>{JOB_STATE_LABEL[job.state] ?? job.state}</span>
       </div>
       <div className="p-4 space-y-2 text-xs">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="chip bg-ink border border-line text-gray-300">{executionModeLabel(job)}</span>
-          {job.dry_run && <span className="chip bg-sky-500/15 text-sky-300">dry-run · el parche NO se ha aplicado</span>}
+          {job.dry_run && <span className="chip bg-sky-500/15 text-sky-300">dry-run · the patch was NOT applied</span>}
           {job.unconfirmed && (
-            <span className="chip bg-orange-500/15 text-orange-300">estado remoto sin confirmar · el objetivo sigue bloqueado</span>
+            <span className="chip bg-orange-500/15 text-orange-300">remote state unconfirmed · the target stays locked</span>
           )}
-          <span className="text-gray-500">{job.job_type === "patch" ? "parcheo" : job.job_type === "rollback" ? "rollback" : "reset de laboratorio"}</span>
+          <span className="text-gray-500">{job.job_type === "patch" ? "patching" : job.job_type === "rollback" ? "rollback" : "lab reset"}</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Meta k="Job" v={job.id} />
           <Meta k="Provider" v={job.provider} />
-          <Meta k="Anillo" v={job.ring_number ? String(job.ring_number) : "—"} />
-          <Meta k="Referencia" v={job.provider_reference ?? "—"} />
+          <Meta k="Ring" v={job.ring_number ? String(job.ring_number) : "—"} />
+          <Meta k="Reference" v={job.provider_reference ?? "—"} />
         </div>
         {target && (
           <div className="grid grid-cols-2 gap-2">
-            <Meta k="Objetivo" v={target.name || target.logical_target_id} />
-            <Meta k="Instance ID" v={target.instance_id ?? "sin resolver"} />
-            <Meta k="Región" v={target.region ?? "—"} />
-            <Meta k="SSM" v={target.ssm_managed ? "gestionado" : "no gestionado"} />
+            <Meta k="Target" v={target.name || target.logical_target_id} />
+            <Meta k="Instance ID" v={target.instance_id ?? "unresolved"} />
+            <Meta k="Region" v={target.region ?? "—"} />
+            <Meta k="SSM" v={target.ssm_managed ? "managed" : "not managed"} />
           </div>
         )}
         {execution && (
           <div className="text-[11px] text-gray-600">
-            Modo {execution.mode}{execution.strict_policy ? " · política fail-closed" : " · política relajada (mock/dry-run)"} · refresco cada {execution.poll_interval_seconds}s · provider de restauración {execution.restore_provider}{execution.reconciler?.running ? " · reconciliador activo en el backend" : ""}
+            Mode {execution.mode}{execution.strict_policy ? " · fail-closed policy" : " · relaxed policy (mock/dry-run)"} · refresh every {execution.poll_interval_seconds}s · restore provider {execution.restore_provider}{execution.reconciler?.running ? " · reconciler active in the backend" : ""}
           </div>
         )}
         {job.error_code && (
@@ -503,8 +519,8 @@ function JobCard({ job, execution, busy, onCancel }: {
             <div className="font-mono text-[10px] text-red-400/70">{job.correlation_id}</div>
             {alreadyFixed(job) && (
               <div className="text-[11px] text-amber-200 mt-1">
-                El runbook abortó porque la instancia <b>ya tenía el kernel corregido</b>: es un
-                intento rechazado sobre un objetivo ya parcheado, no un parcheo fallido.
+                The runbook aborted because the instance <b>already had the fixed kernel</b>: it is a
+                rejected attempt on an already patched target, not a failed patch.
               </div>
             )}
           </div>
@@ -524,13 +540,13 @@ function JobCard({ job, execution, busy, onCancel }: {
         )}
         {job.events && job.events.length > 0 && (
           <div className="text-[11px] text-gray-600">
-            Último evento: {job.events[job.events.length - 1].message}
+            Last event: {job.events[job.events.length - 1].message}
           </div>
         )}
         {running && (
           <button disabled={busy} onClick={() => onCancel(job.id)}
             className="btn w-full justify-center btn-ghost border border-line text-gray-300 text-xs">
-            Cancelar job
+            Cancel job
           </button>
         )}
       </div>
@@ -571,15 +587,15 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
 
   if (phaseId === "detection")
     return (
-      <Panel title="Fase 1 · Detección e ingesta" sub="ServiceNow Vulnerability Response — normalización y correlación con CMDB">
+      <Panel title="Phase 1 · Detection and ingestion" sub="ServiceNow Vulnerability Response — normalisation and correlation with the CMDB">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <Meta k="Vulnerable Item" v={vi.id} />
-          <Meta k="Detectado" v={vi.detected_at.slice(0, 10)} />
-          <Meta k="Identificador" v={vi.cve} />
-          <Meta k="CI asociado" v={`${vi.ci_id} (${vi.ci_class})`} />
+          <Meta k="Detected" v={vi.detected_at.slice(0, 10)} />
+          <Meta k="Identifier" v={vi.cve} />
+          <Meta k="Linked CI" v={`${vi.ci_id} (${vi.ci_class})`} />
         </div>
         <div className="mt-3">
-          <div className="text-xs text-gray-500 mb-1">Fuentes correlacionadas (deduplicadas)</div>
+          <div className="text-xs text-gray-500 mb-1">Correlated sources (deduplicated)</div>
           <div className="flex flex-wrap gap-2">
             {vi.sources.map((s) => <span key={s} className="chip bg-ink-panel text-gray-300 border border-line">{s}</span>)}
           </div>
@@ -589,13 +605,13 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
 
   if (phaseId === "prioritization")
     return (
-      <Panel title="Fase 2 · Priorización" sub="Prioridad = riesgo técnico + negocio + operativo + SLA (no solo CVSS)">
+      <Panel title="Phase 2 · Prioritisation" sub="Priority = technical + business + operational risk + SLA (not just CVSS)">
         <div className="space-y-2">
           {[
-            ["Riesgo técnico (CVSS)", vi.cvss * 4, 40, `CVSS ${vi.cvss}`],
-            ["Explotabilidad (EPSS/KEV)", vi.epss * 20 + (vi.kev ? 12 : 0), 32, `EPSS ${(vi.epss * 100).toFixed(0)}% ${vi.kev ? "· KEV" : ""}`],
-            ["Contexto de negocio", { critical: 18, high: 12, medium: 6, low: 2 }[task.criticality] || 6, 18, `${task.criticality}`],
-            ["Exposición", task.exposed ? 10 : 0, 10, task.exposed ? "Internet-facing" : "Interno"],
+            ["Technical risk (CVSS)", vi.cvss * 4, 40, `CVSS ${vi.cvss}`],
+            ["Exploitability (EPSS/KEV)", vi.epss * 20 + (vi.kev ? 12 : 0), 32, `EPSS ${(vi.epss * 100).toFixed(0)}% ${vi.kev ? "· KEV" : ""}`],
+            ["Business context", { critical: 18, high: 12, medium: 6, low: 2 }[task.criticality] || 6, 18, `${task.criticality}`],
+            ["Exposure", task.exposed ? 10 : 0, 10, task.exposed ? "Internet-facing" : "Internal"],
           ].map(([label, val, max, note]: any) => (
             <div key={label}>
               <div className="flex justify-between text-xs mb-1">
@@ -609,10 +625,10 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
         <div className="mt-4 p-3 rounded-lg bg-ink border border-line text-sm">
           <div className="text-xs text-brand font-semibold mb-1">Reachability analysis (Devin)</div>
           {task.track === "B"
-            ? <span className="text-gray-300">Devin analizó el repositorio <span className="font-mono text-xs">{task.ci_name}</span>: el componente <span className="font-mono text-xs">{vi.component}</span> {task.exposed ? "ES alcanzable en runtime → mantiene prioridad alta." : "no es alcanzable directamente → candidato a excepción documentada."}</span>
+            ? <span className="text-gray-300">Devin analysed the repository <span className="font-mono text-xs">{task.ci_name}</span>: the component <span className="font-mono text-xs">{vi.component}</span> {task.exposed ? "IS reachable at runtime → keeps high priority." : "is not directly reachable → candidate for a documented exception."}</span>
             : task.track === "C"
-            ? <span className="text-gray-300">Devin analizó la imagen/manifiestos de <span className="font-mono text-xs">{task.ci_name}</span>: <span className="font-mono text-xs">{vi.component}</span> presente en la imagen base {task.exposed ? "y expuesto vía ingress → prioridad alta; requiere rebuild de imagen." : "sin exposición directa → rebuild programado en ventana."}</span>
-            : <span className="text-gray-300">Activo de infraestructura {task.exposed ? "expuesto a internet" : "interno"}; prioridad ajustada por ventana de mantenimiento y criticidad del servicio.</span>}
+            ? <span className="text-gray-300">Devin analysed the image/manifests of <span className="font-mono text-xs">{task.ci_name}</span>: <span className="font-mono text-xs">{vi.component}</span> present in the base image {task.exposed ? "and exposed via ingress → high priority; requires an image rebuild." : "with no direct exposure → rebuild scheduled in a window."}</span>
+            : <span className="text-gray-300">Infrastructure asset {task.exposed ? "exposed to the internet" : "internal"}; priority adjusted by maintenance window and service criticality.</span>}
         </div>
       </Panel>
     );
@@ -620,21 +636,21 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
   if (phaseId === "pre_implementation")
     return (
       <>
-        <Panel title="Fase 3 · Impact Graph (blast radius)" sub={`Devin enriqueció el grafo desde CMDB + repos/SBOM · ${a.impact.affected_count} CIs, capas: ${a.impact.affected_layers.join(", ")}`}>
+        <Panel title="Phase 3 · Impact Graph (blast radius)" sub={`Devin enriched the graph from CMDB + repos/SBOM · ${a.impact.affected_count} CIs, layers: ${a.impact.affected_layers.join(", ")}`}>
           <ImpactGraphView nodes={a.impact.nodes} edges={a.impact.edges} height={360} />
           {a.impact.business_services.length > 0 && (
-            <div className="mt-2 text-xs text-gray-400">Servicios de negocio impactados: <span className="text-purple-300">{a.impact.business_services.join(", ")}</span></div>
+            <div className="mt-2 text-xs text-gray-400">Business services impacted: <span className="text-purple-300">{a.impact.business_services.join(", ")}</span></div>
           )}
         </Panel>
         <Panel title="Minimum Viable Test Plan (MVT)" sub={a.mvt.rationale}>
           <div className="flex items-center gap-3 mb-3">
-            <div className="chip bg-brand/15 text-brand">Confianza {a.mvt.confidence}%</div>
-            <div className="chip bg-green-500/15 text-green-400">{a.mvt.selected.length} incluidas</div>
-            <div className="chip bg-gray-500/15 text-gray-400">{a.mvt.excluded.length} excluidas</div>
+            <div className="chip bg-brand/15 text-brand">Confidence {a.mvt.confidence}%</div>
+            <div className="chip bg-green-500/15 text-green-400">{a.mvt.selected.length} included</div>
+            <div className="chip bg-gray-500/15 text-gray-400">{a.mvt.excluded.length} excluded</div>
           </div>
           <TestTable rows={a.mvt.selected} included />
           <details className="mt-3">
-            <summary className="text-xs text-gray-500 cursor-pointer">Ver pruebas excluidas y justificación</summary>
+            <summary className="text-xs text-gray-500 cursor-pointer">See excluded tests and rationale</summary>
             <div className="mt-2"><TestTable rows={a.mvt.excluded} /></div>
           </details>
         </Panel>
@@ -643,28 +659,28 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
 
   if (phaseId === "lab_testing")
     return (
-      <Panel title="Fase 4 · Ejecución de pruebas en laboratorio" sub="Devin genera y ejecuta el MVT vía CI/CD y frameworks de test">
+      <Panel title="Phase 4 · Test execution in the lab" sub="Devin generates and runs the MVT via CI/CD and test frameworks">
         <div className="flex items-center gap-3 mb-4">
-          <span className="text-sm">Veredicto agregado:</span> <Verdict v={a.lab.verdict} />
-          <span className="text-xs text-gray-400 ml-auto">{a.lab.passed}/{a.lab.total} pruebas OK</span>
+          <span className="text-sm">Aggregate verdict:</span> <Verdict v={a.lab.verdict} />
+          <span className="text-xs text-gray-400 ml-auto">{a.lab.passed}/{a.lab.total} tests OK</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ResultGroup title="Pruebas de parche" rows={a.lab.patch_tests} />
-          <ResultGroup title="Pruebas de aplicación" rows={a.lab.app_tests} />
+          <ResultGroup title="Patch tests" rows={a.lab.patch_tests} />
+          <ResultGroup title="Application tests" rows={a.lab.app_tests} />
         </div>
       </Panel>
     );
 
   if (phaseId === "prototype")
     return (
-      <Panel title="Fase 5 · Validación en entorno de prototipo" sub={`Devin aprovisiona un lab (${a.prototype.approach}) con IaC derivado del Impact Graph`}>
+      <Panel title="Phase 5 · Validation in the prototype environment" sub={`Devin provisions a lab (${a.prototype.approach}) with IaC derived from the Impact Graph`}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <Meta k="Enfoque" v={a.prototype.approach} />
-          <Meta k="Provisión" v={a.prototype.provision_tool} />
+          <Meta k="Approach" v={a.prototype.approach} />
+          <Meta k="Provisioning" v={a.prototype.provision_tool} />
           <Meta k="Teardown" v={a.prototype.teardown} />
-          <Meta k="Veredicto" v={a.prototype.verdict.toUpperCase()} />
+          <Meta k="Verdict" v={a.prototype.verdict.toUpperCase()} />
         </div>
-        <div className="text-xs text-gray-500 mb-1">Lab Blueprint (componentes aprovisionados)</div>
+        <div className="text-xs text-gray-500 mb-1">Lab Blueprint (provisioned components)</div>
         <div className="space-y-1 mb-4">
           {a.prototype.lab_blueprint.map((c, i) => (
             <div key={i} className="flex items-center gap-2 text-sm bg-ink rounded-lg px-3 py-1.5 border border-line">
@@ -692,13 +708,13 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
         onPreapprove={onPreapprove} />
 
       {isTech && (
-      <Panel title="Fase 6 · Despliegue por anillos (detalle técnico)" sub={`${a.deployment.strategy} · ejecutor: ${a.deployment.executor} · ${a.deployment.total_assets} activos`}>
+      <Panel title="Phase 6 · Ring-based rollout (technical detail)" sub={`${a.deployment.strategy} · executor: ${a.deployment.executor} · ${a.deployment.total_assets} assets`}>
         {a.deployment.pr_url && (
-          <a href={a.deployment.pr_url} target="_blank" className="chip bg-emerald-500/15 text-emerald-300 mb-3 inline-flex">PR de remediación: {a.deployment.pr_url.split("/").slice(-2).join("/")}</a>
+          <a href={a.deployment.pr_url} target="_blank" className="chip bg-emerald-500/15 text-emerald-300 mb-3 inline-flex">Remediation PR: {a.deployment.pr_url.split("/").slice(-2).join("/")}</a>
         )}
         <div className="text-xs text-gray-500 mb-2 leading-relaxed">
-          Cada anillo lleva un <b>informe pre-anillo</b> con la selección de activos que ha hecho Devin y su justificación.
-          El owner revisa, edita la selección si procede, <b>verifica y pre-aprueba (Human-Driven)</b> antes de que se pueda desplegar.
+          Every ring carries a <b>pre-ring report</b> with the asset selection Devin made and its rationale.
+          The owner reviews it, edits the selection if needed and <b>verifies and pre-approves (Human-driven)</b> before it can be deployed.
         </div>
         <div className="space-y-2">
           {a.deployment.rings.map((r) => (
@@ -708,10 +724,10 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
         </div>
         {a.deployment.exceptions.length > 0 && (
           <div className="mt-4">
-            <div className="text-xs text-gray-500 mb-1">Excepciones trazables</div>
+            <div className="text-xs text-gray-500 mb-1">Traceable exceptions</div>
             {a.deployment.exceptions.map((e, i) => (
               <div key={i} className="text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 text-amber-200">
-                <span className="font-mono">{e.asset}</span> — {e.reason}. Control compensatorio: {e.compensating_control}. Expira {e.expires.slice(0, 10)}.
+                <span className="font-mono">{e.asset}</span> — {e.reason}. Compensating control: {e.compensating_control}. Expires {e.expires.slice(0, 10)}.
               </div>
             ))}
           </div>
@@ -719,26 +735,26 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
       </Panel>
       )}
 
-      <Panel title="Gestión de Rollback" sub={`Plan armado desde el inicio y probado en lab · estrategia: ${a.deployment.rollback_plan.strategy}`}>
+      <Panel title="Rollback management" sub={`Plan armed from the start and tested in the lab · strategy: ${a.deployment.rollback_plan.strategy}`}>
         {rb.triggered && (
           <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
-              <span className="chip bg-amber-500/20 text-amber-300">ROLLBACK EJECUTADO</span>
-              <span className="chip bg-ink-panel text-gray-400">{rb.trigger_type === "auto" ? "automático" : "manual"}</span>
-              <span className="text-xs text-gray-500 ml-auto">anillo {rb.ring}</span>
+              <span className="chip bg-amber-500/20 text-amber-300">ROLLBACK EXECUTED</span>
+              <span className="chip bg-ink-panel text-gray-400">{rb.trigger_type === "auto" ? "automatic" : "manual"}</span>
+              <span className="text-xs text-gray-500 ml-auto">ring {rb.ring}</span>
             </div>
             <div className="text-xs text-amber-200">{rb.reason}</div>
-            <div className="text-xs text-gray-400 mt-1">Versión restaurada: <span className="font-mono text-gray-200">{rb.restored_version}</span> · {rb.verdict}</div>
+            <div className="text-xs text-gray-400 mt-1">Restored version: <span className="font-mono text-gray-200">{rb.restored_version}</span> · {rb.verdict}</div>
           </div>
         )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <Meta k="Estrategia" v={a.deployment.rollback_plan.strategy} />
-          <Meta k="RTO objetivo" v={`${a.deployment.rollback_plan.rto_minutes} min`} />
-          <Meta k="Versión estable" v={a.deployment.rollback_plan.target_version} />
-          <Meta k="Probado en lab" v={a.deployment.rollback_plan.tested_in_lab ? "Sí" : "No"} />
+          <Meta k="Strategy" v={a.deployment.rollback_plan.strategy} />
+          <Meta k="Target RTO" v={`${a.deployment.rollback_plan.rto_minutes} min`} />
+          <Meta k="Stable version" v={a.deployment.rollback_plan.target_version} />
+          <Meta k="Tested in the lab" v={a.deployment.rollback_plan.tested_in_lab ? "Yes" : "No"} />
         </div>
-        <div className="text-xs text-gray-500 mb-1">Disparo automático: {a.deployment.rollback_plan.auto_trigger}</div>
-        <div className="text-xs text-gray-500 mb-1 mt-3">Pasos del plan de rollback</div>
+        <div className="text-xs text-gray-500 mb-1">Automatic trigger: {a.deployment.rollback_plan.auto_trigger}</div>
+        <div className="text-xs text-gray-500 mb-1 mt-3">Rollback plan steps</div>
         <div className="space-y-1">
           {a.deployment.rollback_plan.steps.map((s, i) => (
             <div key={i} className="flex items-start gap-2 text-xs bg-ink rounded-lg px-3 py-2 border border-line">
@@ -753,7 +769,7 @@ function PhaseArtifacts({ phaseId, d, busy, isTech, onPreapprove, onSaveAssets }
         </div>
       </Panel>
 
-      <Panel title="Informe de auditoría (audit-ready)" sub={`Devin genera el informe automáticamente · ${a.audit.report_id} · ${a.audit.evidences_count} evidencias${a.audit.dora_relevant ? " · DORA relevante" : ""}`}>
+      <Panel title="Audit report (audit-ready)" sub={`Devin generates the report automatically · ${a.audit.report_id} · ${a.audit.evidences_count} evidence items${a.audit.dora_relevant ? " · DORA relevant" : ""}`}>
         <div className="space-y-1">
           {a.audit.trace.map((t, i) => (
             <div key={i} className="flex items-center gap-3 text-sm">
@@ -803,17 +819,17 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
             </div>
           ) : (
             <div className="text-[11px] text-gray-500">
-              {r.plan.is_replica ? "réplica de infra" : `real ${r.plan.pct}%`}
-              {r.plan.runs_tests ? " · pruebas ✓" : ""} · {r.plan.window}
+              {r.plan.is_replica ? "infra replica" : `real ${r.plan.pct}%`}
+              {r.plan.runs_tests ? " · tests ✓" : ""} · {r.plan.window}
             </div>
           )}
         </div>
         {pa.preapproved
-          ? <span className="chip bg-brand/15 text-brand" title={pa.note || ""}>pre-aprobado 👤</span>
+          ? <span className="chip bg-brand/15 text-brand" title={pa.note || ""}>pre-approved 👤</span>
           : r.status === "pending" || r.status === "in_progress"
-          ? <span className="chip bg-amber-500/15 text-amber-300">requiere pre-aprobación</span>
+          ? <span className="chip bg-amber-500/15 text-amber-300">needs pre-approval</span>
           : null}
-        <span className="text-xs text-gray-400">{r.plan.assets_count} CIs impactados</span>
+        <span className="text-xs text-gray-400">{r.plan.assets_count} CIs impacted</span>
         {r.result !== "-" && (
           <span className={`chip ${r.status === "rolled_back" ? "bg-amber-500/10 text-amber-300" : "bg-green-500/10 text-green-400"}`}>{r.result}</span>
         )}
@@ -824,7 +840,7 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
         <div className="border-t border-line px-3 py-3 space-y-3">
           {/* Informe pre-anillo */}
           <div className="rounded-lg bg-ink-panel border border-line p-3">
-            <div className="text-[11px] font-bold text-brand tracking-wider mb-1">INFORME PRE-ANILLO · selección de Devin</div>
+            <div className="text-[11px] font-bold text-brand tracking-wider mb-1">PRE-RING REPORT · Devin's selection</div>
             <div className="text-xs text-gray-400 leading-relaxed">{r.plan.selection_rationale}</div>
             <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-1.5">
               {r.plan.selection_criteria.map((c, i) => (
@@ -846,7 +862,7 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
           {r.plan.graph.nodes.length > 0 && (
             <div className="rounded-lg bg-ink-panel border border-line p-2">
               <div className="text-[11px] text-gray-500 mb-1">
-                CIs impactados de este anillo y sus dependencias (subgrafo del Impact Graph)
+                CIs impacted by this ring and their dependencies (Impact Graph subgraph)
               </div>
               <ImpactGraphView nodes={r.plan.graph.nodes} edges={r.plan.graph.edges} height={200} />
             </div>
@@ -856,16 +872,16 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
           <div>
             <div className="flex items-center justify-between mb-1">
               <div className="text-[11px] text-gray-500">
-                CIs impactados en el anillo ({r.plan.selected_count}/{r.plan.assets_count})
+                CIs impacted in the ring ({r.plan.selected_count}/{r.plan.assets_count})
               </div>
               {isTech && (r.status === "pending" || r.status === "in_progress") && (
                 <button onClick={() => setEditing((v) => !v)} className="btn btn-ghost text-[11px]">
-                  {editing ? "Cancelar edición" : "✎ Editar selección"}
+                  {editing ? "Cancel editing" : "✎ Edit the selection"}
                 </button>
               )}
             </div>
             {r.plan.assets.length === 0 && (
-              <div className="text-[11px] text-gray-600">Sin CIs impactados en la banda de este anillo.</div>
+              <div className="text-[11px] text-gray-600">No impacted CIs in this ring's band.</div>
             )}
             <div className="space-y-1">
               {r.plan.assets.map((as) => {
@@ -873,17 +889,17 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
                 return (
                   <div key={as.id} className={`flex items-start gap-2 text-[11px] rounded-lg px-2 py-1.5 border ${isExcl ? "border-red-500/30 bg-red-500/5 opacity-70" : "border-line bg-ink"}`}>
                     {editing && (
-                      <input type="checkbox" checked={!isExcl} onChange={() => toggle(as.id)} className="mt-0.5" title="Incluir en el anillo" />
+                      <input type="checkbox" checked={!isExcl} onChange={() => toggle(as.id)} className="mt-0.5" title="Include in the ring" />
                     )}
                     <span className={`chip shrink-0 ${isExcl ? "bg-red-500/15 text-red-300" : "bg-sky-500/15 text-sky-300"}`}>{as.ci_class}</span>
                     <div className="flex-1 min-w-0">
                       <div className="font-mono text-gray-300 truncate">
-                        {as.name} {as.is_root && <span className="chip bg-red-500/15 text-red-300">raíz</span>}
+                        {as.name} {as.is_root && <span className="chip bg-red-500/15 text-red-300">root</span>}
                         <span className="text-gray-600"> · {as.criticality} · {as.environment}</span>
                       </div>
                       <div className="text-gray-500 truncate">{as.reason}</div>
                     </div>
-                    {isExcl && <span className="chip bg-red-500/15 text-red-300 shrink-0">excluido</span>}
+                    {isExcl && <span className="chip bg-red-500/15 text-red-300 shrink-0">excluded</span>}
                   </div>
                 );
               })}
@@ -891,7 +907,7 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
             {editing && (
               <button disabled={busy} onClick={() => { onSaveAssets(r.ring, excluded); setEditing(false); }}
                 className="btn btn-ghost border border-brand/40 text-brand text-[11px] mt-2">
-                Guardar selección editada ({excluded.length} excluido/s)
+                Save the edited selection ({excluded.length} excluded)
               </button>
             )}
           </div>
@@ -900,7 +916,7 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
           {r.plan.dependencies.length > 0 && (
             <div>
               <div className="text-[11px] text-gray-500 mb-1">
-                Dependencias afectadas ({r.plan.dependencies.length}) — CIs vinculados a los impactados
+                Affected dependencies ({r.plan.dependencies.length}) — CIs linked to the impacted ones
               </div>
               <div className="space-y-1">
                 {r.plan.dependencies.map((dep) => (
@@ -908,7 +924,7 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
                     <span className="chip shrink-0 bg-purple-500/15 text-purple-300">{dep.ci_class}</span>
                     <div className="flex-1 min-w-0">
                       <div className="font-mono text-gray-300 truncate">{dep.name} <span className="text-gray-600">· {dep.criticality}</span></div>
-                      <div className="text-gray-500 truncate">{dep.relation} · vinculado a {dep.of}</div>
+                      <div className="text-gray-500 truncate">{dep.relation} · linked to {dep.of}</div>
                     </div>
                   </div>
                 ))}
@@ -916,28 +932,28 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
             </div>
           )}
 
-          {/* Revisión / pre-aprobación Human-Driven */}
+          {/* Revisión / pre-aprobación Human-driven */}
           {pa.preapproved ? (
             <div className="rounded-lg border border-brand/30 bg-brand/5 px-3 py-2 text-[11px] text-gray-300">
-              <span className="text-brand font-semibold">✓ Informe verificado y pre-aprobado (Human-Driven)</span>
-              {pa.approver && <> · por <span className="font-mono">{pa.approver}</span></>}
+              <span className="text-brand font-semibold">✓ Report verified and pre-approved (Human-driven)</span>
+              {pa.approver && <> · by <span className="font-mono">{pa.approver}</span></>}
               {pa.ts && <> · {pa.ts.slice(0, 16).replace("T", " ")}</>}
               {pa.note && <div className="text-gray-500 mt-0.5">{pa.note}</div>}
             </div>
           ) : (r.status === "pending" || r.status === "in_progress") ? (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-center gap-3">
               <div className="text-[11px] text-amber-200 flex-1">
-                Auditoría Human-Driven requerida: revisa el informe y los activos, edítalos si procede y verifica antes de desplegar.
+                Human-driven audit required: review the report and the assets, edit them if needed and verify before deploying.
               </div>
               <button disabled={busy} onClick={() => onPreapprove(r.ring)}
-                className="btn btn-brand text-[11px]">✓ Verificar y pre-aprobar</button>
+                className="btn btn-brand text-[11px]">✓ Verify and pre-approve</button>
             </div>
           ) : null}
 
           {/* Acciones ejecutadas con el por qué de cada comando */}
           {isTech && hasActions && r.actions && (
             <div className="border-t border-line pt-2 space-y-1.5 font-mono text-[11px]">
-              <div className="text-gray-500 mb-1">Acciones ejecutadas · {r.actions.from_version} → {r.actions.to_version}</div>
+              <div className="text-gray-500 mb-1">Actions executed · {r.actions.from_version} → {r.actions.to_version}</div>
               {r.actions.steps.map((s) => (
                 <div key={s.seq} className="flex items-start gap-2">
                   <span className={`chip shrink-0 ${s.actor === "Devin" ? "bg-brand/15 text-brand" : s.tool === "post-check" ? "bg-purple-500/15 text-purple-300" : "bg-sky-500/15 text-sky-300"}`}>{s.actor}</span>
@@ -960,28 +976,28 @@ function RingRow({ r, busy, isTech, onPreapprove, onSaveAssets }: {
 
 // -------------------- ITSM Change Management (governance) --------------------
 const CHANGE_STYLE: Record<string, { label: string; cls: string; dot: string }> = {
-  standard: { label: "Cambio estándar", cls: "bg-green-500/15 text-green-300 border-green-500/30", dot: "#22c55e" },
-  normal: { label: "Cambio normal", cls: "bg-sky-500/15 text-sky-300 border-sky-500/30", dot: "#38bdf8" },
-  emergency: { label: "Cambio de emergencia", cls: "bg-red-500/15 text-red-300 border-red-500/30", dot: "#ef4444" },
+  standard: { label: "Standard change", cls: "bg-green-500/15 text-green-300 border-green-500/30", dot: "#22c55e" },
+  normal: { label: "Normal change", cls: "bg-sky-500/15 text-sky-300 border-sky-500/30", dot: "#38bdf8" },
+  emergency: { label: "Emergency change", cls: "bg-red-500/15 text-red-300 border-red-500/30", dot: "#ef4444" },
 };
 
 function ItsmChangePanel({ itsm }: { itsm: ItsmChange }) {
   const st = CHANGE_STYLE[itsm.type] || CHANGE_STYLE.normal;
   return (
-    <Panel title="Gestión de Cambios (ITSM · ServiceNow Change Management)"
-      sub="Todo parcheado queda respaldado por un cambio registrado en la herramienta ITSM del cliente: trazabilidad, autorización y evidencias.">
+    <Panel title="Change Management (ITSM · ServiceNow Change Management)"
+      sub="Every patch is backed by a change recorded in the customer's ITSM tool: traceability, authorisation and evidence.">
       <div className="flex items-center gap-2 flex-wrap mb-3">
         <span className={`chip border ${st.cls}`}>{itsm.type_label}</span>
         <span className="chip bg-ink text-gray-300 border border-line font-mono">{itsm.number}</span>
-        <span className="chip bg-ink text-gray-400 border border-line">Estado: {itsm.state}</span>
-        <span className="chip bg-ink text-gray-400 border border-line">Riesgo: {itsm.risk}</span>
-        <span className="chip bg-ink text-gray-400 border border-line">Impacto: {itsm.impact_level}</span>
-        {itsm.four_eyes && <span className="chip bg-purple-500/15 text-purple-300 border border-purple-500/30" title="Implementación revisada por un segundo técnico">principio 4 ojos 👀</span>}
-        {itsm.gxp && <span className="chip bg-amber-500/15 text-amber-300 border border-amber-500/30">GxP relevante</span>}
+        <span className="chip bg-ink text-gray-400 border border-line">State: {itsm.state}</span>
+        <span className="chip bg-ink text-gray-400 border border-line">Risk: {itsm.risk}</span>
+        <span className="chip bg-ink text-gray-400 border border-line">Impact: {itsm.impact_level}</span>
+        {itsm.four_eyes && <span className="chip bg-purple-500/15 text-purple-300 border border-purple-500/30" title="Implementation reviewed by a second engineer">four-eyes principle 👀</span>}
+        {itsm.gxp && <span className="chip bg-amber-500/15 text-amber-300 border border-amber-500/30">GxP relevant</span>}
       </div>
 
       {/* Change Transaction Phases by Change Type */}
-      <div className="text-[11px] text-gray-500 mb-1">Fases de la transacción de cambio · {itsm.type_label}</div>
+      <div className="text-[11px] text-gray-500 mb-1">Change transaction phases · {itsm.type_label}</div>
       <div className="flex items-stretch gap-1 flex-wrap mb-3">
         {itsm.phases.map((p, i) => (
           <div key={p.key} className="flex items-center">
@@ -989,8 +1005,8 @@ function ItsmChangePanel({ itsm }: { itsm: ItsmChange }) {
               style={p.included ? { borderLeft: `3px solid ${st.dot}` } : {}}>
               <div className="text-[10px] font-semibold text-gray-200 leading-tight">{p.label}</div>
               {p.approval
-                ? <div className={`text-[9px] mt-0.5 ${p.included ? "text-amber-300" : "text-gray-600"}`}>● aprobación</div>
-                : <div className="text-[9px] mt-0.5 text-gray-600">{p.included ? "fase" : "no aplica"}</div>}
+                ? <div className={`text-[9px] mt-0.5 ${p.included ? "text-amber-300" : "text-gray-600"}`}>● approval</div>
+                : <div className="text-[9px] mt-0.5 text-gray-600">{p.included ? "phase" : "not applicable"}</div>}
             </div>
             {i < itsm.phases.length - 1 && <span className="text-gray-700 px-0.5">›</span>}
           </div>
@@ -999,10 +1015,10 @@ function ItsmChangePanel({ itsm }: { itsm: ItsmChange }) {
       <div className="text-[11px] text-gray-500 leading-relaxed mb-3">{itsm.detail}</div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-        <Meta k="Aprobación" v={itsm.approval} />
-        <Meta k="Entorno" v={itsm.environment} />
-        <Meta k="Parche" v={itsm.patch} />
-        <Meta k="CIs afectados" v={String(itsm.affected_cis)} />
+        <Meta k="Approval" v={itsm.approval} />
+        <Meta k="Environment" v={itsm.environment} />
+        <Meta k="Patch" v={itsm.patch} />
+        <Meta k="Affected CIs" v={String(itsm.affected_cis)} />
       </div>
 
       {/* Change Tasks (CTASK) — mínimo 3: Assessment / Implementation / Review */}
@@ -1015,7 +1031,7 @@ function ItsmChangePanel({ itsm }: { itsm: ItsmChange }) {
               <span className="text-gray-200 font-medium">{c.name}</span>
               <span className="text-gray-500"> — {c.role}</span>
             </div>
-            {c.auto && <span className="chip bg-green-500/10 text-green-400 shrink-0">automatizable</span>}
+            {c.auto && <span className="chip bg-green-500/10 text-green-400 shrink-0">automatable</span>}
           </div>
         ))}
       </div>
@@ -1036,8 +1052,8 @@ function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
 }) {
   const next = dep.rings[ringsDone];
   return (
-    <Panel title="Panel de control de implementación"
-      sub="Promoción por entornos según la realidad del cliente: Laboratorio → Canary → Pre-productivo → Productivo controlado → Productivo total. En Lab y Pre-productivo se levanta una réplica de la infraestructura y se ejecutan todas las pruebas.">
+    <Panel title="Implementation control panel"
+      sub="Promotion across environments matching the customer's reality: Lab → Canary → Pre-production → Controlled production → Full production. In Lab and Pre-production an infrastructure replica is stood up and all tests are run.">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {dep.rings.map((r, i) => {
           const stCol =
@@ -1045,9 +1061,9 @@ function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
             : r.status === "rolled_back" ? "#f59e0b"
             : r.status === "in_progress" ? "#38bdf8" : "#3f4756";
           const stLabel =
-            r.status === "completed" ? (r.simulated ? "Simulado" : "Desplegado")
-            : r.status === "rolled_back" ? "Revertido"
-            : r.status === "in_progress" ? "En curso" : "Pendiente";
+            r.status === "completed" ? (r.simulated ? "Simulated" : "Deployed")
+            : r.status === "rolled_back" ? "Rolled back"
+            : r.status === "in_progress" ? "In progress" : "Pending";
           const envKey = ringEnvKey(i);
           return (
             <div key={r.ring} className="rounded-lg border p-3 bg-ink" style={{ borderTop: `3px solid ${stCol}` }}>
@@ -1060,24 +1076,24 @@ function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
                 <div className="flex items-center gap-1">
                   <span className="chip bg-ink-panel border border-line text-gray-300">{r.plan.assets_count} CIs</span>
                   <span className={`chip ${r.plan.is_replica ? "bg-teal-500/15 text-teal-300" : "bg-sky-500/15 text-sky-300"}`}>
-                    {r.plan.is_replica ? "réplica" : `real ${r.plan.pct}%`}
+                    {r.plan.is_replica ? "replica" : `real ${r.plan.pct}%`}
                   </span>
                 </div>
                 <div>{r.plan.runs_tests
-                  ? <span className="text-green-400">✓ pruebas en entorno</span>
-                  : <span className="text-gray-500">validación por telemetría</span>}</div>
+                  ? <span className="text-green-400">✓ tests in the environment</span>
+                  : <span className="text-gray-500">validation by telemetry</span>}</div>
                 {r.simulated && (
-                  <div className="text-amber-300" title="Ensayo en dry-run: no se ha aplicado ningún parche">
-                    ⚑ dry-run · sin cambios reales
+                  <div className="text-amber-300" title="Dry-run rehearsal: no patch was applied">
+                    ⚑ dry-run · no real changes
                   </div>
                 )}
                 {r.status === "completed" && r.health && (
-                  <div className="text-gray-500">salud: {r.health.availability_pct}% avail · err {r.health.error_rate_pct}%</div>
+                  <div className="text-gray-500">health: {r.health.availability_pct}% avail · err {r.health.error_rate_pct}%</div>
                 )}
                 <div>{r.plan.approval.preapproved
-                  ? <span className="text-brand">👤 pre-aprobado</span>
+                  ? <span className="text-brand">👤 pre-approved</span>
                   : (r.status === "pending" || r.status === "in_progress")
-                  ? <span className="text-amber-300">requiere aprobación</span>
+                  ? <span className="text-amber-300">needs approval</span>
                   : <span className="text-gray-600">—</span>}</div>
               </div>
             </div>
@@ -1087,21 +1103,21 @@ function ImplementationControlPanel({ dep, ringsDone, busy, onPreapprove }: {
 
       {/* Progreso + acción de aprobación de alto nivel (sin scripts) */}
       <div className="mt-3 flex items-center gap-3 flex-wrap">
-        <div className="text-xs text-gray-400">Progreso: <b className="text-gray-200">{ringsDone}/{dep.rings.length}</b> entornos desplegados</div>
+        <div className="text-xs text-gray-400">Progress: <b className="text-gray-200">{ringsDone}/{dep.rings.length}</b> environments deployed</div>
         <div className="flex-1 h-2 rounded bg-ink min-w-[120px]">
           <div className="h-2 rounded bg-brand" style={{ width: `${(ringsDone / dep.rings.length) * 100}%` }} />
         </div>
         {dep.rollback.triggered
-          ? <span className="chip bg-amber-500/15 text-amber-300">rollback ejecutado (anillo {dep.rollback.ring})</span>
-          : <span className="chip bg-green-500/10 text-green-400">rollback armado</span>}
+          ? <span className="chip bg-amber-500/15 text-amber-300">rollback executed (ring {dep.rollback.ring})</span>
+          : <span className="chip bg-green-500/10 text-green-400">rollback armed</span>}
       </div>
       {next && !next.plan.approval.preapproved && (
         <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-center gap-3 flex-wrap">
           <div className="text-[11px] text-amber-200 flex-1">
-            Siguiente entorno: <b>{next.plan.environment || next.label}</b>. Revisa el informe y verifica la selección de activos antes de promover (auditoría Human-Driven).
+            Next environment: <b>{next.plan.environment || next.label}</b>. Review the report and verify the asset selection before promoting (Human-driven audit).
           </div>
           <button disabled={busy} onClick={() => onPreapprove(next.ring)} className="btn btn-brand text-[11px]">
-            ✓ Verificar y pre-aprobar {next.plan.environment}
+            ✓ Verify and pre-approve {next.plan.environment}
           </button>
         </div>
       )}

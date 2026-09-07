@@ -200,7 +200,7 @@ def test_a_permanent_iam_key_is_rejected_even_in_the_allowed_account(identity_se
     assert result["temporary"] is False
     assert result["static_credentials_present"] is True
     assert result["role"] == ""
-    assert "no es un rol asumido" in result["error"]
+    assert "is not an assumed role" in result["error"]
 
 
 def test_temporary_credentials_from_a_static_source_are_rejected(identity_settings):

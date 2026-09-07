@@ -29,11 +29,17 @@ def test_the_deadline_is_the_detection_plus_the_severity_window():
         assert (_dt(vitem["sla_due"]) - expected).days == vitem["sla_days"], vitem["cve"]
 
 
-def test_only_one_task_is_out_of_sla():
+def test_no_task_starts_the_demo_out_of_sla():
+    """Un plazo vencido distrae de la narrativa: el escenario arranca en plazo."""
     overdue = [t["cve"] for t in _tasks() if sla_state(t["sla_due"])["overdue"]]
-    assert overdue == ["CVE-2021-44228"]
+    assert overdue == []
+
+
+def test_only_the_walkthrough_vulnerability_is_urgent():
+    urgent = [t["cve"] for t in _tasks() if sla_state(t["sla_due"])["due_soon"]]
+    assert urgent == ["CVE-2021-44228"]
 
 
 def test_the_rest_keep_a_comfortable_margin():
     states = [sla_state(t["sla_due"]) for t in _tasks()]
-    assert all(s["days_left"] >= 3 for s in states if not s["overdue"])
+    assert all(s["days_left"] >= 3 for s in states if not s["due_soon"])

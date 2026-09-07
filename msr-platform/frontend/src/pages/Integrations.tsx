@@ -4,10 +4,10 @@ import type { Service } from "../types";
 import { StatusDot } from "../ui";
 
 const TYPE_META: Record<string, { label: string; color: string }> = {
-  control: { label: "Plano de control (ServiceNow)", color: "#0ea5e9" },
-  agent: { label: "Capa agente (Devin)", color: "#86BC25" },
-  source: { label: "Fuentes de vulnerabilidad", color: "#f59e0b" },
-  executor: { label: "Ejecución técnica", color: "#a855f7" },
+  control: { label: "Control plane (ServiceNow)", color: "#0ea5e9" },
+  agent: { label: "Agent layer (Devin)", color: "#86BC25" },
+  source: { label: "Vulnerability sources", color: "#f59e0b" },
+  executor: { label: "Technical execution", color: "#a855f7" },
 };
 
 export default function Integrations() {
@@ -19,20 +19,20 @@ export default function Integrations() {
   return (
     <div className="p-6 space-y-5 max-w-[1200px]">
       <header>
-        <div className="text-xs font-bold text-brand tracking-wider">ARQUITECTURA DE INTEGRACIÓN</div>
-        <h1 className="text-2xl font-extrabold mt-1">Integraciones y flujo de datos</h1>
-        <p className="text-sm text-gray-400 mt-1">Modelo de 3 capas: ServiceNow gobierna, Devin razona/ejecuta, herramientas del cliente despliegan. Conexión vía Flow Designer → Devin API → Table API.</p>
+        <div className="text-xs font-bold text-brand tracking-wider">INTEGRATION ARCHITECTURE</div>
+        <h1 className="text-2xl font-extrabold mt-1">Integrations and data flow</h1>
+        <p className="text-sm text-gray-400 mt-1">Three-layer model: ServiceNow governs, Devin reasons/executes, the customer's tools deploy. Connected via Flow Designer → Devin API → Table API.</p>
       </header>
 
       {/* flow diagram */}
       <div className="card p-5">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           {[
-            ["Escáneres", "#f59e0b", "Qualys · Tenable · Snyk"],
+            ["Scanners", "#f59e0b", "Qualys · Tenable · Snyk"],
             ["ServiceNow", "#0ea5e9", "VR · CMDB · Change"],
-            ["Devin API", "#86BC25", "Sesión con contexto"],
-            ["Ejecutores", "#a855f7", "Ansible · CI/CD · IaC"],
-            ["Table API", "#0ea5e9", "MVT · resultados · evidencia"],
+            ["Devin API", "#86BC25", "Session with context"],
+            ["Executors", "#a855f7", "Ansible · CI/CD · IaC"],
+            ["Table API", "#0ea5e9", "MVT · results · evidence"],
           ].map(([l, c, s], i, arr) => (
             <div key={l as string} className="flex items-center gap-2 flex-1 min-w-[150px]">
               <div className="flex-1 rounded-lg border p-3 text-center" style={{ borderColor: c as string, background: (c as string) + "12" }}>
@@ -43,7 +43,7 @@ export default function Integrations() {
             </div>
           ))}
         </div>
-        <div className="text-xs text-gray-500 mt-3 text-center">Human-in-the-loop obligatorio en cada transición de fase · un playbook de Devin por fase</div>
+        <div className="text-xs text-gray-500 mt-3 text-center">Human-in-the-loop mandatory at every phase transition · one Devin playbook per phase</div>
       </div>
 
       {groups.map((g) => (

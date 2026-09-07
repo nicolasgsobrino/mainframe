@@ -8,9 +8,9 @@ const LANE_KEYS = ["all", "critical", "accelerated", "standard"] as const;
 
 /** Filtros de drill-down: los KPIs del Overview enlazan aquí con estos parámetros. */
 const FILTER_LABELS: Record<string, Record<string, string>> = {
-  status: { in_flight: "En curso", remediated: "Remediadas" },
-  sla: { overdue: "Fuera de SLA", due_soon: "En riesgo de SLA" },
-  kev: { "1": "KEV (explotadas)" },
+  status: { in_flight: "In flight", remediated: "Remediated" },
+  sla: { overdue: "SLA breached", due_soon: "SLA at risk" },
+  kev: { "1": "KEV (exploited)" },
 };
 
 function matchesStatus(task: Task, status: string | null) {
@@ -60,29 +60,29 @@ export default function Tasks() {
       <header>
         <div className="text-xs font-bold text-brand tracking-wider">SERVICENOW · VULNERABILITY RESPONSE</div>
         <h1 className="text-2xl font-extrabold mt-1">Remediation Tasks</h1>
-        <p className="text-sm text-gray-400 mt-1">Cola priorizada por riesgo (técnico + negocio + operativo + SLA). Cada tarea recorre el ciclo de 6 fases.</p>
+        <p className="text-sm text-gray-400 mt-1">Queue prioritised by risk (technical + business + operational + SLA). Every task runs through the 6-phase cycle.</p>
       </header>
 
       <div className="flex items-center gap-3">
         <input
           value={q} onChange={(e) => setFilter("q", e.target.value)}
-          placeholder="Buscar por CVE, activo…"
+          placeholder="Search by CVE, asset…"
           className="bg-ink-soft border border-line rounded-lg px-3 py-2 text-sm w-72 outline-none focus:border-brand"
         />
         <div className="flex gap-1">
           {LANE_KEYS.map((t) => (
             <button key={t} onClick={() => setFilter("lane", t)}
               className={`btn text-xs ${lane === t ? "btn-brand" : "btn-ghost"}`}>
-              {t === "all" ? "Todos" : `Carril ${LANE_META[t].label}`}
+              {t === "all" ? "All" : `${LANE_META[t].label} lane`}
             </button>
           ))}
         </div>
-        <span className="text-xs text-gray-500 ml-auto">{filtered.length} tareas</span>
+        <span className="text-xs text-gray-500 ml-auto">{filtered.length} tasks</span>
       </div>
 
       {chips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-gray-500">Filtros:</span>
+          <span className="text-gray-500">Filters:</span>
           {chips.map((f) => (
             <button key={f.key} type="button" onClick={() => setFilter(f.key, null)}
               className="chip border border-brand/40 bg-brand/10 text-brand">
@@ -96,14 +96,14 @@ export default function Tasks() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-gray-500 border-b border-line bg-ink">
-              <th className="px-4 py-2.5 font-medium">Riesgo</th>
-              <th className="px-2 py-2.5 font-medium">CVE / Vulnerabilidad</th>
-              <th className="px-2 py-2.5 font-medium">Activo afectado</th>
-              <th className="px-2 py-2.5 font-medium">Carril</th>
-              <th className="px-2 py-2.5 font-medium">Dominio</th>
-              <th className="px-2 py-2.5 font-medium">Impacto</th>
-              <th className="px-2 py-2.5 font-medium">Fase actual</th>
-              <th className="px-2 py-2.5 font-medium">Prioridad</th>
+              <th className="px-4 py-2.5 font-medium">Risk</th>
+              <th className="px-2 py-2.5 font-medium">CVE / Vulnerability</th>
+              <th className="px-2 py-2.5 font-medium">Affected asset</th>
+              <th className="px-2 py-2.5 font-medium">Lane</th>
+              <th className="px-2 py-2.5 font-medium">Domain</th>
+              <th className="px-2 py-2.5 font-medium">Impact</th>
+              <th className="px-2 py-2.5 font-medium">Current phase</th>
+              <th className="px-2 py-2.5 font-medium">Priority</th>
               <th className="px-2 py-2.5 font-medium">SLA</th>
             </tr>
           </thead>

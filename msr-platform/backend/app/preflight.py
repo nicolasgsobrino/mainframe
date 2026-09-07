@@ -55,7 +55,7 @@ def check_lock_table() -> dict:
     detail: dict = {"table": settings.lab_lock_table_name,
                     "active_backend": STORE.lab_locks.backend_name}
     if not settings.uses_aws():
-        return _check("lock_table", False, {**detail, "error": "El provider no es AWS."})
+        return _check("lock_table", False, {**detail, "error": "The provider is not AWS."})
     backend = DynamoDbLabLockBackend(settings.lab_lock_table_name, STORE.dynamodb_client)
     try:
         lock = backend.get(settings.lab_logical_id)

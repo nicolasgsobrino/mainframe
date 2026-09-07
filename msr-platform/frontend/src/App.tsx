@@ -6,18 +6,27 @@ import Analytics from "./pages/Analytics";
 import Cmdb from "./pages/Cmdb";
 import Catalog from "./pages/Catalog";
 import Integrations from "./pages/Integrations";
+import DemoStage from "./pages/DemoStage";
+import LiveStage from "./pages/LiveStage";
 import { ViewProvider, RoleToggle, useView, ROLE_META } from "./view";
+import { DemoProvider, DemoToggle, DemoBanner, useDemo } from "./demo";
 
-const NAV = [
+const NAV: { to: string; label: string; icon: string; demoOnly?: boolean }[] = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
+  // La presentación guiada sólo existe mientras el Modo Demo está activo.
+  { to: "/demo", label: "Guided Demo", icon: "▶", demoOnly: true },
+  // Ejecución real sobre la EC2 del laboratorio: un único entorno, sin ITSM.
+  { to: "/live", label: "Live Patching", icon: "◉" },
   { to: "/tasks", label: "Remediation Tasks", icon: "◈" },
-  { to: "/analytics", label: "Analítica", icon: "◧" },
+  { to: "/analytics", label: "Analytics", icon: "◧" },
   { to: "/cmdb", label: "CMDB · Impact Graph", icon: "⧉" },
-  { to: "/catalog", label: "Catálogo de pruebas", icon: "☰" },
-  { to: "/integrations", label: "Integraciones", icon: "⇄" },
+  { to: "/catalog", label: "Test Catalogue", icon: "☰" },
+  { to: "/integrations", label: "Integrations", icon: "⇄" },
 ];
 
 function Sidebar() {
+  const { active } = useDemo();
+  const items = NAV.filter((n) => !n.demoOnly || active);
   return (
     <aside className="w-64 shrink-0 bg-ink border-r border-line flex flex-col">
       <div className="px-5 py-5 border-b border-line">
@@ -30,7 +39,7 @@ function Sidebar() {
         </div>
       </div>
       <nav className="flex-1 py-3">
-        {NAV.map((n) => (
+        {items.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
@@ -46,16 +55,28 @@ function Sidebar() {
         ))}
       </nav>
       <div className="px-5 py-4 border-t border-line space-y-2">
-        <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Perspectiva</div>
+        <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Perspective</div>
         <RoleToggle />
         <RoleHint />
+        <div className="pt-2">
+          <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1">Presentation</div>
+          <DemoToggle />
+        </div>
         <div className="text-[11px] text-gray-600 leading-relaxed pt-1">
-          Demo · datos sintéticos<br />
-          ServiceNow (control) + Devin (agente)
+          Demo · synthetic data<br />
+          ServiceNow (control) + Devin (agent)
         </div>
       </div>
     </aside>
   );
+}
+
+/** La ruta guiada no existe fuera del Modo Demo: en ejecución real no se ofrece. */
+function DemoGuard() {
+  const { allowed, resolved } = useDemo();
+  if (!resolved) return <div className="p-6 text-xs text-gray-500">Checking the execution mode…</div>;
+  if (!allowed) return <Navigate to="/dashboard" replace />;
+  return <DemoStage />;
 }
 
 function RoleHint() {
@@ -66,13 +87,17 @@ function RoleHint() {
 export default function App() {
   return (
     <ViewProvider>
+    <DemoProvider>
     <BrowserRouter>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
+          <DemoBanner />
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/demo" element={<DemoGuard />} />
+            <Route path="/live" element={<LiveStage />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/tasks/:id" element={<TaskDetail />} />
             <Route path="/analytics" element={<Analytics />} />
@@ -83,6 +108,7 @@ export default function App() {
         </main>
       </div>
     </BrowserRouter>
+    </DemoProvider>
     </ViewProvider>
   );
 }

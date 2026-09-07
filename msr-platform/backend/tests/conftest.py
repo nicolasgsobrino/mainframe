@@ -78,6 +78,19 @@ def store(settings, repo) -> Store:
     return Store(settings=settings, repository=repo)
 
 
+def clear_human_gates(store: Store, tid: str) -> list[str]:
+    """Cierra las puertas humanas que estén deteniendo el recorrido.
+
+    El motor no avanza mientras una verificación humana esté pendiente: los
+    tests que ejercitan el avance la registran igual que lo haría una persona.
+    """
+    closed = []
+    while (gate := store.pending_verification(tid)) is not None:
+        store.verify_gate(tid, gate["id"], ring=gate["ring"])
+        closed.append(gate["id"])
+    return closed
+
+
 def deployment_task(store: Store) -> str:
     """Primera tarea que ya se encuentra en la fase de despliegue."""
     for tid, pipeline in store.pipelines.items():

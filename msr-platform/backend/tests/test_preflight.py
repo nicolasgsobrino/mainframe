@@ -191,7 +191,7 @@ def test_the_lock_table_is_not_checked_in_mock_mode(monkeypatch, lab):
     result = preflight.check_lock_table()
 
     assert result["ok"] is False
-    assert "provider no es AWS" in result["error"]
+    assert "provider is not AWS" in result["error"]
 
 
 # --- laboratorio -------------------------------------------------------------

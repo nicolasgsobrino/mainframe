@@ -25,11 +25,11 @@ log = logging.getLogger("msr.lab.hook")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Reconcilia el laboratorio de la PoC.")
+    parser = argparse.ArgumentParser(description="Reconciles the PoC lab.")
     parser.add_argument("--lab-id", default=None,
-                        help="Identificador lógico del laboratorio (por defecto, el configurado).")
+                        help="Logical lab identifier (defaults to the configured one).")
     parser.add_argument("--confirm", action="store_true",
-                        help="Autoriza explícitamente un reset destructivo en aws-real.")
+                        help="Explicitly authorises a destructive reset in aws-real.")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
     try:

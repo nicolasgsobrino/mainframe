@@ -65,7 +65,7 @@ def describe_identity() -> dict:
     try:
         import boto3
     except ImportError:
-        return {**result, "usable": False, "error": "boto3 no está instalado."}
+        return {**result, "usable": False, "error": "boto3 is not installed."}
 
     session_kwargs = {}
     if settings.aws_region:
@@ -87,12 +87,12 @@ def describe_identity() -> dict:
     # rol asumido con credenciales temporales. Una clave permanente nunca vale.
     errors = []
     if not allowed:
-        errors.append(f"La cuenta {account} no está en MSR_ALLOWED_ACCOUNT_IDS.")
+        errors.append(f"Account {account} is not in MSR_ALLOWED_ACCOUNT_IDS.")
     if not role:
-        errors.append(f"La identidad {arn or 'desconocida'} no es un rol asumido.")
+        errors.append(f"Identity {arn or 'unknown'} is not an assumed role.")
     if credentials["static_credentials_present"]:
-        errors.append("Las credenciales no son temporales "
-                      f"(origen: {credentials['credentials_method'] or 'desconocido'}).")
+        errors.append("The credentials are not temporary "
+                      f"(source: {credentials['credentials_method'] or 'unknown'}).")
     return {
         **result,
         **credentials,

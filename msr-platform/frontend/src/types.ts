@@ -31,12 +31,36 @@ export interface JourneyResources {
   total: number; patched: number; pending: number; failed: number; excluded: number;
   rolled_back?: number; rings_done?: number; rings_total?: number;
 }
+// Human in the Loop: capa transversal de puertas de decisión, no una fase.
+export type HitlGateStatus = "done" | "pending" | "upcoming";
+export interface HitlGateMeta {
+  id: string; label: string; question: string; phase: string;
+  /** Todas las puertas detienen el recorrido hasta la decisión humana. */
+  enforced: boolean; per_ring: boolean;
+  /** `true` = se cierra registrando la verificación; si no, con su propia acción. */
+  verifiable: boolean;
+  closes_with: "verification" | "phase_approval" | "ring_preapproval";
+  /** Cómo se cuenta la decisión ya tomada (p. ej. «Aprobado por el eCAB»). */
+  verdict: string | null;
+}
+export interface HitlGate extends HitlGateMeta {
+  status: HitlGateStatus; ring: number | null;
+  actor: string | null; ts: string | null; note: string | null; detail: string | null;
+  /** Verificación humana explícita registrada sobre esta puerta. */
+  verified: boolean; role: string | null; output: string | null;
+}
+export interface HitlRollup {
+  total: number; done: number; pending: number; pending_enforced: number;
+  next: { id: string; label: string; ring: number | null; enforced: boolean } | null;
+}
+
 export interface JourneySummary {
   task_id: string; cve: string; title: string; ci_name: string;
   lane: Lane; priority: string; risk_score: number;
   phase: string; phase_index: number; phase_label: string; band: JourneyBandId;
   ring: number | null; ring_label: string | null; pipeline_phase: string;
   blockers: string[];
+  hitl: HitlRollup;
   resources: JourneyResources;
   rollback: { status?: string; triggered?: boolean };
   evidence: { report_id: string; evidences_count: number; closed: boolean };
@@ -48,19 +72,26 @@ export interface JourneyPhaseAggregate extends JourneyPhaseMeta {
   blockers: Record<string, number>;
   resources: JourneyResources;
   rings: number[];
+  gates: HitlGateMeta[];
+  gates_pending: number;
 }
 export interface JourneyOverview {
   phases: JourneyPhaseAggregate[];
   bands: { id: JourneyBandId; label: string }[];
   total: number;
+  hitl: HitlRollup & { tasks_awaiting: number };
 }
 export interface JourneyRing {
   ring: number; label: string; status: string; environment?: string;
   assets: number; result: string; preapproved: boolean;
 }
 export interface JourneyDetail extends JourneySummary {
-  phases: (JourneyPhaseMeta & { status: JourneyPhaseStatus; ring: number | null })[];
+  phases: (JourneyPhaseMeta & {
+    status: JourneyPhaseStatus; ring: number | null;
+    gates: HitlGate[]; gates_pending: number;
+  })[];
   rings: JourneyRing[];
+  gates: HitlGate[];
 }
 
 export interface Overview {

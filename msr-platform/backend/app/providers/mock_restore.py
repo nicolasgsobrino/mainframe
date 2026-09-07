@@ -37,38 +37,38 @@ def build_rollback_plan(task, impact):
     ci = task["ci_name"]
     comp = task.get("component", ci)
     if task["track"] == "C":
-        strategy = "GitOps rollback (revisión previa + imagen firmada)"
+        strategy = "GitOps rollback (previous revision + signed image)"
         steps = [
             {"actor": "Devin", "tool": "Argo CD", "command": f"argocd app rollback {ci} <previous-revision>",
-             "desc": f"Sincroniza la revisión estable anterior (imagen {ci}:{prev})."},
+             "desc": f"Syncs the previous stable revision (image {ci}:{prev})."},
             {"actor": "Argo CD", "tool": "Helm", "command": f"kubectl rollout undo deploy/{ci}",
-             "desc": "Revierte el rollout al ReplicaSet sano; 100% del tráfico a la imagen previa."},
+             "desc": "Reverts the rollout to the healthy ReplicaSet; 100% of traffic to the previous image."},
             {"actor": "Devin", "tool": "post-check", "command": "health-check + smoke-test",
-             "desc": "Verifica salud de los pods tras el rollback."},
+             "desc": "Checks pod health after the rollback."},
         ]
         snapshot_ref = f"registry/{ci}:{prev}"
     elif task["track"] == "B":
-        strategy = "artifact-redeploy (imagen previa)"
+        strategy = "artifact-redeploy (previous image)"
         steps = [
             {"actor": "Devin", "tool": "Helm", "command": f"helm rollback {ci} <previous-revision>",
-             "desc": f"Redeploy de la imagen {ci}:{prev} (revisión estable anterior)."},
+             "desc": f"Redeploys image {ci}:{prev} (previous stable revision)."},
             {"actor": "GitHub Actions", "tool": "CI/CD", "command": f"deploy {ci}:{prev} --canary.weight=100",
-             "desc": "Restablece el 100% del tráfico al artefacto sano."},
+             "desc": "Restores 100% of traffic to the healthy artefact."},
             {"actor": "Devin", "tool": "post-check", "command": "health-check + smoke-test",
-             "desc": "Verifica salud tras el rollback."},
+             "desc": "Checks health after the rollback."},
         ]
         snapshot_ref = f"registry/{ci}:{prev}"
     else:
-        strategy = "snapshot-restore (VM / paquete)"
+        strategy = "snapshot-restore (VM / package)"
         steps = [
             {"actor": "Devin", "tool": "Ansible", "command": f"package downgrade {comp} {fixed} → {prev}",
-             "desc": f"Restaura la versión previa {comp}-{prev}."},
+             "desc": f"Restores the previous version {comp}-{prev}."},
             {"actor": "Ansible", "tool": "IaC", "command": "restore snapshot <pre-patch>",
-             "desc": "Restaura el snapshot tomado antes del parche si el downgrade no basta."},
+             "desc": "Restores the snapshot taken before the patch if the downgrade is not enough."},
             {"actor": "Ansible", "tool": "OS", "command": "systemctl restart affected-services",
-             "desc": "Reinicia servicios y valida arranque."},
+             "desc": "Restarts services and validates startup."},
             {"actor": "Devin", "tool": "post-check", "command": "health-check + synthetic-probe",
-             "desc": "Verifica salud tras el rollback."},
+             "desc": "Checks health after the rollback."},
         ]
         snapshot_ref = f"snap-pre-{task['cve'].lower()}"
     return {
@@ -77,7 +77,7 @@ def build_rollback_plan(task, impact):
         "target_version": prev,
         "from_version": fixed,
         "rto_minutes": rng.choice([5, 8, 10, 15]),
-        "auto_trigger": "fallo de post-checks / breach de health-check tras un anillo",
+        "auto_trigger": "post-check failure / health-check breach after a ring",
         "steps": steps,
         "tested_in_lab": True,
     }
@@ -94,12 +94,12 @@ def decode_reference(reference: str) -> tuple[str, datetime]:
     parts = (reference or "").split(":")
     if len(parts) != 3 or parts[0] != REFERENCE_PREFIX:
         raise ProviderError("PROVIDER_REFERENCE_INVALID",
-                            "La referencia de ejecución no pertenece al provider mock de restauración.")
+                            "The execution reference does not belong to the mock restore provider.")
     try:
         started = datetime.fromtimestamp(int(parts[2]), tz=timezone.utc)
     except (ValueError, OSError) as exc:
         raise ProviderError("PROVIDER_REFERENCE_INVALID",
-                            "La referencia de ejecución mock es ilegible.") from exc
+                            "The mock execution reference is unreadable.") from exc
     return parts[1], started
 
 
@@ -115,13 +115,13 @@ class MockRestoreProvider:
     def validate_target(self, request: RestoreRequest) -> TargetPolicyResult:
         target = request.primary_target()
         checks = (
-            {"check": "Objetivo resuelto", "ok": True,
-             "detail": f"Objetivo lógico {target.logical_target_id} ({target.name or '-'})."},
-            {"check": "Plan de rollback probado en laboratorio", "ok": True,
-             "detail": "El plan de rollback se validó en el anillo de laboratorio (simulado)."},
+            {"check": "Target resolved", "ok": True,
+             "detail": f"Logical target {target.logical_target_id} ({target.name or '-'})."},
+            {"check": "Rollback plan tested in the lab", "ok": True,
+             "detail": "The rollback plan was validated in the lab ring (simulated)."},
         )
         return TargetPolicyResult(allowed=True, checks=checks, target=target,
-                                  message="Objetivo válido para restauración simulada.")
+                                  message="Target valid for simulated restore.")
 
     @staticmethod
     def _reset_instance_id(request: RestoreRequest) -> str | None:
@@ -136,19 +136,19 @@ class MockRestoreProvider:
         target = request.primary_target()
         new_instance_id = self._reset_instance_id(request) or ""
         plan = [
-            ("validar tags obligatorios", f"describe-instances {target.instance_id or '-'}",
-             "Tags msr-poc/msr-lab-id/msr-resettable verificados antes de destruir nada."),
-            ("terminar la instancia actual", f"terminate-instances {target.instance_id or '-'}",
-             "Instancia del laboratorio terminada (simulado)."),
-            ("recrear desde el Launch Template", "run-instances --launch-template <version fija>",
-             f"Nueva instancia vulnerable {new_instance_id} (simulado)."),
-            ("esperar nodo gestionado y health check", "describe-instance-information + /health",
-             "La nueva instancia responde y vuelve a estar en estado vulnerable."),
+            ("validate mandatory tags", f"describe-instances {target.instance_id or '-'}",
+             "Tags msr-poc/msr-lab-id/msr-resettable verified before destroying anything."),
+            ("terminate the current instance", f"terminate-instances {target.instance_id or '-'}",
+             "Lab instance terminated (simulated)."),
+            ("recreate from the Launch Template", "run-instances --launch-template <pinned version>",
+             f"New vulnerable instance {new_instance_id} (simulated)."),
+            ("wait for the managed node and health check", "describe-instance-information + /health",
+             "The new instance responds and is back in a vulnerable state."),
         ]
         return tuple(
-            ExecutionStep(seq=i + 1, actor="msr-platform", tool="reset de laboratorio (simulado)",
+            ExecutionStep(seq=i + 1, actor="msr-platform", tool="lab reset (simulated)",
                           command=command, output=output, status="ok",
-                          why=f"Reset del laboratorio: {request.reason}")
+                          why=f"Lab reset: {request.reason}")
             for i, (_name, command, output) in enumerate(plan))
 
     def _steps(self, request: RestoreRequest) -> tuple[ExecutionStep, ...]:
@@ -157,12 +157,12 @@ class MockRestoreProvider:
         task = request.task_snapshot
         if not task:
             raise ProviderError("REQUEST_INCOMPLETE",
-                                "La petición no incluye el contexto de la tarea.")
+                                "The request does not include the task context.")
         plan = build_rollback_plan(task, {"nodes": [], "edges": []})
         return tuple(
             ExecutionStep(seq=i + 1, actor=s["actor"], tool=s["tool"], command=s["command"],
                           output=s["desc"], status="ok",
-                          why=f"Restauración ({request.restore_kind}): {request.reason}")
+                          why=f"Restore ({request.restore_kind}): {request.reason}")
             for i, s in enumerate(plan["steps"]))
 
     def start(self, request: RestoreRequest, idempotency_key: str) -> RestoreExecution:
@@ -170,7 +170,7 @@ class MockRestoreProvider:
         if request.dry_run:
             planned = tuple(
                 ExecutionStep(seq=s.seq, actor=s.actor, tool=s.tool, command=s.command,
-                              output="[dry-run] no ejecutado", status="planned", why=s.why)
+                              output="[dry-run] not executed", status="planned", why=s.why)
                 for s in self._steps(request))
             return RestoreExecution(
                 provider=self.name, provider_reference=f"dryrun:{request.job_id}",
@@ -178,17 +178,17 @@ class MockRestoreProvider:
                 restored_version=request.target_version, started_at=iso_utc(started),
                 new_instance_id=None,
                 completed_at=iso_utc(started),
-                detail="Restauración en dry-run: no se aplica ningún cambio.")
+                detail="Dry-run restore: no change is applied.")
         return RestoreExecution(
             provider=self.name, provider_reference=_encode_reference(request.job_id, started),
             status=ExecutionStatus.RUNNING, dry_run=False, steps=(),
             restored_version=request.target_version, started_at=iso_utc(started),
-            detail=f"Restauración simulada iniciada (idempotency-key {idempotency_key[:12]}…).")
+            detail=f"Simulated restore started (idempotency-key {idempotency_key[:12]}…).")
 
     def poll(self, provider_reference: str, request: RestoreRequest | None = None) -> RestoreExecution:
         if request is None:
             raise ProviderError("REQUEST_INCOMPLETE",
-                                "El provider mock necesita la petición original para reconstruir el plan.")
+                                "The mock provider needs the original request to rebuild the plan.")
         if provider_reference.startswith("dryrun:"):
             return self.start(request, "replay")
         _job_id, started = decode_reference(provider_reference)
@@ -203,4 +203,4 @@ class MockRestoreProvider:
             new_instance_id=self._reset_instance_id(request) if done else None,
             started_at=iso_utc(started),
             completed_at=iso_utc(self._now()) if done else None,
-            detail="Restauración simulada completada." if done else "Restauración simulada en curso.")
+            detail="Simulated restore completed." if done else "Simulated restore in progress.")

@@ -121,7 +121,7 @@ class PatchRequest:
 
     def primary_target(self) -> Target:
         if not self.targets:
-            raise ProviderError("TARGET_NOT_RESOLVED", "La petición no contiene ningún objetivo.")
+            raise ProviderError("TARGET_NOT_RESOLVED", "The request contains no target.")
         return self.targets[0]
 
 
@@ -141,7 +141,7 @@ class RestoreRequest:
 
     def primary_target(self) -> Target:
         if not self.targets:
-            raise ProviderError("TARGET_NOT_RESOLVED", "La petición no contiene ningún objetivo.")
+            raise ProviderError("TARGET_NOT_RESOLVED", "The request contains no target.")
         return self.targets[0]
 
 

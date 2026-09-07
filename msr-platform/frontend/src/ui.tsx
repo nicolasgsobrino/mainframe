@@ -9,12 +9,12 @@ export const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export const PHASE_META: Record<string, { label: string; color: string }> = {
-  detection: { label: "Detección", color: "#64748b" },
-  prioritization: { label: "Priorización", color: "#f59e0b" },
+  detection: { label: "Detection", color: "#64748b" },
+  prioritization: { label: "Prioritisation", color: "#f59e0b" },
   pre_implementation: { label: "MVT", color: "#86BC25" },
   lab_testing: { label: "Lab", color: "#22c55e" },
-  prototype: { label: "Prototipo", color: "#14b8a6" },
-  deployment: { label: "Despliegue", color: "#0ea5e9" },
+  prototype: { label: "Prototype", color: "#14b8a6" },
+  deployment: { label: "Deployment", color: "#0ea5e9" },
 };
 
 export function Badge({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -27,32 +27,32 @@ export function Priority({ p }: { p: string }) {
 
 // Dimensión técnica (secundaria) — determina el ejecutor y la mecánica de rollback.
 export const TRACK_META: Record<string, { label: string; cls: string; exec: string }> = {
-  A: { label: "A · Infraestructura", cls: "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30", exec: "SCCM · BigFix · Ansible" },
-  B: { label: "B · Aplicaciones y dependencias", cls: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30", exec: "CI/CD (GitHub Actions)" },
-  C: { label: "C · Contenedores & Cloud-native", cls: "bg-sky-500/15 text-sky-300 border border-sky-500/30", exec: "Argo CD · Helm · Registry" },
+  A: { label: "A · Infrastructure", cls: "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30", exec: "SCCM · BigFix · Ansible" },
+  B: { label: "B · Applications and dependencies", cls: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30", exec: "CI/CD (GitHub Actions)" },
+  C: { label: "C · Containers & Cloud-native", cls: "bg-sky-500/15 text-sky-300 border border-sky-500/30", exec: "Argo CD · Helm · Registry" },
 };
 
 export function Track({ t }: { t: string }) {
   const m = TRACK_META[t] || TRACK_META.A;
   return (
-    <span className={`chip ${m.cls}`} title={`Dominio técnico ${m.label} · ${m.exec}`}>
-      Dominio {t}
+    <span className={`chip ${m.cls}`} title={`Technical domain ${m.label} · ${m.exec}`}>
+      Domain {t}
     </span>
   );
 }
 
 // Carril operativo (principal) — velocidad/riesgo. Colores del modelo: rojo/naranja/verde.
 export const LANE_META: Record<string, { label: string; cls: string; dot: string }> = {
-  critical: { label: "Crítico", cls: "bg-red-500/15 text-red-300 border border-red-500/40", dot: "#ef4444" },
-  accelerated: { label: "Acelerado", cls: "bg-orange-500/15 text-orange-300 border border-orange-500/40", dot: "#f97316" },
-  standard: { label: "Estándar", cls: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40", dot: "#22c55e" },
+  critical: { label: "Critical", cls: "bg-red-500/15 text-red-300 border border-red-500/40", dot: "#ef4444" },
+  accelerated: { label: "Accelerated", cls: "bg-orange-500/15 text-orange-300 border border-orange-500/40", dot: "#f97316" },
+  standard: { label: "Standard", cls: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40", dot: "#22c55e" },
 };
 
 export function LaneTag({ lane, sla }: { lane: string; sla?: string }) {
   const m = LANE_META[lane] || LANE_META.standard;
   return (
-    <span className={`chip ${m.cls}`} title={sla ? `Carril ${m.label} · ${sla}` : `Carril ${m.label}`}>
-      Carril {m.label}
+    <span className={`chip ${m.cls}`} title={sla ? `${m.label} lane · ${sla}` : `${m.label} lane`}>
+      {m.label} lane
     </span>
   );
 }
@@ -78,19 +78,19 @@ export function SlaTag({ sla }: { sla?: SlaState }) {
   if (!sla || sla.days_left === null) return <span className="text-gray-500 text-xs">—</span>;
   if (sla.overdue)
     return (
-      <span className="chip bg-red-500/20 text-red-300 border border-red-500/50" title={`Vencido hace ${sla.days_overdue} día(s) · due ${sla.due?.slice(0, 10)}`}>
-        ⚠ SLA vencido · +{sla.days_overdue}d
+      <span className="chip bg-red-500/20 text-red-300 border border-red-500/50" title={`Overdue by ${sla.days_overdue} day(s) · due ${sla.due?.slice(0, 10)}`}>
+        ⚠ SLA breached · +{sla.days_overdue}d
       </span>
     );
   if (sla.due_soon)
     return (
-      <span className="chip bg-amber-500/15 text-amber-300 border border-amber-500/40" title={`Vence en ${sla.days_left} día(s) · due ${sla.due?.slice(0, 10)}`}>
-        ⏳ {sla.days_left}d restantes
+      <span className="chip bg-amber-500/15 text-amber-300 border border-amber-500/40" title={`Due in ${sla.days_left} day(s) · due ${sla.due?.slice(0, 10)}`}>
+        ⏳ {sla.days_left}d left
       </span>
     );
   return (
     <span className="chip bg-emerald-500/10 text-emerald-300 border border-emerald-500/30" title={`due ${sla.due?.slice(0, 10)}`}>
-      {sla.days_left}d en plazo
+      {sla.days_left}d within SLA
     </span>
   );
 }

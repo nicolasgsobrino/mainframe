@@ -138,6 +138,16 @@ CREATE TABLE IF NOT EXISTS lab_locks (
     acquired_at     TEXT NOT NULL,
     expires_at      TEXT NOT NULL
 );
+
+-- Verificaciones humanas de las puertas HITL: son decisiones que bloquean el
+-- recorrido, así que deben sobrevivir a un reinicio igual que los jobs.
+CREATE TABLE IF NOT EXISTS hitl_verifications (
+    task_id          TEXT NOT NULL,
+    verification_key TEXT NOT NULL,
+    payload          TEXT NOT NULL DEFAULT '{}',
+    created_at       TEXT NOT NULL,
+    PRIMARY KEY (task_id, verification_key)
+);
 """
 
 
@@ -145,7 +155,7 @@ class TargetBusyError(RuntimeError):
     """Ya existe un job mutativo activo sobre el mismo objetivo."""
 
     def __init__(self, logical_target_id: str, job_id: str | None = None):
-        super().__init__(f"El objetivo {logical_target_id} ya tiene un job activo.")
+        super().__init__(f"Target {logical_target_id} already has an active job.")
         self.logical_target_id = logical_target_id
         self.job_id = job_id
 
@@ -232,7 +242,7 @@ class JobRepository:
     def connection(self) -> Iterator[sqlite3.Connection]:
         """Conexión de uso exclusivo para la operación en curso."""
         if self.in_memory and self._closed:
-            raise RuntimeError("El repositorio en memoria ya está cerrado.")
+            raise RuntimeError("The in-memory repository is already closed.")
         if self._shared is not None:
             with self._guard:
                 yield self._shared
@@ -470,6 +480,32 @@ class JobRepository:
             return [r["task_id"] for r in conn.execute(
                 "SELECT DISTINCT task_id FROM jobs ORDER BY task_id")]
 
+    # --- verificaciones humanas (puertas HITL) --------------------------
+    def save_verification(self, task_id: str, key: str, payload: dict) -> None:
+        with self.transaction() as conn:
+            conn.execute(
+                "INSERT INTO hitl_verifications (task_id, verification_key, payload, "
+                "created_at) VALUES (?, ?, ?, ?) ON CONFLICT(task_id, verification_key) "
+                "DO UPDATE SET payload = excluded.payload, created_at = excluded.created_at",
+                (task_id, key, json.dumps(payload),
+                 _iso(datetime.now(timezone.utc))))
+
+    def verifications_for_task(self, task_id: str) -> dict[str, dict]:
+        with self.connection() as conn:
+            rows = conn.execute(
+                "SELECT verification_key, payload FROM hitl_verifications "
+                "WHERE task_id = ?", (task_id,)).fetchall()
+        return {r["verification_key"]: json.loads(r["payload"]) for r in rows}
+
+    def delete_verifications(self, task_id: str, keys: list[str]) -> None:
+        if not keys:
+            return
+        placeholders = ",".join("?" * len(keys))
+        with self.transaction() as conn:
+            conn.execute(
+                f"DELETE FROM hitl_verifications WHERE task_id = ? "
+                f"AND verification_key IN ({placeholders})", (task_id, *keys))
+
     # --- laboratorio reutilizable --------------------------------------
     def upsert_lab_target(self, lab: LabTarget) -> LabTarget:
         lab.updated_at = datetime.now(timezone.utc)
@@ -633,9 +669,14 @@ class JobRepository:
     def clear(self) -> None:
         """Sólo para `POST /api/reset` y para los tests: vacía el histórico.
 
+        Las decisiones humanas ya registradas también son histórico: si
+        sobrevivieran, las puertas HITL seguirían cerradas y el recorrido no
+        volvería a detenerse en ellas.
+
         `lab_targets` es configuración del laboratorio, no histórico: sobrevive
         deliberadamente al reset para poder repetir la PoC sin re-registrarlo.
         """
         with self.transaction() as conn:
-            for table in ("idempotency_keys", "job_events", "job_targets", "jobs"):
+            for table in ("idempotency_keys", "job_events", "job_targets", "jobs",
+                          "hitl_verifications"):
                 conn.execute(f"DELETE FROM {table}")

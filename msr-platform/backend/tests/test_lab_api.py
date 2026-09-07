@@ -67,7 +67,7 @@ def test_validate_is_read_only_and_starts_no_job(lab_client, lab_store):
     body = lab_client.post(f"/api/labs/{LAB_ID}/validate").json()
 
     assert body["read_only"] is True
-    assert any(c["check"] == "Instancia resuelta por tags" and c["ok"] for c in body["checks"])
+    assert any(c["check"] == "Instance resolved by tags" and c["ok"] for c in body["checks"])
     # La validación observa evidencia (simulada con el provider mock).
     assert body["advisory_confirmed"] is True
     assert body["evidence"]["source"] == "mock"
@@ -201,6 +201,31 @@ def test_asg_replacement_is_detected_and_invalidates_the_previous_evidence(lab_c
     # La instancia nueva nace de la AMI base: vulnerable, nunca «parcheada».
     assert body["vulnerable_state"] == "vulnerable"
     assert body["current_kernel"] != "6.1.176-220.358.amzn2023.x86_64"
+
+
+def test_asg_replacement_reopens_the_ring_cycle(lab_client, lab_store):
+    """La instancia nueva nace vulnerable: los anillos desplegados se reabren.
+
+    Sin esto la pantalla mostraría el objetivo vulnerable y, a la vez, los pasos
+    de parcheo como completados.
+    """
+    tid = lab_store._lab_task_id(LAB_ID)
+    pipeline = lab_store.pipelines[tid]
+    pipeline["rings_done"] = 2
+    pipeline["ring_evidence"] = {1: {"result": "healthy"}, 2: {"result": "healthy"}}
+    pipeline["hitl_verifications"]["ring_result:1"] = {"gate_id": "ring_result", "ring": 1}
+    replacement = LabInstance(
+        instance_id="i-0eeeeffff11112222", state="running", logical_lab_id=LAB_ID,
+        account_id="133789123239", region="eu-north-1", image_id="ami-0b2ab3a97a77bd35e",
+        tags={"msr-poc": "true", "msr-lab-id": LAB_ID, "msr-environment": "sandbox"},
+        ssm_managed=True, ping_status="Online")
+    lab_store.lab_resolver = _StaticLabResolver(replacement)
+
+    lab_client.get(f"/api/labs/{LAB_ID}")
+
+    assert pipeline["rings_done"] == 0
+    assert pipeline["ring_evidence"] == {}
+    assert "ring_result:1" not in pipeline["hitl_verifications"]
 
 
 def test_an_inconclusive_check_does_not_block_the_patch(lab_client, lab_store, monkeypatch):

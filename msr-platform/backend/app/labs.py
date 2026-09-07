@@ -108,7 +108,7 @@ class AwsLabResolver:
         except Exception as exc:
             raise LabResolutionError(
                 "LAB_TARGET_LOOKUP_FAILED",
-                f"No se pudo consultar EC2 para el laboratorio {logical_lab_id}.") from exc
+                f"EC2 could not be queried for lab {logical_lab_id}.") from exc
 
         found: list[tuple[dict, str]] = [
             (instance, reservation.get("OwnerId") or "")
@@ -117,14 +117,14 @@ class AwsLabResolver:
         if not found:
             raise LabResolutionError(
                 ERROR_NOT_FOUND,
-                f"No hay ninguna instancia activa etiquetada para el laboratorio "
-                f"{logical_lab_id}. Ejecuta el reset o aprovisiona la infraestructura.")
+                f"There is no active instance tagged for lab "
+                f"{logical_lab_id}. Run the reset or provision the infrastructure.")
         if len(found) > 1:
             ids = tuple(sorted(i.get("InstanceId", "") for i, _ in found))
             raise LabResolutionError(
                 ERROR_AMBIGUOUS,
-                f"El laboratorio {logical_lab_id} resuelve {len(found)} instancias activas "
-                "y sólo puede haber una. Termina las sobrantes antes de continuar.",
+                f"Lab {logical_lab_id} resolves {len(found)} active instances "
+                "and there can only be one. Terminate the extra ones before continuing.",
                 candidates=ids)
 
         instance, owner_id = found[0]
@@ -132,13 +132,13 @@ class AwsLabResolver:
         if not INSTANCE_ID_RE.match(instance_id):
             raise LabResolutionError(
                 ERROR_NOT_FOUND,
-                f"EC2 devolvió un Instance ID no válido para {logical_lab_id}.")
+                f"EC2 returned an invalid Instance ID for {logical_lab_id}.")
         tags = {t.get("Key"): t.get("Value") for t in instance.get("Tags") or []}
         missing = check_lab_tags(tags, self._settings, logical_lab_id)
         if missing:
             raise LabResolutionError(
                 ERROR_TAGS,
-                f"La instancia {instance_id} no lleva los tags obligatorios: "
+                f"Instance {instance_id} does not carry the mandatory tags: "
                 f"{', '.join(missing)}.")
         self._assert_autoscaling_membership(instance_id)
         az = (instance.get("Placement") or {}).get("AvailabilityZone") or ""
@@ -174,15 +174,15 @@ class AwsLabResolver:
         except Exception as exc:
             raise LabResolutionError(
                 "LAB_TARGET_LOOKUP_FAILED",
-                "No se pudo consultar Auto Scaling para confirmar el grupo del "
-                f"laboratorio ({instance_id}).") from exc
+                "Auto Scaling could not be queried to confirm the group of the "
+                f"lab ({instance_id}).") from exc
         entries = described.get("AutoScalingInstances") or []
         actual = entries[0].get("AutoScalingGroupName") if entries else None
         if actual != expected:
             raise LabResolutionError(
                 ERROR_ASG,
-                f"La instancia {instance_id} no pertenece al Auto Scaling Group "
-                f"'{expected}' del laboratorio (grupo actual: {actual or 'ninguno'}).")
+                f"Instance {instance_id} does not belong to Auto Scaling Group "
+                f"'{expected}' of the lab (current group: {actual or 'none'}).")
 
     def _managed_node(self, instance_id: str, state: str) -> tuple[bool, str | None]:
         if state != "running":
@@ -217,13 +217,13 @@ class MockLabResolver:
         if lab is None:
             raise LabResolutionError(
                 ERROR_NOT_FOUND,
-                f"El laboratorio {logical_lab_id} no está registrado.")
+                f"Lab {logical_lab_id} is not registered.")
         instance_id = lab.current_instance_id
         if not instance_id or not INSTANCE_ID_RE.match(instance_id):
             raise LabResolutionError(
                 ERROR_NOT_FOUND,
-                f"El laboratorio {logical_lab_id} no tiene ninguna instancia activa "
-                "registrada; ejecuta un reset para recrearla.")
+                f"Lab {logical_lab_id} has no active instance "
+                "registered; run a reset to recreate it.")
         tags = dict(lab.required_tags or {})
         tags.update(required_lab_tags(self._settings, logical_lab_id))
         tags.setdefault("msr-environment", self._settings.lab_environment)

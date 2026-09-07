@@ -58,6 +58,9 @@ export const api = {
   tasks: (): Promise<Task[]> => fetch("/api/tasks").then(j),
   task: (id: string): Promise<TaskDetail> => fetch(`/api/tasks/${id}`).then(j),
   execution: (): Promise<ExecutionConfig> => fetch("/api/execution").then(j),
+  /** Rehace el escenario sintético (vulnerabilidades, pipelines y jobs). */
+  resetScenario: (): Promise<{ status: string }> =>
+    fetch("/api/reset", { method: "POST" }).then(j),
   approve: (id: string, ring: number): Promise<TaskDetail> =>
     mutate(`/api/tasks/${id}/approve`, `approve:${id}:${ring}`),
   rollback: (id: string, ring: number): Promise<TaskDetail> =>
@@ -72,6 +75,16 @@ export const api = {
     fetch(`/api/tasks/${id}/rings/${ring}/preapprove`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ note: note ?? null }),
+    }).then(j),
+  // Verificación humana de un punto de control que no bloquea la ejecución:
+  // queda registrada con autor, rol y resultado.
+  verifyGate: (id: string, gateId: string, opts: { ring?: number | null; actor?: string; role?: string; note?: string } = {}): Promise<TaskDetail> =>
+    fetch(`/api/tasks/${id}/gates/${gateId}/verify`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ring: opts.ring ?? null, actor: opts.actor ?? null,
+        role: opts.role ?? null, note: opts.note ?? null,
+      }),
     }).then(j),
   updateRingAssets: (id: string, ring: number, excluded: string[]): Promise<TaskDetail> =>
     fetch(`/api/tasks/${id}/rings/${ring}/assets`, {

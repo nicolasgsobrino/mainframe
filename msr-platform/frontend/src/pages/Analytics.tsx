@@ -18,7 +18,7 @@ export default function Analytics() {
 
   useEffect(() => { api.overview().then(setOv); }, []);
 
-  if (!ov) return <div className="p-8 text-gray-500">Cargando…</div>;
+  if (!ov) return <div className="p-8 text-gray-500">Loading…</div>;
 
   const funnelMax = ov.funnel[0].value;
   const phaseData = PHASE_ORDER.map((p) => ({ name: PHASE_META[p].label, value: ov.by_phase[p] || 0, color: PHASE_META[p].color }));
@@ -27,20 +27,20 @@ export default function Analytics() {
   return (
     <div className="p-6 space-y-6 max-w-[1400px]">
       <header>
-        <div className="text-xs font-bold text-brand tracking-wider">ANALÍTICA DEL PROGRAMA</div>
-        <h1 className="text-2xl font-extrabold mt-1">Priorización, reparto y capacidad</h1>
+        <div className="text-xs font-bold text-brand tracking-wider">PROGRAMME ANALYTICS</div>
+        <h1 className="text-2xl font-extrabold mt-1">Prioritisation, distribution and capacity</h1>
         <p className="text-sm text-gray-400 mt-1">
-          Contexto agregado del programa de parcheo. El estado operativo del día a día vive en el{" "}
+          Aggregate context of the patching programme. Day-to-day operational status lives in the{" "}
           <button type="button" className="text-brand font-semibold" onClick={() => nav("/dashboard")}>
-            centro de mando →
+            command centre →
           </button>
         </p>
       </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="card p-5">
-          <div className="text-sm font-semibold mb-1">Priorización basada en riesgo</div>
-          <div className="text-xs text-gray-500 mb-4">De ruido a señal accionable (contexto + explotabilidad + impacto)</div>
+          <div className="text-sm font-semibold mb-1">Risk-based prioritisation</div>
+          <div className="text-xs text-gray-500 mb-4">From noise to actionable signal (context + exploitability + impact)</div>
           <div className="space-y-2">
             {ov.funnel.map((f, i) => {
               const pct = Math.max(6, (f.value / funnelMax) * 100);
@@ -61,8 +61,8 @@ export default function Analytics() {
         </div>
 
         <div className="card p-5">
-          <div className="text-sm font-semibold mb-1">Tareas por fase del ciclo</div>
-          <div className="text-xs text-gray-500 mb-3">Pipeline de remediación (6 fases con aprobación HITL)</div>
+          <div className="text-sm font-semibold mb-1">Tasks by cycle phase</div>
+          <div className="text-xs text-gray-500 mb-3">Remediation pipeline (6 phases with HITL approval)</div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={phaseData} margin={{ left: -20 }}>
               <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={50} />
@@ -76,8 +76,8 @@ export default function Analytics() {
         </div>
 
         <div className="card p-5">
-          <div className="text-sm font-semibold mb-1">Prioridad de las tareas</div>
-          <div className="text-xs text-gray-500 mb-3">Riesgo contextual (no solo CVSS)</div>
+          <div className="text-sm font-semibold mb-1">Task priority</div>
+          <div className="text-xs text-gray-500 mb-3">Contextual risk (not just CVSS)</div>
           <div className="flex items-center gap-4">
             <ResponsiveContainer width="55%" height={180}>
               <PieChart>
@@ -102,10 +102,10 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="card p-5 xl:col-span-2">
-          <div className="text-sm font-semibold mb-1">3 carriles operativos (velocidad / riesgo)</div>
+          <div className="text-sm font-semibold mb-1">3 operational lanes (speed / risk)</div>
           <div className="text-xs text-gray-500 mb-4">
-            El triage con IA asigna cada vulnerabilidad a un carril según KEV/EPSS, exposición y criticidad ·
-            cada carril tiene su SLA y su nivel de automatización
+            AI triage assigns every vulnerability to a lane based on KEV/EPSS, exposure and criticality ·
+            each lane has its own SLA and automation level
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {(["critical", "accelerated", "standard"] as const).map((k) => {
@@ -122,7 +122,7 @@ export default function Analytics() {
                   </div>
                   <div className="mt-3 flex items-baseline gap-2">
                     <span className="text-2xl font-extrabold" style={{ color: LANE_META[k].dot }}>{n}</span>
-                    <span className="text-xs text-gray-500">tareas ({Math.round((n / total) * 100)}%)</span>
+                    <span className="text-xs text-gray-500">tasks ({Math.round((n / total) * 100)}%)</span>
                   </div>
                   <div className="text-[11px] text-gray-400 mt-2 leading-snug">{meta.sla}</div>
                   <div className="text-[11px] text-gray-500 mt-1 leading-snug">{meta.automation}</div>
@@ -132,7 +132,7 @@ export default function Analytics() {
           </div>
           <div className="mt-4 pt-3 border-t border-line">
             <div className="text-[11px] text-gray-500 mb-2">
-              Dimensión técnica (define el ejecutor y el rollback) · reparto de CIs sobre la CMDB
+              Technical dimension (defines the executor and the rollback) · CI distribution across the CMDB
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {(["A", "B", "C"] as const).map((k) => {
@@ -153,8 +153,8 @@ export default function Analytics() {
         </div>
 
         <div className="card p-5">
-          <div className="text-sm font-semibold mb-1">Criticidad de las tareas</div>
-          <div className="text-xs text-gray-500 mb-4">Tier de negocio (CSDM)</div>
+          <div className="text-sm font-semibold mb-1">Task criticality</div>
+          <div className="text-xs text-gray-500 mb-4">Business tier (CSDM)</div>
           <div className="space-y-2">
             {(["critical", "high", "medium", "low"] as const).map((c) => {
               const v = ov.by_criticality[c] || 0;
@@ -174,12 +174,12 @@ export default function Analytics() {
           </div>
           <div className="mt-5 pt-4 border-t border-line">
             <div className="flex items-center justify-between mb-1">
-              <div className="text-sm font-semibold">CMDB estandarizada</div>
-              <button className="text-xs text-brand font-semibold" onClick={() => nav("/cmdb")}>Ver CMDB →</button>
+              <div className="text-sm font-semibold">Standardised CMDB</div>
+              <button className="text-xs text-brand font-semibold" onClick={() => nav("/cmdb")}>View the CMDB →</button>
             </div>
             <div className="text-xs text-gray-500">
-              Fuente: <span className="text-gray-300">{ov.cmdb.source}</span> ·{" "}
-              <b className="text-gray-200">{ov.cmdb.total.toLocaleString()}</b> CIs · {ov.cmdb.edges.toLocaleString()} relaciones
+              Source: <span className="text-gray-300">{ov.cmdb.source}</span> ·{" "}
+              <b className="text-gray-200">{ov.cmdb.total.toLocaleString()}</b> CIs · {ov.cmdb.edges.toLocaleString()} relationships
             </div>
           </div>
         </div>

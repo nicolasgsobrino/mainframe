@@ -47,9 +47,9 @@ BUSINESS_SERVICES = [
 # B · Aplicaciones y dependencias (código propio, librerías OSS, SBOM) → PR + build + deploy
 # C · Contenedores & Cloud-native (imágenes base, K8s, IaC/cloud) → rebuild imagen + rollout
 TRACKS = {
-    "A": "Infraestructura",
-    "B": "Aplicaciones y dependencias",
-    "C": "Contenedores & Cloud-native",
+    "A": "Infrastructure",
+    "B": "Applications and dependencies",
+    "C": "Containers & Cloud-native",
 }
 
 # --- 3 CARRILES operativos (lanes) — velocidad/riesgo ---
@@ -57,31 +57,31 @@ TRACKS = {
 # la CMDB como risk engine). La dimensión técnica (track A/B/C) es secundaria y
 # solo determina el ejecutor y la mecánica de rollback.
 LANES = {
-    "critical": "Crítico",
-    "accelerated": "Acelerado",
-    "standard": "Estándar",
+    "critical": "Critical",
+    "accelerated": "Accelerated",
+    "standard": "Standard",
 }
 LANE_META = {
     "critical": {
-        "label": "Crítico",
-        "sla": "Fuera de ventana · resolución < 24 h",
+        "label": "Critical",
+        "sla": "Out of window · resolve in < 24 h",
         "color": "red",
-        "automation": "Casi 100% agentable (Devin ejecuta; humano supervisa)",
-        "flow": "emergency change pre-aprobado → ejecución inmediata → validación reforzada → RCA → cierre Cyber-IT",
+        "automation": "Almost 100% agentable (Devin executes; a human supervises)",
+        "flow": "pre-approved emergency change → immediate execution → reinforced validation → RCA → Cyber-IT closure",
     },
     "accelerated": {
-        "label": "Acelerado",
-        "sla": "7-14 días · primera ventana disponible",
+        "label": "Accelerated",
+        "sla": "7-14 days · first available window",
         "color": "amber",
-        "automation": "Mayormente automático (canary/rolling + telemetría)",
-        "flow": "change pre-aprobado → primera ventana (canary) → validación por telemetría → retry/rollback",
+        "automation": "Mostly automated (canary/rolling + telemetry)",
+        "flow": "pre-approved change → first window (canary) → validation by telemetry → retry/rollback",
     },
     "standard": {
-        "label": "Estándar",
-        "sla": "Mensual / trimestral · ventana planificada",
+        "label": "Standard",
+        "sla": "Monthly / quarterly · planned window",
         "color": "green",
-        "automation": "Semiauto / manual (validación humana)",
-        "flow": "ordinary change → pre-validación completa → ventana planificada → validación funcional → rollback closed-loop → reporting",
+        "automation": "Semi-automated / manual (human validation)",
+        "flow": "ordinary change → full pre-validation → planned window → functional validation → rollback closed-loop → reporting",
     },
 }
 
@@ -240,20 +240,20 @@ _REF_TABLE = {
 
 # Mapeo campo nativo ServiceNow -> modelo interno de la plataforma
 CMDB_FIELD_MAP = [
-    {"servicenow": "sys_id", "type": "GUID", "internal": "id", "note": "clave primaria (32 hex); la plataforma conserva también el número funcional"},
-    {"servicenow": "sys_class_name", "type": "String", "internal": "ci_class", "note": "clase CSDM (cmdb_ci_server, cmdb_ci_appl, ...) → clase interna"},
-    {"servicenow": "name", "type": "String", "internal": "name", "note": "nombre del CI"},
-    {"servicenow": "install_status", "type": "Choice", "internal": "install_status", "note": "código numérico (1=Installed, 7=Retired)"},
-    {"servicenow": "operational_status", "type": "Choice", "internal": "—", "note": "estado operativo (1=Operational)"},
-    {"servicenow": "business_criticality", "type": "Choice", "internal": "criticality", "note": "1..4 → critical/high/medium/low para el triage"},
-    {"servicenow": "assignment_group", "type": "Reference", "internal": "support_group", "note": "sys_user_group responsable de la remediación"},
-    {"servicenow": "managed_by", "type": "Reference", "internal": "owner", "note": "sys_user propietario técnico"},
-    {"servicenow": "location", "type": "Reference", "internal": "location", "note": "cmn_location (DC / región cloud)"},
-    {"servicenow": "u_environment", "type": "String", "internal": "environment", "note": "entorno (production/pre-production/development)"},
-    {"servicenow": "version", "type": "String", "internal": "version", "note": "versión / release del CI"},
-    {"servicenow": "discovery_source", "type": "String", "internal": "cmdb_source", "note": "fuente de descubrimiento / CMDB"},
-    {"servicenow": "u_track", "type": "String", "internal": "track", "note": "dominio técnico A/B/C (atributo custom); define ejecutor y rollback"},
-    {"servicenow": "u_dora_relevant", "type": "Boolean", "internal": "dora_relevant", "note": "activo dentro del perímetro DORA"},
+    {"servicenow": "sys_id", "type": "GUID", "internal": "id", "note": "primary key (32 hex); the platform also keeps the functional number"},
+    {"servicenow": "sys_class_name", "type": "String", "internal": "ci_class", "note": "CSDM class (cmdb_ci_server, cmdb_ci_appl, ...) → internal class"},
+    {"servicenow": "name", "type": "String", "internal": "name", "note": "CI name"},
+    {"servicenow": "install_status", "type": "Choice", "internal": "install_status", "note": "numeric code (1=Installed, 7=Retired)"},
+    {"servicenow": "operational_status", "type": "Choice", "internal": "—", "note": "operational state (1=Operational)"},
+    {"servicenow": "business_criticality", "type": "Choice", "internal": "criticality", "note": "1..4 → critical/high/medium/low for triage"},
+    {"servicenow": "assignment_group", "type": "Reference", "internal": "support_group", "note": "sys_user_group responsible for the remediation"},
+    {"servicenow": "managed_by", "type": "Reference", "internal": "owner", "note": "sys_user technical owner"},
+    {"servicenow": "location", "type": "Reference", "internal": "location", "note": "cmn_location (DC / cloud region)"},
+    {"servicenow": "u_environment", "type": "String", "internal": "environment", "note": "environment (production/pre-production/development)"},
+    {"servicenow": "version", "type": "String", "internal": "version", "note": "version / release of the CI"},
+    {"servicenow": "discovery_source", "type": "String", "internal": "cmdb_source", "note": "discovery source / CMDB"},
+    {"servicenow": "u_track", "type": "String", "internal": "track", "note": "technical domain A/B/C (custom attribute); defines executor and rollback"},
+    {"servicenow": "u_dora_relevant", "type": "Boolean", "internal": "dora_relevant", "note": "asset within the DORA perimeter"},
 ]
 
 
@@ -671,7 +671,9 @@ def build_records(cis, edges):
     # para que el reparto de cumplimiento sea legible y estable (ver _detected_at).
     scenarios = [
         # (cve_index, ci_id preferido o None, exposed, sla_posture)
-        (0, "APP-1001", True, "overdue"),    # Log4Shell en payments-api (dominio B, crítico)
+        # Log4Shell en payments-api (dominio B, crítico): es la vulnerabilidad
+        # que se recorre en la demo, con urgencia (vence mañana) pero en plazo.
+        (0, "APP-1001", True, "due_soon"),
         (14, None, True, "on_track"),        # regreSSHion OpenSSH (dominio A, infra)
         (10, "APP-1004", False, "on_track"), # runc Container Escape en retail-bff (dominio C)
         (1, "APP-1005", True, "on_track"),   # Spring4Shell en mobile-gateway (dominio B)
@@ -823,7 +825,7 @@ def build_lab_scenario(logical_lab_id: str = LAB_LOGICAL_ID,
         "id": LAB_VITEM_ID, "cve": advisory_id,
         "title": f"Amazon Linux 2023 {package_family} security advisory {advisory_id}",
         "cvss": 7.8, "epss": 0.11, "kev": False, "exploit_available": False,
-        "track": "A", "component": package_family, "vulnerable_version": "pendiente de precheck",
+        "track": "A", "component": package_family, "vulnerable_version": "pending precheck",
         "ci_id": ci["id"], "ci_name": ci["name"], "ci_class": "server", "exposed": False,
         "criticality": "low", "environment": LAB_ENVIRONMENT, "owner": "linux-ops",
         "risk_score": 42, "sources": ["Amazon Linux Security Center (ALAS)"],
@@ -842,6 +844,25 @@ def build_lab_scenario(logical_lab_id: str = LAB_LOGICAL_ID,
         "logical_lab_id": logical_lab_id, "lab_target": True,
     }
     return ci, vitem, task
+
+
+# Punto de partida de cada tarea: (fase del pipeline, anillos desplegados).
+# Tres vulnerabilidades cerradas dan histórico y métricas al dashboard desde el
+# primer momento; dos quedan abiertas para recorrer el flujo completo, y el
+# laboratorio AWS arranca en despliegue con sus cinco anillos por aprobar.
+INITIAL_PIPELINE_STATE = {
+    "RTASK900001": (0, 0),  # Log4Shell · payments-api — recorrido desde el disparador
+    "RTASK900002": (5, 5),  # regreSSHion · remediada
+    "RTASK900003": (5, 5),  # runc container escape · remediada
+    "RTASK900004": (5, 2),  # Spring4Shell · mobile-gateway — desplegando (2/5 anillos)
+    "RTASK900005": (5, 5),  # HTTP/2 Rapid Reset · remediada
+    LAB_TASK_ID: (5, 0),
+}
+DEFAULT_PIPELINE_STATE = (5, 0)
+
+
+def initial_pipeline_state(task_id: str) -> tuple[int, int]:
+    return INITIAL_PIPELINE_STATE.get(task_id, DEFAULT_PIPELINE_STATE)
 
 
 def build_all(lab_logical_id: str = LAB_LOGICAL_ID, lab_advisory_id: str = LAB_ADVISORY_ID,
