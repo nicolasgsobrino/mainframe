@@ -419,6 +419,7 @@ class Store:
                     self._apply_job_outcome(tid, job, persist=False)
                     replayed += 1
             self._rebuild_deploy(tid)
+            self._reopen_if_target_replaced(tid)
             # La aceptación de evidencias ya registrada vuelve a cerrar la tarea.
             if "closure" in self.pipelines[tid]["hitl_verifications"]:
                 self._close_after_evidence_acceptance(tid)
@@ -1815,7 +1816,55 @@ class Store:
             lab.last_patch_at = None
             self.repo.upsert_lab_target(lab)
             self._observe_lab(logical_lab_id, instance)
+            self._reopen_after_replacement(logical_lab_id, lab.previous_instance_id,
+                                           instance.instance_id)
         return instance
+
+    def _reopen_if_target_replaced(self, tid: str) -> None:
+        """Reabre el despliegue si los anillos se parchearon en otra instancia.
+
+        El histórico de jobs se re-proyecta en cada arranque; si el objetivo
+        actual del laboratorio no es el que se parcheó, esa evidencia describe
+        una máquina que ya no existe.
+        """
+        lab_id = self._lab_id_for_task(tid)
+        if not lab_id or self.pipelines[tid]["rings_done"] == 0:
+            return
+        lab = self.repo.get_lab_target(lab_id)
+        if lab is None or not lab.current_instance_id:
+            return
+        patched = {target.instance_id
+                   for job in self.repo.list_jobs_for_task_chronological(tid)
+                   if job.job_type is JobType.PATCH and job.state is JobState.SUCCEEDED
+                   and not job.dry_run
+                   for target in job.targets if target.instance_id}
+        if lab.current_instance_id in patched or lab.previous_instance_id not in patched:
+            return
+        self._reopen_pipeline(tid)
+        self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                        "msg": f"↺ The deployed rings were patched on another instance "
+                               f"({', '.join(sorted(patched))}); the current target is "
+                               f"{lab.current_instance_id}, so the ring cycle starts over."})
+
+    def _reopen_after_replacement(self, logical_lab_id: str, previous: str | None,
+                                  current: str) -> None:
+        """Reabre el despliegue cuando el objetivo real ha sido sustituido.
+
+        La instancia nueva arranca desde la AMI previa al parcheo, así que los
+        anillos desplegados, sus evidencias y las validaciones humanas dejan de
+        describir el objetivo: el ciclo vuelve a empezar.
+        """
+        try:
+            tid = self._lab_task_id(logical_lab_id)
+        except NotFoundError:
+            return
+        if self.pipelines[tid]["rings_done"] == 0 and not self.pipelines[tid]["ring_evidence"]:
+            return
+        self._reopen_pipeline(tid)
+        self._log(tid, {"actor": "msr-platform", "phase": "deployment",
+                        "msg": f"↺ The lab target was replaced ({previous or '-'} → {current}): "
+                               "the evidence of the deployed rings no longer describes the "
+                               "instance, so the ring cycle starts over."})
 
     def _observe_lab(self, logical_lab_id: str, instance: LabInstance) -> None:
         """Reobserva el laboratorio en AWS (sólo lectura) y persiste la evidencia.
@@ -2105,16 +2154,7 @@ class Store:
             lab.last_patch_at = None
             self.repo.upsert_lab_target(lab)
 
-        p = self.pipelines[tid]
-        t = self.tasks[tid]
-        p["rings_done"] = 0
-        p["ring_evidence"] = {}
-        p["rolled_back_rings"] = []
-        if p["statuses"].get("deployment") == "approved":
-            p["statuses"]["deployment"] = "awaiting_approval"
-        t["status"] = "in_flight" if t.get("status") == "remediated" else t.get("status")
-        self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "open"
-        self._rebuild_deploy(tid)
+        self._reopen_pipeline(tid)
         self._log(tid, {"actor": "msr-platform", "phase": "deployment",
                         "msg": f"↺ Reset of lab {logical_lab_id or '-'} completed "
                                f"(job {job.id}): instance {previous or '-'} → "
