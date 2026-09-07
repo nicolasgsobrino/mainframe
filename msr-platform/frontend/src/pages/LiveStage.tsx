@@ -201,7 +201,7 @@ export default function LiveStage() {
   const [validation, setValidation] = useState<LabValidation | null>(null);
   const [pinned, setPinned] = useState<StageId | null>(null);
   const [running, setRunning] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmRollback, setConfirmRollback] = useState(false);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
 
   useReportExecution(detail?.execution ?? null);
@@ -325,12 +325,61 @@ export default function LiveStage() {
     }
   };
 
-  const resetLab = () => void run(async () => {
+  // Rollback del anillo desplegado. AWS no ofrece una vuelta atrás del kernel
+  // en caliente para este advisory, así que la reversión real es recrear la
+  // instancia desde la AMI previa al parcheo: el anillo se reabre, la evidencia
+  // se invalida y el laboratorio vuelve al estado anterior a la ejecución.
+  const rollback = () => void run(async () => {
     await api.resetLab(labId, realMode);
     releaseIdempotencyKey(`lab-reset:${labId}`);
     setValidation(null);
-    setConfirmReset(false);
+    setConfirmRollback(false);
   });
+
+  const rollbackTarget = snapshot.vulnerable_state === "patched" || !!lastPatchJob;
+  const rollbackPanel = (
+    <div className="rounded-lg border border-orange-500/30 bg-orange-500/[0.06] px-3 py-2 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={busy || !rollbackTarget}
+          onClick={() => setConfirmRollback(true)}
+          title={rollbackTarget
+            ? `Revert ring ${RING} to the state before the patch`
+            : "Nothing to revert: this ring has not been deployed yet"}
+          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+            busy || !rollbackTarget
+              ? "border-orange-500/40 bg-orange-500/10 text-orange-300/50 cursor-not-allowed"
+              : "border-orange-500/60 bg-orange-500/15 text-orange-200 hover:bg-orange-500/25"}`}
+        >
+          ⟲ Rollback ring {RING}
+        </button>
+        <span className="text-[11px] text-orange-200/80">
+          {rollbackTarget
+            ? "Reverts the environment to the state before the patch and reopens the ring."
+            : "Available once the ring has been deployed."}
+        </span>
+      </div>
+      <div className="text-[11px] text-gray-400">
+        There is no in-place kernel downgrade for this advisory, so the rollback recreates the
+        target: the current instance is terminated and the Auto Scaling Group launches a new one
+        from the Launch Template with the pre-patch AMI. The evidence of this run is invalidated,
+        the ring returns to its pre-deployment state and the replacement instance is discovered
+        by tags.
+      </div>
+      {confirmRollback && (
+        <div className="flex gap-2">
+          <button className="btn btn-brand disabled:opacity-40" onClick={rollback} disabled={busy}>
+            Confirm the rollback of ring {RING}
+          </button>
+          <button className="btn btn-ghost disabled:opacity-40"
+                  onClick={() => setConfirmRollback(false)} disabled={busy}>
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   const gates: HitlGate[] = detail?.journey.gates.filter(
     (g) => g.ring === RING || g.ring === null) ?? [];
@@ -489,6 +538,7 @@ export default function LiveStage() {
                       Nothing has run yet on this instance.
                     </div>}
               </div>
+              {rollbackPanel}
             </div>
           )}
 
@@ -515,41 +565,7 @@ export default function LiveStage() {
                 <Field label="Instance ID" value={instance?.instance_id ?? "unresolved"} mono />
               </div>
 
-              <div className="rounded-lg border border-orange-500/30 bg-orange-500/[0.06] px-3 py-2 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" disabled title="Not enabled in this live run"
-                          className="rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-1.5
-                                     text-xs font-bold text-orange-300/60 cursor-not-allowed">
-                    ⟲ Rollback
-                  </button>
-                  <span className="text-[11px] text-orange-200/80">
-                    Visual only: an in-place kernel rollback is out of scope for this run, so the
-                    button never touches AWS.
-                  </span>
-                </div>
-                <div className="text-[11px] text-gray-400">
-                  A reset <strong>is not a rollback</strong>: it terminates the current instance and
-                  the Auto Scaling Group creates a new one from the Launch Template with the
-                  vulnerable AMI. The evidence of this run is invalidated and the next instance is
-                  discovered by tags.
-                </div>
-                {confirmReset ? (
-                  <div className="flex gap-2">
-                    <button className="btn btn-brand disabled:opacity-40" onClick={resetLab} disabled={busy}>
-                      Confirm the lab reset
-                    </button>
-                    <button className="btn btn-ghost disabled:opacity-40"
-                            onClick={() => setConfirmReset(false)} disabled={busy}>
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button className="btn btn-ghost disabled:opacity-40"
-                          onClick={() => setConfirmReset(true)} disabled={busy}>
-                    Reset the lab to the vulnerable AMI
-                  </button>
-                )}
-              </div>
+              {rollbackPanel}
             </div>
           )}
 
