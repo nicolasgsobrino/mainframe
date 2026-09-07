@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, releaseIdempotencyKey } from "../api";
 import type {
-  HitlGate, LabSnapshot, LabValidation, PatchJob, TaskDetail,
+  HitlGate, LabSnapshot, LabValidation, PatchJob, Ring, TaskDetail,
 } from "../types";
 import { LogConsole, NextActionBar, type DemoStep } from "../components/flow";
 import { Check, Field } from "../components/lab/fields";
@@ -12,13 +12,17 @@ import { useView } from "../view";
 
 /**
  * Live patching: la misma gramática visual del recorrido guiado sobre la
- * ejecución que sí toca AWS. Un único entorno, sin gestión del cambio ITSM y
- * sin escenario sintético — todo lo que se ve viene del laboratorio EC2 que el
+ * ejecución que sí toca AWS. Promoción por anillos sin gestión del cambio ITSM
+ * y sin escenario sintético — todo lo que se ve viene del laboratorio EC2 que el
  * backend resuelve por tags y del job durable de Systems Manager.
  */
 
-/** Anillo único de la ejecución real: la prueba tiene una sola máquina. */
-const RING = 1;
+/**
+ * El anillo 1 ejecuta la Automation real sobre la instancia del laboratorio; los
+ * anillos siguientes promocionan esa misma evidencia sin relanzar el runbook,
+ * porque el objetivo ya está en la versión corregida.
+ */
+const FIRST_RING = 1;
 
 type StageId = "target" | "preflight" | "execution" | "evidence";
 
@@ -34,13 +38,15 @@ const STAGE_PITCH: Record<StageId, string> = {
     + "identifier and the mandatory tags, so a recreated instance is picked up on its own.",
   preflight: "Nothing is changed yet. The checks confirm the instance is manageable through SSM "
     + "and that the advisory really applies to the kernel currently running.",
-  execution: "One authorisation, one execution: the Automation runbook patches the instance and "
-    + "the job survives a reload because its state lives in the backend, not in this screen.",
+  execution: "Every ring is authorised on its own: the Automation runbook patches the instance on "
+    + "the first ring and the job survives a reload because its state lives in the backend, not "
+    + "in this screen.",
   evidence: "The result is not claimed, it is evidenced: kernel before and after, the Automation "
-    + "execution that produced it and the state transition observed on AWS.",
+    + "execution that produced it and the state transition observed on AWS. Each ring is promoted "
+    + "only when a person accepts that evidence.",
 };
 
-type LiveOp = "reconcile" | "validate" | "preapprove" | "patch" | "verify" | "none";
+type LiveOp = "reconcile" | "validate" | "preapprove" | "patch" | "verify" | "close" | "none";
 
 interface LiveStep {
   step: DemoStep;
@@ -57,71 +63,98 @@ function nextLiveStep(
 ): LiveStep {
   const patched = snapshot.vulnerable_state === "patched";
   const instanceId = snapshot.instance?.instance_id ?? "the lab instance";
-  const ringPlan = detail?.artifacts.deployment.rings.find((r) => r.ring === RING);
-  const preapproved = !!ringPlan?.plan.approval.preapproved;
+  const rings = detail?.artifacts.deployment.rings ?? [];
+  const ringsDone = rings.filter((r) => r.status === "completed").length;
+  const current = rings.find((r) => r.status !== "completed") ?? null;
+  const ring = current?.ring ?? FIRST_RING;
+  const ringLabel = current?.label ?? `Ring ${ring}`;
+  const first = ring === FIRST_RING;
   const resultGate = detail?.journey.gates.find(
-    (g) => g.id === "ring_result" && g.ring === RING && g.status === "pending") ?? null;
+    (g) => g.id === "ring_result" && g.status === "pending") ?? null;
+  const closureGate = detail?.journey.gates.find(
+    (g) => g.id === "closure" && g.status === "pending") ?? null;
 
   if (snapshot.resolution_error) {
     return {
       stage: "target", op: "reconcile",
       action: { verb: "Resolve", object: "the lab instance" },
       step: {
-        kind: "deploy", ring: RING, gate: null, label: "Resolve the lab instance",
+        kind: "deploy", ring, gate: null, label: "Resolve the lab instance",
         hint: `${snapshot.resolution_error.message} Reconciliation resolves the instance by tags `
           + "and leaves the lab ready.",
       },
     };
   }
-  if (!patched && !validation) {
+  // La validación del anillo desplegado bloquea la promoción al siguiente.
+  if (resultGate) {
+    return {
+      stage: "evidence", op: "verify",
+      action: { verb: "Accept", object: `the evidence of ring ${resultGate.ring ?? ring}` },
+      step: {
+        kind: "verify", ring: resultGate.ring, gate: resultGate,
+        label: `Accept the evidence of ring ${resultGate.ring ?? ring}`,
+        hint: `${resultGate.question} · accept it to promote to the next ring, or roll the ring `
+          + "back to the state before the patch.",
+      },
+    };
+  }
+  if (ringsDone === 0 && !validation) {
     return {
       stage: "preflight", op: "validate",
       action: { verb: "Run", object: "the preflight checks" },
       step: {
-        kind: "deploy", ring: RING, gate: null, label: "Run the preflight checks",
+        kind: "deploy", ring, gate: null, label: "Run the preflight checks",
         hint: "Read-only checks on AWS: instance resolved, SSM agent online and advisory "
           + "applicable to the running kernel. Nothing is modified.",
       },
     };
   }
-  if (!patched && !preapproved) {
+  if (current && !current.plan.approval.preapproved) {
     return {
       stage: "execution", op: "preapprove",
-      action: { verb: "Authorise", object: `the patch on ${instanceId}` },
+      action: { verb: "Authorise", object: ringLabel.toLowerCase() },
       step: {
-        kind: "preapprove", ring: RING, gate: null, label: "Authorise the patch",
-        hint: "Blocking gate: nothing runs on AWS until a person authorises this environment.",
+        kind: "preapprove", ring, gate: null, label: `Authorise ${ringLabel}`,
+        hint: first
+          ? `Blocking gate: nothing runs on ${instanceId} until a person authorises this ring.`
+          : "Blocking gate: the rollout does not progress to this ring until a person "
+            + "authorises the promotion.",
       },
     };
   }
-  if (!patched) {
+  if (current) {
     return {
       stage: "execution", op: "patch",
-      action: { verb: "Apply", object: "the patch" },
+      action: { verb: first ? "Apply" : "Promote", object: ringLabel.toLowerCase() },
       step: {
-        kind: "deploy", ring: RING, gate: null, label: "Apply the patch",
-        hint: "Runs the Systems Manager Automation runbook on the resolved instance and waits "
-          + "for AWS to confirm the result.",
+        kind: "deploy", ring, gate: null,
+        label: first ? `Apply the patch on ${ringLabel}` : `Promote to ${ringLabel}`,
+        hint: first
+          ? "Runs the Systems Manager Automation runbook on the resolved instance and waits "
+            + "for AWS to confirm the result."
+          : "The rollout resolves the same instance, which AWS already reports on the fixed "
+            + "version, so this ring is closed with the evidence of the live execution instead "
+            + "of running the runbook again.",
       },
     };
   }
-  if (resultGate) {
+  if (closureGate) {
     return {
-      stage: "evidence", op: "verify",
-      action: { verb: "Accept", object: "the patch evidence" },
+      stage: "evidence", op: "close",
+      action: { verb: "Close", object: "the remediation" },
       step: {
-        kind: "verify", ring: RING, gate: resultGate, label: "Accept the patch evidence",
-        hint: `${resultGate.question} · accept the evidence, or use the reset to leave the lab `
-          + "vulnerable again for another run.",
+        kind: "verify", ring: null, gate: closureGate, label: "Close the remediation",
+        hint: `${closureGate.question} · the rollout has reached every ring with the evidence `
+          + "produced on AWS.",
       },
     };
   }
   return {
     stage: "evidence", op: "none",
-    action: { verb: "Live patch evidenced", object: "" },
+    action: { verb: patched ? "Live patch evidenced" : "Rollout closed", object: "" },
     step: {
       kind: "done", ring: null, gate: null, label: "Live patch evidenced",
-      hint: "The instance is patched and the evidence is accepted.",
+      hint: "Every ring is deployed and the evidence produced on AWS is accepted.",
     },
   };
 }
@@ -159,6 +192,51 @@ function StageRibbon({ current, actionStage, accent, onSelect }: {
             </div>
             <div className="text-[10px] text-gray-600 leading-tight">{s.caption}</div>
           </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Progreso del despliegue por anillos, con el anillo en juego resaltado. */
+function RingStrip({ rings, actionRing, accent }: {
+  rings: Ring[]; actionRing: number | null; accent: string;
+}) {
+  if (rings.length === 0) return null;
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+      {rings.map((r) => {
+        const done = r.status === "completed";
+        const isAction = r.ring === actionRing;
+        return (
+          <div
+            key={r.ring}
+            className={`rounded-lg border p-2 ${done
+              ? "border-emerald-500/40 bg-emerald-500/[0.07]"
+              : r.status === "rolled_back"
+                ? "border-orange-500/40 bg-orange-500/[0.07]"
+                : "border-line bg-ink"}`}
+            style={isAction
+              ? { borderColor: accent, boxShadow: `0 0 0 3px ${accent}26` }
+              : undefined}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-mono text-gray-600">RING {r.ring}</span>
+              <span className={done ? "text-emerald-400 text-[11px]"
+                : r.status === "rolled_back" ? "text-orange-300 text-[11px]"
+                  : "text-gray-600 text-[11px]"}>
+                {done ? "✓" : r.status === "rolled_back" ? "⟲" : "○"}
+              </span>
+            </div>
+            <div className={`text-[11px] leading-snug font-semibold ${
+              done || isAction ? "text-gray-100" : "text-gray-400"}`}>
+              {r.label.replace(/^Ring \d+ · /, "")}
+            </div>
+            <div className="text-[10px] text-gray-600 leading-tight">
+              {r.plan.approval.preapproved ? "authorised" : "awaiting authorisation"}
+              {done ? ` · ${r.result}` : ""}
+            </div>
+          </div>
         );
       })}
     </div>
@@ -307,6 +385,9 @@ export default function LiveStage() {
   };
 
   const taskId = detail?.task.id ?? snapshot.task_id;
+  const rings = detail?.artifacts.deployment.rings ?? [];
+  const ringsDone = rings.filter((r) => r.status === "completed").length;
+  const actionRing = live.step.ring ?? FIRST_RING;
   const act = () => {
     setPinned(null);
     switch (live.op) {
@@ -315,11 +396,13 @@ export default function LiveStage() {
       case "validate":
         return void run(async () => setValidation(await api.validateLab(labId)));
       case "preapprove":
-        return void run(() => api.preapproveRing(taskId, RING));
+        return void run(() => api.preapproveRing(taskId, actionRing));
       case "patch":
-        return void run(() => api.approve(taskId, RING));
+        return void run(() => api.approve(taskId, actionRing));
       case "verify":
-        return void run(() => api.verifyGate(taskId, "ring_result", { ring: RING, role }));
+        return void run(() => api.verifyGate(taskId, "ring_result", { ring: actionRing, role }));
+      case "close":
+        return void run(() => api.verifyGate(taskId, "closure", { role }));
       default:
         return undefined;
     }
@@ -336,7 +419,9 @@ export default function LiveStage() {
     setConfirmRollback(false);
   });
 
-  const rollbackTarget = snapshot.vulnerable_state === "patched" || !!lastPatchJob;
+  const rollbackRing = ringsDone > 0 ? rings[ringsDone - 1].ring : null;
+  const rollbackTarget = rollbackRing !== null
+    || snapshot.vulnerable_state === "patched" || !!lastPatchJob;
   const rollbackPanel = (
     <div className="rounded-lg border border-orange-500/30 bg-orange-500/[0.06] px-3 py-2 space-y-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -345,32 +430,32 @@ export default function LiveStage() {
           disabled={busy || !rollbackTarget}
           onClick={() => setConfirmRollback(true)}
           title={rollbackTarget
-            ? `Revert ring ${RING} to the state before the patch`
-            : "Nothing to revert: this ring has not been deployed yet"}
+            ? `Revert ring ${rollbackRing ?? FIRST_RING} to the state before the patch`
+            : "Nothing to revert: no ring has been deployed yet"}
           className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
             busy || !rollbackTarget
               ? "border-orange-500/40 bg-orange-500/10 text-orange-300/50 cursor-not-allowed"
               : "border-orange-500/60 bg-orange-500/15 text-orange-200 hover:bg-orange-500/25"}`}
         >
-          ⟲ Rollback ring {RING}
+          ⟲ Rollback ring {rollbackRing ?? FIRST_RING}
         </button>
         <span className="text-[11px] text-orange-200/80">
           {rollbackTarget
-            ? "Reverts the environment to the state before the patch and reopens the ring."
-            : "Available once the ring has been deployed."}
+            ? "Reverts the environment to the state before the patch and reopens the rollout."
+            : "Available once a ring has been deployed."}
         </span>
       </div>
       <div className="text-[11px] text-gray-400">
         There is no in-place kernel downgrade for this advisory, so the rollback recreates the
         target: the current instance is terminated and the Auto Scaling Group launches a new one
-        from the Launch Template with the pre-patch AMI. The evidence of this run is invalidated,
-        the ring returns to its pre-deployment state and the replacement instance is discovered
-        by tags.
+        from the Launch Template with the pre-patch AMI. Every ring promotes that same machine, so
+        reverting it invalidates the evidence of this run, reopens the rollout at its first ring
+        and the replacement instance is discovered by tags.
       </div>
       {confirmRollback && (
         <div className="flex gap-2">
           <button className="btn btn-brand disabled:opacity-40" onClick={rollback} disabled={busy}>
-            Confirm the rollback of ring {RING}
+            Confirm the rollback of ring {rollbackRing ?? FIRST_RING}
           </button>
           <button className="btn btn-ghost disabled:opacity-40"
                   onClick={() => setConfirmRollback(false)} disabled={busy}>
@@ -381,8 +466,9 @@ export default function LiveStage() {
     </div>
   );
 
-  const gates: HitlGate[] = detail?.journey.gates.filter(
-    (g) => g.ring === RING || g.ring === null) ?? [];
+  // Todas las puertas del despliegue, incluidas las de los anillos que aún no
+  // se han alcanzado: las decisiones ya tomadas nunca dejan de verse.
+  const gates: HitlGate[] = detail?.journey.gates ?? [];
   const decided = gates.filter((g) => g.status === "done").length;
 
   return (
@@ -398,7 +484,7 @@ export default function LiveStage() {
             <span className={`chip ${state.cls}`}>{state.label}</span>
             <span className="text-xs text-gray-500">
               {instance?.account_id ?? snapshot.lab?.account_id ?? "—"} ·{" "}
-              {instance?.region ?? snapshot.lab?.region ?? "—"} · single environment
+              {instance?.region ?? snapshot.lab?.region ?? "—"} · {ringsDone}/{rings.length} rings deployed
             </span>
           </div>
         </div>
@@ -429,6 +515,9 @@ export default function LiveStage() {
 
       <StageRibbon current={stage} actionStage={live.stage} accent={accent}
                    onSelect={(id) => setPinned(id)} />
+
+      <RingStrip rings={rings} actionRing={live.step.kind === "done" ? null : actionRing}
+                 accent={accent} />
 
       <NextActionBar
         step={live.step}
@@ -595,7 +684,9 @@ export default function LiveStage() {
                   {g.status === "done" ? "✓" : g.status === "pending" ? "◑" : "○"}
                 </span>
                 <div>
-                  <div className={g.status === "pending" ? "text-amber-200" : "text-gray-300"}>{g.label}</div>
+                  <div className={g.status === "pending" ? "text-amber-200" : "text-gray-300"}>
+                    {g.label}{g.ring !== null ? ` · ring ${g.ring}` : ""}
+                  </div>
                   <div className="text-gray-600">
                     {g.status === "done"
                       ? `${g.verdict ?? "Verified"}${g.actor ? ` · ${g.actor}` : ""}`
