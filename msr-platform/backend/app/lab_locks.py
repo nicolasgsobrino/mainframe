@@ -146,7 +146,7 @@ class DynamoDbLabLockBackend:
         client = self._client_factory()
         if client is None:
             raise LabLockError("LOCK_UNAVAILABLE",
-                               "No hay cliente de DynamoDB para el lock del laboratorio.")
+                               "There is no DynamoDB client for the lab lock.")
         return client
 
     def acquire(self, lab_id: str, owner: str, holder: str, operation: str,
@@ -182,7 +182,7 @@ class DynamoDbLabLockBackend:
         except Exception as exc:
             if _is_conditional_failure(exc):
                 return False
-            raise self._as_lock_error(exc, "No se pudo tomar el lock del laboratorio.") from exc
+            raise self._as_lock_error(exc, "The lab lock could not be acquired.") from exc
         return True
 
     def release(self, lab_id: str, owner: str) -> bool:
@@ -198,7 +198,7 @@ class DynamoDbLabLockBackend:
             if _is_conditional_failure(exc):
                 # El lock ya no es nuestro (caducó y lo tomó otro): no se toca.
                 return False
-            raise self._as_lock_error(exc, "No se pudo liberar el lock del laboratorio.") from exc
+            raise self._as_lock_error(exc, "The lab lock could not be released.") from exc
         return True
 
     def get(self, lab_id: str) -> dict | None:
@@ -207,7 +207,7 @@ class DynamoDbLabLockBackend:
                                              Key={"lab_id": {"S": lab_id}},
                                              ConsistentRead=True)
         except Exception as exc:
-            raise self._as_lock_error(exc, "No se pudo leer el lock del laboratorio.") from exc
+            raise self._as_lock_error(exc, "The lab lock could not be read.") from exc
         item = response.get("Item") or {}
         if not item:
             return None
@@ -266,7 +266,7 @@ class LabLockManager:
         acquired = self._backend.acquire(lab_id, owner, self._holder, operation, ttl,
                                           reason=reason)
         if acquired:
-            logger.info("Lock del laboratorio %s tomado por %s (%s, backend %s).",
+            logger.info("Lab lock %s acquired by %s (%s, backend %s).",
                         lab_id, owner, operation, self._backend.name)
         return acquired
 
@@ -277,15 +277,15 @@ class LabLockManager:
             return
         held = self._backend.get(lab_id) or {}
         raise LabLockedError(
-            f"El laboratorio {lab_id} tiene una operación mutativa en curso "
-            f"({held.get('operation') or 'desconocida'}, dueño "
-            f"{held.get('owner') or 'desconocido'}): no se inicia {operation}.",
+            f"Lab {lab_id} has a mutating operation in progress "
+            f"({held.get('operation') or 'unknown'}, owner "
+            f"{held.get('owner') or 'unknown'}): {operation} is not started.",
             correlation_id=str(held.get("owner") or ""))
 
     def release(self, lab_id: str, owner: str) -> bool:
         released = self._backend.release(lab_id, owner)
         if not released:
-            logger.warning("El lock del laboratorio %s no pertenecía a %s: no se libera.",
+            logger.warning("Lab lock %s did not belong to %s: it is not released.",
                            lab_id, owner)
         return released
 

@@ -130,7 +130,7 @@ def contract_for(operation: str) -> RunbookContract:
     contract = CONTRACTS.get(operation)
     if contract is None:
         raise RunbookContractError("RUNBOOK_OPERATION_UNKNOWN",
-                                   f"Operación '{operation}' sin contrato de runbook declarado.")
+                                   f"Operation '{operation}' has no declared runbook contract.")
     return contract
 
 
@@ -149,16 +149,16 @@ def resolve_runbook(settings, operation: str) -> ResolvedRunbook:
     if not name:
         raise RunbookContractError(
             "RUNBOOK_NOT_CONFIGURED",
-            f"No hay runbook de Automation configurado para la operación '{operation}'.")
+            f"There is no Automation runbook configured for operation '{operation}'.")
     if name in KNOWN_COMMAND_DOCUMENTS:
         raise RunbookContractError(
             "DOCUMENT_TYPE_NOT_SUPPORTED",
-            f"'{name}' es un documento de tipo Command y no puede iniciarse con "
-            "StartAutomationExecution; debe invocarse desde un runbook Automation "
-            "propio mediante aws:runCommand.")
+            f"'{name}' is a Command-type document and cannot be started with "
+            "StartAutomationExecution; it must be invoked from a dedicated Automation "
+            "runbook via aws:runCommand.")
     if name not in settings.allowed_runbooks:
         raise RunbookContractError("RUNBOOK_NOT_ALLOWED",
-                                   f"El runbook '{name}' no está en la allowlist interna.")
+                                   f"Runbook '{name}' is not in the internal allowlist.")
     return ResolvedRunbook(name=name, contract=contract)
 
 
@@ -167,16 +167,16 @@ def assert_document_type(name: str, document_type: str | None, contract: Runbook
     if document_type != contract.document_type:
         raise RunbookContractError(
             "DOCUMENT_TYPE_NOT_SUPPORTED",
-            f"El documento '{name}' es de tipo '{document_type or 'desconocido'}' y se "
-            f"requiere '{contract.document_type}'.")
+            f"Document '{name}' is of type '{document_type or 'unknown'}' and "
+            f"requires '{contract.document_type}'.")
 
 
 def assert_track_supported(track: str | None, contract: RunbookContract) -> None:
     if (track or "") not in contract.allowed_tracks:
         raise RunbookContractError(
             "UNSUPPORTED_REMEDIATION_TRACK",
-            f"El track '{track or 'sin valor'}' no se ejecuta en AWS: el runbook "
-            f"'{contract.operation}' sólo soporta {', '.join(sorted(contract.allowed_tracks))}.")
+            f"Track '{track or 'not set'}' does not run on AWS: runbook "
+            f"'{contract.operation}' only supports {', '.join(sorted(contract.allowed_tracks))}.")
 
 
 def assert_operating_system_supported(operating_system: str | None,
@@ -185,8 +185,8 @@ def assert_operating_system_supported(operating_system: str | None,
     if not any(allowed in value for allowed in contract.allowed_operating_systems):
         raise RunbookContractError(
             "TARGET_OS_NOT_SUPPORTED",
-            f"El sistema operativo '{operating_system or 'desconocido'}' no está soportado por "
-            f"el runbook de {contract.operation}.")
+            f"Operating system '{operating_system or 'unknown'}' is not supported by "
+            f"the {contract.operation} runbook.")
 
 
 def validate_parameters(contract: RunbookContract, parameters: dict) -> dict:
@@ -196,17 +196,17 @@ def validate_parameters(contract: RunbookContract, parameters: dict) -> dict:
     if forbidden:
         raise RunbookContractError(
             "PARAMETER_FORBIDDEN",
-            f"Parámetros prohibidos para el runbook de {contract.operation}: "
+            f"Forbidden parameters for the {contract.operation} runbook: "
             f"{', '.join(forbidden)}.")
     undeclared = sorted(keys - contract.declared_parameters)
     if undeclared:
         raise RunbookContractError(
             "PARAMETER_NOT_DECLARED",
-            f"El runbook de {contract.operation} no declara: {', '.join(undeclared)}.")
+            f"The {contract.operation} runbook does not declare: {', '.join(undeclared)}.")
     missing = sorted(contract.required_parameters - keys)
     if missing:
         raise RunbookContractError(
             "PARAMETER_REQUIRED_MISSING",
-            f"Faltan parámetros obligatorios del runbook de {contract.operation}: "
+            f"Mandatory parameters missing for the {contract.operation} runbook: "
             f"{', '.join(missing)}.")
     return dict(parameters or {})

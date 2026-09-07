@@ -4,31 +4,31 @@ import type { LabCheck, LabReconcileResult, LabSnapshot, LabValidation, PatchJob
 
 /** Modo de ejecución: mock, dry-run o AWS real. Nunca se confunden en la UI. */
 const MODE_META: Record<string, { label: string; cls: string }> = {
-  "mock": { label: "Simulación (mock)", cls: "bg-gray-500/15 text-gray-300" },
-  "aws-dry-run": { label: "AWS · dry-run (sin cambios reales)", cls: "bg-sky-500/15 text-sky-300" },
-  "aws-real": { label: "AWS Systems Manager · ejecución real", cls: "bg-red-500/15 text-red-300" },
+  "mock": { label: "Simulation (mock)", cls: "bg-gray-500/15 text-gray-300" },
+  "aws-dry-run": { label: "AWS · dry-run (no real changes)", cls: "bg-sky-500/15 text-sky-300" },
+  "aws-real": { label: "AWS Systems Manager · live execution", cls: "bg-red-500/15 text-red-300" },
 };
 
 /** Estado del laboratorio según la evidencia persistida, nunca supuesto. */
 const STATE_META: Record<string, { label: string; cls: string }> = {
-  unknown: { label: "Estado sin evidencia", cls: "bg-gray-500/15 text-gray-300" },
+  unknown: { label: "State without evidence", cls: "bg-gray-500/15 text-gray-300" },
   vulnerable: { label: "VULNERABLE", cls: "bg-amber-500/15 text-amber-300" },
   patched: { label: "PATCHED", cls: "bg-green-500/15 text-green-400" },
 };
 
 /** Estado del reconciliador (`ensure_lab_ready`). */
 const RECONCILE_META: Record<string, { label: string; cls: string }> = {
-  idle: { label: "Reconciliación: sin ejecutar", cls: "bg-gray-500/15 text-gray-300" },
-  running: { label: "Reconciliando…", cls: "bg-sky-500/15 text-sky-300" },
+  idle: { label: "Reconciliation: not run", cls: "bg-gray-500/15 text-gray-300" },
+  running: { label: "Reconciling…", cls: "bg-sky-500/15 text-sky-300" },
   ready: { label: "READY", cls: "bg-green-500/15 text-green-400" },
-  resetting: { label: "Recreando instancia…", cls: "bg-sky-500/15 text-sky-300" },
-  failed: { label: "Reconciliación fallida", cls: "bg-red-500/15 text-red-300" },
-  skipped: { label: "Reconciliación omitida", cls: "bg-amber-500/15 text-amber-300" },
+  resetting: { label: "Recreating the instance…", cls: "bg-sky-500/15 text-sky-300" },
+  failed: { label: "Reconciliation failed", cls: "bg-red-500/15 text-red-300" },
+  skipped: { label: "Reconciliation skipped", cls: "bg-amber-500/15 text-amber-300" },
 };
 
-const ts = (value: string | null) => (value ? new Date(value).toLocaleString("es-ES") : "—");
+const ts = (value: string | null) => (value ? new Date(value).toLocaleString("en-GB") : "—");
 const tri = (value: boolean | null | undefined) =>
-  value === null || value === undefined ? "sin evidencia" : value ? "sí" : "no";
+  value === null || value === undefined ? "no evidence" : value ? "yes" : "no";
 
 const toError = (e: unknown) =>
   e instanceof ApiError
@@ -115,7 +115,7 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
   if (!snapshot) {
     return (
       <div className="card p-4 text-sm text-gray-400">
-        {error ? `${error.code}: ${error.message}` : "Cargando laboratorio…"}
+        {error ? `${error.code}: ${error.message}` : "Loading the lab…"}
       </div>
     );
   }
@@ -132,8 +132,8 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
   // El parcheo exige una validación previa que confirme el estado vulnerable.
   const validatedVulnerable = !!validation?.allowed && validation.vulnerable_state === "vulnerable";
   const patchBlocked = patchBlockedReason
-    ?? (!validatedVulnerable ? "Ejecuta antes «Validate lab»: el parcheo requiere una validación "
-      + "correcta con el laboratorio en estado vulnerable." : null);
+    ?? (!validatedVulnerable ? "Run «Validate lab» first: patching requires a successful validation "
+      + "with the lab in a vulnerable state." : null);
 
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);
@@ -166,9 +166,9 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
     <div className="card p-4 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-bold text-gray-100">Laboratorio EC2 · {labId}</div>
+          <div className="text-sm font-bold text-gray-100">EC2 lab · {labId}</div>
           <div className="text-xs text-gray-500">
-            La instancia se resuelve por tags en cada operación: el reset la recrea con otro Instance ID.
+            The instance is resolved by tags on every operation: a reset recreates it with a different Instance ID.
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5 justify-end">
@@ -179,31 +179,31 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Field label="Instance ID" value={instance?.instance_id ?? "sin resolver"} mono />
-        <Field label="Estado EC2" value={instance?.state ?? "—"} />
+        <Field label="Instance ID" value={instance?.instance_id ?? "unresolved"} mono />
+        <Field label="EC2 state" value={instance?.state ?? "—"} />
         <Field label="AMI" value={instance?.image_id ?? snapshot.lab?.vulnerable_ami_id ?? "—"} mono />
         <Field label="Advisory" value={snapshot.advisory_id} mono />
-        <Field label="Instancia anterior"
+        <Field label="Previous instance"
           value={snapshot.previous_instance_id ?? "—"} mono />
-        <Field label="Agente SSM"
+        <Field label="SSM agent"
           value={snapshot.ssm_state
-            ?? (instance ? (instance.ssm_managed ? `Online (${instance.ping_status ?? "—"})` : "No gestionado") : "—")} />
-        <Field label="Salud" value={snapshot.health_state ?? "sin evidencia"} />
-        <Field label="Kernel actual" value={snapshot.current_kernel ?? "sin evidencia"} mono />
-        <Field label="Advisory aplicable" value={tri(snapshot.advisory_applicable)} />
-        <Field label="Cuenta / región"
+            ?? (instance ? (instance.ssm_managed ? `Online (${instance.ping_status ?? "—"})` : "Not managed") : "—")} />
+        <Field label="Health" value={snapshot.health_state ?? "no evidence"} />
+        <Field label="Current kernel" value={snapshot.current_kernel ?? "no evidence"} mono />
+        <Field label="Advisory applicable" value={tri(snapshot.advisory_applicable)} />
+        <Field label="Account / region"
           value={`${instance?.account_id ?? snapshot.lab?.account_id ?? "—"} · ${instance?.region ?? snapshot.lab?.region ?? "—"}`} />
-        <Field label="Resets ejecutados" value={String(resets.length)} />
+        <Field label="Resets executed" value={String(resets.length)} />
         {/* Sólo lectura: el grupo lo fija la IaC y el backend; la UI no lo envía nunca. */}
         <Field label="Auto Scaling Group"
           value={snapshot.lab?.autoscaling_group_name ?? "—"} mono />
         {/* Sólo lectura: releasever y kernel corregido también vienen de la IaC. */}
         <Field label="Releasever" value={snapshot.releasever} mono />
-        <Field label="Kernel corregido" value={snapshot.expected_fixed_kernel} mono />
+        <Field label="Fixed kernel" value={snapshot.expected_fixed_kernel} mono />
         <Field label="Automation · patch" value={snapshot.last_patch_execution_id ?? "—"} mono />
         <Field label="Automation · reset" value={snapshot.last_reset_execution_id ?? "—"} mono />
-        <Field label="Evidencia" value={snapshot.evidence_source ?? "sin observar"} />
-        <Field label="Última reconciliación" value={ts(snapshot.last_reconciled_at)} />
+        <Field label="Evidence" value={snapshot.evidence_source ?? "not observed"} />
+        <Field label="Last reconciliation" value={ts(snapshot.last_reconciled_at)} />
       </div>
 
       {snapshot.resolution_error && (
@@ -220,8 +220,8 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
 
       {!snapshot.advisory_confirmed && (
         <div className="text-[11px] text-gray-500">
-          Todavía no hay evidencia observada: sólo el precheck de sólo lectura confirma si
-          {" "}{snapshot.advisory_id} es aplicable a la instancia resuelta.
+          No observed evidence yet: only the read-only precheck confirms whether
+          {" "}{snapshot.advisory_id} applies to the resolved instance.
         </div>
       )}
 
@@ -230,11 +230,11 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
           Validate lab
         </button>
         <button className="btn btn-ghost disabled:opacity-40" onClick={runReconcile} disabled={disabled}
-          title="ensure_lab_ready: resuelve la instancia por tags y deja el laboratorio listo">
+          title="ensure_lab_ready: resolves the instance by tags and leaves the lab ready">
           Ensure lab ready
         </button>
         <button className="btn btn-brand disabled:opacity-40" onClick={onPatch} disabled={disabled || !!patchBlocked}
-          title={patchBlocked ?? "Aplica el advisory mediante el runbook de Automation"}>
+          title={patchBlocked ?? "Applies the advisory through the Automation runbook"}>
           Patch instance
         </button>
         <button className="btn btn-ghost disabled:opacity-40" onClick={() => setConfirmReset(true)} disabled={disabled}>
@@ -246,16 +246,16 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
       {confirmReset && (
         <div className="rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-2 space-y-2">
           <div className="text-xs text-orange-200">
-            El reset <strong>no es un rollback</strong>: termina la instancia actual y crea una nueva
-            desde el Launch Template para volver a dejar el laboratorio vulnerable. El historial de
-            jobs se conserva y los anillos ya desplegados no se deshacen.
+            A reset <strong>is not a rollback</strong>: it terminates the current instance and creates a new
+            one from the Launch Template to leave the lab vulnerable again. The job history is kept and the
+            rings already deployed are not undone.
           </div>
           <div className="flex gap-2">
             <button className="btn btn-brand disabled:opacity-40" onClick={reset} disabled={busy}>
-              Confirmar reset del laboratorio
+              Confirm the lab reset
             </button>
             <button className="btn btn-ghost disabled:opacity-40" onClick={() => setConfirmReset(false)} disabled={busy}>
-              Cancelar
+              Cancel
             </button>
           </div>
         </div>
@@ -263,10 +263,10 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
 
       {lastReset && (
         <div className="text-xs text-gray-400">
-          Último reset <span className="font-mono">{lastReset.id}</span> · {lastReset.state} ·
+          Last reset <span className="font-mono">{lastReset.id}</span> · {lastReset.state} ·
           {" "}<span className="font-mono">{previousInstanceId ?? "—"}</span> →{" "}
           <span className="font-mono">{
-            lastReset.state === "restored" ? (instance?.instance_id ?? "—") : "pendiente"
+            lastReset.state === "restored" ? (instance?.instance_id ?? "—") : "pending"
           }</span>
         </div>
       )}
@@ -274,11 +274,11 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
       {reconcile && (
         <div className="space-y-1 rounded-lg border border-gray-700/60 px-3 py-2">
           <div className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">
-            Última reconciliación · {reconcile.correlation_id}
+            Last reconciliation · {reconcile.correlation_id}
           </div>
           <div className="text-xs text-gray-300">
-            {reconcile.state} · acción {reconcile.action} ·{" "}
-            {reconcile.ready ? "laboratorio READY" : "laboratorio no listo"} ·{" "}
+            {reconcile.state} · action {reconcile.action} ·{" "}
+            {reconcile.ready ? "lab READY" : "lab not ready"} ·{" "}
             <span className="font-mono">{reconcile.previous_instance_id ?? "—"}</span> →{" "}
             <span className="font-mono">{reconcile.instance_id ?? "—"}</span>
           </div>
@@ -293,12 +293,12 @@ export default function LabPanel({ labId, onPatch, patchBlockedReason, locked, o
       {validation && (
         <div className="space-y-1">
           <div className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">
-            Validación de sólo lectura
+            Read-only validation
           </div>
           {validation.checks.map((c) => <Check key={c.check} c={c} />)}
           {validation.inconclusive.length > 0 && (
             <div className="text-[11px] text-gray-400">
-              No concluyentes (no bloquean; el precheck del runbook las repite):{" "}
+              Inconclusive (non-blocking; the runbook precheck repeats them):{" "}
               {validation.inconclusive.join(", ")}.
             </div>
           )}

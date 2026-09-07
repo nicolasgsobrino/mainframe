@@ -9,12 +9,13 @@ export const JOURNEY_BAND_COLOR: Record<string, string> = {
 };
 
 export const BLOCKER_META: Record<string, { label: string; cls: string }> = {
-  awaiting_approval: { label: "pdte. aprobación", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
-  job_failed: { label: "ejecución fallida", cls: "bg-red-500/15 text-red-300 border border-red-500/40" },
-  job_unconfirmed: { label: "estado sin confirmar", cls: "bg-orange-500/15 text-orange-300 border border-orange-500/40" },
+  awaiting_approval: { label: "awaiting approval", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
+  job_failed: { label: "execution failed", cls: "bg-red-500/15 text-red-300 border border-red-500/40" },
+  job_unconfirmed: { label: "state unconfirmed", cls: "bg-orange-500/15 text-orange-300 border border-orange-500/40" },
   rollback: { label: "rollback", cls: "bg-orange-500/15 text-orange-300 border border-orange-500/40" },
-  sla_overdue: { label: "SLA vencido", cls: "bg-red-500/15 text-red-300 border border-red-500/40" },
-  sla_due_soon: { label: "SLA en riesgo", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
+  sla_overdue: { label: "SLA breached", cls: "bg-red-500/15 text-red-300 border border-red-500/40" },
+  sla_due_soon: { label: "SLA at risk", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
+  awaiting_ring_validation: { label: "awaiting ring validation", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
 };
 
 export function BlockerChip({ id, count }: { id: string; count?: number }) {
@@ -39,7 +40,7 @@ function PhaseCard({ phase, selected, onSelect }: {
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      title={`${phase.label_en} · ${phase.count} vulnerabilidad(es)`}
+      title={`${phase.label_en} · ${phase.count} vulnerability(ies)`}
       className={`text-left rounded-lg border p-3 transition-colors w-full h-full ${
         selected ? "bg-ink-panel" : "bg-ink hover:bg-ink-panel"}`}
       style={{ borderColor: selected ? color : "#2b313d" }}
@@ -48,19 +49,21 @@ function PhaseCard({ phase, selected, onSelect }: {
         <span className="font-mono text-[10px] px-1.5 py-0.5 rounded"
               style={{ background: color + "22", color }}>{phase.index}</span>
         {phase.per_ring && (
-          <span className="text-[10px] text-gray-500" title="Se repite en cada anillo de despliegue">× anillo</span>
+          <span className="text-[10px] text-gray-500" title="Repeats on every deployment ring">× ring</span>
         )}
         {phase.gates.length > 0 && (
           <span
             className={`ml-auto text-[10px] ${phase.gates_pending > 0 ? "text-amber-300" : "text-gray-600"}`}
             title={phase.gates.map((g) => g.label).join(" · ")}
           >
-            ◑ {phase.gates_pending > 0 ? `${phase.gates_pending} pdte.` : "HITL"}
+            ◑ {phase.gates_pending > 0 ? `${phase.gates_pending} pending` : "HITL"}
           </span>
         )}
       </div>
       <div className="text-xs font-semibold text-gray-200 mt-2 leading-snug">{phase.label}</div>
-      <div className="text-[10px] text-gray-500 leading-snug">{phase.label_en}</div>
+      {phase.label_en !== phase.label && (
+        <div className="text-[10px] text-gray-500 leading-snug">{phase.label_en}</div>
+      )}
       <div className="mt-2 flex items-baseline gap-1.5">
         <span className="text-2xl font-extrabold" style={{ color: empty ? "#475569" : color }}>{phase.count}</span>
         <span className="text-[10px] text-gray-500">vuln.</span>
@@ -73,7 +76,7 @@ function PhaseCard({ phase, selected, onSelect }: {
           </span>
         ))}
         {phase.rings.length > 0 && (
-          <span className="text-[10px] text-gray-500">· anillo {phase.rings.join(", ")}</span>
+          <span className="text-[10px] text-gray-500">· ring {phase.rings.join(", ")}</span>
         )}
       </div>
       {Object.keys(phase.blockers).length > 0 && (

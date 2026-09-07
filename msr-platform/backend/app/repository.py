@@ -155,7 +155,7 @@ class TargetBusyError(RuntimeError):
     """Ya existe un job mutativo activo sobre el mismo objetivo."""
 
     def __init__(self, logical_target_id: str, job_id: str | None = None):
-        super().__init__(f"El objetivo {logical_target_id} ya tiene un job activo.")
+        super().__init__(f"Target {logical_target_id} already has an active job.")
         self.logical_target_id = logical_target_id
         self.job_id = job_id
 
@@ -242,7 +242,7 @@ class JobRepository:
     def connection(self) -> Iterator[sqlite3.Connection]:
         """Conexión de uso exclusivo para la operación en curso."""
         if self.in_memory and self._closed:
-            raise RuntimeError("El repositorio en memoria ya está cerrado.")
+            raise RuntimeError("The in-memory repository is already closed.")
         if self._shared is not None:
             with self._guard:
                 yield self._shared

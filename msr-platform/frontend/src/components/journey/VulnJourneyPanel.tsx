@@ -16,10 +16,10 @@ const RING_STATUS_COLOR: Record<string, string> = {
 };
 
 const RESOURCE_SEGMENTS: { key: keyof JourneyResources; label: string; color: string }[] = [
-  { key: "patched", label: "parcheados", color: "#22c55e" },
-  { key: "failed", label: "fallidos", color: "#ef4444" },
-  { key: "excluded", label: "excluidos", color: "#a855f7" },
-  { key: "pending", label: "pendientes", color: "#475569" },
+  { key: "patched", label: "patched", color: "#22c55e" },
+  { key: "failed", label: "failed", color: "#ef4444" },
+  { key: "excluded", label: "excluded", color: "#a855f7" },
+  { key: "pending", label: "pending", color: "#475569" },
 ];
 
 function ResourceProgress({ resources }: { resources: JourneyResources }) {
@@ -27,9 +27,9 @@ function ResourceProgress({ resources }: { resources: JourneyResources }) {
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-gray-400">Recursos afectados</span>
+        <span className="text-gray-400">Affected resources</span>
         <span className="font-mono font-bold text-gray-200">
-          {resources.patched}/{resources.total} parcheados
+          {resources.patched}/{resources.total} patched
         </span>
       </div>
       <div className="h-3 rounded bg-ink flex overflow-hidden">
@@ -54,15 +54,15 @@ function ResourceProgress({ resources }: { resources: JourneyResources }) {
 function RingStrip({ rings }: { rings: JourneyRing[] }) {
   return (
     <div>
-      <div className="text-xs text-gray-400 mb-1.5">Anillos de despliegue</div>
+      <div className="text-xs text-gray-400 mb-1.5">Deployment rings</div>
       <div className="flex gap-2">
         {rings.map((r) => {
           const color = RING_STATUS_COLOR[r.status] || "#475569";
           return (
-            <div key={r.ring} className="flex-1 min-w-0" title={`${r.label} · ${r.status} · ${r.assets} activos`}>
+            <div key={r.ring} className="flex-1 min-w-0" title={`${r.label} · ${r.status} · ${r.assets} assets`}>
               <div className="h-1.5 rounded" style={{ background: color }} />
               <div className="text-[11px] mt-1 leading-tight" style={{ color }}>{r.label}</div>
-              <div className="text-[10px] text-gray-500">{r.assets} activos</div>
+              <div className="text-[10px] text-gray-500">{r.assets} assets</div>
             </div>
           );
         })}
@@ -73,11 +73,11 @@ function RingStrip({ rings }: { rings: JourneyRing[] }) {
 
 /** Acción natural según lo que bloquea o toca hacer ahora en la tarea. */
 function nextAction(blockers: string[], ringLabel: string | null): string {
-  if (blockers.includes("awaiting_approval")) return `Aprobar ${ringLabel ?? "el anillo"}`;
-  if (blockers.includes("job_failed")) return "Revisar la ejecución fallida";
-  if (blockers.includes("job_unconfirmed")) return "Confirmar el estado del job";
-  if (blockers.includes("rollback")) return "Revisar el rollback";
-  return "Abrir la Remediation Task completa";
+  if (blockers.includes("awaiting_approval")) return `Approve ${ringLabel ?? "the ring"}`;
+  if (blockers.includes("job_failed")) return "Review the failed execution";
+  if (blockers.includes("job_unconfirmed")) return "Confirm the job state";
+  if (blockers.includes("rollback")) return "Review the rollback";
+  return "Open the full Remediation Task";
 }
 
 /** Vista detallada: el journey de una vulnerabilidad con las mismas 8 fases. */
@@ -93,7 +93,7 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
     return () => { active = false; };
   }, [taskId]);
 
-  if (!detail) return <div className="card p-5 text-xs text-gray-500">Cargando journey…</div>;
+  if (!detail) return <div className="card p-5 text-xs text-gray-500">Loading the journey…</div>;
 
   // Las verificaciones humanas y el avance de fase operan sobre el estado real
   // del backend: la respuesta ya trae el detalle actualizado.
@@ -162,12 +162,12 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
                       <span className="ml-2 text-[10px] text-gray-400">· {j.ring_label}</span>
                     )}
                   </div>
-                  {current && <div className="text-[10px] text-gray-500">en curso</div>}
+                  {current && <div className="text-[10px] text-gray-500">in progress</div>}
                   {p.gates_pending > 0 && (
                     <div className="text-[10px] text-amber-300">
                       ◑ {p.gates_pending === 1
-                        ? "1 decisión humana pendiente"
-                        : `${p.gates_pending} decisiones humanas pendientes`}
+                        ? "1 human decision pending"
+                        : `${p.gates_pending} human decisions pending`}
                     </div>
                   )}
                 </div>
@@ -186,35 +186,35 @@ export default function VulnJourneyPanel({ taskId, onClose }: { taskId: string; 
 
       <details className="group">
         <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-200 select-none">
-          Contexto · blast radius, cambio, evidencias y rollback
+          Context · blast radius, change, evidence and rollback
         </summary>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-[11px] mt-3">
           <div className="rounded-lg bg-ink p-2.5">
             <div className="text-gray-500">Blast radius</div>
             <div className="text-gray-200 font-semibold mt-0.5">
-              {impact.impacted_count} de {impact.affected_count} CIs
+              {impact.impacted_count} of {impact.affected_count} CIs
             </div>
             <div className="text-gray-500 mt-1 leading-snug">
-              {impact.downtime_required ? "Con parada → se propaga a dependientes" : "Sin parada → no se propaga"}
+              {impact.downtime_required ? "With downtime → propagates to dependants" : "No downtime → no propagation"}
             </div>
           </div>
           <div className="rounded-lg bg-ink p-2.5">
-            <div className="text-gray-500">Cambio {j.change.number}</div>
+            <div className="text-gray-500">Change {j.change.number}</div>
             <div className="text-gray-200 font-semibold mt-0.5">{j.change.type}</div>
             <div className="text-gray-500 mt-1 leading-snug">{j.change.state}</div>
           </div>
           <div className="rounded-lg bg-ink p-2.5">
-            <div className="text-gray-500">Evidencias</div>
+            <div className="text-gray-500">Evidence</div>
             <div className="text-gray-200 font-semibold mt-0.5">{j.evidence.evidences_count}</div>
             <div className="text-gray-500 mt-1">{j.evidence.report_id}</div>
           </div>
           <div className="rounded-lg bg-ink p-2.5">
             <div className="text-gray-500">Rollback</div>
             <div className="text-gray-200 font-semibold mt-0.5">
-              {j.rollback.triggered ? "Ejecutado" : j.rollback.status || "armado"}
+              {j.rollback.triggered ? "Executed" : j.rollback.status || "armed"}
             </div>
             <div className="text-gray-500 mt-1">
-              {j.resources.rings_done}/{j.resources.rings_total} anillos
+              {j.resources.rings_done}/{j.resources.rings_total} rings
             </div>
           </div>
         </div>

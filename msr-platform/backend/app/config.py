@@ -143,15 +143,15 @@ class Settings(BaseSettings):
         allowed = ("auto", "sqlite", "dynamodb")
         cleaned = (value or "auto").strip().lower()
         if cleaned not in allowed:
-            raise ValueError(f"lab_lock_backend desconocido '{value}'; "
-                             f"permitidos: {', '.join(allowed)}")
+            raise ValueError(f"unknown lab_lock_backend '{value}'; "
+                             f"allowed: {', '.join(allowed)}")
         return cleaned
 
     @field_validator("patch_provider", "restore_provider")
     @classmethod
     def _known_provider(cls, value: str) -> str:
         if value not in ALLOWED_PROVIDERS:
-            raise ValueError(f"provider desconocido '{value}'; permitidos: {', '.join(ALLOWED_PROVIDERS)}")
+            raise ValueError(f"unknown provider '{value}'; allowed: {', '.join(ALLOWED_PROVIDERS)}")
         return value
 
     # ----------------------------------------------------------------------
@@ -209,9 +209,9 @@ class Settings(BaseSettings):
                 missing.append("MSR_ROLLBACK_RUNBOOK_NAME")
         if missing:
             raise ConfigurationError(
-                "Configuración AWS incompleta para el provider seleccionado. "
-                f"Variables obligatorias sin valor: {', '.join(sorted(set(missing)))}. "
-                "Con MSR_PATCH_PROVIDER=mock la aplicación arranca sin configuración de AWS.")
+                "Incomplete AWS configuration for the selected provider. "
+                f"Mandatory variables with no value: {', '.join(sorted(set(missing)))}. "
+                "With MSR_PATCH_PROVIDER=mock the application starts with no AWS configuration.")
         if self.real_aws_execution():
             self.validate_real_execution()
 
@@ -255,9 +255,9 @@ class Settings(BaseSettings):
             missing.append("MSR_LAB_AUTOSCALING_GROUP_NAME")
         if missing:
             raise ConfigurationError(
-                "Ejecución real en AWS (MSR_DRY_RUN=false) con política incompleta. "
-                f"Variables obligatorias sin valor: {', '.join(sorted(set(missing)))}. "
-                "En modo real una allowlist vacía no autoriza ningún objetivo.")
+                "Real AWS execution (MSR_DRY_RUN=false) with an incomplete policy. "
+                f"Mandatory variables with no value: {', '.join(sorted(set(missing)))}. "
+                "In real mode an empty allowlist authorises no target.")
 
 
 @lru_cache(maxsize=1)

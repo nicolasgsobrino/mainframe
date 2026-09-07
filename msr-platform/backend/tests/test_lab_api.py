@@ -67,7 +67,7 @@ def test_validate_is_read_only_and_starts_no_job(lab_client, lab_store):
     body = lab_client.post(f"/api/labs/{LAB_ID}/validate").json()
 
     assert body["read_only"] is True
-    assert any(c["check"] == "Instancia resuelta por tags" and c["ok"] for c in body["checks"])
+    assert any(c["check"] == "Instance resolved by tags" and c["ok"] for c in body["checks"])
     # La validación observa evidencia (simulada con el provider mock).
     assert body["advisory_confirmed"] is True
     assert body["evidence"]["source"] == "mock"

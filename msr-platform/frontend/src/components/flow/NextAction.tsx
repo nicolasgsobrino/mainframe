@@ -21,38 +21,38 @@ export function stepAction(step: DemoStep): { verb: string; object: string } {
   switch (step.kind) {
     case "verify":
       return step.gate?.id === "ring_result"
-        ? { verb: "Aceptar y promocionar", object: `anillo ${step.ring}` }
-        : { verb: "Verificar", object: step.gate?.label ?? "punto de control" };
+        ? { verb: "Accept and promote", object: `ring ${step.ring}` }
+        : { verb: "Verify", object: step.gate?.label ?? "control point" };
     case "preapprove":
-      return { verb: "Pre-aprobar", object: `anillo ${step.ring}` };
+      return { verb: "Pre-approve", object: `ring ${step.ring}` };
     case "deploy":
-      return { verb: "Desplegar", object: `anillo ${step.ring}` };
+      return { verb: "Deploy", object: `ring ${step.ring}` };
     case "approve":
-      return { verb: "Aprobar", object: step.gate?.label ?? "la fase actual" };
+      return { verb: "Approve", object: step.gate?.label ?? "the current phase" };
     case "rollback":
-      return { verb: "Revertir", object: `anillo ${step.ring}` };
+      return { verb: "Roll back", object: `ring ${step.ring}` };
     default:
-      return { verb: "Completado", object: "" };
+      return { verb: "Completed", object: "" };
   }
 }
 
 const TONE = {
   human: {
     accent: "#f59e0b",
-    kicker: "TU TURNO · DECISIÓN HUMANA",
-    who: "Nadie automatiza esto: el flujo está detenido hasta que una persona lo apruebe.",
+    kicker: "YOUR TURN · HUMAN DECISION",
+    who: "Nothing automates this: the flow is stopped until a person approves it.",
     icon: "✋",
   },
   auto: {
     accent: "#8ef04a",
-    kicker: "TURNO DE LA PLATAFORMA · EJECUCIÓN AUTOMÁTICA",
-    who: "Autorizado por el humano; ahora ejecuta el agente y publica su evidencia.",
+    kicker: "PLATFORM'S TURN · AUTOMATED EXECUTION",
+    who: "Authorised by a human; the agent now runs and publishes its evidence.",
     icon: "⚙",
   },
   done: {
     accent: "#34d399",
-    kicker: "RECORRIDO COMPLETADO",
-    who: "Todos los anillos desplegados y las evidencias aceptadas.",
+    kicker: "JOURNEY COMPLETED",
+    who: "All rings deployed and evidence accepted.",
     icon: "✓",
   },
 } as const;
@@ -88,7 +88,7 @@ export function NextActionBar({ step, running, onAct, onGoToScene, onRollback }:
           {meta.kicker}
         </div>
         <div className="text-lg font-bold text-gray-100 leading-tight">
-          {tone === "done" ? "Recorrido completado" : <>{verb} <span className="text-gray-400 font-semibold">· {object}</span></>}
+          {tone === "done" ? "Journey completed" : <>{verb} <span className="text-gray-400 font-semibold">· {object}</span></>}
         </div>
         <div className="text-[11px] text-gray-400 mt-0.5">{tone === "done" ? meta.who : step.hint}</div>
       </div>
@@ -96,7 +96,7 @@ export function NextActionBar({ step, running, onAct, onGoToScene, onRollback }:
         {onGoToScene && (
           <button type="button" onClick={onGoToScene}
                   className="text-[11px] rounded-lg border border-line px-3 py-2 text-gray-400 hover:text-gray-200">
-            Ver su escena
+            Go to its scene
           </button>
         )}
         {rollbackRing !== null && (
@@ -111,13 +111,13 @@ export function NextActionBar({ step, running, onAct, onGoToScene, onRollback }:
             }}
             onBlur={() => setArmed(false)}
             data-testid="demo-next-rollback"
-            title={`Revierte el anillo ${rollbackRing} y lo devuelve al estado previo al despliegue`}
+            title={`Rolls ring ${rollbackRing} back to its pre-deployment state`}
             className={`rounded-lg border px-4 py-2.5 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed ${
               armed
                 ? "border-orange-500/70 bg-orange-500/25 text-orange-100"
                 : "border-orange-500/50 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20"}`}
           >
-            {armed ? "Confirmar rollback" : "⟲ Rollback"}
+            {armed ? "Confirm rollback" : "⟲ Rollback"}
           </button>
         )}
         <span className="relative inline-flex">
@@ -137,7 +137,7 @@ export function NextActionBar({ step, running, onAct, onGoToScene, onRollback }:
               border: `1px solid ${disabled ? "#2b313d" : meta.accent}`,
             }}
           >
-            {running ? "Ejecutando…" : tone === "done" ? "Sin pasos pendientes" : `${verb} →`}
+            {running ? "Running…" : tone === "done" ? "No steps pending" : `${verb} →`}
           </button>
         </span>
       </div>

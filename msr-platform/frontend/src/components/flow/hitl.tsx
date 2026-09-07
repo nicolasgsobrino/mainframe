@@ -6,17 +6,17 @@ export const HITL_COLOR = "#f59e0b";
 
 const STATUS_META: Record<HitlGateStatus, { label: string; cls: string; dot: string }> = {
   done: {
-    label: "verificado",
+    label: "verified",
     cls: "border-emerald-500/40 text-emerald-300 bg-emerald-500/10",
     dot: "#22c55e",
   },
   pending: {
-    label: "pendiente de verificación",
+    label: "pending verification",
     cls: "border-amber-500/50 text-amber-300 bg-amber-500/15",
     dot: HITL_COLOR,
   },
   upcoming: {
-    label: "por venir",
+    label: "upcoming",
     cls: "border-line text-gray-500 bg-ink",
     dot: "#475569",
   },
@@ -30,7 +30,7 @@ const ROLE_LABEL: Record<string, string> = {
 function when(ts: string | null): string {
   if (!ts) return "";
   const d = new Date(ts);
-  return Number.isNaN(d.getTime()) ? ts : d.toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" });
+  return Number.isNaN(d.getTime()) ? ts : d.toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" });
 }
 
 /**
@@ -75,7 +75,7 @@ export function HitlGateCard({ gate, onSelect, onVerify, onRollback }: {
         <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.dot }} />
         <span className="text-xs font-semibold text-gray-200 leading-snug">
           {gate.label}
-          {gate.ring !== null && <span className="text-gray-500 font-normal"> · anillo {gate.ring}</span>}
+          {gate.ring !== null && <span className="text-gray-500 font-normal"> · ring {gate.ring}</span>}
         </span>
         <span className={`chip ml-auto border ${meta.cls}`}>{meta.label}</span>
       </div>
@@ -93,7 +93,7 @@ export function HitlGateCard({ gate, onSelect, onVerify, onRollback }: {
       {gate.verified && (
         <div className="mt-1.5 rounded border border-emerald-500/30 bg-emerald-500/5 px-2 py-1">
           <div className="text-[10px] font-semibold text-emerald-300">
-            ✓ Verificación humana completada
+            ✓ Human verification completed
             {gate.role && <span className="text-emerald-400/70"> · {ROLE_LABEL[gate.role] ?? gate.role}</span>}
           </div>
           {gate.output && <div className="text-[10px] text-gray-400 leading-snug mt-0.5">{gate.output}</div>}
@@ -108,8 +108,8 @@ export function HitlGateCard({ gate, onSelect, onVerify, onRollback }: {
             className="flex-1 rounded border border-emerald-500/50 bg-emerald-500/15 px-2 py-1 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-60"
           >
             {verifying
-              ? "Verificación humana en curso…"
-              : accept ? "✓ Aceptar y promocionar" : "◑ Verificar y registrar la decisión"}
+              ? "Human verification in progress…"
+              : accept ? "✓ Accept and promote" : "◑ Verify and record the decision"}
           </button>
           {canRollback && ringNo !== null && (
             <button
@@ -122,27 +122,27 @@ export function HitlGateCard({ gate, onSelect, onVerify, onRollback }: {
               }}
               onBlur={() => setArmed(false)}
               disabled={verifying}
-              title={`Las pruebas no convencen: revierte el anillo ${ringNo} y lo devuelve al estado previo al despliegue.`}
+              title={`Tests are not convincing: roll ring ${ringNo} back to its pre-deployment state.`}
               className={`rounded border px-2 py-1 text-[11px] font-semibold transition disabled:opacity-60 ${
                 armed
                   ? "border-orange-500/60 bg-orange-500/25 text-orange-100"
                   : "border-orange-500/45 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20"}`}
             >
-              {armed ? "Confirmar rollback" : "⟲ Rollback"}
+              {armed ? "Confirm rollback" : "⟲ Rollback"}
             </button>
           )}
         </div>
       )}
       {gate.status === "pending" && (
         <div className="text-[10px] text-amber-300/80 mt-1"
-             title="El motor no continúa hasta que una persona cierre esta puerta">
-          ⛔ el recorrido está detenido aquí
+             title="The engine does not continue until a person closes this gate">
+          ⛔ the journey is stopped here
           {!gate.verifiable && (
             <span className="text-gray-500">
-              {" · se cierra con "}
+              {" · closed by "}
               {gate.closes_with === "ring_preapproval"
-                ? "la pre-aprobación del anillo"
-                : "la aprobación del cambio"}
+                ? "the ring pre-approval"
+                : "the change approval"}
             </span>
           )}
         </div>
@@ -180,7 +180,7 @@ export function HitlRail({ gates, compact = false, onVerify, onRollback, stacked
           HUMAN IN THE LOOP
         </span>
         <span className="text-[10px] text-gray-500">
-          control humano recurrente a lo largo del recorrido, no una fase
+          recurring human control along the journey, not a single phase
         </span>
       </div>
       <div className={`grid gap-2 ${stacked ? "" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
@@ -199,17 +199,17 @@ export function HitlCounter({ hitl }: { hitl: HitlRollup }) {
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <span className="chip border border-amber-500/40 bg-amber-500/15 text-amber-300 font-semibold">
         {hitl.pending === 1
-          ? "1 decisión humana pendiente"
-          : `${hitl.pending} decisiones humanas pendientes`}
+          ? "1 human decision pending"
+          : `${hitl.pending} human decisions pending`}
       </span>
       <span className="text-gray-500">
-        {hitl.done}/{hitl.total} puntos de control superados
-        {hitl.pending_enforced > 0 && ` · ${hitl.pending_enforced} bloquean la ejecución`}
+        {hitl.done}/{hitl.total} control points cleared
+        {hitl.pending_enforced > 0 && ` · ${hitl.pending_enforced} blocking execution`}
       </span>
       {hitl.next && (
         <span className="text-gray-400">
-          Siguiente: <b className="text-gray-200">{hitl.next.label}</b>
-          {hitl.next.ring !== null && ` (anillo ${hitl.next.ring})`}
+          Next: <b className="text-gray-200">{hitl.next.label}</b>
+          {hitl.next.ring !== null && ` (ring ${hitl.next.ring})`}
         </span>
       )}
     </div>
@@ -223,9 +223,9 @@ export function AutomationBadge({ human, label }: { human: boolean; label?: stri
       className={`chip border ${human
         ? "border-amber-500/40 bg-amber-500/15 text-amber-300"
         : "border-brand/40 bg-brand/10 text-brand"}`}
-      title={human ? "Requiere decisión humana" : "Ejecutado por el agente sin intervención"}
+      title={human ? "Requires a human decision" : "Executed by the agent without intervention"}
     >
-      {human ? "◑" : "▶"} {label ?? (human ? "Decisión humana" : "Automático")}
+      {human ? "◑" : "▶"} {label ?? (human ? "Human decision" : "Automated")}
     </span>
   );
 }

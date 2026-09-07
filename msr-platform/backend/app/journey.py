@@ -15,29 +15,29 @@ from __future__ import annotations
 from . import engine
 
 BANDS = [
-    ("demand_risk", "0-3 · Cualificación de demanda y riesgo"),
-    ("change_planning", "4 · Gestión del cambio y planificación"),
-    ("execution_closure", "5-7 · Ejecución controlada y cierre"),
+    ("demand_risk", "0-3 · Demand and risk qualification"),
+    ("change_planning", "4 · Change management and planning"),
+    ("execution_closure", "5-7 · Controlled execution and closure"),
 ]
 BAND_LABELS = dict(BANDS)
 
 # (id, label, nombre original de la slide, banda, ¿se repite por anillo?)
 PHASES = [
-    ("cyber_trigger", "Disparador de ciberseguridad",
+    ("cyber_trigger", "Cybersecurity trigger",
      "Cybersecurity trigger", "demand_risk", False),
-    ("asset_identification", "Confirmación de activos afectados",
+    ("asset_identification", "Affected asset confirmation",
      "Affected asset confirmation", "demand_risk", False),
-    ("applicability_assessment", "Aplicabilidad y remediación",
+    ("applicability_assessment", "Applicability and remediation",
      "Applicability & remediation assessment", "demand_risk", False),
-    ("blast_radius", "Análisis de blast radius",
+    ("blast_radius", "Blast radius analysis",
      "Blast radius analysis", "demand_risk", False),
-    ("change_planning", "Marco de cambio y planificación",
+    ("change_planning", "Change framework and planning",
      "Change framework & rollout planning", "change_planning", True),
-    ("ring_execution", "Ejecución por anillos",
+    ("ring_execution", "Ring-based execution",
      "Patch execution by deployment rings", "execution_closure", True),
-    ("gate_validation", "Validation Tests y rollback",
+    ("gate_validation", "Validation Tests and rollback",
      "Validation tests & rollback decision", "execution_closure", True),
-    ("evidence_closure", "Evidencias y cierre",
+    ("evidence_closure", "Evidence and closure",
      "Evidence & closure", "execution_closure", True),
 ]
 PHASE_IDS = [p[0] for p in PHASES]
@@ -211,23 +211,23 @@ CLOSE_RING_PREAPPROVAL = "ring_preapproval"
 # (id, label, pregunta, fase del journey, fase del pipeline, cómo se cierra,
 #  ¿se repite por anillo?)
 GATES = [
-    ("scope_confirmation", "Confirmación de alcance",
-     "Los activos correlacionados con la CMDB son los correctos",
+    ("scope_confirmation", "Scope confirmation",
+     "The assets correlated against the CMDB are the right ones",
      "asset_identification", "detection", CLOSE_VERIFICATION, False),
-    ("ai_proposal", "Validación de la propuesta de remediación",
-     "Tipo de remediación, aplicabilidad y blast radius calculado",
+    ("ai_proposal", "Validation of the remediation proposal",
+     "Remediation type, applicability and computed blast radius",
      "blast_radius", "pre_implementation", CLOSE_VERIFICATION, False),
-    ("change_approval", "Aprobación del cambio y del plan",
-     "Cambio ITSM, ventana, secuencia de anillos y rollback armado",
+    ("change_approval", "Approval of the change and the plan",
+     "ITSM change, window, ring sequence and armed rollback",
      "change_planning", "prototype", CLOSE_PHASE_APPROVAL, False),
-    ("ring_preapproval", "Pre-aprobación del anillo",
-     "Autorización para ejecutar este lote concreto ahora",
+    ("ring_preapproval", "Ring pre-approval",
+     "Authorisation to run this specific batch now",
      "ring_execution", None, CLOSE_RING_PREAPPROVAL, True),
-    ("ring_result", "Validación del resultado del anillo",
-     "Post-checks, salud y evidencia antes de promocionar",
+    ("ring_result", "Validation of the ring result",
+     "Post-checks, health and evidence before promoting",
      "gate_validation", None, CLOSE_VERIFICATION, True),
-    ("closure", "Aceptación de evidencias y cierre",
-     "Informe de auditoría y cierre del Vulnerable Item",
+    ("closure", "Evidence acceptance and closure",
+     "Audit report and closure of the Vulnerable Item",
      "evidence_closure", None, CLOSE_VERIFICATION, False),
 ]
 
@@ -235,19 +235,19 @@ GATES = [
 # depende de la tipología del cambio, y la demo debe decirlo con su nombre.
 CHANGE_APPROVAL_COPY = {
     "emergency": {
-        "label": "Aprobación del eCAB",
-        "question": "El eCAB autoriza el cambio de emergencia, su ventana y su rollback",
-        "verdict": "Aprobado por el eCAB",
+        "label": "eCAB approval",
+        "question": "The eCAB authorises the emergency change, its window and its rollback",
+        "verdict": "Approved by the eCAB",
     },
     "standard": {
-        "label": "Verificación del cambio estándar",
-        "question": "Modelo de cambio pre-aprobado: procedimiento, ventana y rollback verificados",
-        "verdict": "Standard Change verificado",
+        "label": "Standard change verification",
+        "question": "Pre-approved change model: procedure, window and rollback verified",
+        "verdict": "Standard Change verified",
     },
     "normal": {
-        "label": "Autorización del CAB",
-        "question": "El CAB evalúa y autoriza el cambio normal, su ventana y su rollback",
-        "verdict": "Cambio normal aprobado",
+        "label": "CAB authorisation",
+        "question": "The CAB assesses and authorises the normal change, its window and its rollback",
+        "verdict": "Normal Change approved",
     },
 }
 

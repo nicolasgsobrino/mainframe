@@ -126,7 +126,7 @@ def can_transition(current: JobState, new: JobState) -> bool:
 
 def assert_transition(current: JobState, new: JobState) -> None:
     if not can_transition(current, new):
-        raise InvalidTransition(f"transición no permitida: {current.value} → {new.value}")
+        raise InvalidTransition(f"transition not allowed: {current.value} → {new.value}")
 
 
 def state_for_execution(status: ExecutionStatus, job_type: JobType) -> JobState:

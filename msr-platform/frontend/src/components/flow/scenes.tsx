@@ -44,7 +44,7 @@ function Revealed<T>({ items, render, empty }: {
   items: T[]; render: (item: T, i: number) => ReactNode; empty?: string;
 }) {
   const shown = useProgressiveReveal(items, 220);
-  if (items.length === 0) return <div className="text-[11px] text-gray-600">{empty ?? "Sin elementos."}</div>;
+  if (items.length === 0) return <div className="text-[11px] text-gray-600">{empty ?? "No items."}</div>;
   return (
     <div className="space-y-1.5">
       {shown.map((item, i) => (
@@ -52,7 +52,7 @@ function Revealed<T>({ items, render, empty }: {
       ))}
       {shown.length < items.length && (
         <div className="text-[11px] text-gray-600">
-          <span className="animate-pulse">▍</span> {items.length - shown.length} por confirmar…
+          <span className="animate-pulse">▍</span> {items.length - shown.length} to confirm…
         </div>
       )}
     </div>
@@ -85,22 +85,22 @@ function CyberTrigger({ detail }: SceneProps) {
   return (
     <div className="space-y-3">
       <Facts>
-        <Fact label="CVSS" value={vi.cvss.toFixed(1)} accent="#ef4444" hint="Severidad técnica" />
+        <Fact label="CVSS" value={vi.cvss.toFixed(1)} accent="#ef4444" hint="Technical severity" />
         <Fact label="EPSS" value={`${Math.round(vi.epss * 100)}%`} accent="#f59e0b"
-              hint="Probabilidad de explotación a 30 días" />
-        <Fact label="Explotación" value={vi.kev ? "KEV · activa" : vi.exploit_available ? "Exploit público" : "No observada"}
-              accent={vi.kev ? "#ef4444" : "#f59e0b"} hint="CISA KEV y telemetría de amenazas" />
-        <Fact label="Exposición" value={vi.exposed ? "Internet" : "Interna"}
+              hint="Probability of exploitation within 30 days" />
+        <Fact label="Exploitation" value={vi.kev ? "KEV · active" : vi.exploit_available ? "Public exploit" : "Not observed"}
+              accent={vi.kev ? "#ef4444" : "#f59e0b"} hint="CISA KEV and threat telemetry" />
+        <Fact label="Exposure" value={vi.exposed ? "Internet" : "Internal"}
               hint={`${vi.environment} · ${vi.criticality}`} />
       </Facts>
-      <Block title="Señal recibida desde Cyber / Seguridad"
-             sub="El hallazgo llega ya correlacionado; la plataforma lo normaliza y abre el Vulnerable Item.">
+      <Block title="Signal received from Cyber / Security"
+             sub="The finding arrives already correlated; the platform normalises it and opens the Vulnerable Item.">
         <Revealed
           items={[
-            `Fuentes correlacionadas: ${vi.sources.join(" · ")}`,
-            `Hallazgo ${vi.cve} sobre ${vi.component} ${vi.vulnerable_version}`,
-            `Vulnerable Item ${vi.id} creado y asociado a ${vi.ci_name} (${vi.ci_id})`,
-            `Riesgo compuesto ${vi.risk_score}/100 · carril ${detail.lane_meta.label} · SLA ${detail.lane_meta.sla}`,
+            `Correlated sources: ${vi.sources.join(" · ")}`,
+            `Finding ${vi.cve} on ${vi.component} ${vi.vulnerable_version}`,
+            `Vulnerable Item ${vi.id} created and linked to ${vi.ci_name} (${vi.ci_id})`,
+            `Composite risk ${vi.risk_score}/100 · ${detail.lane_meta.label} lane · SLA ${detail.lane_meta.sla}`,
           ]}
           render={(line) => (
             <div className="flex items-start gap-2 text-[11px] text-gray-300">
@@ -124,17 +124,17 @@ function AssetConfirmation({ detail }: SceneProps) {
   return (
     <div className="space-y-3">
       <Facts>
-        <Fact label="Activos confirmados" value={<CountUp value={impact.affected_count} />} accent="#86BC25"
-              hint="Contrastados contra la CMDB, no sólo declarados por Cyber" />
-        <Fact label="Servicios de negocio" value={<CountUp value={impact.business_services.length} />}
+        <Fact label="Confirmed assets" value={<CountUp value={impact.affected_count} />} accent="#86BC25"
+              hint="Cross-checked against the CMDB, not just declared by Cyber" />
+        <Fact label="Business services" value={<CountUp value={impact.business_services.length} />}
               hint={impact.business_services.join(", ") || "—"} />
-        <Fact label="Capas implicadas" value={<CountUp value={impact.affected_layers.length} />}
+        <Fact label="Layers involved" value={<CountUp value={impact.affected_layers.length} />}
               hint={impact.affected_layers.join(", ")} />
-        <Fact label="Relaciones CI→CI" value={<CountUp value={impact.edges.length} />}
-              hint="Aristas recorridas en la CMDB" />
+        <Fact label="CI→CI relationships" value={<CountUp value={impact.edges.length} />}
+              hint="Edges traversed in the CMDB" />
       </Facts>
-      <Block title="Confirmación contra la CMDB"
-             sub="Cada CI se resuelve por relación, no por lista: aparecen a medida que se confirman.">
+      <Block title="Confirmation against the CMDB"
+             sub="Each CI is resolved by relationship, not from a list: they appear as they are confirmed.">
         <Revealed
           items={impact.nodes}
           render={(n) => (
@@ -142,7 +142,7 @@ function AssetConfirmation({ detail }: SceneProps) {
               <ClassTag ciClass={n.ci_class} />
               <span className={n.is_root ? "text-red-300 font-semibold" : "text-gray-300"}>{n.name}</span>
               <span className="text-gray-600">{n.environment}</span>
-              {n.is_root && <span className="chip border border-red-500/40 text-red-300">raíz vulnerable</span>}
+              {n.is_root && <span className="chip border border-red-500/40 text-red-300">vulnerable root</span>}
             </div>
           )}
         />
@@ -164,15 +164,15 @@ function Applicability({ detail }: SceneProps) {
   return (
     <div className="space-y-3">
       <Facts>
-        <Fact label="Tipo de remediación" value={mvt.remediation_type} accent="#86BC25"
-              hint={`Reinicio: ${impact.restart_scope} · ${impact.downtime_required ? "con parada" : "sin parada"}`} />
-        <Fact label="Confianza del plan" value={`${mvt.confidence}%`} accent="#22c55e"
-              hint="Cobertura estimada del conjunto mínimo de pruebas" />
-        <Fact label="Pruebas seleccionadas" value={<CountUp value={mvt.selected.length} />}
-              hint={`${mvt.excluded.length} descartadas por no aplicables`} />
-        <Fact label="Ejecutor" value={detail.artifacts.deployment.executor} hint={detail.artifacts.deployment.strategy} />
+        <Fact label="Remediation type" value={mvt.remediation_type} accent="#86BC25"
+              hint={`Restart: ${impact.restart_scope} · ${impact.downtime_required ? "with downtime" : "no downtime"}`} />
+        <Fact label="Plan confidence" value={`${mvt.confidence}%`} accent="#22c55e"
+              hint="Estimated coverage of the minimum viable test set" />
+        <Fact label="Selected tests" value={<CountUp value={mvt.selected.length} />}
+              hint={`${mvt.excluded.length} discarded as not applicable`} />
+        <Fact label="Executor" value={detail.artifacts.deployment.executor} hint={detail.artifacts.deployment.strategy} />
       </Facts>
-      <Block title="Conjunto mínimo de pruebas (MVT)" sub={mvt.rationale}>
+      <Block title="Minimum viable test set (MVT)" sub={mvt.rationale}>
         <Revealed
           items={mvt.selected}
           render={(t) => (
@@ -196,13 +196,13 @@ function BlastRadius({ detail }: SceneProps) {
   return (
     <div className="space-y-3">
       <Facts>
-        <Fact label="CIs alcanzados" value={`${impact.impacted_count} de ${impact.affected_count}`}
+        <Fact label="CIs reached" value={`${impact.impacted_count} of ${impact.affected_count}`}
               accent={impact.blast_scope === "propagated" ? "#f97316" : "#22c55e"}
-              hint={impact.blast_scope === "propagated" ? "Se propaga a dependientes" : "Impacto local"} />
-        <Fact label="Parada de servicio" value={impact.downtime_required ? "Requerida" : "No requerida"}
-              hint={`Alcance de reinicio: ${impact.restart_scope}`} />
-        <Fact label="Servicios de negocio" value={impact.business_services.join(", ") || "—"} />
-        <Fact label="Ventana" value={detail.artifacts.deployment.rings[0]?.plan.window ?? "—"} />
+              hint={impact.blast_scope === "propagated" ? "Propagates to dependants" : "Local impact"} />
+        <Fact label="Service downtime" value={impact.downtime_required ? "Required" : "Not required"}
+              hint={`Restart scope: ${impact.restart_scope}`} />
+        <Fact label="Business services" value={impact.business_services.join(", ") || "—"} />
+        <Fact label="Window" value={detail.artifacts.deployment.rings[0]?.plan.window ?? "—"} />
       </Facts>
       <div className="text-[11px] text-gray-400 leading-snug">{impact.blast_rationale}</div>
       <ImpactGraphView nodes={impact.nodes} edges={impact.edges} height={360} />
@@ -219,18 +219,18 @@ function ChangePlanning({ detail }: SceneProps) {
   return (
     <div className="space-y-3">
       <Facts>
-        <Fact label="Cambio ITSM" value={itsm?.number ?? detail.journey.change.number} accent="#a855f7"
+        <Fact label="ITSM change" value={itsm?.number ?? detail.journey.change.number} accent="#a855f7"
               hint={itsm?.type_label ?? detail.journey.change.type} />
-        <Fact label="Estado" value={itsm?.state ?? detail.journey.change.state} hint={itsm?.approval} />
-        <Fact label="Riesgo / impacto" value={itsm?.risk ?? "—"}
+        <Fact label="State" value={itsm?.state ?? detail.journey.change.state} hint={itsm?.approval} />
+        <Fact label="Risk / impact" value={itsm?.risk ?? "—"}
               hint={itsm ? `${itsm.impact_level} · ${itsm.affected_cis} CIs` : undefined} />
         <Fact label="Rollback" value={`${rollback.rto_minutes} min RTO`}
-              hint={`${rollback.strategy}${rollback.tested_in_lab ? " · probado en laboratorio" : ""}`} />
+              hint={`${rollback.strategy}${rollback.tested_in_lab ? " · tested in the lab" : ""}`} />
       </Facts>
 
       {itsm && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <Block title="Ciclo del cambio" sub={itsm.detail}>
+          <Block title="Change lifecycle" sub={itsm.detail}>
             <div className="flex flex-wrap gap-1.5">
               {itsm.phases.filter((p) => p.included).map((p) => (
                 <span key={p.key}
@@ -243,16 +243,16 @@ function ChangePlanning({ detail }: SceneProps) {
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-gray-500">
               <span className="chip border border-line">{itsm.assignment_group}</span>
-              {itsm.four_eyes && <span className="chip border border-line">doble validación</span>}
+              {itsm.four_eyes && <span className="chip border border-line">four-eyes check</span>}
               {itsm.gxp && <span className="chip border border-line">GxP</span>}
             </div>
           </Block>
-          <Block title="Tareas del cambio (CTASK)" sub="Qué ejecuta el agente y qué queda en manos de una persona.">
+          <Block title="Change tasks (CTASK)" sub="What the agent runs and what stays in human hands.">
             <Revealed
               items={itsm.ctasks}
               render={(c) => (
                 <div className="flex items-center gap-2 text-[11px]">
-                  <AutomationBadge human={!c.auto} label={c.auto ? "agente" : "persona"} />
+                  <AutomationBadge human={!c.auto} label={c.auto ? "agent" : "person"} />
                   <span className="text-gray-300">{c.name}</span>
                   <span className="text-gray-600">{c.role}</span>
                 </div>
@@ -262,8 +262,8 @@ function ChangePlanning({ detail }: SceneProps) {
         </div>
       )}
 
-      <Block title="Secuencia de ejecución planificada"
-             sub="Cada anillo tiene su población objetivo, su ventana y su propia aprobación.">
+      <Block title="Planned execution sequence"
+             sub="Each ring has its target population, its window and its own approval.">
         <Revealed
           items={dep.rings}
           render={(r) => (
@@ -271,7 +271,7 @@ function ChangePlanning({ detail }: SceneProps) {
               <div className="flex items-center gap-2 text-[11px]">
                 <span className="font-mono text-gray-500">#{r.ring}</span>
                 <span className="text-gray-200 font-semibold">{r.label}</span>
-                <span className="chip border border-line text-gray-500">{r.plan.assets_count} activos</span>
+                <span className="chip border border-line text-gray-500">{r.plan.assets_count} assets</span>
                 <span className="ml-auto text-gray-500">{r.plan.window}</span>
               </div>
               <div className="text-[10px] text-gray-500 leading-snug mt-1">{r.plan.purpose ?? r.plan.target_population}</div>
@@ -286,10 +286,10 @@ function ChangePlanning({ detail }: SceneProps) {
 // --- 6 · Ejecución por anillos ----------------------------------------------
 
 const RING_STATUS: Record<string, { label: string; color: string }> = {
-  completed: { label: "completado", color: "#22c55e" },
-  in_progress: { label: "en curso", color: "#0ea5e9" },
-  rolled_back: { label: "revertido", color: "#f97316" },
-  pending: { label: "pendiente", color: "#475569" },
+  completed: { label: "completed", color: "#22c55e" },
+  in_progress: { label: "in progress", color: "#0ea5e9" },
+  rolled_back: { label: "rolled back", color: "#f97316" },
+  pending: { label: "pending", color: "#475569" },
 };
 
 /**
@@ -304,12 +304,12 @@ function RingRollback({ ring, enabled, busy, onRollback }: {
   const reverted = ring.status === "rolled_back";
   const usable = Boolean(onRollback) && enabled && !busy && !reverted;
   const why = reverted
-    ? "Anillo revertido: su evidencia se invalidó y vuelve al estado previo al despliegue."
+    ? "Ring rolled back: its evidence was invalidated and it returns to the pre-deployment state."
     : ring.status === "pending"
-      ? "Nada que revertir: el anillo todavía no se ha desplegado."
+      ? "Nothing to roll back: this ring has not been deployed yet."
       : enabled
-        ? `Revierte el anillo ${ring.ring} a la versión estable y reabre su validación.`
-        : "Sólo se revierte el último anillo desplegado; revierte antes los posteriores.";
+        ? `Rolls ring ${ring.ring} back to the stable version and reopens its validation.`
+        : "Only the last deployed ring can be rolled back; roll back the later ones first.";
   return (
     <div className="pt-1.5 border-t border-line/70 flex items-center gap-2">
       <button
@@ -329,7 +329,7 @@ function RingRollback({ ring, enabled, busy, onRollback }: {
             : "border-orange-500/35 text-orange-300/90 hover:bg-orange-500/10"} ${
           usable ? "" : "opacity-45 cursor-not-allowed hover:bg-transparent"}`}
       >
-        {reverted ? "⟲ Revertido" : armed ? "Confirmar rollback" : "⟲ Rollback del anillo"}
+        {reverted ? "⟲ Rolled back" : armed ? "Confirm rollback" : "⟲ Roll back this ring"}
       </button>
       <span className="text-[10px] text-gray-600 leading-snug">{why}</span>
     </div>
@@ -351,15 +351,15 @@ function RingCard({ ring, rollbackEnabled = false, busy = false, onRollback }: {
         </span>
       </div>
       <div className="text-[11px] text-gray-500">
-        {ring.plan.selected_count}/{ring.plan.assets_count} activos · {ring.plan.window}
+        {ring.plan.selected_count}/{ring.plan.assets_count} assets · {ring.plan.window}
       </div>
       <div className="text-[11px]">
         {approval.preapproved
-          ? <span className="text-emerald-300">✓ pre-aprobado{approval.approver ? ` · ${approval.approver}` : ""}</span>
-          : <span className="text-amber-300">◑ pendiente de pre-aprobación humana</span>}
+          ? <span className="text-emerald-300">✓ pre-approved{approval.approver ? ` · ${approval.approver}` : ""}</span>
+          : <span className="text-amber-300">◑ awaiting human pre-approval</span>}
       </div>
       {ring.simulated && (
-        <div className="text-[10px] text-fuchsia-300">simulado · dry-run · sin cambios reales</div>
+        <div className="text-[10px] text-fuchsia-300">simulated · dry-run · no real changes</div>
       )}
       {ring.actions && (
         <div className="font-mono text-[10px] text-gray-500 space-y-0.5">
@@ -370,9 +370,9 @@ function RingCard({ ring, rollbackEnabled = false, busy = false, onRollback }: {
       )}
       {ring.health && (
         <div className="flex flex-wrap gap-1.5 text-[10px] text-gray-400">
-          <span className="chip border border-line">errores {ring.health.error_rate_pct}%</span>
+          <span className="chip border border-line">errors {ring.health.error_rate_pct}%</span>
           <span className="chip border border-line">p95 {ring.health.p95_latency_ms} ms</span>
-          <span className="chip border border-line">disponibilidad {ring.health.availability_pct}%</span>
+          <span className="chip border border-line">availability {ring.health.availability_pct}%</span>
         </div>
       )}
       <RingRollback ring={ring} enabled={rollbackEnabled} busy={busy} onRollback={onRollback} />
@@ -393,12 +393,12 @@ function RingExecution({ detail, onRollback, busy = false }: SceneProps) {
   return (
     <div className="space-y-3">
       <Facts>
-        <Fact label="Anillos desplegados" value={`${detail.rings_done}/${dep.rings.length}`} accent="#0ea5e9" />
-        <Fact label="Activos parcheados" value={<CountUp value={res.patched} />} accent="#22c55e"
-              hint={`${res.pending} pendientes · ${res.excluded} excluidos`} />
-        <Fact label="Ejecutor" value={dep.executor} hint={dep.strategy} />
-        <Fact label="Excepciones" value={dep.exceptions.length}
-              hint={dep.exceptions[0]?.reason ?? "Sin excepciones registradas"} />
+        <Fact label="Rings deployed" value={`${detail.rings_done}/${dep.rings.length}`} accent="#0ea5e9" />
+        <Fact label="Assets patched" value={<CountUp value={res.patched} />} accent="#22c55e"
+              hint={`${res.pending} pending · ${res.excluded} excluded`} />
+        <Fact label="Executor" value={dep.executor} hint={dep.strategy} />
+        <Fact label="Exceptions" value={dep.exceptions.length}
+              hint={dep.exceptions[0]?.reason ?? "No exceptions recorded"} />
       </Facts>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {dep.rings.map((r) => (
@@ -407,8 +407,8 @@ function RingExecution({ detail, onRollback, busy = false }: SceneProps) {
         ))}
       </div>
       <div className="text-[10px] text-gray-600">
-        Cada anillo lleva su propia salida: si la validación no convence, el lote se revierte
-        a la versión estable antes de promocionar al siguiente.
+        Every ring carries its own exit: if the validation is not convincing, the batch is rolled
+        back to the stable version before promoting to the next one.
       </div>
     </div>
   );
@@ -424,24 +424,24 @@ function GateValidation({ detail, onRollback, busy = false }: SceneProps) {
   return (
     <div className="space-y-3">
       <Facts>
-        <Fact label="Anillo evaluado" value={last?.label ?? "—"} hint={last?.result} />
+        <Fact label="Ring under review" value={last?.label ?? "—"} hint={last?.result} />
         <Fact label="Post-checks" value={last?.post_checks.length ?? 0}
-              hint="Comprobaciones ejecutadas antes de promocionar" />
-        <Fact label="Rollback" value={dep.rollback.triggered ? "Ejecutado" : dep.rollback.status}
+              hint="Checks run before promoting" />
+        <Fact label="Rollback" value={dep.rollback.triggered ? "Executed" : dep.rollback.status}
               accent={dep.rollback.triggered ? "#f97316" : "#22c55e"}
-              hint={`Disparo automático: ${rollback.auto_trigger}`} />
-        <Fact label="Versiones" value={`${rollback.from_version} → ${rollback.target_version}`}
+              hint={`Automatic trigger: ${rollback.auto_trigger}`} />
+        <Fact label="Versions" value={`${rollback.from_version} → ${rollback.target_version}`}
               hint={rollback.snapshot_ref} />
       </Facts>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <Block title="Post-checks del anillo" sub="La promoción sólo se propone si todos pasan.">
+        <Block title="Ring post-checks" sub="Promotion is only proposed if they all pass.">
           <Revealed
             items={last?.post_checks ?? []}
             render={(c) => <div className="text-[11px] text-gray-300">✓ {c}</div>}
-            empty="El anillo todavía no ha publicado post-checks."
+            empty="This ring has not published post-checks yet."
           />
         </Block>
-        <Block title="Plan de rollback" sub={rollback.strategy}>
+        <Block title="Rollback plan" sub={rollback.strategy}>
           {last && (
             <div className="mb-2">
               <RingRollback ring={last} enabled={last.ring === revertible} busy={busy}
@@ -472,15 +472,15 @@ function EvidenceClosure({ detail }: SceneProps) {
   return (
     <div className="space-y-3">
       <Facts>
-        <Fact label="Informe" value={audit.report_id} hint={`Generado ${audit.generated_at.slice(0, 10)}`} />
-        <Fact label="Evidencias" value={<CountUp value={audit.evidences_count} />} accent="#86BC25" />
-        <Fact label="Trazas de auditoría" value={<CountUp value={audit.trace.length} />}
-              hint="Cadena hallazgo → cierre" />
-        <Fact label="Vulnerable Item" value={closed ? "FIXED" : "abierto"}
+        <Fact label="Report" value={audit.report_id} hint={`Generated ${audit.generated_at.slice(0, 10)}`} />
+        <Fact label="Evidence items" value={<CountUp value={audit.evidences_count} />} accent="#86BC25" />
+        <Fact label="Audit trail entries" value={<CountUp value={audit.trace.length} />}
+              hint="Chain from finding to closure" />
+        <Fact label="Vulnerable Item" value={closed ? "FIXED" : "open"}
               accent={closed ? "#22c55e" : "#f59e0b"}
-              hint={closed ? "Cerrado tras aceptar las evidencias" : "Se cierra al aceptar las evidencias"} />
+              hint={closed ? "Closed after accepting the evidence" : "Closes once the evidence is accepted"} />
       </Facts>
-      <Block title="Cadena de auditoría" sub="Cada paso queda referenciado y es reproducible.">
+      <Block title="Audit trail" sub="Every step is referenced and reproducible.">
         <Revealed
           items={audit.trace}
           render={(t) => (

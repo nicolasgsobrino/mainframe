@@ -141,7 +141,7 @@ class LabLifecycleManager:
         """
         lab_id = self._lab_id(logical_lab_id)
         if not lab_id:
-            raise LabReconciliationError("No hay ningún laboratorio lógico configurado "
+            raise LabReconciliationError("There is no logical lab configured "
                                          "(MSR_LAB_LOGICAL_ID).", code=ERROR_TARGET_INVALID)
         correlation_id = f"lab-{uuid.uuid4().hex[:12]}"
         if not self._store.lab_locks.acquire(
@@ -150,9 +150,9 @@ class LabLifecycleManager:
             held = self._store.lab_locks.state(lab_id) or {}
             result = self._result(lab_id, RECONCILE_SKIPPED, ACTION_NONE,
                                   correlation_id=correlation_id, error_code=ERROR_LOCKED,
-                                  error=("Otro proceso ya tiene una operación del laboratorio en "
-                                         f"curso ({held.get('operation') or 'desconocida'}, "
-                                         f"holder {held.get('holder') or 'desconocido'})."))
+                                  error=("Another process already has a lab operation in "
+                                         f"progress ({held.get('operation') or 'unknown'}, "
+                                         f"holder {held.get('holder') or 'unknown'})."))
             self.last_result = result
             return result
         try:
@@ -177,35 +177,35 @@ class LabLifecycleManager:
                       state=RECONCILE_RUNNING)
 
         if evidence.ready:
-            logger.info("Laboratorio %s ya listo en %s (vulnerable y sano): no se recrea.",
+            logger.info("Lab %s already ready on %s (vulnerable and healthy): not recreated.",
                         lab_id, instance.instance_id)
             return self._ready(lab_id, instance, evidence, correlation_id, ACTION_NONE)
 
         if evidence.vulnerable_state == LAB_STATE_UNKNOWN:
             return self._fail(lab_id, correlation_id, ERROR_EVIDENCE,
-                              "AWS no aporta evidencia suficiente del estado del laboratorio: "
-                              "no se ejecuta ninguna operación destructiva. "
+                              "AWS does not provide enough evidence of the lab state: "
+                              "no destructive operation is run. "
                               f"{evidence.detail}", instance=instance, evidence=evidence)
         if evidence.vulnerable_state == LAB_STATE_VULNERABLE:
             # Vulnerable pero no sano/gestionado: recrear no es la respuesta.
             return self._fail(lab_id, correlation_id, ERROR_TARGET_INVALID,
-                              "La instancia es vulnerable pero no está sana o gestionada por "
-                              f"SSM (salud={evidence.health_state}, SSM={evidence.ssm_state}).",
+                              "The instance is vulnerable but not healthy or managed by "
+                              f"SSM (health={evidence.health_state}, SSM={evidence.ssm_state}).",
                               instance=instance, evidence=evidence)
         if not allow_reset:
             return self._skipped(lab_id, instance, evidence, correlation_id, ACTION_RESET,
-                                 "El laboratorio está parcheado y el reset no está autorizado "
-                                 "en esta invocación.")
+                                 "The lab is patched and the reset is not authorised "
+                                 "in this invocation.")
         if self.settings.real_aws_execution() and not confirmed:
             return self._skipped(lab_id, instance, evidence, correlation_id, ACTION_RESET,
-                                 "Reset real no ejecutado: requiere confirmación humana "
-                                 "explícita.", error_code=ERROR_CONFIRMATION)
+                                 "Real reset not executed: it requires explicit human "
+                                 "confirmation.", error_code=ERROR_CONFIRMATION)
         if not self.settings.real_aws_execution() and self.settings.uses_aws():
             return self._skipped(lab_id, instance, evidence, correlation_id, ACTION_RESET,
-                                 "aws-dry-run: se ejecutaría MSR-ResetLabInstance sobre "
-                                 f"{instance.instance_id} en el ASG "
+                                 "aws-dry-run: MSR-ResetLabInstance would run on "
+                                 f"{instance.instance_id} in ASG "
                                  f"{self.settings.lab_autoscaling_group_name or '-'}; "
-                                 "no se inicia ninguna Automation.")
+                                 "no Automation is started.")
         return self._reset(lab_id, instance, correlation_id, reason)
 
     def _usable_instance(self, lab_id: str) -> LabInstance:
@@ -237,19 +237,19 @@ class LabLifecycleManager:
                 if not different:
                     last = LabResolutionError(
                         ERROR_UNCHANGED,
-                        "El Auto Scaling Group sigue devolviendo la misma instancia "
-                        f"{instance.instance_id} después del reset.")
+                        "The Auto Scaling Group keeps returning the same instance "
+                        f"{instance.instance_id} after the reset.")
                 else:
                     last = LabResolutionError(
                         ERROR_REPLACEMENT,
-                        f"La instancia {instance.instance_id} todavía no está lista "
-                        f"(estado EC2 {instance.state}, SSM "
-                        f"{instance.ping_status or 'desconocido'}).")
+                        f"Instance {instance.instance_id} is not ready yet "
+                        f"(EC2 state {instance.state}, SSM "
+                        f"{instance.ping_status or 'unknown'}).")
             if self._monotonic() >= deadline:
                 raise last or LabResolutionError(
                     ERROR_REPLACEMENT,
-                    "El Auto Scaling Group no ha proporcionado ninguna instancia utilizable "
-                    "en el plazo permitido.")
+                    "The Auto Scaling Group has not provided any usable instance "
+                    "within the allowed time.")
             self._sleep(interval)
 
     def _validate(self, instance: LabInstance) -> None:
@@ -258,15 +258,15 @@ class LabLifecycleManager:
         if allowed_accounts and (instance.account_id or "") not in allowed_accounts:
             raise LabResolutionError(
                 "LAB_TARGET_ACCOUNT_MISMATCH",
-                f"La instancia {instance.instance_id} pertenece a la cuenta "
-                f"{instance.account_id or 'desconocida'}, fuera de la allowlist "
+                f"Instance {instance.instance_id} belongs to account "
+                f"{instance.account_id or 'unknown'}, outside the allowlist "
                 f"({', '.join(allowed_accounts)}).")
         allowed_regions = self.settings.allowed_regions
         if allowed_regions and (instance.region or "") not in allowed_regions:
             raise LabResolutionError(
                 "LAB_TARGET_REGION_MISMATCH",
-                f"La instancia {instance.instance_id} está en la región "
-                f"{instance.region or 'desconocida'}, fuera de la allowlist "
+                f"Instance {instance.instance_id} is in region "
+                f"{instance.region or 'unknown'}, outside the allowlist "
                 f"({', '.join(allowed_regions)}).")
         policy = evaluate_target(
             instance.as_target(self.settings.lab_environment), self.settings,
@@ -277,19 +277,19 @@ class LabLifecycleManager:
         if instance.state != "running":
             raise LabResolutionError(
                 ERROR_REPLACEMENT,
-                f"La instancia {instance.instance_id} no está en ejecución "
-                f"(estado {instance.state}).")
+                f"Instance {instance.instance_id} is not running "
+                f"(state {instance.state}).")
         if not instance.ssm_managed:
             raise LabResolutionError(
                 "LAB_TARGET_SSM_OFFLINE",
-                f"La instancia {instance.instance_id} no es un nodo gestionado Online "
-                f"(PingStatus {instance.ping_status or 'desconocido'}).")
+                f"Instance {instance.instance_id} is not an Online managed node "
+                f"(PingStatus {instance.ping_status or 'unknown'}).")
 
     def _reset(self, lab_id: str, instance: LabInstance, correlation_id: str,
                reason: str) -> dict:
         previous = instance.instance_id
         self._mark(lab_id, RECONCILE_RESETTING, correlation_id=correlation_id, error=None)
-        logger.info("Laboratorio %s parcheado: se recrea %s mediante Automation (%s).",
+        logger.info("Lab %s patched: %s is recreated via Automation (%s).",
                     lab_id, previous, reason)
         try:
             job = self._store.start_lab_reset_job(
@@ -303,8 +303,8 @@ class LabLifecycleManager:
         if job.state is not JobState.RESTORED:
             return self._fail(
                 lab_id, correlation_id, ERROR_RESET_FAILED,
-                f"La Automation de reset terminó en estado {job.state.value} "
-                f"({job.error_code or 'sin código'}): "
+                f"The reset Automation finished in state {job.state.value} "
+                f"({job.error_code or 'no code'}): "
                 f"{sanitize_text(job.error_message or '-', 300)}.")
 
         try:
@@ -319,9 +319,9 @@ class LabLifecycleManager:
         if not evidence.ready:
             return self._fail(
                 lab_id, correlation_id, ERROR_NOT_VULNERABLE,
-                f"El reemplazo {replacement.instance_id} no cumple la línea base del "
-                f"laboratorio (estado={evidence.vulnerable_state}, "
-                f"salud={evidence.health_state}, SSM={evidence.ssm_state}).",
+                f"Replacement {replacement.instance_id} does not meet the lab "
+                f"baseline (state={evidence.vulnerable_state}, "
+                f"health={evidence.health_state}, SSM={evidence.ssm_state}).",
                 instance=replacement, evidence=evidence)
         return self._ready(lab_id, replacement, evidence, correlation_id, ACTION_RESET,
                            previous_instance_id=previous,
@@ -447,7 +447,7 @@ class LabLifecycleManager:
               evidence: LabEvidence | None = None) -> dict:
         self._persist(lab_id, instance, evidence, correlation_id=correlation_id,
                       state=RECONCILE_FAILED, error=f"[{code}] {message}")
-        logger.error("Reconciliación del laboratorio %s fallida: [%s] %s", lab_id, code, message)
+        logger.error("Reconciliation of lab %s failed: [%s] %s", lab_id, code, message)
         result = self._result(lab_id, RECONCILE_FAILED, ACTION_NONE,
                               correlation_id=correlation_id, instance=instance,
                               evidence=evidence, error_code=code, error=message)

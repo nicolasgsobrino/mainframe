@@ -23,7 +23,7 @@ export default function LogConsole({ entries, limit = 16, onSelect }: {
   if (entries.length === 0) {
     return (
       <div className="text-xs text-gray-600">
-        Sin actividad todavía. Aprueba una fase en una tarea para ver al agente trabajar.
+        No activity yet. Approve a phase on a task to watch the agent work.
       </div>
     );
   }

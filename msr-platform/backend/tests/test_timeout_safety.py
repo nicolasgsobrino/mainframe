@@ -93,7 +93,7 @@ def test_admin_reconciliation_closes_an_unconfirmed_job_with_audit_event(aws_set
     assert resolved.terminal
     assert store.repo.active_job_for_target(logical) is None
     messages = [e.message for e in store.repo.get_job(job.id, with_events=True).events]
-    assert any("Reconciliación manual" in m for m in messages)
+    assert any("Manual reconciliation" in m for m in messages)
 
 
 def test_admin_reconciliation_rejects_a_confirmed_job(aws_settings):

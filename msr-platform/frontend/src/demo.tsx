@@ -32,9 +32,9 @@ const STORAGE_KEY = "msr_demo_mode";
 
 /** El Modo Demo no se ofrece sobre ejecución real: allí nada es narrativa. */
 function allowance(execution: ExecutionConfig | null): { allowed: boolean; reason: string | null } {
-  if (!execution) return { allowed: false, reason: "Modo de ejecución todavía desconocido." };
+  if (!execution) return { allowed: false, reason: "Execution mode not known yet." };
   if (execution.patch_provider === "mock" || execution.dry_run) return { allowed: true, reason: null };
-  return { allowed: false, reason: "No disponible en ejecución real de AWS: las acciones mutan recursos." };
+  return { allowed: false, reason: "Not available on real AWS execution: actions mutate resources." };
 }
 
 export function DemoProvider({ children }: { children: ReactNode }) {
@@ -82,7 +82,7 @@ export function DemoToggle() {
       type="button"
       disabled={!allowed}
       onClick={() => setEnabled(!enabled)}
-      title={reason ?? "Presentación guiada sobre los mismos datos: sin cambios reales"}
+      title={reason ?? "Guided walkthrough over the same data: no real changes"}
       className={`w-full rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
         !allowed
           ? "border-line bg-ink text-gray-600 cursor-not-allowed"
@@ -90,7 +90,7 @@ export function DemoToggle() {
             ? "border-fuchsia-500/50 bg-fuchsia-500/15 text-fuchsia-300"
             : "border-line bg-ink text-gray-400 hover:text-gray-200"}`}
     >
-      ◉ Modo Demo · {enabled && allowed ? "activo" : "apagado"}
+      ◉ Demo Mode · {enabled && allowed ? "on" : "off"}
     </button>
   );
 }
@@ -102,9 +102,9 @@ export function DemoBanner() {
   return (
     <div className="border-b border-fuchsia-500/30 bg-fuchsia-500/10 px-6 py-2 text-xs text-fuchsia-200 flex items-center gap-2">
       <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse" />
-      <b>Modo Demo</b>
+      <b>Demo Mode</b>
       <span className="text-fuchsia-200/80">
-        presentación guiada sobre datos reales del backend · ninguna acción muta recursos en AWS
+        guided walkthrough over real backend data · no action mutates AWS resources
       </span>
     </div>
   );

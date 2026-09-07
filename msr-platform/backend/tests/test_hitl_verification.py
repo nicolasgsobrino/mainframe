@@ -26,7 +26,7 @@ def test_a_registered_gate_is_closed_by_an_explicit_human_verification(store):
     assert gate["verified"] is True
     assert gate["actor"] == "ana.ruiz"
     assert gate["role"] == "service_manager"
-    assert "activos afectados confirmados" in gate["output"]
+    assert "affected assets confirmed" in gate["output"]
 
 
 def test_confirming_the_scope_moves_the_journey_to_the_asset_phase(store):
@@ -38,7 +38,7 @@ def test_confirming_the_scope_moves_the_journey_to_the_asset_phase(store):
 
 def test_the_verification_leaves_an_audit_line(store):
     detail = store.verify_gate("RTASK900001", "scope_confirmation", actor="ana.ruiz")
-    assert any("Verificación humana de 'Confirmación de alcance'" in log["msg"]
+    assert any("Human verification of 'Scope confirmation'" in log["msg"]
                for log in detail["logs"])
 
 

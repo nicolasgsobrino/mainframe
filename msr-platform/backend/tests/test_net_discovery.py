@@ -144,7 +144,7 @@ def test_a_subnet_without_egress_or_endpoints_cannot_host_the_tasks():
                                coverage)
 
     assert isolated["suitable_for_fargate_tasks"] is False
-    assert any("endpoints de VPC" in reason for reason in isolated["task_blockers"])
+    assert any("VPC endpoints" in reason for reason in isolated["task_blockers"])
     # Y tampoco tiene IPs para el ALB.
     assert isolated["suitable_for_internal_alb"] is False
 

@@ -166,17 +166,17 @@ def classify_subnet(subnet: dict, routing: dict, coverage: dict) -> dict:
 
     alb_reasons: list[str] = []
     if public:
-        alb_reasons.append("ruta por defecto a un Internet Gateway: es una subnet pública, "
-                           "válida sólo para un ALB internet-facing")
+        alb_reasons.append("default route to an Internet Gateway: it is a public subnet, "
+                           "only valid for an internet-facing ALB")
     if free_ips < MIN_FREE_IPS_FOR_ALB:
-        alb_reasons.append(f"sólo {free_ips} IPs libres (mínimo {MIN_FREE_IPS_FOR_ALB})")
+        alb_reasons.append(f"only {free_ips} free IPs (minimum {MIN_FREE_IPS_FOR_ALB})")
 
     task_reasons: list[str] = []
     if free_ips < MIN_FREE_IPS_FOR_TASKS:
-        task_reasons.append(f"sólo {free_ips} IPs libres (mínimo {MIN_FREE_IPS_FOR_TASKS})")
+        task_reasons.append(f"only {free_ips} free IPs (minimum {MIN_FREE_IPS_FOR_TASKS})")
     if not task_egress and not endpoints_complete:
         missing = sorted(service for service, item in coverage.items() if not item["present"])
-        task_reasons.append("sin NAT/Transit Gateway y sin endpoints de VPC para: "
+        task_reasons.append("no NAT/Transit Gateway and no VPC endpoints for: "
                             + ", ".join(missing))
 
     return {
@@ -229,7 +229,7 @@ def discover(client, vpc_id: str, region: str) -> dict:
     """Informe de red de la VPC indicada. Todas las llamadas son `Describe*`."""
     vpcs = _paginate(client, "describe_vpcs", "Vpcs", VpcIds=[vpc_id])
     if not vpcs:
-        raise ConfigurationError(f"La VPC {vpc_id} no existe en {region}.")
+        raise ConfigurationError(f"VPC {vpc_id} does not exist in {region}.")
     vpc = vpcs[0]
 
     filters = [{"Name": "vpc-id", "Values": [vpc_id]}]
@@ -293,7 +293,7 @@ def _client(settings: Settings):
     import boto3
 
     if not settings.aws_region:
-        raise ConfigurationError("MSR_AWS_REGION es obligatorio para el descubrimiento.")
+        raise ConfigurationError("MSR_AWS_REGION is mandatory for the discovery.")
     kwargs: dict = {"region_name": settings.aws_region}
     if settings.aws_profile:
         kwargs["profile_name"] = settings.aws_profile
@@ -303,18 +303,18 @@ def _client(settings: Settings):
 def render_markdown(report: dict) -> str:
     vpc = report["vpc"]
     lines = [
-        f"# Descubrimiento de red (sólo lectura) — {vpc['vpc_id']} / {report['region']}",
+        f"# Network discovery (read-only) — {vpc['vpc_id']} / {report['region']}",
         "",
         f"- CIDR: `{vpc['cidr_block']}`"
         + (f" (+ {', '.join(vpc['additional_cidr_blocks'])})"
            if vpc["additional_cidr_blocks"] else ""),
         f"- DNS support: `{vpc['dns_support']}` · DNS hostnames: `{vpc['dns_hostnames']}`",
-        f"- Internet Gateways: {', '.join(report['internet_gateways']) or 'ninguno'}",
+        f"- Internet Gateways: {', '.join(report['internet_gateways']) or 'none'}",
         "- NAT Gateways: "
         + (", ".join(f"{gateway['id']} ({gateway['state']}, {gateway['subnet_id']})"
-                     for gateway in report["nat_gateways"]) or "ninguno"),
+                     for gateway in report["nat_gateways"]) or "none"),
         "",
-        "| Subnet | AZ | CIDR | IPs libres | Route table | Salida por defecto | ALB interno | Fargate |",
+        "| Subnet | AZ | CIDR | Free IPs | Route table | Default egress | Internal ALB | Fargate |",
         "|---|---|---|---|---|---|---|---|",
     ]
     for subnet in report["subnets"]:
@@ -322,34 +322,34 @@ def render_markdown(report: dict) -> str:
             f"| `{subnet['subnet_id']}` | {subnet['availability_zone']} | "
             f"`{subnet['cidr_block']}` | {subnet['available_ip_count']} | "
             f"`{subnet['routing']['route_table_id']}` | {subnet['routing']['egress']} | "
-            f"{'sí' if subnet['suitable_for_internal_alb'] else 'no'} | "
-            f"{'sí' if subnet['suitable_for_fargate_tasks'] else 'no'} |"
+            f"{'yes' if subnet['suitable_for_internal_alb'] else 'no'} | "
+            f"{'yes' if subnet['suitable_for_fargate_tasks'] else 'no'} |"
         )
-    lines += ["", "## Endpoints de VPC", "",
-              "| Servicio | Presente | IDs |", "|---|---|---|"]
+    lines += ["", "## VPC endpoints", "",
+              "| Service | Present | IDs |", "|---|---|---|"]
     for service, item in report["vpc_endpoints"].items():
-        lines.append(f"| `{service}` | {'sí' if item['present'] else 'no'} | "
+        lines.append(f"| `{service}` | {'yes' if item['present'] else 'no'} | "
                      f"{', '.join(item['ids']) or '—'} |")
     proposal = report["proposal"]
     lines += [
         "",
-        "## Propuesta",
+        "## Proposal",
         "",
-        f"- Esquema del ALB: `{proposal['alb_scheme']}`",
-        f"- Subnets del ALB: {', '.join(proposal['alb_subnet_ids']) or 'ninguna apta'}",
-        f"- Subnets de las tasks: {', '.join(proposal['task_subnet_ids']) or 'ninguna apta'}",
-        f"- Origen de entrada: {proposal['alb_ingress_status']} "
-        "(el rango corporativo no se deduce de la topología)",
-        f"- Endpoints ausentes: {', '.join(proposal['missing_vpc_endpoints']) or 'ninguno'}",
+        f"- ALB scheme: `{proposal['alb_scheme']}`",
+        f"- ALB subnets: {', '.join(proposal['alb_subnet_ids']) or 'none suitable'}",
+        f"- Task subnets: {', '.join(proposal['task_subnet_ids']) or 'none suitable'}",
+        f"- Ingress source: {proposal['alb_ingress_status']} "
+        "(the corporate range cannot be inferred from the topology)",
+        f"- Missing endpoints: {', '.join(proposal['missing_vpc_endpoints']) or 'none'}",
     ]
     return "\n".join(lines) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Descubrimiento de red de sólo lectura previo al apply.")
-    parser.add_argument("--vpc-id", required=True, help="VPC del laboratorio MSR.")
-    parser.add_argument("--json", action="store_true", help="Salida en JSON.")
+        description="Read-only network discovery before the apply.")
+    parser.add_argument("--vpc-id", required=True, help="MSR lab VPC.")
+    parser.add_argument("--json", action="store_true", help="JSON output.")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
     try:

@@ -11,8 +11,8 @@ const PAGE = 50;
 function PatchTarget({ ci }: { ci: CI }) {
   if (!ci.instance_id)
     return (
-      <span className="chip bg-gray-500/15 text-gray-400" title="La CMDB de demo no expone un Instance ID de EC2; el parcheo real requiere resolverlo antes de ejecutar.">
-        sin instancia AWS
+      <span className="chip bg-gray-500/15 text-gray-400" title="The demo CMDB does not expose an EC2 Instance ID; real patching requires resolving it before executing.">
+        no AWS instance
       </span>
     );
   return (
@@ -20,7 +20,7 @@ function PatchTarget({ ci }: { ci: CI }) {
       <span className="font-mono">{ci.instance_id}</span>
       {ci.region && <span className="text-gray-500"> · {ci.region}</span>}
       <span className={`chip ml-1 ${ci.ssm_managed ? "bg-green-500/15 text-green-400" : "bg-amber-500/15 text-amber-300"}`}>
-        {ci.ssm_managed ? "SSM" : "sin SSM"}
+        {ci.ssm_managed ? "SSM" : "no SSM"}
       </span>
     </span>
   );
@@ -68,7 +68,7 @@ export default function Cmdb() {
 
   useEffect(() => { setPage(0); }, [cls, track, crit, q]);
 
-  if (!summary) return <div className="p-8 text-gray-500">Cargando…</div>;
+  if (!summary) return <div className="p-8 text-gray-500">Loading…</div>;
 
   const graphNodes = graph.nodes.map((n) => ({ ...n, is_root: (n as any).is_root } as any));
 
@@ -76,9 +76,9 @@ export default function Cmdb() {
     <div className="p-6 space-y-5 max-w-[1400px]">
       <header>
         <div className="text-xs font-bold text-brand tracking-wider">SERVICENOW · CMDB / CSDM</div>
-        <h1 className="text-2xl font-extrabold mt-1">Patrimonio tecnológico e Impact Graph</h1>
+        <h1 className="text-2xl font-extrabold mt-1">Technology estate and Impact Graph</h1>
         <p className="text-sm text-gray-400 mt-1">
-          CMDB estandarizada (<span className="text-gray-300">{summary.source}</span>) · <b className="text-gray-200">{summary.total.toLocaleString()}</b> CIs · {summary.edges.toLocaleString()} relaciones. Traduce "servidor vulnerable" → "servicio de negocio crítico".
+          Standardised CMDB (<span className="text-gray-300">{summary.source}</span>) · <b className="text-gray-200">{summary.total.toLocaleString()}</b> CIs · {summary.edges.toLocaleString()} relationships. Translates "vulnerable server" → "critical business service".
         </p>
       </header>
 
@@ -87,14 +87,14 @@ export default function Cmdb() {
         <div className="card p-4">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
             <div>
-              <div className="text-sm font-semibold text-gray-100">CMDB versionada en el repositorio</div>
+              <div className="text-sm font-semibold text-gray-100">CMDB versioned in the repository</div>
               <div className="text-xs text-gray-500 mt-0.5">
-                Origen: <span className="text-gray-300">{tables.source}</span> · export en formato nativo ServiceNow (una tabla por <span className="font-mono">cmdb_ci_*</span> + relaciones <span className="font-mono">cmdb_rel_ci</span>) en <span className="font-mono text-gray-300">msr-platform/data/cmdb/</span>. El backend la carga como fuente de verdad.
+                Origin: <span className="text-gray-300">{tables.source}</span> · export in native ServiceNow format (one table per <span className="font-mono">cmdb_ci_*</span> + <span className="font-mono">cmdb_rel_ci</span> relationships) in <span className="font-mono text-gray-300">msr-platform/data/cmdb/</span>. The backend loads it as the source of truth.
               </div>
             </div>
             <div className="text-right">
               <div className="text-2xl font-extrabold text-brand">{tables.total_cis.toLocaleString()}</div>
-              <div className="text-[11px] text-gray-500">CIs · {tables.total_relationships?.toLocaleString()} relaciones</div>
+              <div className="text-[11px] text-gray-500">CIs · {tables.total_relationships?.toLocaleString()} relationships</div>
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -110,7 +110,7 @@ export default function Cmdb() {
       {/* resumen por clase y carril */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card p-4">
-          <div className="text-xs text-gray-500 mb-2">CIs por clase</div>
+          <div className="text-xs text-gray-500 mb-2">CIs by class</div>
           <div className="flex flex-wrap gap-2">
             {Object.entries(summary.by_class).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
               <div key={k} className="chip border border-line" style={{ color: CI_CLASS_META[k]?.color }}>
@@ -120,7 +120,7 @@ export default function Cmdb() {
           </div>
         </div>
         <div className="card p-4">
-          <div className="text-xs text-gray-500 mb-2">CIs por dominio técnico</div>
+          <div className="text-xs text-gray-500 mb-2">CIs by technical domain</div>
           <div className="flex flex-wrap gap-2 items-center">
             {(["A", "B", "C"] as const).map((k) => (
               <div key={k} className="flex items-center gap-2">
@@ -130,7 +130,7 @@ export default function Cmdb() {
           </div>
         </div>
         <div className="card p-4">
-          <div className="text-xs text-gray-500 mb-2">CIs por criticidad</div>
+          <div className="text-xs text-gray-500 mb-2">CIs by criticality</div>
           <div className="flex flex-wrap gap-2">
             {Object.entries(summary.by_criticality).map(([k, v]) => (
               <div key={k} className="chip border border-line capitalize">{k}: <b className="ml-1">{v.toLocaleString()}</b></div>
@@ -141,34 +141,34 @@ export default function Cmdb() {
 
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold">Impact Graph por servicio de negocio</div>
+          <div className="text-sm font-semibold">Impact Graph by business service</div>
           <select value={svc} onChange={(e) => setSvc(e.target.value)}
             className="bg-ink border border-line rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand">
             {services.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.criticality})</option>)}
           </select>
         </div>
         {graphNodes.length > 0 && <ImpactGraphView nodes={graphNodes} edges={graph.edges} height={440} />}
-        <div className="text-xs text-gray-500 mt-2">{graphNodes.length} CIs conectados a este servicio (blast radius, prof. 4).</div>
+        <div className="text-xs text-gray-500 mt-2">{graphNodes.length} CIs connected to this service (blast radius, depth 4).</div>
       </div>
 
       <div className="card overflow-hidden">
         <div className="px-4 pt-3 text-xs text-gray-500">
-          Cada CI llega desde ServiceNow vía IntegrationHub / MID Server (Table API). Pulsa <span className="text-brand font-mono">{"{ } ver JSON"}</span> para ver el <b className="text-gray-300">registro nativo</b> y su mapeo al modelo interno — el contrato de integración.
+          Every CI arrives from ServiceNow via IntegrationHub / MID Server (Table API). Click <span className="text-brand font-mono">{"{ } view JSON"}</span> to see the <b className="text-gray-300">native record</b> and its mapping to the internal model — the integration contract.
         </div>
         <div className="px-4 py-3 border-b border-line flex flex-wrap items-center gap-2">
           <div className="text-sm font-semibold">Configuration Items</div>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre / ID…"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name / ID…"
             className="ml-auto bg-ink border border-line rounded-lg px-3 py-1 text-xs outline-none focus:border-brand w-48" />
           <select value={cls} onChange={(e) => setCls(e.target.value)} className="bg-ink border border-line rounded-lg px-2 py-1 text-xs outline-none">
-            <option value="all">Todas las clases</option>
+            <option value="all">All classes</option>
             {Object.keys(summary.by_class).map((k) => <option key={k} value={k}>{CI_CLASS_META[k]?.label || k}</option>)}
           </select>
           <select value={track} onChange={(e) => setTrack(e.target.value)} className="bg-ink border border-line rounded-lg px-2 py-1 text-xs outline-none">
-            <option value="all">Todos los dominios</option>
-            <option value="A">Dominio A</option><option value="B">Dominio B</option><option value="C">Dominio C</option>
+            <option value="all">All domains</option>
+            <option value="A">Domain A</option><option value="B">Domain B</option><option value="C">Domain C</option>
           </select>
           <select value={crit} onChange={(e) => setCrit(e.target.value)} className="bg-ink border border-line rounded-lg px-2 py-1 text-xs outline-none">
-            <option value="all">Toda criticidad</option>
+            <option value="all">All criticalities</option>
             <option value="critical">Critical</option><option value="high">High</option>
             <option value="medium">Medium</option><option value="low">Low</option>
           </select>
@@ -178,14 +178,14 @@ export default function Cmdb() {
             <thead className="sticky top-0 bg-ink">
               <tr className="text-left text-xs text-gray-500 border-b border-line">
                 <th className="px-4 py-2 font-medium">ID</th>
-                <th className="px-2 py-2 font-medium">Nombre</th>
-                <th className="px-2 py-2 font-medium">Clase (sys_class_name)</th>
-                <th className="px-2 py-2 font-medium">Dominio</th>
-                <th className="px-2 py-2 font-medium">Criticidad</th>
-                <th className="px-2 py-2 font-medium">Entorno</th>
-                <th className="px-2 py-2 font-medium">Objetivo de parcheo</th>
+                <th className="px-2 py-2 font-medium">Name</th>
+                <th className="px-2 py-2 font-medium">Class (sys_class_name)</th>
+                <th className="px-2 py-2 font-medium">Domain</th>
+                <th className="px-2 py-2 font-medium">Criticality</th>
+                <th className="px-2 py-2 font-medium">Environment</th>
+                <th className="px-2 py-2 font-medium">Patching target</th>
                 <th className="px-2 py-2 font-medium">Support group</th>
-                <th className="px-2 py-2 font-medium text-right">Registro CMDB</th>
+                <th className="px-2 py-2 font-medium text-right">CMDB record</th>
               </tr>
             </thead>
             <tbody>
@@ -208,8 +208,8 @@ export default function Cmdb() {
                     <button
                       onClick={() => api.cmdbCiRaw(c.id).then(setRaw)}
                       className="px-2 py-1 rounded border border-line text-[11px] text-brand hover:bg-brand/10"
-                      title="Ver el registro tal como llega de ServiceNow (Table API) y su mapeo">
-                      {"{ }"} ver JSON
+                      title="View the record exactly as it arrives from ServiceNow (Table API) and its mapping">
+                      {"{ }"} view JSON
                     </button>
                   </td>
                 </tr>
@@ -218,12 +218,12 @@ export default function Cmdb() {
           </table>
         </div>
         <div className="px-4 py-2 border-t border-line flex items-center justify-between text-xs text-gray-400">
-          <span>{total.toLocaleString()} CIs · página {page + 1} de {Math.max(1, Math.ceil(total / PAGE))}</span>
+          <span>{total.toLocaleString()} CIs · page {page + 1} of {Math.max(1, Math.ceil(total / PAGE))}</span>
           <div className="flex gap-2">
             <button disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}
-              className="px-2 py-1 rounded border border-line disabled:opacity-40">← Anterior</button>
+              className="px-2 py-1 rounded border border-line disabled:opacity-40">← Previous</button>
             <button disabled={(page + 1) * PAGE >= total} onClick={() => setPage((p) => p + 1)}
-              className="px-2 py-1 rounded border border-line disabled:opacity-40">Siguiente →</button>
+              className="px-2 py-1 rounded border border-line disabled:opacity-40">Next →</button>
           </div>
         </div>
       </div>

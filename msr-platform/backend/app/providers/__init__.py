@@ -25,7 +25,7 @@ __all__ = [
 
 def _reject(kind: str, value: str) -> None:
     raise ConfigurationError(
-        f"Provider de {kind} desconocido: '{value}'. Valores permitidos: "
+        f"Unknown {kind} provider: '{value}'. Allowed values: "
         f"{', '.join(ALLOWED_PROVIDERS)}.")
 
 
@@ -36,7 +36,7 @@ def get_patch_provider(settings: Settings) -> PatchProvider:
         settings.validate_for_providers()
         from .aws_ssm_automation import AwsSsmAutomationPatchProvider
         return AwsSsmAutomationPatchProvider(settings)
-    _reject("parcheo", settings.patch_provider)
+    _reject("patch", settings.patch_provider)
     raise AssertionError("unreachable")
 
 
@@ -47,5 +47,5 @@ def get_restore_provider(settings: Settings) -> RestoreProvider:
         settings.validate_for_providers()
         from .aws_ssm_automation import AwsSsmAutomationRestoreProvider
         return AwsSsmAutomationRestoreProvider(settings)
-    _reject("restauración", settings.restore_provider)
+    _reject("restore", settings.restore_provider)
     raise AssertionError("unreachable")

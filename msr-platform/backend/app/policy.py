@@ -40,7 +40,7 @@ def sanitize_text(text: str | None, limit: int = 2000) -> str:
     """Redacta y trunca cualquier salida antes de persistirla o mostrarla."""
     out = redact(text)
     if len(out) > limit:
-        out = out[:limit] + f"… [truncado, {len(out)} caracteres]"
+        out = out[:limit] + f"… [truncated, {len(out)} characters]"
     return out
 
 
@@ -48,10 +48,10 @@ def assert_runbook_allowed(runbook: str, settings: Settings) -> str:
     """El runbook proviene de la configuración y debe estar en la allowlist."""
     if not runbook:
         raise PolicyViolation("RUNBOOK_NOT_CONFIGURED",
-                             "No hay runbook de Automation configurado para esta operación.")
+                             "There is no Automation runbook configured for this operation.")
     if runbook not in settings.allowed_runbooks:
         raise PolicyViolation("RUNBOOK_NOT_ALLOWED",
-                              f"El runbook '{runbook}' no está en la allowlist interna.")
+                              f"Runbook '{runbook}' is not in the internal allowlist.")
     return runbook
 
 
@@ -60,16 +60,16 @@ def assert_parameters_allowed(parameters: dict, allowed_keys: set[str]) -> dict:
     unexpected = sorted(set(parameters or {}) - set(allowed_keys))
     if unexpected:
         raise PolicyViolation("PARAMETERS_NOT_ALLOWED",
-                              f"Parámetros no admitidos para el runbook: {', '.join(unexpected)}.")
+                              f"Parameters not accepted by the runbook: {', '.join(unexpected)}.")
     for key, value in (parameters or {}).items():
         values = value if isinstance(value, list) else [value]
         for item in values:
             if not isinstance(item, str):
                 raise PolicyViolation("PARAMETERS_NOT_ALLOWED",
-                                      f"El parámetro '{key}' debe ser texto.")
+                                      f"Parameter '{key}' must be text.")
             if any(ch in item for ch in (";", "|", "&&", "`", "$(")):
                 raise PolicyViolation("PARAMETERS_NOT_ALLOWED",
-                                      f"El parámetro '{key}' contiene metacaracteres de shell.")
+                                      f"Parameter '{key}' contains shell metacharacters.")
     return dict(parameters or {})
 
 
@@ -99,7 +99,7 @@ def evaluate_target(target: Target, settings: Settings, *,
         """`detail` describe el incumplimiento; con `ok` se publica `ok_detail`."""
         nonlocal first_code
         checks.append({"check": name, "ok": ok,
-                       "detail": (ok_detail or "Cumple la política.") if ok else detail})
+                       "detail": (ok_detail or "Complies with the policy.") if ok else detail})
         if not ok:
             violations.append(detail)
             if first_code is None:
@@ -107,69 +107,69 @@ def evaluate_target(target: Target, settings: Settings, *,
 
     if require_instance:
         instance_id = target.instance_id or ""
-        check("Instance ID válido", bool(INSTANCE_ID_RE.match(instance_id)),
-              f"El objetivo '{target.logical_target_id}' no tiene un Instance ID de EC2 válido "
-              f"({instance_id or 'sin valor'}).", "TARGET_NOT_ALLOWED",
+        check("Valid Instance ID", bool(INSTANCE_ID_RE.match(instance_id)),
+              f"Target '{target.logical_target_id}' does not have a valid EC2 Instance ID "
+              f"({instance_id or 'not set'}).", "TARGET_NOT_ALLOWED",
               f"Instance ID {instance_id}.")
 
     if settings.allowed_account_ids:
-        check("Cuenta permitida", target.account_id in settings.allowed_account_ids,
-              "La cuenta del objetivo no está en MSR_ALLOWED_ACCOUNT_IDS.", "TARGET_NOT_ALLOWED",
-              f"La cuenta {target.account_id} está en MSR_ALLOWED_ACCOUNT_IDS.")
+        check("Account allowed", target.account_id in settings.allowed_account_ids,
+              "The target account is not in MSR_ALLOWED_ACCOUNT_IDS.", "TARGET_NOT_ALLOWED",
+              f"Account {target.account_id} is in MSR_ALLOWED_ACCOUNT_IDS.")
     elif strict:
-        check("Cuenta permitida", False,
-              "MSR_ALLOWED_ACCOUNT_IDS está vacío y en ejecución real no autoriza ninguna cuenta.",
+        check("Account allowed", False,
+              "MSR_ALLOWED_ACCOUNT_IDS is empty and in real execution it authorises no account.",
               "POLICY_NOT_CONFIGURED")
     else:
-        checks.append({"check": "Cuenta permitida", "ok": True,
-                       "detail": "Sin allowlist de cuentas configurada (modo laboratorio)."})
+        checks.append({"check": "Account allowed", "ok": True,
+                       "detail": "No account allowlist configured (lab mode)."})
 
     expected_region = settings.aws_region
     if require_instance and expected_region:
-        check("Región permitida", target.region == expected_region,
-              f"El objetivo está en '{target.region}' y la región configurada es '{expected_region}'.",
-              "TARGET_NOT_ALLOWED", f"El objetivo está en la región configurada '{expected_region}'.")
+        check("Region allowed", target.region == expected_region,
+              f"The target is in '{target.region}' and the configured region is '{expected_region}'.",
+              "TARGET_NOT_ALLOWED", f"The target is in the configured region '{expected_region}'.")
     if settings.allowed_regions:
-        check("Región en allowlist", target.region in settings.allowed_regions,
-              "La región del objetivo no está en MSR_ALLOWED_REGIONS.", "TARGET_NOT_ALLOWED",
-              f"La región {target.region} está en MSR_ALLOWED_REGIONS.")
+        check("Region in allowlist", target.region in settings.allowed_regions,
+              "The target region is not in MSR_ALLOWED_REGIONS.", "TARGET_NOT_ALLOWED",
+              f"Region {target.region} is in MSR_ALLOWED_REGIONS.")
     elif strict:
-        check("Región en allowlist", False,
-              "MSR_ALLOWED_REGIONS está vacío y en ejecución real no autoriza ninguna región.",
+        check("Region in allowlist", False,
+              "MSR_ALLOWED_REGIONS is empty and in real execution it authorises no region.",
               "POLICY_NOT_CONFIGURED")
 
     if strict and not settings.required_target_tag_key:
-        check("Tag obligatorio configurado", False,
-              "MSR_REQUIRED_TARGET_TAG_KEY es obligatorio en ejecución real.",
+        check("Mandatory tag configured", False,
+              "MSR_REQUIRED_TARGET_TAG_KEY is mandatory in real execution.",
               "POLICY_NOT_CONFIGURED")
     if settings.required_target_tag_key:
         tag_value = (target.tags or {}).get(settings.required_target_tag_key)
-        check(f"Tag obligatorio {settings.required_target_tag_key}",
+        check(f"Mandatory tag {settings.required_target_tag_key}",
               tag_value == settings.required_target_tag_value,
-              f"El objetivo no tiene el tag {settings.required_target_tag_key}="
+              f"The target does not have the tag {settings.required_target_tag_key}="
               f"{settings.required_target_tag_value}.", "TARGET_NOT_ALLOWED",
-              f"El objetivo tiene el tag {settings.required_target_tag_key}="
+              f"The target has the tag {settings.required_target_tag_key}="
               f"{settings.required_target_tag_value}.")
 
     if settings.allowed_environments:
-        check("Entorno permitido", (target.environment or "") in settings.allowed_environments,
-              f"El entorno '{target.environment}' no está permitido para parcheo automático.",
+        check("Environment allowed", (target.environment or "") in settings.allowed_environments,
+              f"Environment '{target.environment}' is not allowed for automatic patching.",
               "TARGET_NOT_ALLOWED",
-              f"El entorno '{target.environment}' está en MSR_ALLOWED_ENVIRONMENTS.")
+              f"Environment '{target.environment}' is in MSR_ALLOWED_ENVIRONMENTS.")
     elif strict:
-        check("Entorno permitido", False,
-              "MSR_ALLOWED_ENVIRONMENTS está vacío y en ejecución real no autoriza ningún entorno.",
+        check("Environment allowed", False,
+              "MSR_ALLOWED_ENVIRONMENTS is empty and in real execution it authorises no environment.",
               "POLICY_NOT_CONFIGURED")
 
     if instance_state is not None:
-        check("Instancia operativa", instance_state == "running",
-              f"La instancia está en estado '{instance_state}'.", "TARGET_NOT_READY",
-              "La instancia está en estado 'running'.")
+        check("Instance operational", instance_state == "running",
+              f"The instance is in state '{instance_state}'.", "TARGET_NOT_READY",
+              "The instance is in the 'running' state.")
 
     if require_instance:
-        check("Nodo gestionado por SSM", bool(target.ssm_managed),
-              "La instancia no aparece como managed node en Systems Manager.", "TARGET_NOT_READY",
-              "La instancia es un managed node de Systems Manager.")
+        check("Node managed by SSM", bool(target.ssm_managed),
+              "The instance does not appear as a managed node in Systems Manager.", "TARGET_NOT_READY",
+              "The instance is a Systems Manager managed node.")
 
     allowed = not violations
     return TargetPolicyResult(
@@ -177,6 +177,6 @@ def evaluate_target(target: Target, settings: Settings, *,
         checks=tuple(checks),
         violations=tuple(violations),
         error_code=None if allowed else first_code,
-        message="Objetivo conforme con la política." if allowed else sanitize_text(" ".join(violations)),
+        message="Target compliant with the policy." if allowed else sanitize_text(" ".join(violations)),
         target=target,
     )

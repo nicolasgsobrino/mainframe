@@ -80,8 +80,8 @@ _TASK_SNAPSHOT_KEYS = ("id", "cve", "ci_id", "ci_name", "component", "track",
 # cuyo resultado remoto no ha podido confirmarse. Nunca a «succeeded».
 ADMIN_RESOLVABLE_STATES = (JobState.FAILED, JobState.CANCELLED, JobState.TIMED_OUT)
 REMEDIATION_LABELS = {
-    "patch": "parche in-place con reinicio de la instancia",
-    "dependency": "actualización de dependencia en rolling, sin caída",
+    "patch": "in-place patch with an instance reboot",
+    "dependency": "rolling dependency upgrade, with no outage",
 }
 
 log = logging.getLogger("msr.store")
@@ -193,7 +193,7 @@ class Store:
         self._projected: set[str] = set()
         self._job_locks: dict[str, threading.Lock] = {}
         self._locks_guard = threading.Lock()
-        log.info("store inicializado modo=%s patch_provider=%s restore_provider=%s",
+        log.info("store initialised mode=%s patch_provider=%s restore_provider=%s",
                  self.settings.execution_mode(), self.patch_provider.name,
                  self.restore_provider.name)
         self.reset(clear_jobs=False)
@@ -278,7 +278,7 @@ class Store:
             ring_preapprovals[rn] = {
                 "required": "Human-Driven", "preapproved": True,
                 "approver": task.get("owner", "owner@bank.example"),
-                "ts": iso(NOW), "note": "Pre-aprobación histórica del despliegue."}
+                "ts": iso(NOW), "note": "Historical pre-approval of the deployment."}
         deploy = engine.build_deployment(task, impact, rings_done,
                                          preapprovals=ring_preapprovals, exclusions=ring_exclusions)
         audit = engine.build_audit(task, impact, mvt, lab, proto, deploy)
@@ -354,7 +354,7 @@ class Store:
             p["hitl_verifications"][journey.verification_key(gate_id, ring)] = {
                 "gate": gate_id, "ring": ring, "actor": actor,
                 "role": "service_manager", "ts": iso(NOW),
-                "note": "Verificación humana registrada en el histórico.",
+                "note": "Human verification recorded in the history.",
                 "output": self._gate_output(tid, gate_id, ring),
             }
         # Línea base del histórico: la rehidratación vuelve aquí antes de
@@ -423,7 +423,7 @@ class Store:
             if "closure" in self.pipelines[tid]["hitl_verifications"]:
                 self._close_after_evidence_acceptance(tid)
         if replayed:
-            log.info("pipeline rehidratado desde SQLite: %s jobs re-proyectados", replayed)
+            log.info("pipeline rehydrated from SQLite: %s jobs re-projected", replayed)
         return replayed
 
     # ------------------------------------------------------------------
@@ -433,42 +433,42 @@ class Store:
         SN = "ServiceNow"
         if pid == "detection":
             return [
-                {"actor": SN, "phase": pid, "msg": f"Hallazgo {task['cve']} ingerido y normalizado; VI {task['vulnerable_item_id']} creado."},
-                {"actor": SN, "phase": pid, "msg": f"Asociado a CI {task['ci_id']} ({task['ci_name']}); track {task['track']} asignado."},
-                {"actor": A, "phase": pid, "msg": "Deduplicación y enriquecimiento de fuentes completados."},
+                {"actor": SN, "phase": pid, "msg": f"Finding {task['cve']} ingested and normalised; VI {task['vulnerable_item_id']} created."},
+                {"actor": SN, "phase": pid, "msg": f"Linked to CI {task['ci_id']} ({task['ci_name']}); track {task['track']} assigned."},
+                {"actor": A, "phase": pid, "msg": "Source deduplication and enrichment completed."},
             ]
         if pid == "prioritization":
             return [
-                {"actor": A, "phase": pid, "msg": f"Análisis de contexto: CVSS {task_cvss(task,self)}, KEV/EPSS y exposición evaluados."},
-                {"actor": A, "phase": pid, "msg": f"Reachability analysis del componente '{task['component']}' → {'ALCANZABLE en runtime' if task['exposed'] else 'no alcanzable directamente'}."},
-                {"actor": SN, "phase": pid, "msg": f"Prioridad calculada: {task['priority'].upper()} (score {task['risk_score']}/100). Change type: {task['change_type']}."},
+                {"actor": A, "phase": pid, "msg": f"Context analysis: CVSS {task_cvss(task,self)}, KEV/EPSS and exposure assessed."},
+                {"actor": A, "phase": pid, "msg": f"Reachability analysis of component '{task['component']}' → {'REACHABLE at runtime' if task['exposed'] else 'not directly reachable'}."},
+                {"actor": SN, "phase": pid, "msg": f"Priority computed: {task['priority'].upper()} (score {task['risk_score']}/100). Change type: {task['change_type']}."},
             ]
         if pid == "pre_implementation":
             return [
-                {"actor": A, "phase": pid, "msg": f"Impact Graph construido: {impact['affected_count']} CIs, capas {', '.join(impact['affected_layers'])}."},
-                {"actor": A, "phase": pid, "msg": f"Consulta al catálogo de tests (Git) → propuesto MVT con {len(mvt['selected'])} pruebas (confianza {mvt['confidence']}%)."},
-                {"actor": A, "phase": pid, "msg": f"Excluidas {len(mvt['excluded'])} pruebas no aplicables con justificación."},
+                {"actor": A, "phase": pid, "msg": f"Impact Graph built: {impact['affected_count']} CIs, layers {', '.join(impact['affected_layers'])}."},
+                {"actor": A, "phase": pid, "msg": f"Query to the test catalogue (Git) → MVT proposed with {len(mvt['selected'])} tests (confidence {mvt['confidence']}%)."},
+                {"actor": A, "phase": pid, "msg": f"{len(mvt['excluded'])} non-applicable tests excluded, with justification."},
             ]
         if pid == "lab_testing":
             return [
-                {"actor": A, "phase": pid, "msg": "Ejecutando MVT en laboratorio vía CI/CD y frameworks de test..."},
-                {"actor": A, "phase": pid, "msg": f"Resultados: {lab['passed']}/{lab['total']} OK. Veredicto agregado: {lab['verdict'].upper()}."},
+                {"actor": A, "phase": pid, "msg": "Running the MVT in the lab via CI/CD and test frameworks..."},
+                {"actor": A, "phase": pid, "msg": f"Results: {lab['passed']}/{lab['total']} OK. Aggregated verdict: {lab['verdict'].upper()}."},
             ]
         if pid == "prototype":
             return [
-                {"actor": A, "phase": pid, "msg": f"Aprovisionando lab ({proto['approach']}) con {len(proto['lab_blueprint'])} componentes vía {proto['provision_tool']}."},
-                {"actor": A, "phase": pid, "msg": f"Parche aplicado y pruebas ejecutadas. Error rate {proto['metrics']['error_rate_pct']}%, p95 {proto['metrics']['p95_latency_ms']}ms."},
-                {"actor": A, "phase": pid, "msg": f"Veredicto prototipo: {proto['verdict'].upper()}. Teardown: {proto['teardown']}."},
+                {"actor": A, "phase": pid, "msg": f"Provisioning lab ({proto['approach']}) with {len(proto['lab_blueprint'])} components via {proto['provision_tool']}."},
+                {"actor": A, "phase": pid, "msg": f"Patch applied and tests run. Error rate {proto['metrics']['error_rate_pct']}%, p95 {proto['metrics']['p95_latency_ms']}ms."},
+                {"actor": A, "phase": pid, "msg": f"Prototype verdict: {proto['verdict'].upper()}. Teardown: {proto['teardown']}."},
             ]
         if pid == "deployment":
-            logs = [{"actor": SN, "phase": pid, "msg": f"Change Request {task['change_type']} autorizado. Estrategia: {deploy['strategy']} ({deploy['executor']})."}]
+            logs = [{"actor": SN, "phase": pid, "msg": f"Change Request {task['change_type']} authorised. Strategy: {deploy['strategy']} ({deploy['executor']})."}]
             if deploy.get("pr_url"):
-                logs.append({"actor": A, "phase": pid, "msg": f"PR de remediación abierto: {deploy['pr_url']}"})
+                logs.append({"actor": A, "phase": pid, "msg": f"Remediation PR opened: {deploy['pr_url']}"})
             for r in deploy["rings"]:
                 if r["status"] == "completed":
-                    logs.append({"actor": SN, "phase": pid, "msg": f"{r['label']}: {r['assets']} activos desplegados y validados → {r['result']}."})
+                    logs.append({"actor": SN, "phase": pid, "msg": f"{r['label']}: {r['assets']} assets deployed and validated → {r['result']}."})
                 elif r["status"] == "in_progress":
-                    logs.append({"actor": SN, "phase": pid, "msg": f"{r['label']}: despliegue en curso sobre {r['assets']} activos."})
+                    logs.append({"actor": SN, "phase": pid, "msg": f"{r['label']}: rollout in progress over {r['assets']} assets."})
             return logs
         return []
 
@@ -476,13 +476,13 @@ class Store:
         """Cierre de una vulnerabilidad ya remediada en el histórico."""
         return [
             {"actor": "Devin", "phase": "deployment",
-             "msg": f"Post-checks superados en los {len(deploy['rings'])} anillos "
-                    f"({deploy['total_assets']} activos)."},
+             "msg": f"Post-checks passed across the {len(deploy['rings'])} rings "
+                    f"({deploy['total_assets']} assets)."},
             {"actor": "ServiceNow", "phase": "deployment",
-             "msg": "Reescaneo verificado. Vulnerable Item → FIXED."},
+             "msg": "Rescan verified. Vulnerable Item → FIXED."},
             {"actor": "HITL · Owner", "phase": "deployment",
-             "msg": f"Evidencias aceptadas y cierre aprobado por {task.get('owner', 'owner@bank.example')}. "
-                    f"Informe de auditoría {audit['report_id']} ({audit['evidences_count']} evidencias)."},
+             "msg": f"Evidence accepted and closure approved by {task.get('owner', 'owner@bank.example')}. "
+                    f"Audit report {audit['report_id']} ({audit['evidences_count']} evidence items)."},
         ]
 
     # ------------------------------------------------------------------
@@ -550,11 +550,11 @@ class Store:
         """Embudo de curación derivado de los datos reales, de ruido a acción."""
         active = [t for t in tasks if t.get("status") != "remediated"]
         return [
-            {"label": "Hallazgos de los escáneres", "value": len(self.findings)},
-            {"label": "Activos afectados", "value": len({f["ci_id"] for f in self.findings})},
-            {"label": "CVE distintas", "value": len({f["cve"] for f in self.findings})},
-            {"label": "Vulnerable Items curados", "value": len(self.vulnerable_items)},
-            {"label": "Remediation Tasks activas", "value": len(active)},
+            {"label": "Scanner findings", "value": len(self.findings)},
+            {"label": "Affected assets", "value": len({f["ci_id"] for f in self.findings})},
+            {"label": "Distinct CVEs", "value": len({f["cve"] for f in self.findings})},
+            {"label": "Curated Vulnerable Items", "value": len(self.vulnerable_items)},
+            {"label": "Active Remediation Tasks", "value": len(active)},
         ]
 
     def _journey_summary(self, task):
@@ -744,7 +744,7 @@ class Store:
 
         # Resto de fases: marcar aprobada y pasar a la siguiente
         p["statuses"][pid] = "approved"
-        msg = f"Fase '{engine.PHASES[idx][1]}' aprobada."
+        msg = f"Phase '{engine.PHASES[idx][1]}' approved."
         if pid == "prototype":
             # La aprobación del cambio se registra con el nombre del proceso
             # ITSM que corresponde a su tipología (eCAB, estándar o CAB).
@@ -778,15 +778,15 @@ class Store:
         gate = self.pending_verification(tid)
         if gate is None:
             return
-        ring_suffix = f" (anillo {gate['ring']})" if gate["ring"] is not None else ""
+        ring_suffix = f" (ring {gate['ring']})" if gate["ring"] is not None else ""
         self._log(tid, {
             "actor": "msr-platform",
             "phase": engine.PHASE_IDS[self.pipelines[tid]["phase_index"]],
-            "msg": f"Avance bloqueado: la puerta '{gate['label']}'{ring_suffix} "
-                   "espera verificación humana."})
+            "msg": f"Progress blocked: gate '{gate['label']}'{ring_suffix} "
+                   "is awaiting human verification."})
         raise ValidationError(
-            f"El recorrido está detenido en '{gate['label']}'{ring_suffix}: "
-            "requiere verificación humana antes de continuar.",
+            f"The journey is stopped at '{gate['label']}'{ring_suffix}: "
+            "it requires human verification before continuing.",
             code="HITL_VERIFICATION_REQUIRED")
 
     def verify_gate(self, tid, gate_id, ring=None, actor=None, role=None, note=None):
@@ -800,8 +800,8 @@ class Store:
             return None
         if not journey.GATE_VERIFIABLE.get(gate_id):
             raise ValidationError(
-                f"La puerta '{gate_id}' se cierra con su propia acción de "
-                "aprobación: no se registra como verificación.",
+                f"Gate '{gate_id}' closes with its own approval "
+                "action: it is not recorded as a verification.",
                 code="GATE_ENFORCED")
         p = self.pipelines[tid]
         t = self.tasks[tid]
@@ -810,18 +810,18 @@ class Store:
         record = {
             "gate": gate_id, "ring": ring, "actor": actor,
             "role": role or "service_manager", "ts": iso(NOW),
-            "note": note or "Verificación humana completada.",
+            "note": note or "Human verification completed.",
             "output": self._gate_output(tid, gate_id, ring),
         }
         key = journey.verification_key(gate_id, ring)
         p.setdefault("hitl_verifications", {})[key] = record
         self.repo.save_verification(tid, key, record)
-        ring_suffix = f" (anillo {ring})" if ring is not None else ""
+        ring_suffix = f" (ring {ring})" if ring is not None else ""
         self._log(tid, {
             "actor": "Owner (HITL)",
             "phase": engine.PHASE_IDS[p["phase_index"]],
-            "msg": f"[Auditoría] Verificación humana de '{label}'{ring_suffix} "
-                   f"completada por {actor}: {record['output']}"})
+            "msg": f"[Audit] Human verification of '{label}'{ring_suffix} "
+                   f"completed by {actor}: {record['output']}"})
         if gate_id == "closure":
             self._close_after_evidence_acceptance(tid)
         return self.task_detail(tid)
@@ -844,8 +844,8 @@ class Store:
         t["status"] = "remediated"
         self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "fixed"
         self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                        "msg": "Reescaneo verificado. Vulnerable Item → FIXED. "
-                               "Informe de auditoría generado."})
+                        "msg": "Rescan verified. Vulnerable Item → FIXED. "
+                               "Audit report generated."})
 
     def _gate_output(self, tid, gate_id, ring=None) -> str:
         """Resultado concreto que deja una verificación, con datos del pipeline."""
@@ -853,23 +853,23 @@ class Store:
         a = p["artifacts"]
         if gate_id == "scope_confirmation":
             impact = a["impact"]
-            return (f"{impact['affected_count']} activos afectados confirmados "
-                    f"contra la CMDB · {len(impact['business_services'])} "
-                    "servicios de negocio implicados.")
+            return (f"{impact['affected_count']} affected assets confirmed "
+                    f"against the CMDB · {len(impact['business_services'])} "
+                    "business services involved.")
         if gate_id == "ai_proposal":
-            return (f"Propuesta de remediación aceptada: "
+            return (f"Remediation proposal accepted: "
                     f"{REMEDIATION_LABELS[a['impact']['remediation_type']]} · "
-                    f"{len(a['mvt']['selected'])} pruebas mínimas viables "
-                    f"seleccionadas · confianza {a['mvt']['confidence']}%.")
+                    f"{len(a['mvt']['selected'])} minimum viable tests "
+                    f"selected · confidence {a['mvt']['confidence']}%.")
         if gate_id == "ring_result":
             rings = {r["ring"]: r for r in a["deployment"]["rings"]}
             r = rings.get(ring)
             if r is None:
-                return "Resultado del anillo revisado."
-            return f"Resultado del anillo {ring} · {r['label']} revisado: {r['status']}."
+                return "Ring result reviewed."
+            return f"Result of ring {ring} · {r['label']} reviewed: {r['status']}."
         audit = a["audit"]
-        return (f"Evidencias aceptadas: informe {audit['report_id']} con "
-                f"{audit['evidences_count']} evidencias.")
+        return (f"Evidence accepted: report {audit['report_id']} with "
+                f"{audit['evidences_count']} evidence items.")
 
     # ------------------------------------------------------------------
     def preapprove_ring(self, tid, ring_no, approver=None, note=None):
@@ -885,12 +885,12 @@ class Store:
         p.setdefault("ring_preapprovals", {})[ring_no] = {
             "required": "Human-Driven", "preapproved": True,
             "approver": approver, "ts": iso(NOW),
-            "note": note or "Informe pre-anillo revisado y verificado.",
+            "note": note or "Pre-ring report reviewed and verified.",
         }
         excl = p.get("ring_exclusions", {}).get(ring_no) or []
         self._log(tid, {"actor": "Owner (HITL · Human-Driven)", "phase": "deployment",
-                        "msg": f"[Auditoría] Informe pre-anillo del anillo {ring_no} verificado y PRE-APROBADO por {approver}"
-                               + (f" · {len(excl)} activo(s) excluido(s) de la selección." if excl else ".")})
+                        "msg": f"[Audit] Pre-ring report for ring {ring_no} verified and PRE-APPROVED by {approver}"
+                               + (f" · {len(excl)} asset(s) excluded from the selection." if excl else ".")})
         self._rebuild_deploy(tid)
         return self.task_detail(tid)
 
@@ -904,7 +904,7 @@ class Store:
         if ring_no in p.get("ring_preapprovals", {}):
             p["ring_preapprovals"].pop(ring_no, None)
         self._log(tid, {"actor": "Owner (HITL)", "phase": "deployment",
-                        "msg": f"Selección de activos del anillo {ring_no} editada: {len(excluded_ids or [])} excluido(s). Requiere re-verificación."})
+                        "msg": f"Asset selection for ring {ring_no} edited: {len(excluded_ids or [])} excluded. Requires re-verification."})
         self._rebuild_deploy(tid)
         return self.task_detail(tid)
 
@@ -945,10 +945,10 @@ class Store:
         payload = job.request_payload
         ring_no = job.ring_number
         trigger = payload.get("trigger", "manual")
-        reason = payload.get("reason", "Rollback solicitado por el owner")
+        reason = payload.get("reason", "Rollback requested by the owner")
         plan = p["artifacts"]["deployment"]["rollback_plan"]
         self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                        "msg": f"⟲ ROLLBACK ({trigger}) del anillo {ring_no}. Motivo: {reason}. RTO objetivo {plan['rto_minutes']} min."})
+                        "msg": f"⟲ ROLLBACK ({trigger}) of ring {ring_no}. Reason: {reason}. Target RTO {plan['rto_minutes']} min."})
         for s in job.steps() or plan["steps"]:
             self._log(tid, {"actor": s.get("actor", "Devin"), "phase": "deployment",
                             "msg": f"$ {s.get('command')} → {s.get('output') or s.get('desc')}"})
@@ -964,7 +964,7 @@ class Store:
             "status": "completed", "triggered": True, "trigger_type": trigger,
             "reason": reason, "ring": ring_no, "ts": iso(NOW),
             "restored_version": payload.get("target_version") or plan["target_version"],
-            "verdict": "healthy tras rollback",
+            "verdict": "healthy after rollback",
             "job_id": job.id, "provider": job.provider,
         }
         vi = self.vulnerable_items[t["vulnerable_item_id"]]
@@ -973,9 +973,9 @@ class Store:
             t["status"] = "in_flight"
         self._rebuild_deploy(tid)
         self._log(tid, {"actor": "Devin", "phase": "deployment",
-                        "msg": f"Rollback completado. Versión restaurada: {p['rollback']['restored_version']}. "
-                               f"Servicio healthy; anillo {ring_no} vuelve al estado previo al despliegue "
-                               "(pre-aprobación y validación reabiertas)."})
+                        "msg": f"Rollback completed. Restored version: {p['rollback']['restored_version']}. "
+                               f"Service healthy; ring {ring_no} returns to the pre-deployment state "
+                               "(pre-approval and validation reopened)."})
 
     def simulate_incident(self, tid):
         """Simula una anomalía post-despliegue que dispara rollback automático."""
@@ -986,8 +986,8 @@ class Store:
             return self.task_detail(tid)
         ring_no = engine.RING_DEFS[p["rings_done"] - 1][0]
         self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                        "msg": f"⚠ Anomalía detectada en anillo {ring_no}: error rate 4.7% (SLO 1%), p95 1.8s. Post-check FAILED → disparando rollback automático."})
-        return self.rollback(tid, reason="Post-check falló: error rate 4.7% > SLO, p95 1.8s", trigger="auto")
+                        "msg": f"⚠ Anomaly detected in ring {ring_no}: error rate 4.7% (SLO 1%), p95 1.8s. Post-check FAILED → triggering an automatic rollback."})
+        return self.rollback(tid, reason="Post-check failed: error rate 4.7% > SLO, p95 1.8s", trigger="auto")
 
     # ==================================================================
     # Jobs de ejecución (parcheo / restauración)
@@ -1037,7 +1037,7 @@ class Store:
         assets = self._ring_assets(tid, ring_no)
         if not assets:
             raise ValidationError(
-                f"El anillo {ring_no} no tiene activos seleccionados para desplegar.",
+                f"Ring {ring_no} has no assets selected to deploy.",
                 code="NO_TARGET_SELECTED")
         return [self._asset_target(a) for a in assets]
 
@@ -1046,7 +1046,7 @@ class Store:
         assets = self._ring_assets(tid, ring_no)
         if not assets:
             raise ValidationError(
-                f"El anillo {ring_no} no tiene activos seleccionados para desplegar.",
+                f"Ring {ring_no} has no assets selected to deploy.",
                 code="NO_TARGET_SELECTED")
         return self._asset_target(next((a for a in assets if a.get("is_root")), assets[0]))
 
@@ -1054,16 +1054,16 @@ class Store:
         """Con provider AWS un job representa exactamente UNA instancia real."""
         if (track or "") != "A":
             raise ValidationError(
-                f"El track {track or 'sin valor'} no se ejecuta en AWS Systems Manager: "
-                "sólo el track A (infraestructura) está soportado en esta fase.",
+                f"Track {track or 'not set'} does not run on AWS Systems Manager: "
+                "only track A (infrastructure) is supported at this stage.",
                 code="UNSUPPORTED_REMEDIATION_TRACK")
         targets = self._resolve_ring_targets(tid, ring_no)
         real = [t for t in targets
                 if t.instance_id and INSTANCE_ID_RE.match(t.instance_id)]
         if len(real) != 1:
             raise ValidationError(
-                f"El anillo {ring_no} resuelve {len(real)} instancias EC2 reales de "
-                f"{len(targets)} activos y el provider AWS admite exactamente una en esta fase.",
+                f"Ring {ring_no} resolves {len(real)} real EC2 instances out of "
+                f"{len(targets)} assets and the AWS provider accepts exactly one at this stage.",
                 code="RING_TARGET_COUNT_UNSUPPORTED")
         return real[0]
 
@@ -1155,17 +1155,17 @@ class Store:
     def start_ring_patch_job(self, tid, idempotency_key: str | None = None) -> PatchJob:
         """Crea (y arranca) el job de parcheo del siguiente anillo del despliegue."""
         if tid not in self.pipelines:
-            raise NotFoundError(f"La tarea {tid} no existe.")
+            raise NotFoundError(f"Task {tid} does not exist.")
         replay = self._replay(idempotency_key)
         if replay is not None:
             return replay
         p = self.pipelines[tid]
         t = self.tasks[tid]
         if engine.PHASE_IDS[p["phase_index"]] != "deployment":
-            raise ValidationError("La tarea no está en la fase de despliegue.",
+            raise ValidationError("The task is not in the deployment phase.",
                                   code="PHASE_NOT_DEPLOYMENT")
         if p["rings_done"] >= len(engine.RING_DEFS):
-            raise ValidationError("El despliegue ya ha completado todos los anillos.",
+            raise ValidationError("The rollout has already completed every ring.",
                                   code="DEPLOYMENT_COMPLETED")
         # El anillo anterior no se promociona hasta que su resultado se valide.
         self._require_human_verification(tid)
@@ -1173,10 +1173,10 @@ class Store:
         preapproval = p.get("ring_preapprovals", {}).get(ring_no)
         if not (preapproval and preapproval.get("preapproved")):
             self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                            "msg": f"Despliegue del anillo {ring_no} bloqueado: requiere revisión y "
-                                   "pre-aprobación Human-Driven del informe pre-anillo."})
+                            "msg": f"Deployment of ring {ring_no} blocked: it requires review and "
+                                   "Human-Driven pre-approval of the pre-ring report."})
             raise ValidationError(
-                f"El anillo {ring_no} requiere pre-aprobación Human-Driven antes de desplegarse.",
+                f"Ring {ring_no} requires Human-Driven pre-approval before being deployed.",
                 code="RING_NOT_PREAPPROVED")
 
         active = self.repo.active_job_for_task(tid)
@@ -1184,7 +1184,7 @@ class Store:
             active = self.reconcile_job(active)
             if active.active:
                 raise ConflictError(
-                    f"La tarea {tid} ya tiene un job activo ({active.id}, estado {active.state.value}).",
+                    f"Task {tid} already has an active job ({active.id}, state {active.state.value}).",
                     correlation_id=active.correlation_id)
 
         deploy = p["artifacts"]["deployment"]
@@ -1208,7 +1208,7 @@ class Store:
         busy = self.repo.active_job_for_target(target.logical_target_id)
         if busy is not None and busy.active:
             raise ConflictError(
-                f"El objetivo {target.logical_target_id} ya tiene un job activo ({busy.id}).",
+                f"Target {target.logical_target_id} already has an active job ({busy.id}).",
                 correlation_id=busy.correlation_id)
 
         from_version = engine._prev_version(t)
@@ -1245,17 +1245,17 @@ class Store:
         except TargetBusyError as exc:
             self._release_lab_lock_for_job(job, force=True)
             raise ConflictError(
-                f"El objetivo {exc.logical_target_id} ya tiene un job activo.") from exc
+                f"Target {exc.logical_target_id} already has an active job.") from exc
         if not created:
             self._release_lab_lock_for_job(job, force=True)
             return job  # idempotencia: misma clave → mismo job
 
         self.repo.append_event(job.id, job.state,
-                               f"Job creado para el anillo {ring_no} ({ring['label']}).")
+                               f"Job created for ring {ring_no} ({ring['label']}).")
         self._log(tid, {"actor": "Owner (HITL)", "phase": "deployment",
-                        "msg": f"[HITL] Aprobado despliegue de {ring['label']} ({assets_count} activos). "
+                        "msg": f"[HITL] Deployment of {ring['label']} approved ({assets_count} assets). "
                                f"Job {job.id} ({job.provider}"
-                               + (", dry-run)" if dry_run else ")") + " creado."})
+                               + (", dry-run)" if dry_run else ")") + " created."})
 
         job.transition_to(JobState.VALIDATING)
         self.repo.save_job(job)
@@ -1270,7 +1270,7 @@ class Store:
         if not policy.allowed:
             self._fail_job(job, policy.error_code or "TARGET_NOT_ALLOWED", policy.message)
             self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                            "msg": f"Objetivo rechazado por política: {policy.message}"})
+                            "msg": f"Target rejected by policy: {policy.message}"})
             raise TargetNotAllowedError(policy.message,
                                         code=policy.error_code or "TARGET_NOT_ALLOWED",
                                         correlation_id=job.correlation_id)
@@ -1303,9 +1303,9 @@ class Store:
         job.provider_reference = evidence["execution_id"]
         job.transition_to(JobState.STARTING)
         job.transition_to(JobState.SUCCEEDED)
-        detail = (f"La instancia {evidence['instance_id']} ya está en la versión corregida "
-                  f"(kernel {evidence['kernel']}, ejecución {evidence['execution_id']}): "
-                  "el anillo se cierra sin relanzar la Automation.")
+        detail = (f"Instance {evidence['instance_id']} is already on the fixed version "
+                  f"(kernel {evidence['kernel']}, execution {evidence['execution_id']}): "
+                  "the ring closes without relaunching the Automation.")
         self.repo.append_event(job.id, job.state, detail)
         self._release_lab_lock_for_job(job)
         self.repo.save_job(job)
@@ -1320,27 +1320,27 @@ class Store:
                           restore_kind: str = "rollback") -> PatchJob:
         """Crea el job de restauración del último anillo desplegado."""
         if tid not in self.pipelines:
-            raise NotFoundError(f"La tarea {tid} no existe.")
+            raise NotFoundError(f"Task {tid} does not exist.")
         replay = self._replay(idempotency_key)
         if replay is not None:
             return replay
         p = self.pipelines[tid]
         t = self.tasks[tid]
         if p["rings_done"] <= 0:
-            raise ValidationError("No hay ningún anillo desplegado que restaurar.",
+            raise ValidationError("There is no deployed ring to restore.",
                                   code="NOTHING_TO_RESTORE")
         active = self.repo.active_job_for_task(tid)
         if active is not None:
             active = self.reconcile_job(active)
             if active.active:
                 raise ConflictError(
-                    f"La tarea {tid} ya tiene un job activo ({active.id}).",
+                    f"Task {tid} already has an active job ({active.id}).",
                     correlation_id=active.correlation_id)
 
         ring_no = engine.RING_DEFS[p["rings_done"] - 1][0]
         plan = p["artifacts"]["deployment"]["rollback_plan"]
-        reason = reason or ("Fallo de post-checks / breach de health-check" if trigger == "auto"
-                           else "Rollback solicitado por el owner")
+        reason = reason or ("Post-check failure / health-check breach" if trigger == "auto"
+                           else "Rollback requested by the owner")
         if self.restore_provider.name == PROVIDER_AWS_AUTOMATION:
             target = self._aws_single_target(tid, ring_no, t.get("track", "A"))
         else:
@@ -1366,12 +1366,12 @@ class Store:
             job, created = self.repo.create_job(job, scope="rollback")
         except TargetBusyError as exc:
             raise ConflictError(
-                f"El objetivo {exc.logical_target_id} ya tiene un job activo.") from exc
+                f"Target {exc.logical_target_id} already has an active job.") from exc
         if not created:
             return job
 
         self.repo.append_event(job.id, job.state,
-                               f"Job de restauración creado para el anillo {ring_no}.")
+                               f"Restore job created for ring {ring_no}.")
         job.transition_to(JobState.VALIDATING)
         self.repo.save_job(job)
         try:
@@ -1430,7 +1430,7 @@ class Store:
             job.transition_to(target_state, error_code=execution.error_code,
                               error_message=execution.error_message)
             self.repo.append_event(job.id, job.state,
-                                   sanitize_text(execution.detail, 500) or f"Estado {job.state.value}.")
+                                   sanitize_text(execution.detail, 500) or f"State {job.state.value}.")
         return job
 
     def _provider_for(self, job: PatchJob):
@@ -1480,7 +1480,7 @@ class Store:
             return self._provider_for(job).poll(job.provider_reference or "",
                                                 self._request_for(job))
         except ProviderError as exc:
-            message = f"No se pudo reconciliar el job: {exc.code}"
+            message = f"The job could not be reconciled: {exc.code}"
             if not self.repo.has_event(job.id, message):
                 self.repo.append_event(job.id, job.state, message)
             return None
@@ -1506,22 +1506,22 @@ class Store:
         remote = job.provider != PROVIDER_MOCK and not job.dry_run
         if not remote:
             job.transition_to(JobState.TIMED_OUT, error_code="JOB_TIMED_OUT",
-                              error_message="El job excedió MSR_JOB_TIMEOUT_SECONDS.")
-            self.repo.append_event(job.id, job.state, "Job caducado por timeout.")
+                              error_message="The job exceeded MSR_JOB_TIMEOUT_SECONDS.")
+            self.repo.append_event(job.id, job.state, "Job expired by timeout.")
             self.repo.save_job(job)
             self._apply_job_outcome(job.task_id, job)
             return job
 
         self._mark_unconfirmed(
             job, JobState.TIMEOUT_PENDING_CONFIRMATION, "JOB_TIMEOUT_PENDING_CONFIRMATION",
-            "Timeout local alcanzado: la ejecución remota puede seguir activa, "
-            "el objetivo permanece bloqueado hasta confirmar su estado.")
+            "Local timeout reached: the remote execution may still be active, "
+            "the target stays locked until its state is confirmed.")
         execution = self._poll_provider(job)
         if execution is None:
             return self._mark_unconfirmed(
                 job, JobState.REMOTE_STATUS_UNKNOWN, "REMOTE_STATUS_UNKNOWN",
-                "No se pudo obtener el estado remoto de la ejecución: el objetivo "
-                "sigue ocupado y requiere reconciliación manual.")
+                "The remote execution state could not be obtained: the target "
+                "is still busy and requires manual reconciliation.")
         if is_terminal(state_for_execution(execution.status, job.job_type)):
             self._absorb_execution(job, execution)
             self.repo.save_job(job)
@@ -1535,12 +1535,12 @@ class Store:
         except ProviderError as exc:
             return self._mark_unconfirmed(
                 job, JobState.REMOTE_STATUS_UNKNOWN, exc.code,
-                f"No se pudo solicitar la parada de la ejecución remota: {exc.code}. "
-                "El objetivo sigue ocupado.")
+                f"The remote execution could not be asked to stop: {exc.code}. "
+                "The target is still busy.")
         return self._mark_unconfirmed(
             job, JobState.STOP_REQUESTED, "STOP_REQUESTED",
-            "Parada solicitada al proveedor tras el timeout local: el job no se "
-            "marca como cancelado hasta que la ejecución remota lo confirme.")
+            "Stop requested from the provider after the local timeout: the job is not "
+            "marked as cancelled until the remote execution confirms it.")
 
     # ------------------------------------------------------------------
     def admin_resolve_job(self, job_id: str, state: str, note: str,
@@ -1552,25 +1552,25 @@ class Store:
         """
         job = self.repo.get_job(job_id, with_events=True)
         if job is None:
-            raise NotFoundError(f"El job {job_id} no existe.")
+            raise NotFoundError(f"Job {job_id} does not exist.")
         if not job.unconfirmed:
             raise ValidationError(
-                f"El job {job_id} no está en un estado no confirmado ({job.state.value}).",
+                f"Job {job_id} is not in an unconfirmed state ({job.state.value}).",
                 code="JOB_NOT_UNCONFIRMED")
         allowed = {s.value for s in ADMIN_RESOLVABLE_STATES}
         if state not in allowed:
             raise ValidationError(
-                f"Estado no permitido para reconciliación manual: {state}. "
-                f"Permitidos: {', '.join(sorted(allowed))}.",
+                f"State not allowed for manual reconciliation: {state}. "
+                f"Allowed: {', '.join(sorted(allowed))}.",
                 code="ADMIN_STATE_NOT_ALLOWED")
         target_state = JobState(state)
         if job.job_type is not JobType.PATCH and target_state is JobState.FAILED:
             target_state = JobState.RESTORE_FAILED
-        detail = sanitize_text(note, 500) or "sin detalle"
+        detail = sanitize_text(note, 500) or "no detail"
         job.transition_to(target_state, error_code="ADMIN_RECONCILED", error_message=detail)
         self.repo.append_event(
             job.id, job.state,
-            f"[Auditoría] Reconciliación manual a {job.state.value} por {actor}: {detail}",
+            f"[Audit] Manual reconciliation to {job.state.value} by {actor}: {detail}",
             actor=actor)
         self.repo.save_job(job)
         self._apply_job_outcome(job.task_id, job)
@@ -1611,10 +1611,10 @@ class Store:
         elif job.state in (JobState.FAILED, JobState.RESTORE_FAILED, JobState.TIMED_OUT,
                            JobState.CANCELLED):
             self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                            "msg": f"Job {job.id} finalizado en estado {job.state.value} "
-                                   f"({job.error_code or 'sin código'}): "
+                            "msg": f"Job {job.id} finished in state {job.state.value} "
+                                   f"({job.error_code or 'no code'}): "
                                    f"{sanitize_text(job.error_message or '-', 300)}. "
-                                   f"El anillo {job.ring_number} no avanza."})
+                                   f"Ring {job.ring_number} does not advance."})
             self._rebuild_deploy(tid)
         if persist:
             self.repo.save_job(job)
@@ -1628,20 +1628,20 @@ class Store:
         """
         if not self.settings.dry_run_advances_pipeline:
             self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                            "msg": f"Dry-run completado (job {job.id}, provider {job.provider}): "
-                                   f"no se ha aplicado ningún cambio y el anillo {job.ring_number} "
-                                   "no avanza."})
+                            "msg": f"Dry-run completed (job {job.id}, provider {job.provider}): "
+                                   f"no change has been applied and ring {job.ring_number} "
+                                   "does not advance."})
             return
         if job.job_type is JobType.PATCH:
             self._project_ring_deployed(tid, job, simulated=True)
         elif job.job_type is JobType.RESET_LAB:
             self._reopen_pipeline(tid)
             self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                            "msg": f"↺ Reset simulado (job {job.id}): el ciclo de anillos vuelve "
-                                   "a empezar. La instancia real no se ha recreado."})
+                            "msg": f"↺ Simulated reset (job {job.id}): the ring cycle starts "
+                                   "over again. The real instance has not been recreated."})
         else:
             self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                            "msg": f"Dry-run completado (job {job.id}): sin cambios reales."})
+                            "msg": f"Dry-run completed (job {job.id}): no real changes."})
 
     def _reopen_pipeline(self, tid: str) -> None:
         """Devuelve el despliegue a su línea base para repetir el ciclo completo."""
@@ -1693,12 +1693,12 @@ class Store:
                                    f"({step.get('duration_s', 0)}s)"})
         if simulated:
             self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                            "msg": f"{ring['label']}: anillo completado en dry-run (job {job.id}). "
-                                   "Ensayo del recorrido: no se ha aplicado ningún parche."})
+                            "msg": f"{ring['label']}: ring completed in dry-run (job {job.id}). "
+                                   "Journey rehearsal: no patch has been applied."})
         else:
             self._log(tid, {"actor": "ServiceNow", "phase": "deployment",
-                            "msg": f"{ring['label']}: {ring['assets']} activos desplegados y validados → healthy "
-                                   f"({', '.join(executed) or 'sin objetivos'})."})
+                            "msg": f"{ring['label']}: {ring['assets']} assets deployed and validated → healthy "
+                                   f"({', '.join(executed) or 'no targets'})."})
             self._apply_lab_patch(job)
         if p["rings_done"] < len(engine.RING_DEFS):
             return
@@ -1707,14 +1707,14 @@ class Store:
         p["statuses"]["deployment"] = "approved"
         if simulated:
             self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                            "msg": "Recorrido completo ensayado en dry-run: el Vulnerable Item sigue "
-                                   "abierto porque no se ha aplicado ningún parche."})
+                            "msg": "Full journey rehearsed in dry-run: the Vulnerable Item stays "
+                                   "open because no patch has been applied."})
             return
         # El cierre del Vulnerable Item lo decide una persona al aceptar las
         # evidencias (puerta de cierre), no la última ejecución.
         self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                        "msg": "Todos los anillos desplegados. Pendiente de aceptación "
-                               "humana de las evidencias para cerrar el Vulnerable Item."})
+                        "msg": "All rings deployed. Awaiting human acceptance "
+                               "of the evidence to close the Vulnerable Item."})
 
     # ------------------------------------------------------------------
     # Laboratorio reutilizable (modelo persistente; sin operaciones EC2)
@@ -1725,18 +1725,18 @@ class Store:
     def get_lab_target(self, logical_lab_id: str) -> dict:
         lab = self.repo.get_lab_target(logical_lab_id)
         if lab is None:
-            raise NotFoundError(f"El laboratorio {logical_lab_id} no está registrado.")
+            raise NotFoundError(f"Lab {logical_lab_id} is not registered.")
         return lab.as_dict()
 
     def register_lab_target(self, payload: dict) -> dict:
         """Registra o actualiza la instancia vulnerable reutilizable de la PoC."""
         logical_lab_id = (payload.get("logical_lab_id") or "").strip()
         if not logical_lab_id:
-            raise ValidationError("logical_lab_id es obligatorio.",
+            raise ValidationError("logical_lab_id is mandatory.",
                                   code="LAB_TARGET_INVALID")
         instance_id = payload.get("current_instance_id") or None
         if instance_id and not INSTANCE_ID_RE.match(instance_id):
-            raise ValidationError(f"current_instance_id no es un Instance ID válido: {instance_id}",
+            raise ValidationError(f"current_instance_id is not a valid Instance ID: {instance_id}",
                                   code="LAB_TARGET_INVALID")
         existing = self.repo.get_lab_target(logical_lab_id)
         lab = LabTarget(
@@ -1781,7 +1781,7 @@ class Store:
     def _lab_or_404(self, logical_lab_id: str) -> LabTarget:
         lab = self.repo.get_lab_target(logical_lab_id)
         if lab is None:
-            raise NotFoundError(f"El laboratorio {logical_lab_id} no está registrado.")
+            raise NotFoundError(f"Lab {logical_lab_id} is not registered.")
         return lab
 
     def _lab_task_id(self, logical_lab_id: str) -> str:
@@ -1790,7 +1790,7 @@ class Store:
             if task.get("logical_lab_id") == logical_lab_id:
                 return tid
         raise NotFoundError(
-            f"No hay ninguna tarea de remediación asociada al laboratorio {logical_lab_id}.")
+            f"There is no remediation task associated with lab {logical_lab_id}.")
 
     def _resolve_lab_instance(self, logical_lab_id: str) -> LabInstance:
         """Instance ID actual del laboratorio, resuelto por tags (nunca fijado)."""
@@ -1826,8 +1826,8 @@ class Store:
         try:
             evidence = self.lab_precheck.inspect(instance)
         except (ProviderError, LabResolutionError) as exc:
-            log.warning("No se pudo reobservar el laboratorio %s tras el cambio de "
-                        "instancia: %s", logical_lab_id, exc)
+            log.warning("Could not re-observe lab %s after the instance change: %s",
+                    logical_lab_id, exc)
             return
         self.lab_lifecycle.record_observation(logical_lab_id, instance, evidence)
 
@@ -1908,27 +1908,27 @@ class Store:
         """Validación de sólo lectura: no inicia ninguna Automation ni muta nada."""
         self._lab_or_404(logical_lab_id)
         tid = self._lab_task_id(logical_lab_id)
-        checks: list[dict] = [{"check": "Laboratorio registrado", "ok": True,
-                               "detail": f"Laboratorio {logical_lab_id} presente en SQLite."}]
+        checks: list[dict] = [{"check": "Lab registered", "ok": True,
+                               "detail": f"Lab {logical_lab_id} present in SQLite."}]
         instance = None
         try:
             instance = self._resolve_lab_instance(logical_lab_id)
-            checks.append({"check": "Instancia resuelta por tags", "ok": True,
+            checks.append({"check": "Instance resolved by tags", "ok": True,
                            "detail": f"{instance.instance_id} ({instance.source})."})
         except (LabResolutionError, ProviderError) as exc:
-            checks.append({"check": "Instancia resuelta por tags", "ok": False,
+            checks.append({"check": "Instance resolved by tags", "ok": False,
                            "detail": exc.message, "code": exc.code})
 
         evidence = None
         if instance is not None:
             missing = check_lab_tags(instance.tags, self.settings, logical_lab_id)
-            checks.append({"check": "Tags obligatorios", "ok": not missing,
-                           "detail": ("Todos los tags obligatorios presentes."
-                                      if not missing else f"Faltan: {', '.join(missing)}")})
-            checks.append({"check": "Instancia en ejecución", "ok": instance.state == "running",
-                           "detail": f"Estado EC2: {instance.state}."})
-            checks.append({"check": "Nodo gestionado por SSM", "ok": instance.ssm_managed,
-                           "detail": f"PingStatus: {instance.ping_status or 'desconocido'}."})
+            checks.append({"check": "Mandatory tags", "ok": not missing,
+                           "detail": ("All mandatory tags present."
+                                      if not missing else f"Missing: {', '.join(missing)}")})
+            checks.append({"check": "Instance running", "ok": instance.state == "running",
+                           "detail": f"EC2 state: {instance.state}."})
+            checks.append({"check": "Node managed by SSM", "ok": instance.ssm_managed,
+                           "detail": f"PingStatus: {instance.ping_status or 'unknown'}."})
             policy = evaluate_target(
                 instance.as_target(self.settings.lab_environment), self.settings,
                 instance_state=instance.state, require_instance=True,
@@ -1947,7 +1947,7 @@ class Store:
                 ok = True
             except RunbookContractError as exc:
                 detail, ok = exc.message, False
-            checks.append({"check": f"Runbook de {operation} configurado", "ok": ok,
+            checks.append({"check": f"Runbook for {operation} configured", "ok": ok,
                            "detail": detail})
 
         return {
@@ -1965,8 +1965,8 @@ class Store:
             "advisory_id": self.settings.patch_advisory_id,
             "releasever": self.settings.patch_releasever,
             "expected_fixed_kernel": self.settings.patch_expected_fixed_kernel,
-            "note": ("La aplicabilidad real del advisory sólo se confirma con el precheck "
-                     "del runbook; esta validación no ejecuta nada en la instancia."),
+            "note": ("The real applicability of the advisory is only confirmed by the runbook "
+                     "precheck; this validation runs nothing on the instance."),
             **self._lab_state(logical_lab_id, tid),
         }
 
@@ -2001,14 +2001,14 @@ class Store:
         if active is not None:
             active = self.reconcile_job(active)
             if active.active:
-                raise ConflictError(f"El laboratorio {logical_lab_id} ya tiene un job activo "
+                raise ConflictError(f"Lab {logical_lab_id} already has an active job "
                                     f"({active.id}).", correlation_id=active.correlation_id)
 
         job_id = new_job_id()
         dry_run = self.settings.effective_dry_run(self.restore_provider.name)
         request = RestoreRequest(
             job_id=job_id, task_id=tid, ring_number=0, targets=(target,),
-            reason=f"Reset del laboratorio {logical_lab_id}", target_version="",
+            reason=f"Reset of lab {logical_lab_id}", target_version="",
             snapshot_ref=None, dry_run=dry_run, restore_kind=RESTORE_KIND_RESET_LAB,
             task_snapshot=_task_snapshot(self.tasks[tid]))
         job = PatchJob(
@@ -2041,13 +2041,13 @@ class Store:
         except TargetBusyError as exc:
             self._release_lab_lock_for_job(job, force=True)
             raise ConflictError(
-                f"El objetivo {exc.logical_target_id} ya tiene un job activo.") from exc
+                f"Target {exc.logical_target_id} already has an active job.") from exc
         if not created:
             self._release_lab_lock_for_job(job, force=True)
             return job
         self.repo.record_lab_reset(logical_lab_id, job.id)
         self.repo.append_event(job.id, job.state,
-                               f"Reset del laboratorio {logical_lab_id} solicitado sobre "
+                               f"Reset of lab {logical_lab_id} requested on "
                                f"{instance.instance_id}.")
         job.transition_to(JobState.VALIDATING)
         self.repo.save_job(job)
@@ -2116,10 +2116,10 @@ class Store:
         self.vulnerable_items[t["vulnerable_item_id"]]["status"] = "open"
         self._rebuild_deploy(tid)
         self._log(tid, {"actor": "msr-platform", "phase": "deployment",
-                        "msg": f"↺ Reset del laboratorio {logical_lab_id or '-'} completado "
-                               f"(job {job.id}): instancia {previous or '-'} → "
-                               f"{new_instance_id or 'pendiente de resolver'}. "
-                               "El laboratorio vuelve a estado vulnerable."})
+                        "msg": f"↺ Reset of lab {logical_lab_id or '-'} completed "
+                               f"(job {job.id}): instance {previous or '-'} → "
+                               f"{new_instance_id or 'pending resolution'}. "
+                               "The lab is back in a vulnerable state."})
 
     def _apply_lab_patch(self, job: PatchJob) -> None:
         """Efecto de un parcheo confirmado sobre el estado del laboratorio.
@@ -2189,12 +2189,12 @@ class Store:
     def get_job(self, job_id: str) -> PatchJob:
         job = self.repo.get_job(job_id, with_events=True)
         if job is None:
-            raise NotFoundError(f"El job {job_id} no existe.")
+            raise NotFoundError(f"Job {job_id} does not exist.")
         return self.reconcile_job(job)
 
     def list_task_jobs(self, tid: str) -> list[PatchJob]:
         if tid not in self.tasks:
-            raise NotFoundError(f"La tarea {tid} no existe.")
+            raise NotFoundError(f"Task {tid} does not exist.")
         active = self.repo.active_job_for_task(tid)
         if active is not None:
             self.reconcile_job(active)
@@ -2202,17 +2202,17 @@ class Store:
 
     def active_job(self, tid: str) -> PatchJob | None:
         if tid not in self.tasks:
-            raise NotFoundError(f"La tarea {tid} no existe.")
+            raise NotFoundError(f"Task {tid} does not exist.")
         job = self.repo.active_job_for_task(tid)
         return self.reconcile_job(job) if job is not None else None
 
     def cancel_job(self, job_id: str) -> PatchJob:
         job = self.get_job(job_id)
         if job.terminal:
-            raise ConflictError(f"El job {job_id} ya ha finalizado ({job.state.value}).",
+            raise ConflictError(f"Job {job_id} has already finished ({job.state.value}).",
                                 code="JOB_ALREADY_TERMINAL", correlation_id=job.correlation_id)
         if job.job_type is not JobType.PATCH:
-            raise ValidationError("La cancelación sólo está soportada para jobs de parcheo.",
+            raise ValidationError("Cancellation is only supported for patching jobs.",
                                   code="CANCEL_NOT_SUPPORTED")
         request = _patch_request_from_payload(job.request_payload)
         try:
@@ -2221,7 +2221,7 @@ class Store:
             raise self._provider_error(exc) from exc
         if job.state is not JobState.CANCELLING:
             job.transition_to(JobState.CANCELLING)
-            self.repo.append_event(job.id, job.state, "Cancelación solicitada al provider.")
+            self.repo.append_event(job.id, job.state, "Cancellation requested from the provider.")
         self._absorb_execution(job, execution)
         self.repo.save_job(job)
         if job.terminal:

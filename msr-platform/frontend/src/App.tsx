@@ -13,12 +13,12 @@ import { DemoProvider, DemoToggle, DemoBanner, useDemo } from "./demo";
 const NAV: { to: string; label: string; icon: string; demoOnly?: boolean }[] = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
   // La presentación guiada sólo existe mientras el Modo Demo está activo.
-  { to: "/demo", label: "Presentación guiada", icon: "▶", demoOnly: true },
+  { to: "/demo", label: "Guided walkthrough", icon: "▶", demoOnly: true },
   { to: "/tasks", label: "Remediation Tasks", icon: "◈" },
-  { to: "/analytics", label: "Analítica", icon: "◧" },
+  { to: "/analytics", label: "Analytics", icon: "◧" },
   { to: "/cmdb", label: "CMDB · Impact Graph", icon: "⧉" },
-  { to: "/catalog", label: "Catálogo de pruebas", icon: "☰" },
-  { to: "/integrations", label: "Integraciones", icon: "⇄" },
+  { to: "/catalog", label: "Test catalogue", icon: "☰" },
+  { to: "/integrations", label: "Integrations", icon: "⇄" },
 ];
 
 function Sidebar() {
@@ -52,16 +52,16 @@ function Sidebar() {
         ))}
       </nav>
       <div className="px-5 py-4 border-t border-line space-y-2">
-        <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Perspectiva</div>
+        <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Perspective</div>
         <RoleToggle />
         <RoleHint />
         <div className="pt-2">
-          <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1">Presentación</div>
+          <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1">Presentation</div>
           <DemoToggle />
         </div>
         <div className="text-[11px] text-gray-600 leading-relaxed pt-1">
-          Demo · datos sintéticos<br />
-          ServiceNow (control) + Devin (agente)
+          Demo · synthetic data<br />
+          ServiceNow (control) + Devin (agent)
         </div>
       </div>
     </aside>
@@ -71,7 +71,7 @@ function Sidebar() {
 /** La ruta guiada no existe fuera del Modo Demo: en ejecución real no se ofrece. */
 function DemoGuard() {
   const { allowed, resolved } = useDemo();
-  if (!resolved) return <div className="p-6 text-xs text-gray-500">Comprobando el modo de ejecución…</div>;
+  if (!resolved) return <div className="p-6 text-xs text-gray-500">Checking the execution mode…</div>;
   if (!allowed) return <Navigate to="/dashboard" replace />;
   return <DemoStage />;
 }

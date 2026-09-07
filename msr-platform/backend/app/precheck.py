@@ -159,7 +159,7 @@ class AwsLabPrecheck:
                 InstanceId=instance_id, TypeName="AWS:Application",
                 Filters=[{"Key": "Name", "Values": [package], "Type": "Equal"}])
         except Exception as exc:
-            return None, f"El inventario de Systems Manager no está disponible ({type(exc).__name__})."
+            return None, f"The Systems Manager inventory is not available ({type(exc).__name__})."
         entries = response.get("Entries") or []
         versions: list[tuple[tuple, str]] = []
         for entry in entries:
@@ -175,8 +175,8 @@ class AwsLabPrecheck:
             if key is not None:
                 versions.append((key, candidate))
         if not versions:
-            return None, (f"El inventario no contiene ninguna versión de '{package}' "
-                          "para esta instancia.")
+            return None, (f"The inventory contains no version of '{package}' "
+                          "for this instance.")
         versions.sort()
         # La instancia arranca con el kernel más reciente instalado.
         latest = versions[-1][1]
@@ -186,31 +186,31 @@ class AwsLabPrecheck:
             # recapturado desde el parcheo, la versión que publica es anterior
             # y no puede contradecir al informe de la Automation.
             return None, (
-                "El inventario no se ha recapturado desde el último parcheo "
-                f"(captura: {captured.isoformat() if captured else 'desconocida'}); "
-                f"la versión que publica ({latest}) es anterior.")
-        return latest, f"Kernel instalado más reciente según el inventario: {latest}."
+                "The inventory has not been recaptured since the last patching "
+                f"(capture: {captured.isoformat() if captured else 'unknown'}); "
+                f"the version it publishes ({latest}) is older.")
+        return latest, f"Latest installed kernel according to the inventory: {latest}."
 
     def _advisory_applicable(self, instance_id: str) -> tuple[bool | None, str]:
         advisory = self._settings.patch_advisory_id or ""
         if not advisory:
-            return None, "No hay advisory configurado que comprobar."
+            return None, "There is no advisory configured to check."
         try:
             missing = self._provider.ssm.describe_instance_patches(
                 InstanceId=instance_id,
                 Filters=[{"Key": "State", "Values": ["Missing"]}])
         except Exception as exc:
-            return None, (f"Patch Manager no devolvió parches pendientes "
+            return None, (f"Patch Manager did not return any pending patches "
                           f"({type(exc).__name__}).")
         for patch in missing.get("Patches") or []:
             haystack = " ".join(str(patch.get(key) or "") for key in ("Title", "KBId", "CVEIds"))
             if advisory in haystack:
-                return True, f"El advisory {advisory} sigue pendiente según Patch Manager."
+                return True, f"Advisory {advisory} is still pending according to Patch Manager."
         if self._patch_scan_exists(instance_id):
-            return False, (f"Existe un escaneo de Patch Manager y {advisory} no figura "
-                           "como pendiente.")
-        return None, ("No hay ningún escaneo de Patch Manager que confirme la "
-                      f"aplicabilidad de {advisory}.")
+            return False, (f"A Patch Manager scan exists and {advisory} is not listed "
+                           "as pending.")
+        return None, ("There is no Patch Manager scan confirming the applicability "
+                      f"of {advisory}.")
 
     def _patch_scan_exists(self, instance_id: str) -> bool:
         try:
@@ -227,29 +227,29 @@ class AwsLabPrecheck:
         try:
             response = self._provider.ec2.describe_instance_status(InstanceIds=[instance_id])
         except Exception as exc:
-            return None, f"EC2 no devolvió el estado de la instancia ({type(exc).__name__})."
+            return None, f"EC2 did not return the instance status ({type(exc).__name__})."
         statuses = response.get("InstanceStatuses") or []
         if not statuses:
-            return None, "EC2 todavía no publica checks de estado para la instancia."
+            return None, "EC2 does not publish status checks for the instance yet."
         status = statuses[0]
         instance_ok = ((status.get("InstanceStatus") or {}).get("Status") or "") == "ok"
         system_ok = ((status.get("SystemStatus") or {}).get("Status") or "") == "ok"
-        detail = (f"Checks de EC2: instancia="
-                  f"{(status.get('InstanceStatus') or {}).get('Status') or 'sin valor'}, "
-                  f"sistema={(status.get('SystemStatus') or {}).get('Status') or 'sin valor'}.")
+        detail = (f"EC2 checks: instance="
+                  f"{(status.get('InstanceStatus') or {}).get('Status') or 'not set'}, "
+                  f"system={(status.get('SystemStatus') or {}).get('Status') or 'not set'}.")
         return (instance_ok and system_ok), detail
 
     def _autoscaling_health(self, instance_id: str) -> tuple[bool | None, str]:
         if not self._settings.lab_autoscaling_group_name:
-            return None, "Sin Auto Scaling Group configurado."
+            return None, "No Auto Scaling Group configured."
         try:
             response = self._provider.autoscaling.describe_auto_scaling_instances(
                 InstanceIds=[instance_id])
         except Exception as exc:
-            return None, f"Auto Scaling no devolvió el estado de la instancia ({type(exc).__name__})."
+            return None, f"Auto Scaling did not return the instance status ({type(exc).__name__})."
         entries = response.get("AutoScalingInstances") or []
         if not entries:
-            return None, "La instancia no aparece todavía en el Auto Scaling Group."
+            return None, "The instance does not appear in the Auto Scaling Group yet."
         entry = entries[0]
         lifecycle = entry.get("LifecycleState") or ""
         health = entry.get("HealthStatus") or ""
@@ -264,24 +264,24 @@ class AwsLabPrecheck:
         advisory = self._settings.patch_advisory_id or None
 
         ssm_state = instance.ping_status or HEALTH_UNKNOWN
-        checks.add("Nodo gestionado por SSM Online", ssm_state == "Online",
+        checks.add("Node managed by SSM Online", ssm_state == "Online",
                    f"PingStatus={ssm_state}.")
 
         kernel, kernel_detail = self._inventory_kernel(
             instance.instance_id, self._patched_since(instance.logical_lab_id))
-        checks.add("Kernel instalado conocido", kernel is not None, kernel_detail)
+        checks.add("Installed kernel known", kernel is not None, kernel_detail)
         older = kernel_is_older(kernel, expected)
         if older is not None:
-            checks.add("Kernel anterior al corregido", older,
-                       f"Kernel actual {kernel} frente al corregido esperado {expected}.")
+            checks.add("Kernel older than the fixed one", older,
+                       f"Current kernel {kernel} against the expected fixed one {expected}.")
 
         applicable, advisory_detail = self._advisory_applicable(instance.instance_id)
-        checks.add(f"Advisory {advisory or '-'} aplicable", applicable, advisory_detail)
+        checks.add(f"Advisory {advisory or '-'} applicable", applicable, advisory_detail)
 
         ec2_ok, ec2_detail = self._ec2_health(instance.instance_id)
-        checks.add("Checks de estado de EC2", ec2_ok, ec2_detail)
+        checks.add("EC2 status checks", ec2_ok, ec2_detail)
         asg_ok, asg_detail = self._autoscaling_health(instance.instance_id)
-        checks.add("Instancia InService y Healthy en el ASG", asg_ok, asg_detail)
+        checks.add("Instance InService and Healthy in the ASG", asg_ok, asg_detail)
 
         if older is not None:
             vulnerable_state = VULNERABLE if older else PATCHED
@@ -308,9 +308,9 @@ class AwsLabPrecheck:
             health_state = UNHEALTHY
 
         detail = {
-            VULNERABLE: "La instancia sigue expuesta al advisory.",
-            PATCHED: "La instancia ya está parcheada.",
-            STATE_UNKNOWN: "AWS no aporta evidencia suficiente del estado del laboratorio.",
+            VULNERABLE: "The instance is still exposed to the advisory.",
+            PATCHED: "The instance is already patched.",
+            STATE_UNKNOWN: "AWS does not provide enough evidence of the lab state.",
         }[vulnerable_state]
         return LabEvidence(
             vulnerable_state=vulnerable_state, health_state=health_state, ssm_state=ssm_state,
@@ -333,9 +333,9 @@ class MockLabPrecheck:
         patched = bool(lab is not None and lab.lab_state == PATCHED)
         expected = self._settings.patch_expected_fixed_kernel or None
         checks = _Checks()
-        checks.add("Precheck simulado", True,
-                   "Provider mock: el estado proviene del laboratorio simulado, "
-                   "sin llamadas a AWS.")
+        checks.add("Simulated precheck", True,
+                   "Mock provider: the state comes from the simulated lab, "
+                   "with no AWS calls.")
         return LabEvidence(
             vulnerable_state=PATCHED if patched else VULNERABLE,
             health_state=HEALTHY, ssm_state="Online",
@@ -343,8 +343,8 @@ class MockLabPrecheck:
             expected_fixed_kernel=expected,
             advisory_id=self._settings.patch_advisory_id or None,
             advisory_applicable=not patched, source=self.source, checks=checks.tuple(),
-            detail=("Laboratorio simulado parcheado." if patched
-                    else "Laboratorio simulado vulnerable."))
+            detail=("Simulated lab patched." if patched
+                    else "Simulated lab vulnerable."))
 
 
 def get_lab_precheck(settings: Settings, provider, repository=None):

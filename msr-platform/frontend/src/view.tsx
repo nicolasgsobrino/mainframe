@@ -36,12 +36,12 @@ export const ROLE_META: Record<ViewRole, { label: string; icon: string; hint: st
   service_manager: {
     label: "Service Manager",
     icon: "◱",
-    hint: "Visión de gestión: riesgo, SLA, servicios afectados, automatización y decisiones humanas pendientes.",
+    hint: "Management view: risk, SLA, affected services, automation and pending human decisions.",
   },
   technical: {
     label: "Technical",
     icon: "⌘",
-    hint: "Detalle operativo: comandos, anillos, CIs impactados, dependencias y rollback.",
+    hint: "Operational detail: commands, rings, impacted CIs, dependencies and rollback.",
   },
 };
 

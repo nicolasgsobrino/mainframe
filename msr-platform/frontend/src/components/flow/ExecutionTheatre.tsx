@@ -82,10 +82,10 @@ export function ExecutionTheatre({ title, subtitle, lines, onDone, onDismiss }: 
           </div>
           {finished ? onDismiss && (
             <button type="button" onClick={onDismiss}
-                    className="text-[10px] text-gray-500 hover:text-gray-300">cerrar</button>
+                    className="text-[10px] text-gray-500 hover:text-gray-300">close</button>
           ) : (
             <button type="button" onClick={() => setShown(lines.length)}
-                    className="text-[10px] text-gray-500 hover:text-gray-300">saltar ⏭</button>
+                    className="text-[10px] text-gray-500 hover:text-gray-300">skip ⏭</button>
           )}
         </div>
       </div>

@@ -56,7 +56,7 @@ class JobReconciler:
         if not self.enabled or self.running:
             return
         self._task = asyncio.create_task(self._loop(), name="msr-job-reconciler")
-        log.info("reconciliador arrancado (cada %ss)", self.interval_seconds)
+        log.info("reconciler started (every %ss)", self.interval_seconds)
 
     async def stop(self) -> None:
         task = self._task
@@ -68,7 +68,7 @@ class JobReconciler:
             await task
         except asyncio.CancelledError:
             pass
-        log.info("reconciliador detenido")
+        log.info("reconciler stopped")
 
     async def tick(self) -> int:
         """Una pasada de reconciliación (el I/O del provider va a un hilo)."""
@@ -95,5 +95,5 @@ class JobReconciler:
                 self.consecutive_failures += 1
                 # Mensaje sanitizado: nunca credenciales ni payloads completos.
                 self.last_error = sanitize_text(f"{type(exc).__name__}: {exc}", 300)
-                log.warning("fallo en la reconciliación periódica (%s consecutivos): %s",
+                log.warning("periodic reconciliation failed (%s consecutive): %s",
                             self.consecutive_failures, self.last_error)

@@ -39,7 +39,7 @@ def _reconcile_lab_on_startup() -> None:
         log.info("lab_reconcile_on_startup state=%s action=%s instance=%s",
                  result.get("state"), result.get("action"), result.get("instance_id"))
     except DomainError as exc:
-        log.error("lab_reconcile_on_startup falló code=%s correlation_id=%s",
+        log.error("lab_reconcile_on_startup failed code=%s correlation_id=%s",
                   exc.code, exc.correlation_id)
 
 
@@ -125,12 +125,12 @@ def approve(tid: str, response: Response,
             idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
     """Fases 1-5: 200 síncrono. Fase de despliegue: 202 con el job creado."""
     if tid not in STORE.pipelines:
-        raise NotFoundError(f"La tarea {tid} no existe.")
+        raise NotFoundError(f"Task {tid} does not exist.")
     phase_id = engine.PHASE_IDS[STORE.pipelines[tid]["phase_index"]]
     deploying = phase_id == "deployment"
     d = STORE.approve_phase(tid, _idempotency_key(idempotency_key, tid, "approve"))
     if not d:
-        raise NotFoundError(f"La tarea {tid} no existe.")
+        raise NotFoundError(f"Task {tid} does not exist.")
     if deploying:
         response.status_code = status.HTTP_202_ACCEPTED
     return d
@@ -221,8 +221,8 @@ def lab_reset(logical_lab_id: str, body: LabResetBody | None = None,
     """
     if settings.real_aws_execution() and not (body is not None and body.confirmed):
         raise ValidationError(
-            "El reset real termina la instancia EC2 del laboratorio: envía "
-            "confirmed=true para confirmarlo explícitamente.",
+            "The real reset terminates the lab EC2 instance: send "
+            "confirmed=true to confirm it explicitly.",
             code="LAB_RESET_CONFIRMATION_REQUIRED")
     job = STORE.start_lab_reset_job(
         logical_lab_id,
@@ -296,7 +296,7 @@ def verify_gate(tid: str, gate_id: str, body: GateVerifyBody | None = None):
     d = STORE.verify_gate(tid, gate_id, ring=body.ring, actor=body.actor,
                           role=body.role, note=body.note)
     if not d:
-        raise NotFoundError(f"La tarea {tid} o la puerta {gate_id} no existen.")
+        raise NotFoundError(f"Task {tid} or gate {gate_id} does not exist.")
     return d
 
 
@@ -306,7 +306,7 @@ def rollback(tid: str, response: Response,
     d = STORE.rollback(tid, trigger="manual",
                        idempotency_key=_idempotency_key(idempotency_key, tid, "rollback"))
     if not d:
-        raise NotFoundError(f"La tarea {tid} no existe.")
+        raise NotFoundError(f"Task {tid} does not exist.")
     if d.get("active_job"):
         response.status_code = status.HTTP_202_ACCEPTED
     return d
@@ -343,7 +343,7 @@ def cmdb_ci_raw(ci_id: str):
     """Registro nativo de ServiceNow (Table API) + mapeo al modelo interno."""
     raw = STORE.cmdb_ci_raw(ci_id)
     if raw is None:
-        raise HTTPException(status_code=404, detail="CI no encontrado")
+        raise HTTPException(status_code=404, detail="CI not found")
     return raw
 
 
@@ -382,18 +382,18 @@ def activity():
 def services():
     """Estado de integración de los servicios simulados (control plane + ejecutores)."""
     return [
-        {"name": "ServiceNow Vulnerability Response", "role": "Plano de control", "status": "connected", "type": "control", "detail": "Ingesta, VI, Remediation Tasks"},
-        {"name": "ServiceNow CMDB / CSDM", "role": "Contexto", "status": "connected", "type": "control", "detail": f"{len(STORE.cis):,} CIs estandarizados (CSDM), relaciones e Impact Graph"},
-        {"name": "ServiceNow Change Management", "role": "Gobierno del cambio", "status": "connected", "type": "control", "detail": "CAB, standard/normal/emergency"},
-        {"name": "Devin Agent", "role": "Capa agente", "status": "active", "type": "agent", "detail": "Blast radius, MVT, tests, IaC, PR, informe"},
-        {"name": "Qualys VMDR", "role": "Scanner infra", "status": "connected", "type": "source", "detail": "Fuente Track A"},
-        {"name": "Tenable.io", "role": "Scanner infra", "status": "connected", "type": "source", "detail": "Fuente Track A"},
-        {"name": "Snyk (SCA/SBOM)", "role": "Dependencias", "status": "connected", "type": "source", "detail": "Fuente Track B"},
-        {"name": "Wiz / Trivy (contenedores)", "role": "Scanner cloud-native", "status": "connected", "type": "source", "detail": "Fuente Track C (imágenes, IaC, K8s)"},
-        {"name": "Ansible / BigFix / SCCM", "role": "Ejecución Carril A (infra)", "status": "connected", "type": "executor", "detail": "Aplica parches infra"},
-        {"name": "GitHub Actions (CI/CD)", "role": "Ejecución Carril B (app)", "status": "connected", "type": "executor", "detail": "PR → build → test → deploy"},
-        {"name": "Argo CD + Helm + Registry", "role": "Ejecución Carril C (contenedores)", "status": "connected", "type": "executor", "detail": "Rebuild imagen → sync GitOps → rollout"},
-        {"name": "Terraform / OpenTofu", "role": "IaC labs", "status": "connected", "type": "executor", "detail": "Labs efímeros (prototipo)"},
+        {"name": "ServiceNow Vulnerability Response", "role": "Control plane", "status": "connected", "type": "control", "detail": "Ingestion, VI, Remediation Tasks"},
+        {"name": "ServiceNow CMDB / CSDM", "role": "Context", "status": "connected", "type": "control", "detail": f"{len(STORE.cis):,} standardised CIs (CSDM), relationships and Impact Graph"},
+        {"name": "ServiceNow Change Management", "role": "Change governance", "status": "connected", "type": "control", "detail": "CAB, standard/normal/emergency"},
+        {"name": "Devin Agent", "role": "Agent layer", "status": "active", "type": "agent", "detail": "Blast radius, MVT, tests, IaC, PR, report"},
+        {"name": "Qualys VMDR", "role": "Scanner infra", "status": "connected", "type": "source", "detail": "Track A source"},
+        {"name": "Tenable.io", "role": "Scanner infra", "status": "connected", "type": "source", "detail": "Track A source"},
+        {"name": "Snyk (SCA/SBOM)", "role": "Dependencies", "status": "connected", "type": "source", "detail": "Track B source"},
+        {"name": "Wiz / Trivy (containers)", "role": "Scanner cloud-native", "status": "connected", "type": "source", "detail": "Track C source (images, IaC, K8s)"},
+        {"name": "Ansible / BigFix / SCCM", "role": "Lane A execution (infra)", "status": "connected", "type": "executor", "detail": "Applies infrastructure patches"},
+        {"name": "GitHub Actions (CI/CD)", "role": "Lane B execution (app)", "status": "connected", "type": "executor", "detail": "PR → build → test → deploy"},
+        {"name": "Argo CD + Helm + Registry", "role": "Lane C execution (containers)", "status": "connected", "type": "executor", "detail": "Image rebuild → GitOps sync → rollout"},
+        {"name": "Terraform / OpenTofu", "role": "IaC labs", "status": "connected", "type": "executor", "detail": "Ephemeral labs (prototype)"},
     ]
 
 

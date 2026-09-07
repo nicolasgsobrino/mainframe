@@ -94,10 +94,10 @@ def classify_error(exc: Exception) -> tuple[str, str]:
         code = str((response.get("Error") or {}).get("Code") or "")
     text = f"{code} {exc}"
     if any(token in text for token in _PERMISSION_ERRORS):
-        return "PERMISSION_DENIED", "falta de permisos IAM"
+        return "PERMISSION_DENIED", "missing IAM permissions"
     if any(token in text for token in _THROTTLING_ERRORS):
-        return "THROTTLED", "throttling de la API de AWS"
-    return "TRANSIENT_FAILURE", "fallo transitorio"
+        return "THROTTLED", "AWS API throttling"
+    return "TRANSIENT_FAILURE", "transient failure"
 
 
 # Outputs declarados por los runbooks de la PoC. Sólo estos se copian al job:
@@ -180,7 +180,7 @@ class _AutomationBase:
             import boto3  # import diferido: sin AWS con provider mock
         except ImportError as exc:  # pragma: no cover - dependencia declarada
             raise ProviderError("PROVIDER_UNAVAILABLE",
-                                "boto3 no está instalado en el backend.") from exc
+                                "boto3 is not installed in the backend.") from exc
         return boto3
 
     def _session_kwargs(self) -> dict:
@@ -217,11 +217,11 @@ class _AutomationBase:
                                             DurationSeconds=3600)
         except Exception as exc:
             code, kind = classify_error(exc)
-            raise ProviderError(code, f"No se pudo asumir MSR_AWS_ROLE_ARN ({kind}).") from exc
+            raise ProviderError(code, f"MSR_AWS_ROLE_ARN could not be assumed ({kind}).") from exc
         credentials = response.get("Credentials") or {}
         if not credentials.get("AccessKeyId"):
             raise ProviderError("PERMISSION_DENIED",
-                                "STS no devolvió credenciales temporales para el rol configurado.")
+                                "STS did not return temporary credentials for the configured role.")
         self._assumed = {
             "aws_access_key_id": credentials["AccessKeyId"],
             "aws_secret_access_key": credentials["SecretAccessKey"],
@@ -237,7 +237,7 @@ class _AutomationBase:
     def _client(self, service: str):
         boto3 = self._boto3()
         if not self._settings.aws_region:
-            raise ConfigurationError("MSR_AWS_REGION es obligatorio para el provider aws-automation.")
+            raise ConfigurationError("MSR_AWS_REGION is mandatory for the aws-automation provider.")
         session_kwargs = self._session_kwargs()
         if self._settings.aws_role_arn:
             session_kwargs.pop("profile_name", None)
@@ -299,12 +299,12 @@ class _AutomationBase:
             described = self.ec2.describe_instances(InstanceIds=[instance_id])
         except Exception as exc:  # botocore.ClientError y validaciones
             raise self._as_provider_error(exc, "TARGET_NOT_FOUND",
-                                          f"No se pudo describir la instancia {instance_id}.") from exc
+                                          f"Instance {instance_id} could not be described.") from exc
         reservations = described.get("Reservations") or []
         instances = (reservations[0].get("Instances") if reservations else []) or []
         if not instances:
             raise ProviderError("TARGET_NOT_FOUND",
-                                f"La instancia {instance_id} no existe en la región configurada.")
+                                f"Instance {instance_id} does not exist in the configured region.")
         instance = instances[0]
         state = ((instance.get("State") or {}).get("Name") or "unknown")
         tags = {t.get("Key"): t.get("Value") for t in (instance.get("Tags") or [])}
@@ -322,7 +322,7 @@ class _AutomationBase:
                 ssm_managed = any(e.get("PingStatus") == "Online" for e in entries)
             except Exception as exc:
                 raise self._as_provider_error(exc, "PROVIDER_UNAVAILABLE",
-                                              "No se pudo consultar el inventario de nodos gestionados de SSM.") from exc
+                                              "The SSM managed-node inventory could not be queried.") from exc
 
         resolved = Target(
             logical_target_id=target.logical_target_id, instance_id=instance_id,
@@ -339,7 +339,7 @@ class _AutomationBase:
     @staticmethod
     def _as_provider_error(exc: Exception, code: str, message: str) -> ProviderError:
         detail = sanitize_text(str(exc), 400)
-        return ProviderError(code, f"{message} Detalle: {detail}")
+        return ProviderError(code, f"{message} Detail: {detail}")
 
     # -- contrato de runbook ---------------------------------------------
     def _runbook(self, operation: str) -> ResolvedRunbook:
@@ -356,7 +356,7 @@ class _AutomationBase:
             code, kind = classify_error(exc)
             raise ProviderError(
                 "RUNBOOK_NOT_FOUND",
-                f"No se pudo describir el runbook '{runbook.name}' ({kind}, {code}).") from exc
+                f"Runbook '{runbook.name}' could not be described ({kind}, {code}).") from exc
         document = described.get("Document") or {}
         try:
             assert_document_type(runbook.name, document.get("DocumentType"), runbook.contract)
@@ -400,11 +400,11 @@ class _AutomationBase:
             response = self.ssm.start_automation_execution(**request)
         except Exception as exc:
             raise self._as_provider_error(exc, "PROVIDER_START_FAILED",
-                                          "Systems Manager rechazó el arranque de la automatización.") from exc
+                                          "Systems Manager rejected the start of the automation.") from exc
         execution_id = response.get("AutomationExecutionId")
         if not execution_id:
             raise ProviderError("PROVIDER_START_FAILED",
-                                "Systems Manager no devolvió AutomationExecutionId.")
+                                "Systems Manager did not return an AutomationExecutionId.")
         return execution_id
 
     def _describe(self, provider_reference: str):
@@ -412,7 +412,7 @@ class _AutomationBase:
             response = self.ssm.get_automation_execution(AutomationExecutionId=provider_reference)
         except Exception as exc:
             raise self._as_provider_error(exc, "PROVIDER_UNAVAILABLE",
-                                          "No se pudo consultar la automatización en Systems Manager.") from exc
+                                          "The automation could not be queried in Systems Manager.") from exc
         execution = response.get("AutomationExecution") or {}
         raw_status = execution.get("AutomationExecutionStatus")
         steps: tuple[ExecutionStep, ...] = ()
@@ -430,7 +430,7 @@ class _AutomationBase:
             code, kind = classify_error(exc)
             # No se oculta la excepción: se conserva el estado de
             # GetAutomationExecution y se emite un aviso sanitizado.
-            return (), (code, f"No se pudo leer el detalle de pasos ({kind}): "
+            return (), (code, f"The step detail could not be read ({kind}): "
                               f"{sanitize_text(str(exc), 300)}")
         limit = self._settings.max_output_chars
         steps: list[ExecutionStep] = []
@@ -446,7 +446,7 @@ class _AutomationBase:
                 command=sanitize_text(step.get("StepName") or f"step-{i + 1}", 200),
                 output=sanitize_text(output or step.get("StepStatus") or "-", limit),
                 status=STEP_STATUS_MAP.get(step.get("StepStatus"), "running"),
-                why="Paso del runbook de Automation ejecutado por Systems Manager.",
+                why="Automation runbook step executed by Systems Manager.",
                 started_at=iso_utc(step.get("ExecutionStartTime")),
                 ended_at=iso_utc(step.get("ExecutionEndTime")),
             ))
@@ -458,7 +458,7 @@ class _AutomationBase:
                                                Type=stop_type)
         except Exception as exc:
             raise self._as_provider_error(exc, "CANCEL_NOT_POSSIBLE",
-                                          "Systems Manager no aceptó la parada de la ejecución.") from exc
+                                          "Systems Manager did not accept stopping the execution.") from exc
 
 
 class AwsSsmAutomationPatchProvider(_AutomationBase):
@@ -503,16 +503,16 @@ class AwsSsmAutomationPatchProvider(_AutomationBase):
             summary = ExecutionStep(
                 seq=1, actor="msr-platform", tool="Systems Manager Automation (dry-run)",
                 command=f"StartAutomationExecution DocumentName={runbook.name}",
-                output="[dry-run] no se ha invocado ninguna API mutativa de AWS. "
-                       f"Documento {runbook.name} ({document_type}). Parámetros: "
+                output="[dry-run] no mutating AWS API has been invoked. "
+                       f"Document {runbook.name} ({document_type}). Parameters: "
                        f"{sanitize_text(str(sorted(parameters)), 300)}",
                 status="planned",
-                why="Con MSR_DRY_RUN=true se registra la intención sin ejecutar el runbook.")
+                why="With MSR_DRY_RUN=true the intent is recorded without running the runbook.")
             return PatchExecution(
                 provider=self.name, provider_reference=f"{DRY_RUN_PREFIX}{request.job_id}",
                 status=ExecutionStatus.DRY_RUN, dry_run=True, steps=(summary,),
                 started_at=iso_utc(started), completed_at=iso_utc(started),
-                detail=f"Dry-run validado contra {resolved.instance_id} sin cambios aplicados.")
+                detail=f"Dry-run validated against {resolved.instance_id} with no changes applied.")
 
         execution_id = self._start_automation(runbook, parameters, request.correlation_id,
                                               request.task_id, idempotency_key)
@@ -520,7 +520,7 @@ class AwsSsmAutomationPatchProvider(_AutomationBase):
         return PatchExecution(
             provider=self.name, provider_reference=execution_id, status=ExecutionStatus.RUNNING,
             dry_run=False, started_at=iso_utc(started), raw_status="InProgress",
-            detail=f"Automation {runbook.name} iniciada sobre {resolved.instance_id}.")
+            detail=f"Automation {runbook.name} started on {resolved.instance_id}.")
 
     def poll(self, provider_reference: str, request: PatchRequest | None = None) -> PatchExecution:
         if request is not None:
@@ -528,7 +528,7 @@ class AwsSsmAutomationPatchProvider(_AutomationBase):
         if provider_reference.startswith(DRY_RUN_PREFIX):
             return PatchExecution(provider=self.name, provider_reference=provider_reference,
                                   status=ExecutionStatus.DRY_RUN, dry_run=True,
-                                  detail="Ejecución dry-run: sin estado remoto que consultar.")
+                                  detail="Dry-run execution: no remote state to query.")
         status, execution, steps, warning = self._describe(provider_reference)
         failure = execution.get("FailureMessage")
         return PatchExecution(
@@ -549,7 +549,7 @@ class AwsSsmAutomationPatchProvider(_AutomationBase):
             self._correlation_id = request.correlation_id
         if provider_reference.startswith(DRY_RUN_PREFIX):
             raise ProviderError("CANCEL_NOT_POSSIBLE",
-                                "Una ejecución dry-run ya ha terminado; no puede cancelarse.")
+                                "A dry-run execution has already finished; it cannot be cancelled.")
         self._request_stop(provider_reference)
         # No se marca cancelado localmente: el estado real lo dicta AWS.
         return self.poll(provider_reference, request)
@@ -567,12 +567,12 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
         if not runbook.contract.implemented:
             raise ProviderError(
                 "RESET_LAB_NOT_IMPLEMENTED",
-                f"La operación '{runbook.contract.operation}' no está implementada en AWS.")
+                f"Operation '{runbook.contract.operation}' is not implemented on AWS.")
         if request.restore_kind == "reset_lab" and not self._settings.lab_autoscaling_group_name:
             raise ProviderError(
                 "PROVIDER_MISCONFIGURED",
-                "El reset del laboratorio exige MSR_LAB_AUTOSCALING_GROUP_NAME: la "
-                "instancia se sustituye dentro de su Auto Scaling Group.")
+                "The lab reset requires MSR_LAB_AUTOSCALING_GROUP_NAME: the "
+                "instance is replaced inside its Auto Scaling Group.")
         return self._evaluate(request.primary_target(), dry_run=request.dry_run)
 
     def _parameters(self, runbook: ResolvedRunbook, target: Target,
@@ -613,22 +613,22 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
             summary = ExecutionStep(
                 seq=1, actor="msr-platform", tool="Systems Manager Automation (dry-run)",
                 command=f"StartAutomationExecution DocumentName={runbook.name}",
-                output="[dry-run] no se ha invocado ninguna API mutativa de AWS. "
-                       f"Documento {runbook.name} ({document_type}).",
+                output="[dry-run] no mutating AWS API has been invoked. "
+                       f"Document {runbook.name} ({document_type}).",
                 status="planned",
-                why="Con MSR_DRY_RUN=true la restauración sólo se registra.")
+                why="With MSR_DRY_RUN=true the restore is only recorded.")
             return RestoreExecution(
                 provider=self.name, provider_reference=f"{DRY_RUN_PREFIX}{request.job_id}",
                 status=ExecutionStatus.DRY_RUN, dry_run=True, steps=(summary,),
                 started_at=iso_utc(started), completed_at=iso_utc(started),
-                detail=f"Dry-run de restauración sobre {resolved.instance_id}.")
+                detail=f"Restore dry-run on {resolved.instance_id}.")
 
         execution_id = self._start_automation(runbook, parameters, request.correlation_id,
                                               request.task_id, idempotency_key)
         return RestoreExecution(
             provider=self.name, provider_reference=execution_id, status=ExecutionStatus.RUNNING,
             dry_run=False, started_at=iso_utc(started), raw_status="InProgress",
-            detail=f"Automation {runbook.name} iniciada sobre {resolved.instance_id}.")
+            detail=f"Automation {runbook.name} started on {resolved.instance_id}.")
 
     def poll(self, provider_reference: str,
              request: RestoreRequest | None = None) -> RestoreExecution:
@@ -637,7 +637,7 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
         if provider_reference.startswith(DRY_RUN_PREFIX):
             return RestoreExecution(provider=self.name, provider_reference=provider_reference,
                                     status=ExecutionStatus.DRY_RUN, dry_run=True,
-                                    detail="Ejecución dry-run: sin estado remoto que consultar.")
+                                    detail="Dry-run execution: no remote state to query.")
         status, execution, steps, warning = self._describe(provider_reference)
         failure = execution.get("FailureMessage")
         return RestoreExecution(
@@ -659,6 +659,6 @@ class AwsSsmAutomationRestoreProvider(_AutomationBase):
                request: RestoreRequest | None = None) -> RestoreExecution:
         if provider_reference.startswith(DRY_RUN_PREFIX):
             raise ProviderError("CANCEL_NOT_POSSIBLE",
-                                "Una ejecución dry-run ya ha terminado; no puede cancelarse.")
+                                "A dry-run execution has already finished; it cannot be cancelled.")
         self._request_stop(provider_reference)
         return self.poll(provider_reference, request)

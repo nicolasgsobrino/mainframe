@@ -25,11 +25,11 @@ export function nextDemoStep(detail: TaskDetail): DemoStep {
     return {
       kind: "verify",
       label: ringResult
-        ? `Aceptar y promocionar el anillo ${gate.ring}`
-        : `Verificar: ${gate.label}${gate.ring !== null ? ` · anillo ${gate.ring}` : ""}`,
+        ? `Accept and promote ring ${gate.ring}`
+        : `Verify: ${gate.label}${gate.ring !== null ? ` · ring ${gate.ring}` : ""}`,
       hint: ringResult
-        ? `${gate.question} · acepta para promocionar al siguiente anillo o revierte este despliegue.`
-        : `${gate.question} · el flujo está detenido hasta esta validación.`,
+        ? `${gate.question} · accept to promote to the next ring, or roll this deployment back.`
+        : `${gate.question} · the flow is stopped until this validation.`,
       gate,
       ring: gate.ring,
     };
@@ -40,21 +40,21 @@ export function nextDemoStep(detail: TaskDetail): DemoStep {
     const next = rings[done];
     if (!next) {
       return {
-        kind: "done", label: "Recorrido completado", ring: null, gate: null,
-        hint: "Todos los anillos desplegados y evidencias cerradas.",
+        kind: "done", label: "Journey completed", ring: null, gate: null,
+        hint: "All rings deployed and evidence closed.",
       };
     }
     if (!next.plan.approval.preapproved) {
       return {
         kind: "preapprove", ring: next.ring, gate: null,
-        label: `Pre-aprobar el anillo ${next.ring} · ${next.label}`,
-        hint: "Puerta que sí bloquea: sin pre-aprobación humana del informe pre-anillo no se despliega.",
+        label: `Pre-approve ring ${next.ring} · ${next.label}`,
+        hint: "A blocking gate: without human pre-approval of the pre-ring report there is no deployment.",
       };
     }
     return {
       kind: "deploy", ring: next.ring, gate: null,
-      label: `Desplegar el anillo ${next.ring} (${done}/${rings.length})`,
-      hint: "Ejecuta el lote del anillo pre-aprobado y publica su evidencia.",
+      label: `Deploy ring ${next.ring} (${done}/${rings.length})`,
+      hint: "Runs the pre-approved ring batch and publishes its evidence.",
     };
   }
   // Si la fase actual cierra una puerta humana (la aprobación del cambio), la
@@ -63,10 +63,10 @@ export function nextDemoStep(detail: TaskDetail): DemoStep {
     (g) => g.status === "pending" && g.closes_with === "phase_approval") ?? null;
   return {
     kind: "approve",
-    label: phaseGate ? phaseGate.label : `Avanzar: ${j.phase_label}`,
+    label: phaseGate ? phaseGate.label : `Advance: ${j.phase_label}`,
     hint: phaseGate
-      ? `${phaseGate.question} · el flujo está detenido hasta esta aprobación.`
-      : "Aprueba la fase actual del pipeline y publica los artefactos de la siguiente.",
+      ? `${phaseGate.question} · the flow is stopped until this approval.`
+      : "Approves the current pipeline phase and publishes the artefacts of the next one.",
     gate: phaseGate,
     ring: null,
   };
@@ -92,16 +92,16 @@ export function DemoAdvanceControl({ detail, onVerify, onAdvance, onPreapprove, 
     try {
       if (step.kind === "verify" && step.gate) {
         await onVerify(step.gate);
-        setOutcome(`Validación completada · ${step.gate.label}`);
+        setOutcome(`Validation completed · ${step.gate.label}`);
       } else if (step.kind === "preapprove" && step.ring !== null && onPreapprove) {
         await onPreapprove(step.ring);
-        setOutcome(`Anillo ${step.ring} pre-aprobado · listo para desplegar`);
+        setOutcome(`Ring ${step.ring} pre-approved · ready to deploy`);
       } else if (step.kind === "deploy") {
         await onAdvance();
-        setOutcome(`Anillo ${step.ring} desplegado con su evidencia`);
+        setOutcome(`Ring ${step.ring} deployed with its evidence`);
       } else {
         await onAdvance();
-        setOutcome(`Fase completada · ${detail.journey.phase_label}`);
+        setOutcome(`Phase completed · ${detail.journey.phase_label}`);
       }
     } finally {
       setRunning(false);
@@ -111,8 +111,8 @@ export function DemoAdvanceControl({ detail, onVerify, onAdvance, onPreapprove, 
   return (
     <div className="rounded-xl border border-fuchsia-500/35 bg-fuchsia-500/[0.06] p-3 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-semibold tracking-wider text-fuchsia-300">MODO DEMO · RITMO</span>
-        <span className="text-[10px] text-fuchsia-200/70">el presentador decide cuándo avanza cada paso</span>
+        <span className="text-[10px] font-semibold tracking-wider text-fuchsia-300">DEMO MODE · PACING</span>
+        <span className="text-[10px] text-fuchsia-200/70">the presenter decides when each step advances</span>
       </div>
       <div className="text-[11px] text-gray-400 leading-snug">{step.hint}</div>
       <button
@@ -125,7 +125,7 @@ export function DemoAdvanceControl({ detail, onVerify, onAdvance, onPreapprove, 
             ? "border border-line bg-ink text-gray-600 cursor-not-allowed"
             : "border border-fuchsia-500/50 bg-fuchsia-500/20 text-fuchsia-100 hover:bg-fuchsia-500/30"}`}
       >
-        {running ? "Ejecutando…" : step.kind === "done" ? step.label : `${step.label} →`}
+        {running ? "Running…" : step.kind === "done" ? step.label : `${step.label} →`}
       </button>
       {outcome && (
         <div className="rounded border border-emerald-500/30 bg-emerald-500/5 px-2 py-1 text-[11px] text-emerald-300">

@@ -17,36 +17,36 @@ type Phase = JourneyDetail["phases"][number];
 /** Guion de la presentación: qué se cuenta en cada escena y quién la ejecuta. */
 const SCRIPT: Record<string, { pitch: string; automation: string }> = {
   cyber_trigger: {
-    pitch: "Cyber envía el hallazgo ya correlacionado; la plataforma lo normaliza, lo puntúa y abre el Vulnerable Item.",
-    automation: "Ingesta y scoring automáticos",
+    pitch: "Cyber sends the finding already correlated; the platform normalises it, scores it and opens the Vulnerable Item.",
+    automation: "Automated ingestion and scoring",
   },
   asset_identification: {
-    pitch: "No confiamos en la lista recibida: cada activo se contrasta contra la CMDB antes de tocar nada.",
-    automation: "Correlación automática · confirmación humana",
+    pitch: "We do not trust the list as received: every asset is cross-checked against the CMDB before touching anything.",
+    automation: "Automated correlation · human confirmation",
   },
   applicability_assessment: {
-    pitch: "Se decide el tipo de remediación y el conjunto mínimo de pruebas que da confianza sin frenar el despliegue.",
-    automation: "Propuesta de IA · validada por una persona",
+    pitch: "The remediation type and the minimum test set that gives confidence without slowing the rollout are decided here.",
+    automation: "AI proposal · validated by a person",
   },
   blast_radius: {
-    pitch: "Qué se rompe si esto sale mal: alcance real del cambio siguiendo las dependencias del grafo.",
-    automation: "Cálculo automático sobre la CMDB",
+    pitch: "What breaks if this goes wrong: the real reach of the change, following the dependency graph.",
+    automation: "Automated computation over the CMDB",
   },
   change_planning: {
-    pitch: "El cambio ITSM, su ventana, sus tareas y la secuencia de anillos quedan armados antes de ejecutar.",
-    automation: "Plan automático · aprobación del cambio",
+    pitch: "The ITSM change, its window, its tasks and the ring sequence are all set up before executing.",
+    automation: "Automated plan · change approval",
   },
   ring_execution: {
-    pitch: "Despliegue por anillos: cada lote se pre-aprueba, se ejecuta y publica su evidencia antes de promocionar.",
-    automation: "Ejecución del agente · una aprobación por anillo",
+    pitch: "Ring-based rollout: each batch is pre-approved, executed and publishes its evidence before promoting.",
+    automation: "Agent execution · one approval per ring",
   },
   gate_validation: {
-    pitch: "Post-checks, salud del servicio y rollback armado: la promoción sólo se propone si el anillo está sano.",
-    automation: "Verificación automática · validación humana",
+    pitch: "Post-checks, service health and an armed rollback: promotion is only proposed if the ring is healthy.",
+    automation: "Automated verification · human validation",
   },
   evidence_closure: {
-    pitch: "Trazabilidad completa de hallazgo a cierre; el Vulnerable Item se cierra al aceptar las evidencias.",
-    automation: "Informe automático · aceptación humana",
+    pitch: "End-to-end traceability from finding to closure; the Vulnerable Item closes once the evidence is accepted.",
+    automation: "Automated report · human acceptance",
   },
 };
 
@@ -83,14 +83,14 @@ function playbackLines(step: DemoStep, before: LogEntry[], next: TaskDetail): Ex
 
 /** Título de la reproducción según lo que se acaba de ejecutar. */
 const PLAYBACK_TITLE: Record<DemoStep["kind"], (s: DemoStep) => string> = {
-  verify: (s) => `Validación humana registrada · ${s.gate?.label ?? ""}`,
-  preapprove: (s) => `Anillo ${s.ring} pre-aprobado · informe pre-anillo aceptado`,
-  deploy: (s) => `Desplegando el anillo ${s.ring}`,
-  rollback: (s) => `Rollback del anillo ${s.ring} · restaurando la versión estable`,
+  verify: (s) => `Human validation recorded · ${s.gate?.label ?? ""}`,
+  preapprove: (s) => `Ring ${s.ring} pre-approved · pre-ring report accepted`,
+  deploy: (s) => `Deploying ring ${s.ring}`,
+  rollback: (s) => `Rolling ring ${s.ring} back · restoring the stable version`,
   approve: (s) => s.gate?.verdict
-    ? `${s.gate.verdict} · la plataforma prepara los artefactos siguientes`
-    : "Fase aprobada · la plataforma prepara los artefactos siguientes",
-  done: () => "Recorrido completado",
+    ? `${s.gate.verdict} · the platform prepares the next artefacts`
+    : "Phase approved · the platform prepares the next artefacts",
+  done: () => "Journey completed",
 };
 
 /** Escena donde vive la acción pendiente, para señalarla en el stepper. */
@@ -156,7 +156,7 @@ function SceneStepper({ phases, current, actionPhase, actionAccent, onSelect }: 
             <div className={`text-[11px] leading-snug mt-1 ${active ? "text-gray-100 font-semibold" : "text-gray-400"}`}>
               {p.label}
             </div>
-            {p.status === "current" && <div className="text-[10px]" style={{ color }}>en curso</div>}
+            {p.status === "current" && <div className="text-[10px]" style={{ color }}>in progress</div>}
           </button>
         );
       })}
@@ -189,7 +189,7 @@ function VulnPicker({ tasks, selected, onSelect }: {
               <span className={`w-1.5 h-1.5 rounded-full ${closed ? "bg-emerald-400" : "bg-amber-400"}`} />
             </div>
             <div className="text-[10px] text-gray-500 leading-tight">
-              {closed ? "remediada" : `fase ${t.journey.phase_index + 1}/8 · ${t.journey.phase_label}`}
+              {closed ? "remediated" : `phase ${t.journey.phase_index + 1}/8 · ${t.journey.phase_label}`}
             </div>
           </button>
         );
@@ -204,15 +204,15 @@ function Curtain() {
   return (
     <div className="p-6">
       <div className="card p-8 max-w-2xl mx-auto text-center space-y-4">
-        <div className="text-xs tracking-[0.2em] text-fuchsia-300">PRESENTACIÓN GUIADA</div>
-        <h1 className="text-2xl font-bold text-gray-100">Del hallazgo de Cyber al cierre con evidencias</h1>
+        <div className="text-xs tracking-[0.2em] text-fuchsia-300">GUIDED WALKTHROUGH</div>
+        <h1 className="text-2xl font-bold text-gray-100">From the Cyber finding to closure with evidence</h1>
         <p className="text-sm text-gray-400 leading-relaxed">
-          Ocho escenas sobre los datos reales del backend, con los puntos de control humano marcados
-          y el ritmo en manos del presentador. Ninguna acción muta recursos en AWS.
+          Eight scenes over real backend data, with every human control point marked and the pacing
+          in the presenter's hands. No action mutates AWS resources.
         </p>
         {allowed ? (
           <button type="button" onClick={() => setEnabled(true)} className="btn btn-brand mx-auto">
-            ◉ Activar Modo Demo y empezar
+            ◉ Turn on Demo Mode and start
           </button>
         ) : (
           <div className="text-xs text-amber-300">{reason}</div>
@@ -250,11 +250,11 @@ export default function DemoStage() {
     api.tasks().then((all) => {
       setTasks(all);
       setTaskId((current) => current ?? (all.find((t) => t.status !== "remediated") ?? all[0])?.id ?? null);
-    }).catch(() => setError("No se pudo cargar la lista de vulnerabilidades."));
+    }).catch(() => setError("The vulnerability list could not be loaded."));
   }, []);
 
   const load = useCallback((id: string) => {
-    api.task(id).then(setDetail).catch(() => setError("No se pudo cargar el recorrido."));
+    api.task(id).then(setDetail).catch(() => setError("The journey could not be loaded."));
   }, []);
 
   useEffect(() => {
@@ -300,7 +300,7 @@ export default function DemoStage() {
         setTaskId(first?.id ?? null);
         if (first) load(first.id);
       })
-      .catch(() => setError("No se pudo reiniciar el escenario de la demo."))
+      .catch(() => setError("The demo scenario could not be reset."))
       .finally(() => { setResetting(false); setArmed(false); });
   }, [load]);
 
@@ -314,8 +314,8 @@ export default function DemoStage() {
     setPlayback({
       title: PLAYBACK_TITLE[waiting.step.kind](waiting.step),
       subtitle: stepTone(waiting.step) === "human"
-        ? `Decisión registrada como ${ROLE_META[role].label} · el flujo queda desbloqueado`
-        : "Ejecución del agente reproducida paso a paso",
+        ? `Decision recorded as ${ROLE_META[role].label} · the flow is unblocked`
+        : "Agent execution replayed step by step",
       lines: playbackLines(waiting.step, waiting.before, detail),
     });
   }, [detail, role]);
@@ -328,7 +328,7 @@ export default function DemoStage() {
 
   if (!active) return <Curtain />;
   if (error) return <div className="p-6 text-sm text-red-300">{error}</div>;
-  if (!detail || !taskId) return <div className="p-6 text-xs text-gray-500">Preparando la presentación…</div>;
+  if (!detail || !taskId) return <div className="p-6 text-xs text-gray-500">Preparing the walkthrough…</div>;
 
   const j = detail.journey;
   const sceneId = pinned ?? j.phase;
@@ -360,8 +360,8 @@ export default function DemoStage() {
     const label = detail.artifacts.deployment.rings.find((r) => r.ring === ring)?.label ?? "";
     const s: DemoStep = {
       kind: "rollback", ring, gate: null,
-      label: `Revertir el anillo ${ring} · ${label}`,
-      hint: "Restaura la versión estable del lote y devuelve el anillo al estado previo al despliegue.",
+      label: `Roll back ring ${ring} · ${label}`,
+      hint: "Restores the stable version of the batch and returns the ring to its pre-deployment state.",
     };
     setRunning(true);
     setPlayback(null);
@@ -372,7 +372,7 @@ export default function DemoStage() {
       .catch(() => {
         pending.current = null;
         setReplaying(false);
-        setError("El rollback no se pudo completar; el anillo sigue como estaba.");
+        setError("The rollback could not be completed; the ring is unchanged.");
       })
       .finally(() => setRunning(false));
   };
@@ -390,7 +390,7 @@ export default function DemoStage() {
       .catch(() => {
         pending.current = null;
         setReplaying(false);
-        setError("La acción no se pudo completar; el flujo sigue detenido.");
+        setError("The action could not be completed; the flow is still stopped.");
       })
       .finally(() => setRunning(false));
   };
@@ -399,7 +399,7 @@ export default function DemoStage() {
     <div className="p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] tracking-[0.2em] text-fuchsia-300">PRESENTACIÓN GUIADA</div>
+          <div className="text-[10px] tracking-[0.2em] text-fuchsia-300">GUIDED WALKTHROUGH</div>
           <h1 className="text-xl font-bold text-gray-100 leading-tight">{j.cve} · {j.title}</h1>
           <div className="flex flex-wrap items-center gap-2 mt-1.5">
             <Risk score={j.risk_score} />
@@ -417,16 +417,16 @@ export default function DemoStage() {
               disabled={resetting}
               onClick={() => (armed ? resetDemo() : setArmed(true))}
               onBlur={() => setArmed(false)}
-              title="Vuelve al escenario inicial: 3 vulnerabilidades resueltas y 2 pendientes"
+              title="Back to the initial scenario: 3 resolved vulnerabilities and 2 pending"
               className={`text-[11px] rounded-md border px-2 py-1 transition ${
                 armed
                   ? "border-amber-500/50 bg-amber-500/15 text-amber-200"
                   : "border-line text-gray-500 hover:text-gray-200"}`}
             >
-              {resetting ? "Reiniciando…" : armed ? "Confirmar reinicio" : "↺ Reiniciar la demo"}
+              {resetting ? "Resetting…" : armed ? "Confirm reset" : "↺ Reset the demo"}
             </button>
             <Link to={`/tasks/${taskId}`} className="text-[11px] text-gray-500 hover:text-gray-300">
-              Abrir la Remediation Task completa →
+              Open the full Remediation Task →
             </Link>
           </div>
         </div>
@@ -458,16 +458,16 @@ export default function DemoStage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
                     style={{ background: color + "22", color }}>
-                ESCENA {scenePhase.index + 1}/{j.phases.length}
+                SCENE {scenePhase.index + 1}/{j.phases.length}
               </span>
               <span className="text-[10px] text-gray-500">{scenePhase.band_label}</span>
               {gates.length > 0 && (
                 <span className="chip border border-amber-500/40 text-amber-300">
-                  ◑ {gates.length === 1 ? "1 punto de control humano" : `${gates.length} puntos de control humanos`}
+                  ◑ {gates.length === 1 ? "1 human control point" : `${gates.length} human control points`}
                 </span>
               )}
               {scenePhase.status === "current" && (
-                <span className="chip border" style={{ borderColor: color + "66", color }}>escena en curso</span>
+                <span className="chip border" style={{ borderColor: color + "66", color }}>current scene</span>
               )}
             </div>
             <h2 className="text-lg font-bold text-gray-100 mt-2">{scenePhase.label}</h2>
@@ -484,7 +484,7 @@ export default function DemoStage() {
             {step.kind !== "done" && actionPhase && actionPhase !== scenePhase.id && (
               <button type="button" onClick={() => setPinned(actionPhase)}
                       className="text-[11px] text-amber-300 hover:text-amber-200">
-                La acción pendiente está en «{j.phases.find((p) => p.id === actionPhase)?.label}» → ir a esa escena
+                The pending action is in «{j.phases.find((p) => p.id === actionPhase)?.label}» → go to that scene
               </button>
             )}
           </div>
@@ -492,7 +492,7 @@ export default function DemoStage() {
                     onVerify={verifyGate} onRollback={rollbackRing} />
           <div className="card p-3">
             <div className="text-[10px] font-semibold tracking-wider text-gray-500 mb-2">
-              ACTIVIDAD TÉCNICA
+              TECHNICAL ACTIVITY
             </div>
             <LogConsole entries={[...detail.logs].reverse()} limit={role === "technical" ? 24 : 10} />
           </div>
